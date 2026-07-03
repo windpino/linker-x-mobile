@@ -99,6 +99,8 @@ export default function App() {
   const [devCommandInput, setDevCommandInput] = useState('');
   const [devCommands, setDevCommands] = useState([]);
   const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
+  const [activeSuccessPopup, setActiveSuccessPopup] = useState(null);
+  const [lastProcessedCmdId, setLastProcessedCmdId] = useState(null);
   const [loginFontSize, setLoginFontSize] = useState(() => {
     const saved = localStorage.getItem('login_font_size');
     return saved ? parseInt(saved, 10) : 12;
@@ -110,6 +112,20 @@ export default function App() {
     document.documentElement.style.fontSize = `${rootSize}px`;
   }, [loginFontSize]);
   
+    useEffect(() => {
+    if (devCommands.length > 0) {
+      const latestCmd = devCommands[0];
+      if (latestCmd.status === 'success' && latestCmd.id !== lastProcessedCmdId) {
+        if (lastProcessedCmdId === null) {
+          setLastProcessedCmdId(latestCmd.id);
+        } else {
+          setActiveSuccessPopup(latestCmd);
+          setLastProcessedCmdId(latestCmd.id);
+        }
+      }
+    }
+  }, [devCommands, lastProcessedCmdId]);
+
   // ---------------------------------------------------------
   // 2. 메뉴 및 뷰 상태
   // ---------------------------------------------------------
@@ -543,9 +559,33 @@ export default function App() {
                   >
                     <Settings size={8} />
                   </button>
-                </div>
-              );
-            })}
+      {/* Dev Command Success Modal Popup */}
+      {activeSuccessPopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 font-sans">
+            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-450 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto animate-bounce">
+              <CheckCircle2 size={24} />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-white text-base font-extrabold">코드 수정 반영 완료!</h4>
+              <p className="text-slate-455 text-[10px] font-semibold">대표님의 지시사항이 서버에 즉시 배포되었습니다.</p>
+            </div>
+            <div className="bg-slate-955 p-3.5 rounded-xl border border-slate-850/80 text-left">
+              <span className="text-[10px] text-violet-400 font-extrabold block mb-1">실행된 명령</span>
+              <p className="text-white text-xs font-bold leading-relaxed">{activeSuccessPopup.command}</p>
+            </div>
+            <button
+              onClick={() => setActiveSuccessPopup(null)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/10"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})}
           </div>
         </div>
 
