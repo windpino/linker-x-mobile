@@ -2972,6 +2972,9 @@ export default function App() {
 
         {/* Smart Support / Chatbot */}
         {currentView === 'agent_chat' && renderAgentChat()}
+      
+        {/* Developer Console Module */}
+        {currentView === 'dev_console' && renderDevConsole()}
       </main>
 
       {/* Bottom Shortcuts Quick Bar */}
