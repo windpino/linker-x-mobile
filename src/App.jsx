@@ -2379,7 +2379,7 @@ export default function App() {
           
           {/* Font Size Adjuster Buttons */}
           <div className="flex justify-between items-center px-6 pt-4 bg-slate-900 border-b border-slate-850 pb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Font Options</span>
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Font Options</span>
             <div className="flex items-center gap-1.5">
               <button 
                 type="button"
@@ -2432,20 +2432,20 @@ export default function App() {
             {step === 1 ? (
               <form onSubmit={handleAgencySubmit} className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 01</span>
+                  <span className="bg-indigo-650 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 01</span>
                   <h3 className="text-white font-bold" style={{ fontSize: subTitleFontSize }}>회원사 식별</h3>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>회원사 식별 아이디</label>
+                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>회원사 식별 아이디</label>
                   <div className="relative">
-                    <Package size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Package size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                     <input 
                       type="text" 
                       value={agencyInput}
                       onChange={e => { setAgencyInput(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="회원사 아이디 또는 이메일"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="bg-white border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 w-full text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
                       style={{ fontSize: baseFontSize }}
                       required
                     />
@@ -2453,22 +2453,22 @@ export default function App() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>회원사 비밀번호</label>
+                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>회원사 비밀번호</label>
                   <div className="relative">
-                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                     <input 
                       type={showAgencyPassword ? "text" : "password"}
                       value={agencyPassword}
                       onChange={e => { setAgencyPassword(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="회원사 비밀번호를 입력하세요"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="bg-white border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 w-full text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
                       style={{ fontSize: baseFontSize }}
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowAgencyPassword(!showAgencyPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-505 hover:text-slate-355"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 z-10"
                     >
                       {showAgencyPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -2478,11 +2478,11 @@ export default function App() {
                 <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
-                      autoSave ? 'bg-indigo-600 border-indigo-650' : 'bg-slate-955 border-slate-800'
+                      autoSave ? 'bg-indigo-600 border-indigo-650' : 'bg-slate-800 border-slate-700'
                     }`}>
                       {autoSave && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
+                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
@@ -2490,11 +2490,11 @@ export default function App() {
                     setAutoLogin(!autoLogin);
                   }}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
-                      autoLogin ? 'bg-indigo-600 border-indigo-655' : 'bg-slate-955 border-slate-800'
+                      autoLogin ? 'bg-indigo-600 border-indigo-655' : 'bg-slate-800 border-slate-700'
                     }`}>
                       {autoLogin && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
+                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
                   </div>
                 </div>
 
@@ -2510,8 +2510,8 @@ export default function App() {
             ) : (
               <form onSubmit={handleUserSubmit} className="space-y-4 animate-fadeIn">
                 <div className="flex justify-between items-center bg-slate-955 border border-slate-800 p-2.5 rounded-xl text-[10px]">
-                  <span className="text-slate-500 font-bold" style={{ fontSize: labelFontSize }}>인증 회사</span>
-                  <span className="text-sky-400 font-extrabold" style={{ fontSize: labelFontSize }}>{selectedAgency?.name}</span>
+                  <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>인증 회사</span>
+                  <span className="text-sky-450 font-extrabold" style={{ fontSize: labelFontSize }}>{selectedAgency?.name}</span>
                 </div>
 
                 <div className="flex items-center gap-2 mb-1">
@@ -2520,15 +2520,15 @@ export default function App() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>사용자 ID</label>
+                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>사용자 ID</label>
                   <div className="relative">
-                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                     <input 
                       type="text" 
                       value={email}
                       onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="아이디 또는 이메일 입력"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      className="bg-white border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 w-full text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-inner"
                       style={{ fontSize: baseFontSize }}
                       required
                     />
@@ -2536,22 +2536,22 @@ export default function App() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-550 font-bold" style={{ fontSize: labelFontSize }}>비밀번호</label>
+                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>비밀번호</label>
                   <div className="relative">
-                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                     <input 
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={e => { setPassword(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="사용자 비밀번호를 입력하세요"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      className="bg-white border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 w-full text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-inner"
                       style={{ fontSize: baseFontSize }}
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-355"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 z-10"
                     >
                       {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -2561,11 +2561,11 @@ export default function App() {
                 <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
-                      autoSave ? 'bg-sky-600 border-sky-650' : 'bg-slate-955 border-slate-800'
+                      autoSave ? 'bg-sky-600 border-sky-650' : 'bg-slate-800 border-slate-700'
                     }`}>
                       {autoSave && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
+                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
@@ -2573,11 +2573,11 @@ export default function App() {
                     setAutoLogin(!autoLogin);
                   }}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
-                      autoLogin ? 'bg-sky-600 border-sky-655' : 'bg-slate-955 border-slate-800'
+                      autoLogin ? 'bg-sky-600 border-sky-655' : 'bg-slate-800 border-slate-700'
                     }`}>
                       {autoLogin && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
+                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
                   </div>
                 </div>
 
@@ -2585,7 +2585,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleBackToStep1}
-                    className="flex-1 bg-slate-850 hover:bg-slate-800 text-slate-400 font-bold py-3 rounded-xl border border-slate-800 transition-all"
+                    className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold py-3 rounded-xl border border-slate-700 transition-all"
                     style={{ fontSize: baseFontSize }}
                   >
                     이전 단계
@@ -2606,6 +2606,7 @@ export default function App() {
       </div>
     );
   }
+
 
 
   // ---------------------------------------------------------
