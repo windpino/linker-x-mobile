@@ -106,6 +106,8 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('login_font_size', loginFontSize);
+    const rootSize = (loginFontSize / 12) * 16;
+    document.documentElement.style.fontSize = `${rootSize}px`;
   }, [loginFontSize]);
   
   // ---------------------------------------------------------
