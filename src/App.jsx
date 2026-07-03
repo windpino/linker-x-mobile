@@ -95,6 +95,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginFontSize, setLoginFontSize] = useState(12);
   
   // ---------------------------------------------------------
   // 2. 메뉴 및 뷰 상태
@@ -2367,10 +2368,39 @@ export default function App() {
   // 19. 로그인 화면 렌더링
   // ---------------------------------------------------------
   if (!isLoggedIn) {
+    const baseFontSize = `${loginFontSize}px`;
+    const labelFontSize = `${Math.max(10, loginFontSize - 2)}px`;
+    const titleFontSize = `${loginFontSize + 4}px`;
+    const subTitleFontSize = `${loginFontSize + 2}px`;
+
     return (
       <div className="min-h-screen bg-[#0b0f19] flex flex-col justify-center items-center p-4 text-white">
         <div className="w-full max-w-sm bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl">
           
+          {/* Font Size Adjuster Buttons */}
+          <div className="flex justify-between items-center px-6 pt-4 bg-slate-900 border-b border-slate-850 pb-2">
+            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Font Options</span>
+            <div className="flex items-center gap-1.5">
+              <button 
+                type="button"
+                onClick={() => setLoginFontSize(Math.max(10, loginFontSize - 1))}
+                className="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs transition-all"
+                title="글자 작게"
+              >
+                -
+              </button>
+              <span className="text-[11px] text-slate-300 font-extrabold w-5 text-center">{loginFontSize}px</span>
+              <button 
+                type="button"
+                onClick={() => setLoginFontSize(Math.min(24, loginFontSize + 1))}
+                className="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs transition-all"
+                title="글자 크게"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           <div className="px-6 py-5 flex flex-col items-center text-center relative overflow-hidden" style={{
             background: step === 1 
               ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' 
@@ -2380,11 +2410,11 @@ export default function App() {
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-3">
               {step === 1 ? <Building2 size={24} color="#ffffff" strokeWidth={1.5} /> : <Users size={24} color="#ffffff" strokeWidth={1.5} />}
             </div>
-            <h1 className="text-white text-lg font-black tracking-tight leading-none">Link X Mobile</h1>
-            <h2 className="text-white/80 text-[10px] font-bold mt-1.5 tracking-wider uppercase">
+            <h1 className="text-white font-black tracking-tight leading-none" style={{ fontSize: titleFontSize }}>Link X Mobile</h1>
+            <h2 className="text-white/80 font-bold mt-1.5 tracking-wider uppercase" style={{ fontSize: labelFontSize }}>
               {step === 1 ? '회원사(사업장) 인증' : '구성원 로그인'}
             </h2>
-            <p className="text-white/60 text-[9px] mt-2 font-medium">
+            <p className="text-white/60 mt-2 font-medium" style={{ fontSize: labelFontSize }}>
               {step === 1 
                 ? '비즈니스 파트너 인증 단계' 
                 : selectedAgency?.name || '시스템'}
@@ -2393,7 +2423,7 @@ export default function App() {
 
           <div className="p-6 space-y-4">
             {authError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-500 text-xs font-semibold flex items-start gap-2 animate-fadeIn">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-500 font-semibold flex items-start gap-2 animate-fadeIn" style={{ fontSize: labelFontSize }}>
                 <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
                 <span>{authError}</span>
               </div>
@@ -2403,11 +2433,11 @@ export default function App() {
               <form onSubmit={handleAgencySubmit} className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 01</span>
-                  <h3 className="text-white text-xs font-bold">회원사 식별</h3>
+                  <h3 className="text-white font-bold" style={{ fontSize: subTitleFontSize }}>회원사 식별</h3>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 text-[10px] font-bold">회원사 식별 아이디</label>
+                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>회원사 식별 아이디</label>
                   <div className="relative">
                     <Package size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input 
@@ -2415,42 +2445,44 @@ export default function App() {
                       value={agencyInput}
                       onChange={e => { setAgencyInput(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="회원사 아이디 또는 이메일"
-                      className="bg-slate-950 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-xs text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      style={{ fontSize: baseFontSize }}
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-505 text-[10px] font-bold">회원사 비밀번호</label>
+                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>회원사 비밀번호</label>
                   <div className="relative">
-                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
                     <input 
                       type={showAgencyPassword ? "text" : "password"}
                       value={agencyPassword}
                       onChange={e => { setAgencyPassword(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="회원사 비밀번호를 입력하세요"
-                      className="bg-slate-950 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-xs text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-white focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      style={{ fontSize: baseFontSize }}
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowAgencyPassword(!showAgencyPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-355"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-505 hover:text-slate-355"
                     >
                       {showAgencyPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-1 text-[11px]">
+                <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
                       autoSave ? 'bg-indigo-600 border-indigo-650' : 'bg-slate-955 border-slate-800'
                     }`}>
                       {autoSave && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold">아이디 저장</span>
+                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
@@ -2462,14 +2494,15 @@ export default function App() {
                     }`}>
                       {autoLogin && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold">자동 로그인</span>
+                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-indigo-500/10"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/10"
+                  style={{ fontSize: baseFontSize }}
                 >
                   {isLoading ? '인증 중...' : '다음 단계'}
                 </button>
@@ -2477,60 +2510,62 @@ export default function App() {
             ) : (
               <form onSubmit={handleUserSubmit} className="space-y-4 animate-fadeIn">
                 <div className="flex justify-between items-center bg-slate-955 border border-slate-800 p-2.5 rounded-xl text-[10px]">
-                  <span className="text-slate-500 font-bold">인증 회사</span>
-                  <span className="text-sky-400 font-extrabold">{selectedAgency?.name}</span>
+                  <span className="text-slate-500 font-bold" style={{ fontSize: labelFontSize }}>인증 회사</span>
+                  <span className="text-sky-400 font-extrabold" style={{ fontSize: labelFontSize }}>{selectedAgency?.name}</span>
                 </div>
 
                 <div className="flex items-center gap-2 mb-1">
                   <span className="bg-sky-600 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 02</span>
-                  <h3 className="text-white text-xs font-bold">사용자 로그인</h3>
+                  <h3 className="text-white font-bold" style={{ fontSize: subTitleFontSize }}>사용자 로그인</h3>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 text-[10px] font-bold">사용자 ID</label>
+                  <label className="text-slate-505 font-bold" style={{ fontSize: labelFontSize }}>사용자 ID</label>
                   <div className="relative">
-                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
                     <input 
                       type="text" 
                       value={email}
                       onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="아이디 또는 이메일 입력"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-xs text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 w-full text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      style={{ fontSize: baseFontSize }}
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-slate-550 text-[10px] font-bold">비밀번호</label>
+                  <label className="text-slate-550 font-bold" style={{ fontSize: labelFontSize }}>비밀번호</label>
                   <div className="relative">
-                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-505" />
                     <input 
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={e => { setPassword(e.target.value); if (authError) setAuthError(''); }}
                       placeholder="사용자 비밀번호를 입력하세요"
-                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-xs text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      className="bg-slate-955 border border-slate-800/80 rounded-xl pl-9 pr-10 py-2.5 w-full text-white focus:outline-none focus:border-sky-500 transition-all shadow-inner"
+                      style={{ fontSize: baseFontSize }}
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-355"
                     >
                       {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-1 text-[11px]">
+                <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
                     <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all ${
                       autoSave ? 'bg-sky-600 border-sky-650' : 'bg-slate-955 border-slate-800'
                     }`}>
                       {autoSave && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold">아이디 저장</span>
+                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
@@ -2542,7 +2577,7 @@ export default function App() {
                     }`}>
                       {autoLogin && <Check size={10} color="#fff" strokeWidth={4} />}
                     </div>
-                    <span className="text-slate-400 font-bold">자동 로그인</span>
+                    <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
                   </div>
                 </div>
 
@@ -2550,14 +2585,16 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleBackToStep1}
-                    className="flex-1 bg-slate-850 hover:bg-slate-800 text-slate-400 font-bold py-3 rounded-xl text-xs border border-slate-800 transition-all"
+                    className="flex-1 bg-slate-850 hover:bg-slate-800 text-slate-400 font-bold py-3 rounded-xl border border-slate-800 transition-all"
+                    style={{ fontSize: baseFontSize }}
                   >
                     이전 단계
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-sky-500/10"
+                    className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-sky-500/10"
+                    style={{ fontSize: baseFontSize }}
                   >
                     {isLoading ? '로그인 중...' : '시스템 접속'}
                   </button>
@@ -2569,6 +2606,7 @@ export default function App() {
       </div>
     );
   }
+
 
   // ---------------------------------------------------------
   // 20. 메인 ERP 레이아웃 렌더링
