@@ -95,7 +95,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loginFontSize, setLoginFontSize] = useState(12);
+  const [loginFontSize, setLoginFontSize] = useState(() => {
+    const saved = localStorage.getItem('login_font_size');
+    return saved ? parseInt(saved, 10) : 12;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('login_font_size', loginFontSize);
+  }, [loginFontSize]);
   
   // ---------------------------------------------------------
   // 2. 메뉴 및 뷰 상태
