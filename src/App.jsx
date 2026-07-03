@@ -95,6 +95,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authError, setAuthError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [devCommandInput, setDevCommandInput] = useState('');
+  const [devCommands, setDevCommands] = useState([]);
+  const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
   const [loginFontSize, setLoginFontSize] = useState(() => {
     const saved = localStorage.getItem('login_font_size');
     return saved ? parseInt(saved, 10) : 12;
@@ -2619,6 +2623,101 @@ export default function App() {
   // ---------------------------------------------------------
   // 20. 메인 ERP 레이아웃 렌더링
   // ---------------------------------------------------------
+  const handleSubmitDevCmd = async (e) => {
+    e.preventDefault();
+    const text = devCommandInput.trim();
+    if (!text) return;
+    setIsSubmittingDevCmd(true);
+    try {
+      const cmdId = `cmd_${Date.now()}`;
+      const newCmd = {
+        id: cmdId,
+        command: text,
+        status: 'pending',
+        createdAt: new Date().toLocaleString(),
+        log: '',
+        companyId
+      };
+      await setDoc(doc(db, 'companies', companyId, 'devCommands', cmdId), newCmd);
+      setDevCommandInput('');
+      alert('개발 명령이 전송되었습니다. 에이전트가 즉시 코드 수정을 수행합니다.');
+    } catch (err) {
+      console.error(err);
+      alert('명령 전송 에러');
+    } finally {
+      setIsSubmittingDevCmd(false);
+    }
+  };
+
+  const renderDevConsole = () => {
+    return (
+      <div className="space-y-6 animate-fadeIn pb-12">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 className="text-white text-sm font-black flex items-center gap-1.5">
+              <Cpu size={16} className="text-violet-500 animate-pulse" />
+              개발모드 콘솔 (에이전트 실시간 지시)
+            </h3>
+            <span className="text-[10px] text-violet-400 font-extrabold bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/25">
+              관리자 전용
+            </span>
+          </div>
+
+          <form onSubmit={handleSubmitDevCmd} className="space-y-3">
+            <label className="text-slate-400 text-xs font-bold block">코드 수정 및 기능 구현 명령</label>
+            <textarea 
+              value={devCommandInput}
+              onChange={e => setDevCommandInput(e.target.value)}
+              placeholder="예: 일정 리스트 각 일정 우측에 빨간색 '삭제' 버튼을 달아주고, 누르면 파이어베이스에서 일정이 삭제되게 해줘."
+              rows="3"
+              className="bg-slate-955 border border-slate-800 rounded-xl p-3 w-full text-xs text-white focus:outline-none focus:border-violet-500"
+              required
+            />
+            <button 
+              type="submit" 
+              disabled={isSubmittingDevCmd}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-lg shadow-violet-500/15"
+            >
+              <Send size={14}/> 명령 전송 (즉시 코드 반영 실행)
+            </button>
+          </form>
+        </div>
+
+        <div className="space-y-3">
+          <span className="text-slate-500 text-xs font-bold block uppercase tracking-wider">이전 개발 명령 히스토리</span>
+          <div className="space-y-2.5 font-sans">
+            {devCommands.map(cmd => (
+              <div key={cmd.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-[10px] text-slate-505">
+                  <span>{cmd.createdAt}</span>
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                    cmd.status === 'success' ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
+                    cmd.status === 'failed' ? 'bg-red-500/10 text-red-450 border-red-500/20' :
+                    cmd.status === 'running' ? 'bg-blue-500/10 text-blue-450 border-blue-500/20 animate-pulse' :
+                    'bg-slate-850 text-slate-400'
+                  }`}>
+                    {cmd.status === 'success' ? '성공' :
+                     cmd.status === 'failed' ? '실패' :
+                     cmd.status === 'running' ? '반영중' : '대기중'}
+                  </span>
+                </div>
+                <p className="text-white text-xs font-bold">{cmd.command}</p>
+                {cmd.log && (
+                  <pre className="bg-slate-955 p-2.5 rounded-lg border border-slate-850 text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono">
+                    {cmd.log}
+                  </pre>
+                )}
+              </div>
+            ))}
+            {devCommands.length === 0 && (
+              <div className="text-center py-12 text-slate-600 text-xs bg-slate-900 border border-slate-800 rounded-2xl">전송된 개발 명령이 없습니다.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const navigateToView = (viewName) => {
     setCurrentView(viewName);
     setIsMenuOpen(false);
@@ -2816,6 +2915,25 @@ export default function App() {
           <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
             {companyId}
           </span>
+          {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && (
+            <button 
+              onClick={() => {
+                if (currentView === 'dev_console') {
+                  setCurrentView('dashboard');
+                } else {
+                  setCurrentView('dev_console');
+                }
+              }}
+              className={`p-1.5 rounded border transition-all ${
+                currentView === 'dev_console' 
+                  ? 'bg-violet-650 text-white border-violet-500 shadow-md shadow-violet-500/10' 
+                  : 'bg-slate-900 text-slate-400 hover:text-violet-400 border-slate-800'
+              }`}
+              title="개발모드 콘솔"
+            >
+              <Cpu size={12} className={currentView === 'dev_console' ? 'animate-pulse' : ''} />
+            </button>
+          )}
           <button 
             onClick={handleLogout}
             className="p-1.5 bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded border border-slate-800 transition-all"
