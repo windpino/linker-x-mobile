@@ -2670,7 +2670,7 @@ export default function App() {
               onChange={e => setDevCommandInput(e.target.value)}
               placeholder="예: 일정 리스트 각 일정 우측에 빨간색 '삭제' 버튼을 달아주고, 누르면 파이어베이스에서 일정이 삭제되게 해줘."
               rows="3"
-              className="bg-slate-955 border border-slate-800 rounded-xl p-3 w-full text-xs text-white focus:outline-none focus:border-violet-500"
+              className="bg-white border border-slate-300 rounded-xl p-3 w-full text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-inner"
               required
             />
             <button 
