@@ -1428,7 +1428,7 @@ export default function App() {
                       min="1"
                       value={item.qty}
                       onChange={e => handlePurchaseItemChange(idx, 'qty', parseInt(e.target.value) || 0)}
-                      className="bg-slate-900 border border-slate-855 rounded-md p-1.5 w-full text-center text-xs text-white font-bold"
+                      className="bg-slate-900 border border-slate-800 rounded-md p-1.5 w-full text-center text-xs text-white font-bold"
                     />
                   </div>
                 </div>
@@ -2009,7 +2009,7 @@ export default function App() {
                     <select
                       value={item.productName}
                       onChange={e => handleOrderItemChange(idx, 'productName', e.target.value)}
-                      className="bg-slate-900 border border-slate-855 rounded-md p-1.5 w-full text-xs text-white focus:outline-none"
+                      className="bg-slate-900 border border-slate-800 rounded-md p-1.5 w-full text-xs text-white focus:outline-none"
                     >
                       <option value="">-- 품목 선택 --</option>
                       {products.map(p => (
@@ -2026,7 +2026,7 @@ export default function App() {
                     min="1"
                     value={item.qty}
                     onChange={e => handleOrderItemChange(idx, 'qty', parseInt(e.target.value) || 0)}
-                    className="w-14 bg-slate-900 border border-slate-855 rounded-md p-1.5 text-center text-xs text-white font-bold"
+                    className="w-14 bg-slate-900 border border-slate-800 rounded-md p-1.5 text-center text-xs text-white font-bold"
                   />
                   {orderItems.length > 1 && (
                     <button 
@@ -2200,7 +2200,7 @@ export default function App() {
 
                   {isExpanded && (
                     <div className="border-t border-slate-850 bg-slate-950 p-4 space-y-4 animate-fadeIn">
-                      <div className="bg-slate-900 border border-slate-855 rounded-lg p-2.5 flex justify-between items-center text-[10px] text-slate-400">
+                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 flex justify-between items-center text-[10px] text-slate-400">
                         <span>출고지: {order.outWarehouse || '본사창고'}</span>
                         <span>➔</span>
                         <span>입고지: {order.inWarehouse || '차량창고'}</span>
@@ -2779,14 +2779,14 @@ export default function App() {
 
       {/* Slide-out Menu Drawer Container */}
       <div 
-        className={`fixed top-0 bottom-0 left-0 w-4/5 max-w-[280px] bg-[#0c101b] border-r border-slate-855/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out transform ${
+        className={`fixed top-0 bottom-0 left-0 w-4/5 max-w-[280px] bg-[#0c101b] border-r border-slate-800/50 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out transform ${
           isMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ zIndex: 9999 }}
       >
         <div className="overflow-y-auto flex-1">
           {/* Drawer Header */}
-          <div className="p-5 border-b border-slate-855/80 flex justify-between items-center bg-[#070a13]/40">
+          <div className="p-5 border-b border-slate-800/50 flex justify-between items-center bg-[#070a13]/40">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white font-black text-xs">X</div>
               <span className="font-extrabold text-xs tracking-tight">LinkerX 전체메뉴</span>
@@ -2819,7 +2819,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'basic' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'basic' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('staff_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">직원관리</button>
                   <button onClick={() => navigateToView('warehouse_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">창고관리</button>
                   <button onClick={() => navigateToView('partner_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">거래처등록/관리</button>
@@ -2838,7 +2838,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'purchase' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'purchase' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('purchase_invoice')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매입전표 등록</button>
                   <button onClick={() => navigateToView('purchase_ledger')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매입전표 관리 (내역)</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-500 font-bold block cursor-not-allowed">매입원장</button>
@@ -2858,7 +2858,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'sales' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'sales' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('sales_invoice_list')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매출전표 내역 (수금)</button>
                   <button onClick={() => navigateToView('sales_order_new')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">간편수주 등록</button>
                   <button onClick={() => navigateToView('sales_order_list')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">수주목록 (상차)</button>
@@ -2878,7 +2878,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'cash' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'cash' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('account_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">계좌관리</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">결산보고서</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">일자별 입출금 현황</button>
@@ -2899,7 +2899,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'inventory' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'inventory' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('inventory_lookup')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">실시간 재고 조회</button>
                   <button onClick={() => navigateToView('inventory_transfer')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">창고 간 재고 이동</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">재고 이동 현황 관리</button>
@@ -2919,7 +2919,7 @@ export default function App() {
                 <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'smart' ? 'rotate-180' : ''}`} />
               </button>
               {activeMenuDropdown === 'smart' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-855/60 ml-5 py-1">
+                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
                   <button onClick={() => navigateToView('agent_chat')} className="w-full text-left py-2 text-[11px] text-violet-400 hover:text-violet-300 font-bold block flex items-center gap-1.5"><MessageSquare size={12}/> AI 비서 명령창</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">매출보고서</button>
                   <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">수주보고서</button>
@@ -2934,7 +2934,7 @@ export default function App() {
         </div>
 
         {/* Drawer Bottom Info */}
-        <div className="p-4 border-t border-slate-855/80 bg-[#070a13]/40 flex flex-col gap-1.5 text-[10px] text-slate-500">
+        <div className="p-4 border-t border-slate-800/50 bg-[#070a13]/40 flex flex-col gap-1.5 text-[10px] text-slate-500">
           <div className="flex items-center gap-1.5 text-slate-400 font-bold">
             <User size={12} />
             <span>{currentUser?.name || '구성원'} ({currentUser?.jobTitle || '사원'})</span>
@@ -3031,7 +3031,7 @@ export default function App() {
             currentView === 'dashboard' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <Sliders size={18} />
+          <Sliders size={22} />
           <span className="text-[9px] font-bold">홈</span>
         </button>
         <button 
@@ -3040,7 +3040,7 @@ export default function App() {
             currentView === 'inventory_lookup' || currentView === 'inventory_transfer' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <Package size={18} />
+          <Package size={22} />
           <span className="text-[9px] font-bold">재고</span>
         </button>
         <button 
@@ -3049,7 +3049,7 @@ export default function App() {
             currentView === 'sales_order_new' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <ShoppingCart size={18} />
+          <ShoppingCart size={22} />
           <span className="text-[9px] font-bold">수주</span>
         </button>
         <button 
@@ -3058,7 +3058,7 @@ export default function App() {
             currentView === 'sales_order_list' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <Truck size={18} />
+          <Truck size={22} />
           <span className="text-[9px] font-bold">상차</span>
         </button>
         <button 
@@ -3067,7 +3067,7 @@ export default function App() {
             currentView === 'sales_invoice_list' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <DollarSign size={18} />
+          <DollarSign size={22} />
           <span className="text-[9px] font-bold">수금</span>
         </button>
         <button 
@@ -3076,7 +3076,7 @@ export default function App() {
             currentView === 'agent_chat' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <MessageSquare size={18} />
+          <MessageSquare size={22} />
           <span className="text-[9px] font-bold">비서</span>
         </button>
       </nav>
