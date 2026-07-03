@@ -2730,14 +2730,18 @@ export default function App() {
       {isMenuOpen && (
         <div 
           onClick={() => setIsMenuOpen(false)}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-all animate-fadeIn"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-all animate-fadeIn"
+          style={{ zIndex: 9998 }}
         />
       )}
 
       {/* Slide-out Menu Drawer Container */}
-      <div className={`fixed top-0 bottom-0 left-0 z-55 w-4/5 max-w-[280px] bg-[#0c101b] border-r border-slate-855/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out transform ${
-        isMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div 
+        className={`fixed top-0 bottom-0 left-0 w-4/5 max-w-[280px] bg-[#0c101b] border-r border-slate-855/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out transform ${
+          isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ zIndex: 9999 }}
+      >
         <div className="overflow-y-auto flex-1">
           {/* Drawer Header */}
           <div className="p-5 border-b border-slate-855/80 flex justify-between items-center bg-[#070a13]/40">
