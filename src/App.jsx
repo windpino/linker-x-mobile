@@ -673,171 +673,48 @@ export default function App() {
   };
 
   const renderDashboard = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const sortedSchedules = [...schedules]
-      .filter(sch => sch.date >= todayStr)
-      .sort((a, b) => a.date?.localeCompare(b.date) || 0);
+    // Generate exactly 10 slots (5 columns * 2 rows)
+    const gridSlots = Array.from({ length: 10 }, (_, i) => favorites[i] || 'none');
 
     return (
       <div className="space-y-6 animate-fadeIn pb-12">
-        
         {/* 1. 즐겨찾기 메뉴판 (5x2 Flat Launcher) */}
-        {favorites.length > 0 ? (
-          <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
-            {favorites.map((menuId) => {
-              const opt = MENU_OPTIONS.find(o => o.id === menuId);
-              if (!opt) return null;
-              const IconComponent = opt.icon;
-              return (
-                <div key={menuId} className="relative flex flex-col items-center group">
-                  <button 
-                    onClick={() => handleGridMenuClick(menuId)}
-                    className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
-                  >
-                    <IconComponent size={34} className={opt.color} />
-                    <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
-                      {opt.label}
-                    </span>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-slate-500 text-[10px] border border-dashed border-slate-800/80 rounded-2xl mx-1 my-2">
-            등록된 즐겨찾기 메뉴가 없습니다.<br />메뉴 서랍(왼쪽 상단 또는 하단)의 별표(★)를 눌러 추가해 주세요.
-          </div>
-        )}
-        
-                {/* 2. 일정 목록 */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h3 className="text-white text-sm font-black flex items-center gap-1.5">
-              <Calendar size={16} className="text-blue-500" />
-              일정 및 지시사항 리스트
-            </h3>
-            <button 
-              onClick={() => setShowAddScheduleModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded-lg text-[10px] flex items-center gap-0.5"
-            >
-              <Plus size={12}/> 일정추가
-            </button>
-          </div>
-
-          <div className="space-y-2.5 max-h-[300px] overflow-y-auto scrollbar-none pr-0.5">
-            {sortedSchedules.map(sch => {
-              const isToday = sch.date === todayStr;
-              return (
-                <div 
-                  key={sch.id} 
-                  className={`bg-slate-955 rounded-xl p-3 border ${
-                    isToday ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-850/60'
-                  }`}
+        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
+          {gridSlots.map((menuId, idx) => {
+            const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
+            const IconComponent = opt.icon;
+            return (
+              <div key={idx} className="relative flex flex-col items-center group">
+                <button 
+                  onClick={() => {
+                    if (menuId === 'none') {
+                      setIsMenuOpen(true);
+                      showToast("메뉴 서랍의 별표(★)를 눌러 즐겨찾기를 등록해 주세요!");
+                    } else {
+                      handleGridMenuClick(menuId);
+                    }
+                  }}
+                  className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
                 >
-                  <div className="flex justify-between items-start">
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                      isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-850 text-slate-400'
-                    }`}>
-                      {sch.date} {isToday && '(오늘)'}
-                    </span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  </div>
-                  <h4 className="text-white font-bold text-xs mt-1.5">{sch.title}</h4>
-                  {sch.content && (
-                    <p className="text-[10px] text-slate-400 mt-1 leading-normal whitespace-pre-line">
-                      {sch.content}
-                    </p>
+                  {opt.id === 'none' ? (
+                    <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
+                      <Plus size={30} />
+                    </div>
+                  ) : (
+                    <IconComponent size={34} className={opt.color} />
                   )}
-                </div>
-              );
-            })}
-            {sortedSchedules.length === 0 && (
-              <div className="text-center py-10 text-slate-600 text-xs">등록된 일정이 없습니다.</div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. 대시보드 기타 지표 */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3">종합 물류 지표</div>
-          <div className="grid grid-cols-2 gap-3.5">
-            <div className="bg-slate-955 p-3 rounded-xl border border-slate-850">
-              <span className="text-[10px] text-slate-500 font-semibold block">오늘 매출</span>
-              <span className="text-white font-black text-sm block mt-1">
-                {salesInvoices.filter(inv => inv.date === todayStr).reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0).toLocaleString()}원
-              </span>
-            </div>
-            <div className="bg-slate-955 p-3 rounded-xl border border-slate-850">
-              <span className="text-[10px] text-slate-500 font-semibold block">부족재고</span>
-              <span className="text-rose-500 font-black text-sm block mt-1">
-                {products.filter(p => {
-                  const totalStock = (p.initialStock || 0) + Object.values(inventory).reduce((sum, whStocks) => sum + (whStocks[p.name] || 0), 0);
-                  return totalStock < (p.optimalStock || 0);
-                }).length}개 품목
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Schedule Add Modal */}
-        {showAddScheduleModal && (
-          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-            <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span className="text-white text-xs font-black flex items-center gap-1.5"><Calendar size={14}/> 신규 일정 및 공지 등록</span>
-                <button onClick={() => setShowAddScheduleModal(false)} className="text-slate-400 hover:text-white"><X size={16}/></button>
-              </div>
-              <form onSubmit={handleAddSchedule} className="space-y-3.5">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">일정 제목</span>
-                  <input type="text" placeholder="일정명을 입력하세요" value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">지정 날짜</span>
-                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">메모 및 세부내용</span>
-                  <textarea placeholder="메모할 상세사항을 입력하세요" rows="2" value={scheduleContent} onChange={e => setScheduleContent(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-                <button type="submit" disabled={isSubmittingSchedule} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md">
-                  {isSubmittingSchedule ? '저장 처리 중...' : '일정 추가 완료'}
+                  <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
+                    {opt.id === 'none' ? '즐겨찾기' : opt.label}
+                  </span>
                 </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* 4x4 Grid Selection Drawer Modal */}
-        {isGridSettingsOpen && (
-          <div className="fixed inset-0 z-55 flex items-end justify-center p-0 bg-black/60 backdrop-blur-xs animate-fadeIn">
-            <div className="w-full max-w-sm bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 shadow-2xl space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span className="text-white text-xs font-black flex items-center gap-1.5"><Settings size={14}/> 슬롯 {selectedSlotIndex + 1} 단축아이콘 지정</span>
-                <button onClick={() => setIsGridSettingsOpen(false)} className="text-slate-400 hover:text-white"><X size={16}/></button>
               </div>
-              <div className="grid grid-cols-2 gap-2 pb-6">
-                {MENU_OPTIONS.map(opt => {
-                  const Icon = opt.icon;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => assignMenuToSlot(opt.id)}
-                      className="bg-slate-955 border border-slate-850 hover:bg-slate-850 p-2.5 rounded-xl text-left flex items-center gap-2 transition-all"
-                    >
-                      <Icon size={14} className={opt.color} />
-                      <span className="text-[10px] text-slate-350 font-bold truncate">{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
+            );
+          })}
+        </div>
       </div>
     );
   };
+
 
   // ---------------------------------------------------------
   // 8. 기초자료등록 - 직원관리 화면
