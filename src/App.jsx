@@ -663,7 +663,7 @@ export default function App() {
       <div className="space-y-6 animate-fadeIn pb-12">
         
         {/* 1. 5x2 Customizable Menu Grid Container */}
-        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 py-4 px-1">
+        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
           {gridConfig.map((menuId, idx) => {
             const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
             const IconComponent = opt.icon;
@@ -3199,7 +3199,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 px-5 py-4 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))]">
+      <main className="flex-1 px-5 pt-0 pb-4 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))]">
         {currentView === 'dashboard' && renderDashboard()}
         
         {/* Master Data Module */}
