@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO5C3-GQuqkpk",
+  apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
   authDomain: "link-x-6606e.firebaseapp.com",
   projectId: "link-x-6606e",
   storageBucket: "link-x-6606e.firebasestorage.app",
@@ -14,11 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const companyId = 'DMK';
-console.log(`🤖 Agent Control Daemon listening on companies/${companyId}...`);
-
-const qDev = query(collection(db, 'companies', companyId, 'devCommands'), where('status', '==', 'pending'));
-const qAgent = query(collection(db, 'companies', companyId, 'agentCommands'), where('status', '==', 'pending'));
+console.log("🤖 Agent Control Daemon starting...");
 
 let triggered = false;
 
@@ -29,20 +25,38 @@ function triggerWakeup(path, type, command) {
   process.exit(0);
 }
 
-const unsubDev = onSnapshot(qDev, (snap) => {
-  if (!snap.empty) {
-    const doc = snap.docs[0];
-    triggerWakeup(doc.ref.path, 'dev', doc.data().command);
-  }
-}, (err) => {
-  console.error("Firestore devCommands listen error:", err);
-});
+async function start() {
+  console.log("Fetching list of companies...");
+  const snap = await getDocs(collection(db, 'companies'));
+  const companyIds = [];
+  snap.forEach(d => companyIds.push(d.id));
+  console.log(`Available companies: ${companyIds.join(', ')}`);
 
-const unsubAgent = onSnapshot(qAgent, (snap) => {
-  if (!snap.empty) {
-    const doc = snap.docs[0];
-    triggerWakeup(doc.ref.path, 'chat', doc.data().text || doc.data().command);
+  for (const cid of companyIds) {
+    console.log(`Setting up real-time listener for company: ${cid}`);
+    
+    const qDev = query(collection(db, 'companies', cid, 'devCommands'), where('status', '==', 'pending'));
+    onSnapshot(qDev, (s) => {
+      if (!s.empty) {
+        const doc = s.docs[0];
+        triggerWakeup(doc.ref.path, 'dev', doc.data().command);
+      }
+    }, (err) => {
+      console.error(`Error listening to ${cid} devCommands:`, err);
+    });
+
+    const qAgent = query(collection(db, 'companies', cid, 'agentCommands'), where('status', '==', 'pending'));
+    onSnapshot(qAgent, (s) => {
+      if (!s.empty) {
+        const doc = s.docs[0];
+        triggerWakeup(doc.ref.path, 'chat', doc.data().text || doc.data().command);
+      }
+    }, (err) => {
+      console.error(`Error listening to ${cid} agentCommands:`, err);
+    });
   }
-}, (err) => {
-  console.error("Firestore agentCommands listen error:", err);
-});
+  
+  console.log("🤖 Listening on all companies in real-time...");
+}
+
+start().catch(console.error);
