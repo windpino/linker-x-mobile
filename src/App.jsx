@@ -272,12 +272,13 @@ export default function App() {
   // 16 slots default configuration
   const [gridConfig, setGridConfig] = useState(() => {
     const saved = localStorage.getItem('m_grid_config');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.length === 10) return parsed;
+    }
     return [
-      'sales_order_new', 'sales_order_list', 'sales_invoice_list', 'inventory_lookup',
-      'inventory_transfer', 'purchase_invoice', 'purchase_ledger', 'account_mgmt',
-      'partner_mgmt', 'product_mgmt', 'staff_mgmt', 'warehouse_mgmt',
-      'agent_chat', 'logout', 'none', 'none'
+      'sales_order_new', 'sales_order_list', 'sales_invoice_list', 'inventory_lookup', 'inventory_transfer',
+      'purchase_invoice', 'purchase_ledger', 'account_mgmt', 'agent_chat', 'logout'
     ];
   });
 
@@ -670,87 +671,41 @@ export default function App() {
             </span>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-y-4 gap-x-1">
             {gridConfig.map((menuId, idx) => {
               const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
               const IconComponent = opt.icon;
               return (
-                <div key={idx} className="relative group">
+                <div key={idx} className="relative flex flex-col items-center group">
                   <button 
                     onClick={() => handleGridMenuClick(menuId)}
-                    className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center p-1 transition-all ${
-                      opt.id === 'none' 
-                        ? 'bg-slate-955 border border-dashed border-slate-850 hover:border-slate-700' 
-                        : 'bg-slate-955 border border-slate-850 hover:bg-slate-850/20'
-                    }`}
+                    className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
                   >
-                    <IconComponent size={20} className={opt.color} />
-                    <span className="text-[8px] text-slate-400 font-bold mt-1.5 text-center leading-tight truncate w-full px-1">
+                    {opt.id === 'none' ? (
+                      <div className="w-10 h-10 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-600 hover:text-slate-400 hover:border-slate-500 transition-all">
+                        <Plus size={20} />
+                      </div>
+                    ) : (
+                      <IconComponent size={28} className={opt.color} />
+                    )}
+                    <span className="text-[9.5px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
                       {opt.label}
                     </span>
                   </button>
 
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleSlotClick(idx); }}
-                    className="absolute -top-1 -right-1 p-0.5 bg-slate-800 hover:bg-blue-600 rounded-full text-slate-400 hover:text-white shadow transition-all"
+                    className="absolute top-1 right-1 p-0.5 bg-slate-800 hover:bg-blue-600 rounded-full text-slate-400 hover:text-white shadow transition-all scale-75"
                   >
                     <Settings size={8} />
                   </button>
-      {/* Floating Action Button for Agent Control */}
-      {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && isLoggedIn && (
-        <button
-          onClick={() => setIsAgentChatOpen(true)}
-          className="fixed bottom-[85px] right-5 z-40 w-12 h-12 rounded-full bg-violet-650 hover:bg-violet-700 text-white flex items-center justify-center border border-violet-500/35 shadow-lg shadow-violet-500/25 transition-all hover:scale-105 active:scale-95"
-          title="에이전트 제어 콘솔"
-        >
-          <Sparkles size={20} className="animate-pulse" />
-        </button>
-      )}
-
-      {/* Agent Control Drawer */}
-      {renderAgentControlDrawer()}
-
-      {/* Toast Alert Notification */}
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-[320px] bg-slate-900/95 border border-slate-800/80 text-white rounded-2xl px-4 py-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-md animate-slideDown">
-          <Info size={18} className="text-blue-400 flex-shrink-0" />
-          <div className="text-[11px] font-bold leading-relaxed whitespace-pre-line text-slate-200">
-            {toast.message}
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
-
-      {/* Dev Command Success Modal Popup */}
-      {activeSuccessPopup && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 font-sans">
-            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-450 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto animate-bounce">
-              <CheckCircle2 size={24} />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-white text-base font-extrabold">코드 수정 반영 완료!</h4>
-              <p className="text-slate-455 text-[10px] font-semibold">대표님의 지시사항이 서버에 즉시 배포되었습니다.</p>
-            </div>
-            <div className="bg-slate-955 p-3.5 rounded-xl border border-slate-850/80 text-left">
-              <span className="text-[10px] text-violet-400 font-extrabold block mb-1">실행된 명령</span>
-              <p className="text-white text-xs font-bold leading-relaxed">{activeSuccessPopup.command}</p>
-            </div>
-            <button
-              onClick={() => setActiveSuccessPopup(null)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/10"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-})}
-          </div>
-        </div>
-
-        {/* 2. 일정 목록 */}
+        
+                {/* 2. 일정 목록 */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <h3 className="text-white text-sm font-black flex items-center gap-1.5">
@@ -3341,6 +3296,55 @@ export default function App() {
           <MessageSquare size={22} />
           <span className="text-[9px] font-bold">비서</span>
         </button>
+      {/* Floating Action Button for Agent Control */}
+      {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && isLoggedIn && (
+        <button
+          onClick={() => setIsAgentChatOpen(true)}
+          className="fixed bottom-[85px] right-5 z-40 w-12 h-12 rounded-full bg-violet-650 hover:bg-violet-700 text-white flex items-center justify-center border border-violet-500/35 shadow-lg shadow-violet-500/25 transition-all hover:scale-105 active:scale-95"
+          title="에이전트 제어 콘솔"
+        >
+          <Sparkles size={20} className="animate-pulse" />
+        </button>
+      )}
+
+      {/* Agent Control Drawer */}
+      {renderAgentControlDrawer()}
+
+      {/* Toast Alert Notification */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-[320px] bg-slate-900/95 border border-slate-800/80 text-white rounded-2xl px-4 py-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-md animate-slideDown">
+          <Info size={18} className="text-blue-400 flex-shrink-0" />
+          <div className="text-[11px] font-bold leading-relaxed whitespace-pre-line text-slate-200">
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Dev Command Success Modal Popup */}
+      {activeSuccessPopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 font-sans">
+            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-450 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto animate-bounce">
+              <CheckCircle2 size={24} />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-white text-base font-extrabold">코드 수정 반영 완료!</h4>
+              <p className="text-slate-455 text-[10px] font-semibold">대표님의 지시사항이 서버에 즉시 배포되었습니다.</p>
+            </div>
+            <div className="bg-slate-955 p-3.5 rounded-xl border border-slate-850/80 text-left">
+              <span className="text-[10px] text-violet-400 font-extrabold block mb-1">실행된 명령</span>
+              <p className="text-white text-xs font-bold leading-relaxed">{activeSuccessPopup.command}</p>
+            </div>
+            <button
+              onClick={() => setActiveSuccessPopup(null)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/10"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       </nav>
     </div>
   );
