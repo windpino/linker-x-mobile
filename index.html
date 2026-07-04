@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="ko">
   <head>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        var errStr = message + '\nAt: ' + source + ':' + lineno + ':' + colno;
+        if (error && error.stack) {
+          errStr += '\nStack: ' + error.stack;
+        }
+        localStorage.setItem('last_runtime_error', errStr);
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        localStorage.setItem('last_runtime_error', 'Unhandled Rejection: ' + (event.reason ? (event.reason.stack || event.reason) : 'Unknown'));
+      });
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />

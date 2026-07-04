@@ -80,6 +80,7 @@ export default function App() {
   // 1. 로그인 및 인증 관련 상태
   // ---------------------------------------------------------
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [runtimeError, setRuntimeError] = useState(() => localStorage.getItem('last_runtime_error'));
   const [step, setStep] = useState(1);
   const [agencyInput, setAgencyInput] = useState('');
   const [agencyPassword, setAgencyPassword] = useState('');
@@ -385,7 +386,7 @@ export default function App() {
   // ---------------------------------------------------------
   useEffect(() => {
     const isAutoSave = localStorage.getItem('autoSaveLogin') === 'true';
-    const isAutoLogin = localStorage.getItem('autoLogin') === 'true';
+    const isAutoLogin = localStorage.getItem('autoLogin') === 'true' && !localStorage.getItem('last_runtime_error');
     setAutoSave(isAutoSave);
     setAutoLogin(isAutoLogin);
 
@@ -2998,6 +2999,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col font-sans select-none relative">
+      {runtimeError && (
+        <div className="bg-red-950/95 border-b border-red-500 text-red-200 p-4 text-[10px] font-mono whitespace-pre-wrap relative z-[100000] shadow-2xl">
+          <div className="font-extrabold text-xs mb-1 flex justify-between items-center">
+            <span>⚠️ Runtime Error Captured</span>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('last_runtime_error');
+                setRuntimeError(null);
+                window.location.reload();
+              }}
+              className="bg-red-800 hover:bg-red-700 px-2 py-0.5 text-white font-bold rounded"
+            >
+              Clear & Retry
+            </button>
+          </div>
+          {runtimeError}
+        </div>
+      )}
       
       {/* Slide-out Menu Drawer Backdrop */}
       {isMenuOpen && (
