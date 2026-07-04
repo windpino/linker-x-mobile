@@ -5,7 +5,7 @@ import {
   DollarSign, Package, AlertCircle, Phone, MapPin, Truck,
   Cpu, Send, Calendar, Sparkles, Building2, Info, TrendingUp,
   MessageSquare, Lock, Check, Eye, EyeOff, Mail, Users,
-  ArrowUpRight, ArrowDownLeft, FileText, Landmark, FileSpreadsheet, Settings,
+  ArrowUpRight, ArrowDownLeft, FileText, Landmark, FileSpreadsheet, Settings, Database, BarChart2,
   UserPlus, Plus, PlusCircle, Compass, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
@@ -100,6 +100,136 @@ export default function App() {
   const [devCommands, setDevCommands] = useState([]);
   const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
   const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const handleMenuClick = (item) => {
+    if (item.implemented) {
+      navigateToView(item.id);
+    } else {
+      showToast(`"${item.title}" 기능은 준비 중입니다.\nPC 버전 마스터허브를 이용해 주세요.`, 'info');
+    }
+  };
+
+  const menuStructure = [
+    {
+      id: 'basic',
+      title: '기초자료등록',
+      icon: 'Sliders',
+      items: [
+        { id: 'staff_mgmt', title: '직원관리', implemented: true },
+        { id: 'warehouse_mgmt', title: '창고관리', implemented: true },
+        { id: 'partner_mgmt', title: '거래처등록/관리', implemented: true },
+        { id: 'product_mgmt', title: '품목등록/관리', implemented: true }
+      ]
+    },
+    {
+      id: 'purchase',
+      title: '매입/발주 관리',
+      icon: 'ArrowDownLeft',
+      items: [
+        { id: 'purchase_invoice', title: '매입전표 등록', implemented: true },
+        { id: 'purchase_ledger', title: '매입전표 관리 (내역)', implemented: true },
+        { id: 'purchase_ledger_raw', title: '매입원장', implemented: false },
+        { id: 'purchase_unpaid', title: '매입처미지급현황', implemented: false },
+        { id: 'purchase_order', title: '발주 등록', implemented: false }
+      ]
+    },
+    {
+      id: 'sales',
+      title: '매출/수주 관리',
+      icon: 'ArrowUpRight',
+      items: [
+        { id: 'sales_invoice_list', title: '매출전표 내역 (수금)', implemented: true },
+        { id: 'sales_order_new', title: '간편수주 등록', implemented: true },
+        { id: 'sales_order_list', title: '수주목록 (상차)', implemented: true },
+        { id: 'sales_invoice_new', title: '매출전표등록', implemented: false },
+        { id: 'sales_ledger', title: '매출원장', implemented: false }
+      ]
+    },
+    {
+      id: 'cash',
+      title: '입출금관리',
+      icon: 'DollarSign',
+      items: [
+        { id: 'account_mgmt', title: '계좌관리', implemented: true },
+        { id: 'settlement_report', title: '결산보고서', implemented: false },
+        { id: 'cash_flow_daily', title: '일자별 입출금 현황', implemented: false },
+        { id: 'cash_flow_account', title: '계좌별 입출금 현황', implemented: false },
+        { id: 'cash_book', title: '금전출납부', implemented: false },
+        { id: 'expense_withdraw', title: '경비출금', implemented: false }
+      ]
+    },
+    {
+      id: 'inventory',
+      title: '재고관리',
+      icon: 'Package',
+      items: [
+        { id: 'inventory_lookup', title: '실시간 재고 조회', implemented: true },
+        { id: 'inventory_transfer', title: '창고 간 재고 이동', implemented: true },
+        { id: 'inventory_transfer_history', title: '재고 이동 현황 관리', implemented: false },
+        { id: 'inventory_adjustment', title: '재고조정 (손실처리)', implemented: false },
+        { id: 'inventory_mismatch', title: '재고 불일치 현황', implemented: false }
+      ]
+    },
+    {
+      id: 'inventory_report',
+      title: '재고보고서',
+      icon: 'BarChart2',
+      items: [
+        { id: 'inv_daily_status', title: '일자별 재고현황', implemented: false },
+        { id: 'inv_final_status', title: '최종 재고 현황', implemented: false },
+        { id: 'inv_partner_status', title: '매입처별 재고현황', implemented: false }
+      ]
+    },
+    {
+      id: 'smart',
+      title: '스마트지원',
+      icon: 'Sparkles',
+      items: [
+        { id: 'agent_chat', title: 'AI 비서 명령창', implemented: true },
+        { id: 'schedule_add', title: '일정 관리', implemented: false },
+        { id: 'sales_report', title: '매출보고서', implemented: false },
+        { id: 'order_report', title: '수주보고서', implemented: false },
+        { id: 'invoice_edit_delete_report', title: '전표수정/삭제 보고서', implemented: false },
+        { id: 'staff_perf_report', title: '직원 실적 보고서', implemented: false },
+        { id: 'receivables_mgmt', title: '미수금관리', implemented: false },
+        { id: 'tax_report', title: '세금신고 지원 보고서', implemented: false },
+        { id: 'partner_special_price', title: '거래처별 특별단가 관리', implemented: false }
+      ]
+    },
+    {
+      id: 'system',
+      title: '시스템관리',
+      icon: 'Database',
+      items: [
+        { id: 'sys_backup_restore', title: '데이터 전체 저장/불러오기', implemented: false },
+        { id: 'sys_excel_partner', title: '거래처 엑셀파일 저장/불러오기', implemented: false },
+        { id: 'sys_excel_product', title: '품목 엑셀파일 저장/불러오기', implemented: false },
+        { id: 'sys_excel_sales_ledger', title: '매출처원장 저장/불러오기', implemented: false },
+        { id: 'sys_excel_purchase_ledger', title: '매입처원장 저장/불러오기', implemented: false }
+      ]
+    },
+    {
+      id: 'config',
+      title: '환경설정 & 정품',
+      icon: 'Settings',
+      items: [
+        { id: 'cfg_settings', title: '환경설정', implemented: false },
+        { id: 'cfg_license', title: '정품등록', implemented: false }
+      ]
+    }
+  ];
   const [agentChatInput, setAgentChatInput] = useState('');
   const [activeSuccessPopup, setActiveSuccessPopup] = useState(null);
   const [lastProcessedCmdId, setLastProcessedCmdId] = useState(null);
@@ -574,6 +704,16 @@ export default function App() {
 
       {/* Agent Control Drawer */}
       {renderAgentControlDrawer()}
+
+      {/* Toast Alert Notification */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-[320px] bg-slate-900/95 border border-slate-800/80 text-white rounded-2xl px-4 py-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-md animate-slideDown">
+          <Info size={18} className="text-blue-400 flex-shrink-0" />
+          <div className="text-[11px] font-bold leading-relaxed whitespace-pre-line text-slate-200">
+            {toast.message}
+          </div>
+        </div>
+      )}
 
       {/* Dev Command Success Modal Popup */}
       {activeSuccessPopup && (
@@ -2984,141 +3124,72 @@ export default function App() {
 
           {/* Drawer Menu List */}
           <div className="p-4 space-y-3.5">
-            
             <button 
               onClick={() => navigateToView('dashboard')}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10' : 'text-slate-400 hover:bg-slate-900/60 hover:text-white'
+                currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10' : 'text-slate-300 hover:bg-slate-900/60 hover:text-white'
               }`}
             >
               <Sliders size={16} />
               <span>대시보드 홈</span>
             </button>
 
-            {/* 1. 기초자료등록 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'basic' ? null : 'basic')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><Sliders size={16} className="text-blue-400" /> 기초자료등록</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'basic' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'basic' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('staff_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">직원관리</button>
-                  <button onClick={() => navigateToView('warehouse_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">창고관리</button>
-                  <button onClick={() => navigateToView('partner_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">거래처등록/관리</button>
-                  <button onClick={() => navigateToView('product_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">품목등록/관리</button>
-                </div>
-              )}
-            </div>
+            {menuStructure.map((cat) => {
+              const IconComponent = 
+                cat.icon === 'Sliders' ? Sliders :
+                cat.icon === 'ArrowDownLeft' ? ArrowDownLeft :
+                cat.icon === 'ArrowUpRight' ? ArrowUpRight :
+                cat.icon === 'DollarSign' ? DollarSign :
+                cat.icon === 'Package' ? Package :
+                cat.icon === 'BarChart2' ? BarChart2 :
+                cat.icon === 'Sparkles' ? Sparkles :
+                cat.icon === 'Database' ? Database :
+                cat.icon === 'Settings' ? Settings : Sliders;
 
-            {/* 2. 매입/발주 관리 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'purchase' ? null : 'purchase')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><ArrowDownLeft size={16} className="text-red-400" /> 매입/발주 관리</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'purchase' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'purchase' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('purchase_invoice')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매입전표 등록</button>
-                  <button onClick={() => navigateToView('purchase_ledger')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매입전표 관리 (내역)</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-500 font-bold block cursor-not-allowed">매입원장</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-500 font-bold block cursor-not-allowed">매입처미지급현황</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">발주 등록</button>
-                </div>
-              )}
-            </div>
+              const isExpanded = activeMenuDropdown === cat.id;
 
-            {/* 3. 매출/수주 관리 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'sales' ? null : 'sales')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><ArrowUpRight size={16} className="text-emerald-455" /> 매출/수주 관리</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'sales' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'sales' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('sales_invoice_list')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">매출전표 내역 (수금)</button>
-                  <button onClick={() => navigateToView('sales_order_new')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">간편수주 등록</button>
-                  <button onClick={() => navigateToView('sales_order_list')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">수주목록 (상차)</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-500 font-bold block cursor-not-allowed">매출전표등록</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-500 font-bold block cursor-not-allowed">매출원장</button>
+              return (
+                <div key={cat.id} className="space-y-1">
+                  <button 
+                    onClick={() => setActiveMenuDropdown(isExpanded ? null : cat.id)}
+                    className="w-full flex justify-between items-center px-3 py-2 text-slate-350 hover:text-white font-bold text-xs"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <IconComponent size={16} className="text-blue-400" />
+                      {cat.title}
+                    </span>
+                    <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isExpanded && (
+                    <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
+                      {cat.items.map((item) => (
+                        <button 
+                          key={item.id}
+                          onClick={() => handleMenuClick(item)}
+                          className={`w-full text-left py-2 text-[11px] font-bold block transition-all ${
+                            item.implemented 
+                              ? currentView === item.id 
+                                ? 'text-blue-450 font-extrabold'
+                                : 'text-slate-400 hover:text-white' 
+                              : 'text-slate-500 hover:text-slate-400 cursor-pointer'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            {item.title}
+                            {!item.implemented && (
+                              <span className="text-[7.5px] px-1 py-0.2 bg-slate-850/60 text-slate-500 border border-slate-800/30 rounded scale-90 origin-left">PC 전용</span>
+                            )}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            {/* 4. 임출금관리 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'cash' ? null : 'cash')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><DollarSign size={16} className="text-amber-455" /> 임출금관리</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'cash' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'cash' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('account_mgmt')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">계좌관리</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">결산보고서</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">일자별 입출금 현황</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">계좌별 입출금 현황</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">금전출납부</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">경비출금</button>
-                </div>
-              )}
-            </div>
-
-            {/* 5. 재고관리 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'inventory' ? null : 'inventory')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><Package size={16} className="text-blue-400" /> 재고 관리</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'inventory' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'inventory' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('inventory_lookup')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">실시간 재고 조회</button>
-                  <button onClick={() => navigateToView('inventory_transfer')} className="w-full text-left py-2 text-[11px] text-slate-400 hover:text-white font-bold block">창고 간 재고 이동</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">재고 이동 현황 관리</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">재고조정 (손실처리)</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">재고 불일치 현황</button>
-                </div>
-              )}
-            </div>
-
-            {/* 6. 스마트지원 & 비서 */}
-            <div className="space-y-1">
-              <button 
-                onClick={() => setActiveMenuDropdown(activeMenuDropdown === 'smart' ? null : 'smart')}
-                className="w-full flex justify-between items-center px-3 py-2 text-slate-355 hover:text-white font-bold text-xs"
-              >
-                <span className="flex items-center gap-2.5"><Sparkles size={16} className="text-violet-400" /> 스마트지원</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${activeMenuDropdown === 'smart' ? 'rotate-180' : ''}`} />
-              </button>
-              {activeMenuDropdown === 'smart' && (
-                <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                  <button onClick={() => navigateToView('agent_chat')} className="w-full text-left py-2 text-[11px] text-violet-400 hover:text-violet-300 font-bold block flex items-center gap-1.5"><MessageSquare size={12}/> AI 비서 명령창</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">매출보고서</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">수주보고서</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">전표수정/삭제 보고서</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">직원 실적 보고서</button>
-                  <button className="w-full text-left py-2 text-[11px] text-slate-550 font-bold block cursor-not-allowed">거래처별 특별단가 관리</button>
-                </div>
-              )}
-            </div>
-
+              );
+            })}
           </div>
         </div>
-
+        
         {/* Drawer Bottom Info */}
         <div className="p-4 border-t border-slate-800/50 bg-[#070a13]/40 flex flex-col gap-1.5 text-[10px] text-slate-500">
           <div className="flex items-center gap-1.5 text-slate-400 font-bold">
