@@ -6,7 +6,7 @@ import {
   Cpu, Send, Calendar, Sparkles, Building2, Info, TrendingUp,
   MessageSquare, Lock, Check, Eye, EyeOff, Mail, Users,
   ArrowUpRight, ArrowDownLeft, FileText, Landmark, FileSpreadsheet, Settings, Database, BarChart2,
-  UserPlus, Plus, PlusCircle, Compass, HelpCircle
+  UserPlus, Plus, PlusCircle, Compass, HelpCircle, Star
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -264,6 +264,23 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeMenuDropdown, setActiveMenuDropdown] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard');
+  
+  // Favorites Menu State
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('m_favorites');
+    if (saved) return JSON.parse(saved);
+    return ['sales_order_new', 'inventory_lookup', 'sales_order_list', 'sales_invoice_list', 'agent_chat'];
+  });
+
+  const toggleFavorite = (menuId) => {
+    setFavorites(prev => {
+      const next = prev.includes(menuId) 
+        ? prev.filter(id => id !== menuId) 
+        : [...prev, menuId];
+      localStorage.setItem('m_favorites', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // 4x4 Grid Customization States
   const [isGridSettingsOpen, setIsGridSettingsOpen] = useState(false);
@@ -657,44 +674,40 @@ export default function App() {
 
   const renderDashboard = () => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const sortedSchedules = [...schedules].sort((a, b) => b.date?.localeCompare(a.date) || 0);
+    const sortedSchedules = [...schedules]
+      .filter(sch => sch.date >= todayStr)
+      .sort((a, b) => a.date?.localeCompare(b.date) || 0);
 
     return (
       <div className="space-y-6 animate-fadeIn pb-12">
         
-        {/* 1. 5x2 Customizable Menu Grid Container */}
-        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
-          {gridConfig.map((menuId, idx) => {
-            const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
-            const IconComponent = opt.icon;
-            return (
-              <div key={idx} className="relative flex flex-col items-center group">
-                <button 
-                  onClick={() => handleGridMenuClick(menuId)}
-                  className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
-                >
-                  {opt.id === 'none' ? (
-                    <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
-                      <Plus size={30} />
-                    </div>
-                  ) : (
+        {/* 1. 즐겨찾기 메뉴판 (5x2 Flat Launcher) */}
+        {favorites.length > 0 ? (
+          <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
+            {favorites.map((menuId) => {
+              const opt = MENU_OPTIONS.find(o => o.id === menuId);
+              if (!opt) return null;
+              const IconComponent = opt.icon;
+              return (
+                <div key={menuId} className="relative flex flex-col items-center group">
+                  <button 
+                    onClick={() => handleGridMenuClick(menuId)}
+                    className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
+                  >
                     <IconComponent size={34} className={opt.color} />
-                  )}
-                  <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
-                    {opt.label}
-                  </span>
-                </button>
-
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleSlotClick(idx); }}
-                  className="absolute top-1 right-1 p-0.5 bg-slate-800 hover:bg-blue-600 rounded-full text-slate-400 hover:text-white shadow transition-all scale-75"
-                >
-                  <Settings size={8} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                    <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
+                      {opt.label}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-slate-500 text-[10px] border border-dashed border-slate-800/80 rounded-2xl mx-1 my-2">
+            등록된 즐겨찾기 메뉴가 없습니다.<br />메뉴 서랍(왼쪽 상단 또는 하단)의 별표(★)를 눌러 추가해 주세요.
+          </div>
+        )}
         
                 {/* 2. 일정 목록 */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
@@ -3236,11 +3249,20 @@ export default function App() {
         <button 
           onClick={() => setCurrentView('dashboard')} 
           className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'dashboard' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
+            currentView === 'dashboard' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
           <Sliders size={22} />
           <span className="text-[9px] font-bold">홈</span>
+        </button>
+        <button 
+          onClick={() => setCurrentView('sales_order_new')} 
+          className={`flex flex-col items-center gap-1 transition-all ${
+            currentView === 'sales_order_new' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
+          }`}
+        >
+          <ShoppingCart size={22} />
+          <span className="text-[9px] font-bold">수주</span>
         </button>
         <button 
           onClick={() => setCurrentView('inventory_lookup')} 
@@ -3252,42 +3274,23 @@ export default function App() {
           <span className="text-[9px] font-bold">재고</span>
         </button>
         <button 
-          onClick={() => setCurrentView('sales_order_new')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'sales_order_new' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <ShoppingCart size={22} />
-          <span className="text-[9px] font-bold">수주</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('sales_order_list')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'sales_order_list' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <Truck size={22} />
-          <span className="text-[9px] font-bold">상차</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('sales_invoice_list')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'sales_invoice_list' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <DollarSign size={22} />
-          <span className="text-[9px] font-bold">수금</span>
-        </button>
-        <button 
           onClick={() => setCurrentView('agent_chat')} 
           className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'agent_chat' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
+            currentView === 'agent_chat' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
           <MessageSquare size={22} />
           <span className="text-[9px] font-bold">비서</span>
         </button>
-      {/* Floating Action Button for Agent Control */}
+        <button 
+          onClick={() => setIsMenuOpen(true)} 
+          className="flex flex-col items-center gap-1 transition-all text-slate-500 hover:text-slate-400"
+        >
+          <Menu size={22} />
+          <span className="text-[9px] font-bold">메뉴</span>
+        </button>
+      
+            {/* Floating Action Button for Agent Control */}
       {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && isLoggedIn && (
         <button
           onClick={() => setIsAgentChatOpen(true)}
