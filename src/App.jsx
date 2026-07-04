@@ -780,10 +780,10 @@ export default function App() {
                 >
                   {opt.id === 'none' ? (
                     <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
-                      <Plus size={30} />
+                      <Plus size={34} />
                     </div>
                   ) : (
-                    <IconComponent size={34} className={opt.color} />
+                    <IconComponent size={38} className={opt.color} />
                   )}
                   <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
                     {opt.id === 'none' ? '즐겨찾기' : opt.label}
@@ -3191,6 +3191,16 @@ export default function App() {
               <Cpu size={12} className={currentView === 'dev_console' ? 'animate-pulse' : ''} />
             </button>
           )}
+          <button 
+            onClick={() => {
+              setIsMenuOpen(true);
+              showToast("메뉴 서랍의 별표(★)를 클릭하여 즐겨찾기 단축키를 설정할 수 있습니다.");
+            }}
+            className="p-1.5 bg-slate-900 hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 rounded border border-slate-800 transition-all mr-1.5"
+            title="즐겨찾기 설정"
+          >
+            <Settings size={12} />
+          </button>
           <button 
             onClick={handleLogout}
             className="p-1.5 bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded border border-slate-800 transition-all"
