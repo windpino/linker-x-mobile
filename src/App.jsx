@@ -587,6 +587,11 @@ export default function App() {
       setAgentChats(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
     }));
 
+    // Dev Commands
+    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'devCommands'), (snap) => {
+      setDevCommands(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })).sort((a, b) => b.createdAt?.localeCompare(a.createdAt) || 0));
+    }));
+
     return () => unsubscribes.forEach(unsub => unsub());
   }, [isLoggedIn, selectedAgency]);
 
@@ -826,15 +831,15 @@ export default function App() {
               <form onSubmit={handleAddSchedule} className="space-y-3.5">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">일정 제목</span>
-                  <input type="text" placeholder="일정명을 입력하세요" value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" required />
+                  <input type="text" placeholder="일정명을 입력하세요" value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">지정 날짜</span>
-                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" required />
+                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">메모 및 세부내용</span>
-                  <textarea placeholder="메모할 상세사항을 입력하세요" rows="2" value={scheduleContent} onChange={e => setScheduleContent(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <textarea placeholder="메모할 상세사항을 입력하세요" rows="2" value={scheduleContent} onChange={e => setScheduleContent(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
                 <button type="submit" disabled={isSubmittingSchedule} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md">
                   {isSubmittingSchedule ? '저장 처리 중...' : '일정 추가 완료'}
@@ -942,28 +947,28 @@ export default function App() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">사원 이름</span>
-                  <input type="text" placeholder="홍길동" value={newStaffName} onChange={e => setNewStaffName(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none" required />
+                  <input type="text" placeholder="홍길동" value={newStaffName} onChange={e => setNewStaffName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">직책 / 부서</span>
-                  <input type="text" placeholder="예: 대리" value={newStaffTitle} onChange={e => setNewStaffTitle(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none" />
+                  <input type="text" placeholder="예: 대리" value={newStaffTitle} onChange={e => setNewStaffTitle(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">사원 로그인 ID</span>
-                  <input type="text" placeholder="login_id" value={newStaffId} onChange={e => setNewStaffId(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none" required />
+                  <input type="text" placeholder="login_id" value={newStaffId} onChange={e => setNewStaffId(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 font-bold">비밀번호</span>
-                  <input type="password" placeholder="비밀번호" value={newStaffPw} onChange={e => setNewStaffPw(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none" required />
+                  <input type="password" placeholder="비밀번호" value={newStaffPw} onChange={e => setNewStaffPw(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
               </div>
 
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-500 font-bold">권한 역할 구분</span>
-                <select value={newStaffRole} onChange={e => setNewStaffRole(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none">
+                <select value={newStaffRole} onChange={e => setNewStaffRole(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                   <option value="staff">일반 사원 (정직원)</option>
                   <option value="driver">물류 배송 사원 (기사)</option>
                   <option value="manager">관리자 (매니저)</option>
@@ -1042,7 +1047,7 @@ export default function App() {
           
           <div className="space-y-1.5">
             <span className="text-[10px] text-slate-550 font-bold block">창고 명칭</span>
-            <input type="text" placeholder="예: 부산 2창고" value={newWhName} onChange={e => setNewWhName(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none focus:border-blue-500" required />
+            <input type="text" placeholder="예: 부산 2창고" value={newWhName} onChange={e => setNewWhName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500" required />
           </div>
 
           <div className="space-y-1.5">
@@ -1154,11 +1159,11 @@ export default function App() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">거래처명</span>
-                  <input type="text" placeholder="주식회사 동명" value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" required />
+                  <input type="text" placeholder="주식회사 동명" value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">거래처 종류</span>
-                  <select value={newPartnerType} onChange={e => setNewPartnerType(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none">
+                  <select value={newPartnerType} onChange={e => setNewPartnerType(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     <option value="매출처">매출처 (수주처)</option>
                     <option value="매입처">매입처 (공급처)</option>
                     <option value="공통">공통 거래처</option>
@@ -1170,17 +1175,17 @@ export default function App() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">대표 연락처</span>
-                  <input type="tel" placeholder="010-1234-5678" value={newPartnerPhone} onChange={e => setNewPartnerPhone(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="tel" placeholder="010-1234-5678" value={newPartnerPhone} onChange={e => setNewPartnerPhone(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">초기 미수금 잔액</span>
-                  <input type="number" value={newPartnerReceivables} onChange={e => setNewPartnerReceivables(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="number" value={newPartnerReceivables} onChange={e => setNewPartnerReceivables(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-550 font-bold">주소지 (배송지)</span>
-                <input type="text" placeholder="상세 배송 주소를 입력하세요" value={newPartnerAddress} onChange={e => setNewPartnerAddress(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="상세 배송 주소를 입력하세요" value={newPartnerAddress} onChange={e => setNewPartnerAddress(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
               </div>
             </div>
 
@@ -1320,18 +1325,18 @@ export default function App() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">품목명</span>
-                  <input type="text" placeholder="예: 통밀가루 10kg" value={newProdName} onChange={e => setNewProdName(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" required />
+                  <input type="text" placeholder="예: 통밀가루 10kg" value={newProdName} onChange={e => setNewProdName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">규격 (Spec)</span>
-                  <input type="text" placeholder="예: 10kg/포대" value={newProdSpec} onChange={e => setNewProdSpec(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="text" placeholder="예: 10kg/포대" value={newProdSpec} onChange={e => setNewProdSpec(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">대분류 카테고리</span>
-                  <select value={newProdLargeCat} onChange={e => setNewProdLargeCat(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2 w-full text-xs text-white focus:outline-none" required>
+                  <select value={newProdLargeCat} onChange={e => setNewProdLargeCat(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
                     <option value="">-- 분류 선택 --</option>
                     {catsLarge.map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -1340,18 +1345,18 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">안전재고 (안전재고 기준)</span>
-                  <input type="number" value={newProdSafetyStock} onChange={e => setNewProdSafetyStock(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="number" value={newProdSafetyStock} onChange={e => setNewProdSafetyStock(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">매입단가 (원)</span>
-                  <input type="number" placeholder="공급가" value={newProdPurchasePrice} onChange={e => setNewProdPurchasePrice(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="number" placeholder="공급가" value={newProdPurchasePrice} onChange={e => setNewProdPurchasePrice(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-505 font-bold">표준매출단가 (원)</span>
-                  <input type="number" placeholder="소비자가" value={newProdSalesPrice} onChange={e => setNewProdSalesPrice(e.target.value)} className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none" />
+                  <input type="number" placeholder="소비자가" value={newProdSalesPrice} onChange={e => setNewProdSalesPrice(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 </div>
               </div>
             </div>
