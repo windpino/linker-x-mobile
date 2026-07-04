@@ -662,47 +662,38 @@ export default function App() {
     return (
       <div className="space-y-6 animate-fadeIn pb-12">
         
-        {/* 1. 4x4 Customizable Menu Grid Container */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-slate-400 text-xs font-bold flex items-center gap-1.5"><Compass size={14}/> 퀵 메뉴판 (4x4)</span>
-            <span className="text-[10px] text-slate-500 font-bold bg-slate-955 px-2 py-0.5 rounded border border-slate-850">
-              *아이콘 터치 시 이동
-            </span>
-          </div>
+        {/* 1. 5x2 Customizable Menu Grid Container */}
+        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 py-4 px-1">
+          {gridConfig.map((menuId, idx) => {
+            const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
+            const IconComponent = opt.icon;
+            return (
+              <div key={idx} className="relative flex flex-col items-center group">
+                <button 
+                  onClick={() => handleGridMenuClick(menuId)}
+                  className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
+                >
+                  {opt.id === 'none' ? (
+                    <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
+                      <Plus size={30} />
+                    </div>
+                  ) : (
+                    <IconComponent size={34} className={opt.color} />
+                  )}
+                  <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
+                    {opt.label}
+                  </span>
+                </button>
 
-          <div className="grid grid-cols-5 gap-y-4 gap-x-1">
-            {gridConfig.map((menuId, idx) => {
-              const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
-              const IconComponent = opt.icon;
-              return (
-                <div key={idx} className="relative flex flex-col items-center group">
-                  <button 
-                    onClick={() => handleGridMenuClick(menuId)}
-                    className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
-                  >
-                    {opt.id === 'none' ? (
-                      <div className="w-10 h-10 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-600 hover:text-slate-400 hover:border-slate-500 transition-all">
-                        <Plus size={20} />
-                      </div>
-                    ) : (
-                      <IconComponent size={28} className={opt.color} />
-                    )}
-                    <span className="text-[9.5px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
-                      {opt.label}
-                    </span>
-                  </button>
-
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleSlotClick(idx); }}
-                    className="absolute top-1 right-1 p-0.5 bg-slate-800 hover:bg-blue-600 rounded-full text-slate-400 hover:text-white shadow transition-all scale-75"
-                  >
-                    <Settings size={8} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleSlotClick(idx); }}
+                  className="absolute top-1 right-1 p-0.5 bg-slate-800 hover:bg-blue-600 rounded-full text-slate-400 hover:text-white shadow transition-all scale-75"
+                >
+                  <Settings size={8} />
+                </button>
+              </div>
+            );
+          })}
         </div>
         
                 {/* 2. 일정 목록 */}
