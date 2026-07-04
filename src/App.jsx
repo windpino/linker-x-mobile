@@ -267,16 +267,24 @@ export default function App() {
   
   // Favorites Menu State
   const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem('m_favorites');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('m_favorites');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse favorites:", e);
+    }
     return ['sales_order_new', 'inventory_lookup', 'sales_order_list', 'sales_invoice_list', 'agent_chat'];
   });
 
   const toggleFavorite = (menuId) => {
     setFavorites(prev => {
-      const next = prev.includes(menuId) 
-        ? prev.filter(id => id !== menuId) 
-        : [...prev, menuId];
+      const arr = Array.isArray(prev) ? prev : [];
+      const next = arr.includes(menuId) 
+        ? arr.filter(id => id !== menuId) 
+        : [...arr, menuId];
       localStorage.setItem('m_favorites', JSON.stringify(next));
       return next;
     });
@@ -298,7 +306,7 @@ export default function App() {
     }
 
     const perms = currentUser.permissions || [];
-    const hasPerm = (title) => perms.some(p => p.includes(title));
+    const hasPerm = (title) => perms.some(p => p && typeof p === 'string' && p.includes(title));
 
     switch (menuId) {
       case 'dashboard':
@@ -725,8 +733,9 @@ export default function App() {
 
   const renderDashboard = () => {
     // Generate exactly 10 slots (5 columns * 2 rows), filtering by user permissions
+    const favs = Array.isArray(favorites) ? favorites : [];
     const gridSlots = Array.from({ length: 10 }, (_, i) => {
-      const favId = favorites[i];
+      const favId = favs[i];
       if (favId && hasMenuPermission(favId)) return favId;
       return 'none';
     });
@@ -3085,7 +3094,7 @@ export default function App() {
                               onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
                               className="p-1 text-slate-500 hover:text-yellow-450 transition-all"
                             >
-                              <Star size={12} className={favorites.includes(item.id) ? "text-yellow-500 fill-yellow-500" : "text-slate-700"} />
+                              <Star size={12} className={(Array.isArray(favorites) && favorites.includes(item.id)) ? "text-yellow-500 fill-yellow-500" : "text-slate-700"} />
                             </button>
                           )}
                         </div>
