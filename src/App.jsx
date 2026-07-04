@@ -3320,7 +3320,7 @@ export default function App() {
 
       {/* Dev Command Success Modal Popup */}
       {activeSuccessPopup && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[10000] flex items-start justify-center p-4 pt-[15vh] bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 font-sans">
             <div className="w-12 h-12 bg-emerald-500/20 text-emerald-450 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto animate-bounce">
               <CheckCircle2 size={24} />
