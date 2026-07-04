@@ -3044,20 +3044,6 @@ export default function App() {
         />
       )}
 
-      {/* Diagnostics Panel for test */}
-      {isLoggedIn && (
-        <div className="fixed bottom-24 left-4 right-4 bg-slate-900/95 border border-slate-800 rounded-xl p-3 z-[100000] text-[9.5px] font-mono space-y-1 shadow-2xl">
-          <div className="font-extrabold text-blue-400">🔍 ERP Diagnostics Panel</div>
-          <div>User: {currentUser ? `${currentUser.name} (id:${currentUser.userId}, role:${currentUser.role})` : 'NULL'}</div>
-          <div>Perms Type: {currentUser?.permissions ? (Array.isArray(currentUser.permissions) ? 'Array' : 'Object/Map') : 'None'}</div>
-          <div className="truncate">Perms Keys: {currentUser?.permissions ? Object.keys(currentUser.permissions).join(', ') : 'None'}</div>
-          <div>
-            Fav Checks: {['sales_order_new', 'inventory_lookup', 'sales_order_list', 'sales_invoice_list'].map(id => 
-              `${id}:${hasMenuPermission(id) ? 'YES' : 'NO'}`
-            ).join(' | ')}
-          </div>
-        </div>
-      )}
 
       {/* Slide-out Menu Drawer Container */}
       <div 
