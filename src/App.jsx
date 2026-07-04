@@ -306,8 +306,25 @@ export default function App() {
       return true;
     }
 
-    const perms = currentUser.permissions || [];
-    const hasPerm = (title) => perms.some(p => p && typeof p === 'string' && p.includes(title));
+    const perms = currentUser.permissions;
+    if (perms) {
+      if (perms.ALL === true || perms.ALL === 'true') return true;
+      if (Array.isArray(perms) && perms.includes('ALL')) return true;
+    }
+
+    const hasPerm = (title) => {
+      if (!perms) return false;
+      
+      // Case 1: permissions is an Array
+      if (Array.isArray(perms)) {
+        return perms.some(p => p && typeof p === 'string' && p.includes(title));
+      }
+      
+      // Case 2: permissions is a Map/Object
+      return Object.keys(perms).some(key => {
+        return key.includes(title) && (perms[key] === true || perms[key] === 'true');
+      });
+    };
 
     switch (menuId) {
       case 'dashboard':
