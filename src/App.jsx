@@ -183,6 +183,18 @@ export default function App() {
   const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
   const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const agentChatEndRef = useRef(null);
+
+  // 자동 스크롤 하단 이동 (마지막 지시사항 노출)
+  useEffect(() => {
+    if (isAgentChatOpen) {
+      const timer = setTimeout(() => {
+        agentChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAgentChatOpen, devCommands]);
   
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
@@ -3059,6 +3071,7 @@ export default function App() {
                 </div>
               </div>
             ))}
+            <div ref={agentChatEndRef} />
           </div>
 
           <form onSubmit={handleSendAgentCmd} className="p-4 border-t border-slate-800 bg-[#070a13]/60 flex gap-2 flex-shrink-0 items-end">
