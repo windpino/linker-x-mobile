@@ -759,9 +759,9 @@ export default function App() {
     });
 
     return (
-      <div className="space-y-6 animate-fadeIn pb-12">
+      <div className="space-y-3 animate-fadeIn pb-8">
         {/* 1. 즐겨찾기 메뉴판 (5x2 Flat Launcher) */}
-        <div className="grid grid-cols-5 gap-y-4 gap-x-1 -mx-5 px-1.5 pt-1.5 pb-4">
+        <div className="grid grid-cols-5 gap-y-2.5 gap-x-1 -mx-3 px-1 pt-1 pb-1">
           {gridSlots.map((menuId, idx) => {
             const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
             const IconComponent = opt.icon;
@@ -776,7 +776,7 @@ export default function App() {
                       handleGridMenuClick(menuId);
                     }
                   }}
-                  className={`w-full flex flex-col items-center justify-center py-3 px-0.5 rounded-2xl transition-all active:scale-95 shadow-sm ${
+                  className={`w-full flex flex-col items-center justify-center py-1.5 px-0.5 rounded-2xl transition-all active:scale-95 shadow-sm ${
                     opt.id === 'none'
                       ? 'border border-dashed border-slate-800/70 bg-transparent hover:border-slate-700/50'
                       : 'border border-solid border-slate-800/80 bg-slate-900/20 hover:bg-slate-850/30 hover:border-slate-750'
@@ -863,7 +863,7 @@ export default function App() {
         </div>
 
         {showStaffForm ? (
-          <form onSubmit={handleSubmitStaff} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+          <form onSubmit={handleSubmitStaff} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
             <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><UserPlus size={14}/> 신규 직원 사원 등록</div>
             <div className="space-y-3.5">
               <div className="grid grid-cols-2 gap-2">
@@ -904,7 +904,7 @@ export default function App() {
         ) : (
           <div className="space-y-2">
             {staffList.map(staff => (
-              <div key={staff.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-sm">
+              <div key={staff.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-bold text-sm">{staff.name}</span>
@@ -964,7 +964,7 @@ export default function App() {
       <div className="space-y-6 animate-fadeIn pb-12">
         <h3 className="text-white text-lg font-black">창고 등록 및 현황</h3>
 
-        <form onSubmit={handleSubmitWarehouse} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+        <form onSubmit={handleSubmitWarehouse} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
           <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Building2 size={14}/> 신규 물류 창고 등록</div>
           
           <div className="space-y-1.5">
@@ -996,7 +996,7 @@ export default function App() {
 
         <div className="space-y-2">
           {warehouses.map(wh => (
-            <div key={wh.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
+            <div key={wh.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
               <span className="text-white font-bold text-sm flex items-center gap-2.5">
                 <span className="w-3.5 h-3.5 rounded-full shadow-inner" style={{ backgroundColor: wh.color || '#3b82f6' }} />
                 {wh.name}
@@ -1074,7 +1074,7 @@ export default function App() {
         </div>
 
         {showPartnerForm ? (
-          <form onSubmit={handleSubmitPartner} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+          <form onSubmit={handleSubmitPartner} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
             <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Users size={14}/> 신규 비즈니스 거래처 등록</div>
             
             <div className="space-y-3.5">
@@ -1135,7 +1135,7 @@ export default function App() {
                   <div 
                     key={p.id}
                     onClick={() => setExpandedPartnerId(isExpanded ? null : p.id)}
-                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 space-y-2 cursor-pointer"
+                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-3 space-y-2 cursor-pointer"
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2.5">
@@ -1240,7 +1240,7 @@ export default function App() {
         </div>
 
         {showProductForm ? (
-          <form onSubmit={handleSubmitProduct} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+          <form onSubmit={handleSubmitProduct} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
             <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Package size={14}/> 신규 물류/생산 품목 등록</div>
             
             <div className="space-y-3.5">
@@ -1307,7 +1307,7 @@ export default function App() {
                   <div 
                     key={p.id}
                     onClick={() => setExpandedProdId(isExpanded ? null : p.id)}
-                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 space-y-2 cursor-pointer"
+                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-3 space-y-2 cursor-pointer"
                   >
                     <div className="flex justify-between items-center">
                       <div>
@@ -1443,13 +1443,13 @@ export default function App() {
         <h3 className="text-white text-lg font-black">신규 매입 전표</h3>
 
         {purchaseSuccess && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-emerald-500 text-xs font-bold flex items-center gap-2">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2">
             <CheckCircle2 size={16} /> 매입전표와 입고재고가 성공적으로 등록되었습니다.
           </div>
         )}
 
         <form onSubmit={handleSubmitPurchaseInvoice} className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
             <div className="space-y-1.5">
               <label className="text-slate-400 text-xs font-bold">공급처 (매입처) 선택</label>
               <select 
@@ -1479,7 +1479,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
             <label className="text-slate-400 text-xs font-bold block mb-1">매입 품목 목록</label>
             {purchaseItems.map((item, idx) => (
               <div key={idx} className="flex flex-col gap-2 bg-slate-955 border border-slate-800 p-3 rounded-lg relative">
@@ -1536,7 +1536,7 @@ export default function App() {
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
             <span className="text-slate-550 text-xs font-bold">합계 예상금액</span>
             <span className="text-white text-base font-black">{purchaseTotalAmount.toLocaleString()}원</span>
           </div>
@@ -1571,7 +1571,7 @@ export default function App() {
               const unpaid = (Number(inv.totalAmount) || 0) - (Number(inv.receivedAmount) || 0);
               const isPaid = unpaid <= 0;
               return (
-                <div key={inv.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div key={inv.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
                   <div className="flex justify-between items-center text-[10px] text-slate-500">
                     <span>{inv.id} | {inv.date}</span>
                     <span className={`px-2 py-0.5 rounded font-bold ${
@@ -1637,7 +1637,7 @@ export default function App() {
       <div className="space-y-6 animate-fadeIn pb-12">
         <h3 className="text-white text-lg font-black">실시간 은행 계좌 관리</h3>
 
-        <form onSubmit={handleAddAccount} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+        <form onSubmit={handleAddAccount} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
           <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Landmark size={14} /> 신규 계좌 등록</div>
           
           <div className="grid grid-cols-2 gap-2">
@@ -1676,7 +1676,7 @@ export default function App() {
 
         <div className="space-y-2">
           {accounts.map(acc => (
-            <div key={acc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center shadow-md">
+            <div key={acc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
               <div className="space-y-1">
                 <span className="text-white font-bold text-sm">{acc.name}</span>
                 <p className="text-[10px] text-slate-500">{acc.number}</p>
@@ -1817,7 +1817,7 @@ export default function App() {
               <div 
                 key={p.id}
                 onClick={() => setExpandedProduct(isExpanded ? null : p.name)}
-                className={`bg-slate-900 border rounded-xl p-4 cursor-pointer transition-all ${
+                className={`bg-slate-900 border rounded-xl p-3 cursor-pointer transition-all ${
                   isExpanded ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-800/80'
                 }`}
               >
@@ -1875,12 +1875,12 @@ export default function App() {
         <h3 className="text-white text-lg font-black">창고 간 재고 이동</h3>
         <form onSubmit={handleExecuteTransfer} className="space-y-4 max-w-md mx-auto">
           {transferSuccess && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-bounce">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-bounce">
               <CheckCircle2 size={16} /> 재고가 정상적으로 이동 완료되었습니다.
             </div>
           )}
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
             <div className="space-y-1.5">
               <label className="text-slate-500 text-xs font-bold">출고 창고 (보내는 곳)</label>
               <select 
@@ -1910,7 +1910,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
             <div className="space-y-1.5">
               <label className="text-slate-500 text-xs font-bold">이동 품목</label>
               <select 
@@ -2062,13 +2062,13 @@ export default function App() {
         <h3 className="text-white text-lg font-black">신규 간편 수주</h3>
 
         {orderSuccess && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-pulse">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-pulse">
             <CheckCircle2 size={16} /> 신규 수주가 성공적으로 등록되었습니다.
           </div>
         )}
 
         <form onSubmit={handleSubmitOrder} className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
             <label className="text-slate-400 text-xs font-bold">고객사 (매출처) 선택</label>
             <select 
               value={selectedPartner}
@@ -2082,7 +2082,7 @@ export default function App() {
             </select>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
             <label className="text-slate-400 text-xs font-bold block mb-1">수주 품목 목록</label>
             {orderItems.map((item, idx) => {
               const currentPrice = getProductPriceForPartner(item.productName, selectedPartner);
@@ -2132,7 +2132,7 @@ export default function App() {
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <span className="text-slate-550 text-xs font-bold">합계 예상금액</span>
               <span className="text-white text-base font-black">{orderTotalAmount.toLocaleString()}원</span>
@@ -2812,7 +2812,7 @@ export default function App() {
           <span className="text-slate-500 text-xs font-bold block uppercase tracking-wider">이전 개발 명령 히스토리</span>
           <div className="space-y-2.5 font-sans">
             {devCommands.map(cmd => (
-              <div key={cmd.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div key={cmd.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
                 <div className="flex justify-between items-center text-[10px] text-slate-505">
                   <span>{cmd.createdAt}</span>
                   <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
@@ -3159,7 +3159,7 @@ export default function App() {
       </div>
 
       {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-md border-b border-slate-900/60 px-5 py-4 flex justify-between items-center flex-shrink-0">
+      <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-md border-b border-slate-900/60 px-3 py-2.5 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsMenuOpen(true)}
@@ -3216,7 +3216,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 px-5 pt-0 pb-4 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))]">
+      <main className="flex-1 px-3 pt-0 pb-4 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))]">
         {currentView === 'dashboard' && renderDashboard()}
         
         {/* Master Data Module */}
