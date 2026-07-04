@@ -3061,18 +3061,24 @@ export default function App() {
             ))}
           </div>
 
-          <form onSubmit={handleSendAgentCmd} className="p-4 border-t border-slate-800 bg-[#070a13]/60 flex gap-2 flex-shrink-0">
-            <input 
-              type="text" 
+          <form onSubmit={handleSendAgentCmd} className="p-4 border-t border-slate-800 bg-[#070a13]/60 flex gap-2 flex-shrink-0 items-end">
+            <textarea 
               placeholder="수정할 내용이나 지시사항 입력..." 
               value={agentChatInput}
               onChange={e => setAgentChatInput(e.target.value)}
-              className="flex-1 bg-white border border-slate-350 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 shadow-inner"
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendAgentCmd(e);
+                }
+              }}
+              className="flex-1 bg-white border border-slate-350 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 shadow-inner resize-none h-12 leading-relaxed"
+              rows={2}
               required
             />
             <button 
               type="submit" 
-              className="bg-violet-600 hover:bg-violet-750 text-white font-bold p-2.5 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/10"
+              className="bg-violet-600 hover:bg-violet-750 text-white font-bold p-3 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/10 h-12 w-12"
             >
               <Send size={16} />
             </button>
