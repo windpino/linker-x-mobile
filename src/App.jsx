@@ -99,6 +99,8 @@ export default function App() {
   const [devCommandInput, setDevCommandInput] = useState('');
   const [devCommands, setDevCommands] = useState([]);
   const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
+  const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
+  const [agentChatInput, setAgentChatInput] = useState('');
   const [activeSuccessPopup, setActiveSuccessPopup] = useState(null);
   const [lastProcessedCmdId, setLastProcessedCmdId] = useState(null);
   const [loginFontSize, setLoginFontSize] = useState(() => {
@@ -559,6 +561,20 @@ export default function App() {
                   >
                     <Settings size={8} />
                   </button>
+      {/* Floating Action Button for Agent Control */}
+      {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && isLoggedIn && (
+        <button
+          onClick={() => setIsAgentChatOpen(true)}
+          className="fixed bottom-[85px] right-5 z-40 w-12 h-12 rounded-full bg-violet-650 hover:bg-violet-700 text-white flex items-center justify-center border border-violet-500/35 shadow-lg shadow-violet-500/25 transition-all hover:scale-105 active:scale-95"
+          title="에이전트 제어 콘솔"
+        >
+          <Sparkles size={20} className="animate-pulse" />
+        </button>
+      )}
+
+      {/* Agent Control Drawer */}
+      {renderAgentControlDrawer()}
+
       {/* Dev Command Success Modal Popup */}
       {activeSuccessPopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
@@ -2755,6 +2771,176 @@ export default function App() {
               <div className="text-center py-12 text-slate-600 text-xs bg-slate-900 border border-slate-800 rounded-2xl">전송된 개발 명령이 없습니다.</div>
             )}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleSendAgentCmd = async (e) => {
+    e.preventDefault();
+    const text = agentChatInput.trim();
+    if (!text) return;
+    setChatInput('');
+    setAgentChatInput('');
+    try {
+      const cmdId = `cmd_${Date.now()}`;
+      const newCmd = {
+        id: cmdId,
+        command: text,
+        status: 'pending',
+        createdAt: new Date().toLocaleString(),
+        log: '',
+        progress: '',
+        companyId
+      };
+      await setDoc(doc(db, 'companies', companyId, 'devCommands', cmdId), newCmd);
+    } catch (err) {
+      console.error(err);
+      alert('명령 전송 실패');
+    }
+  };
+
+  const renderAgentControlDrawer = () => {
+    if (!isAgentChatOpen) return null;
+
+    const chatFeed = [...devCommands].sort((a, b) => a.createdAt?.localeCompare(b.createdAt) || 0);
+
+    return (
+      <div className="fixed inset-0 z-[9999] flex justify-end items-end p-0 md:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+        <div className="absolute inset-0" onClick={() => setIsAgentChatOpen(false)} />
+        
+        <div className="relative w-full md:max-w-md h-[85vh] bg-[#0c101b] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden animate-slideUp font-sans">
+          
+          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#070a13]/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-violet-650/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                <Cpu size={16} className="animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-white text-xs font-black leading-tight">Antigravity 통제 콘솔</h3>
+                <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  실시간 코드 에이전트 연동 중
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsAgentChatOpen(false)}
+              className="p-1 text-slate-400 hover:text-white transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none bg-[#090c15]">
+            <div className="flex gap-2.5 justify-start">
+              <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-violet-400 text-[10px]">AI</div>
+              <div className="flex flex-col items-start">
+                <span className="text-[9px] text-slate-500 font-bold mb-0.5">Antigravity</span>
+                <div className="rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs bg-slate-900 border border-slate-800 text-slate-200 leading-relaxed max-w-[85%]">
+                  안녕하세요 대표님! 링커엑스 모바일 에이전트 통제 콘솔입니다. 수정하고 싶으신 UI 디자인, 버그 수정, 새 기능 추가 지시사항을 말씀해 주세요.
+                </div>
+              </div>
+            </div>
+
+            {chatFeed.map((cmd, idx) => (
+              <div key={cmd.id || idx} className="space-y-4">
+                <div className="flex gap-2.5 justify-end">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] text-slate-500 font-bold mb-0.5">대표님</span>
+                    <div className="rounded-2xl rounded-tr-none px-3.5 py-2.5 text-xs bg-violet-600 text-white shadow-sm leading-relaxed max-w-[85%]">
+                      {cmd.command}
+                    </div>
+                    <span className="text-[8px] text-slate-650 mt-1 font-bold">{cmd.createdAt?.split(' ')[1] || ''}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 justify-start animate-fadeIn">
+                  <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-violet-400 text-[10px]">AI</div>
+                  <div className="flex flex-col items-start w-[85%]">
+                    <span className="text-[9px] text-slate-500 font-bold mb-0.5">Antigravity</span>
+                    
+                    <div className={`rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs leading-relaxed w-full border ${
+                      cmd.status === 'success' ? 'bg-slate-900/60 border-slate-800 text-slate-200' :
+                      cmd.status === 'failed' ? 'bg-red-950/20 border-red-900/30 text-red-200' :
+                      'bg-slate-900 border-slate-800 text-slate-200'
+                    }`}>
+                      {cmd.status === 'pending' && (
+                        <div className="flex items-center gap-2 text-slate-400 font-medium">
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <span>지시사항을 확인하고 깨어나는 중...</span>
+                        </div>
+                      )}
+                      {cmd.status === 'running' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-violet-400 font-bold">
+                            <span className="w-2 h-2 bg-violet-500 rounded-full animate-ping" />
+                            <span>작업 분석 및 실시간 코딩 중...</span>
+                          </div>
+                          {cmd.progress && (
+                            <pre className="bg-slate-955 p-2.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
+                              {cmd.progress}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                      {cmd.status === 'success' && (
+                        <div className="space-y-2">
+                          <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+                            <CheckCircle2 size={14} />
+                            <span>코드 수정 및 배포 완료!</span>
+                          </div>
+                          {cmd.log && (
+                            <details className="cursor-pointer group">
+                              <summary className="text-[10px] text-slate-400 hover:text-slate-200 font-bold list-none flex items-center gap-1">
+                                <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
+                                빌드 및 배포 로그 보기
+                              </summary>
+                              <pre className="mt-2 bg-slate-955 p-2.5 rounded-xl border border-slate-800 text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
+                                {cmd.log}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      )}
+                      {cmd.status === 'failed' && (
+                        <div className="space-y-2">
+                          <div className="text-red-400 font-bold flex items-center gap-1.5">
+                            <AlertCircle size={14} />
+                            <span>코드 반영 중 오류 발생</span>
+                          </div>
+                          {cmd.log && (
+                            <pre className="bg-slate-955 p-2.5 rounded-xl border border-red-955/40 text-[9px] text-red-300 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
+                              {cmd.log}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handleSendAgentCmd} className="p-4 border-t border-slate-800 bg-[#070a13]/60 flex gap-2 flex-shrink-0">
+            <input 
+              type="text" 
+              placeholder="수정할 내용이나 지시사항 입력..." 
+              value={agentChatInput}
+              onChange={e => setAgentChatInput(e.target.value)}
+              className="flex-1 bg-white border border-slate-350 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 shadow-inner"
+              required
+            />
+            <button 
+              type="submit" 
+              className="bg-violet-600 hover:bg-violet-750 text-white font-bold p-2.5 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/10"
+            >
+              <Send size={16} />
+            </button>
+          </form>
         </div>
       </div>
     );
