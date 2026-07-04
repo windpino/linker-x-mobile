@@ -776,7 +776,11 @@ export default function App() {
                       handleGridMenuClick(menuId);
                     }
                   }}
-                  className="w-full flex flex-col items-center justify-center py-2 px-1 hover:bg-slate-900/40 rounded-xl transition-all border-none bg-transparent"
+                  className={`w-full flex flex-col items-center justify-center py-3 px-0.5 rounded-2xl transition-all active:scale-95 shadow-sm ${
+                    opt.id === 'none'
+                      ? 'border border-dashed border-slate-800/70 bg-transparent hover:border-slate-700/50'
+                      : 'border border-solid border-slate-800/80 bg-slate-900/20 hover:bg-slate-850/30 hover:border-slate-750'
+                  }`}
                 >
                   {opt.id === 'none' ? (
                     <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
