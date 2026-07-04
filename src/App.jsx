@@ -761,7 +761,7 @@ export default function App() {
     return (
       <div className="space-y-6 animate-fadeIn pb-12">
         {/* 1. 즐겨찾기 메뉴판 (5x2 Flat Launcher) */}
-        <div className="grid grid-cols-5 gap-y-5 gap-x-1.5 pt-1.5 pb-4 px-1">
+        <div className="grid grid-cols-5 gap-y-4 gap-x-1 -mx-5 px-1.5 pt-1.5 pb-4">
           {gridSlots.map((menuId, idx) => {
             const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
             const IconComponent = opt.icon;
