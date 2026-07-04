@@ -282,6 +282,57 @@ export default function App() {
     });
   };
 
+  // Enforce role/permission-based menu access
+  const hasMenuPermission = (menuId) => {
+    if (!isLoggedIn || !currentUser) return false;
+    
+    // Super admins and system administrators get full access
+    if (
+      currentUser.role === 'super_admin' || 
+      currentUser.userId === 'sadmin' || 
+      currentUser.userId === 'madmin' || 
+      currentUser.role === 'master' || 
+      currentUser.role === 'admin'
+    ) {
+      return true;
+    }
+
+    const perms = currentUser.permissions || [];
+    const hasPerm = (title) => perms.some(p => p.includes(title));
+
+    switch (menuId) {
+      case 'dashboard':
+        return true;
+      case 'staff_mgmt':
+        return hasPerm('직원') || hasPerm('직원관리') || currentUser.role === 'manager';
+      case 'warehouse_mgmt':
+        return hasPerm('창고') || hasPerm('창고관리') || currentUser.role === 'manager';
+      case 'partner_mgmt':
+        return hasPerm('거래처') || hasPerm('거래처등록') || currentUser.role === 'manager';
+      case 'product_mgmt':
+        return hasPerm('품목') || hasPerm('품목등록') || currentUser.role === 'manager';
+      case 'purchase_invoice':
+      case 'purchase_ledger':
+        return hasPerm('매입') || hasPerm('매입전표') || hasPerm('매입원장');
+      case 'sales_invoice_list':
+        return hasPerm('매출') || hasPerm('매출전표') || hasPerm('매출원장');
+      case 'sales_order_new':
+      case 'sales_order_list':
+        return hasPerm('수주') || hasPerm('상차');
+      case 'account_mgmt':
+        return hasPerm('계좌') || hasPerm('계좌관리') || hasPerm('입출금');
+      case 'inventory_lookup':
+      case 'inventory_transfer':
+        return hasPerm('재고') || hasPerm('재고이동');
+      case 'agent_chat':
+        return hasPerm('비서') || hasPerm('AI') || hasPerm('AI 비서');
+      case 'logout':
+        return true;
+      default:
+        return false;
+    }
+  };
+
   // 4x4 Grid Customization States
   const [isGridSettingsOpen, setIsGridSettingsOpen] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
@@ -673,8 +724,12 @@ export default function App() {
   };
 
   const renderDashboard = () => {
-    // Generate exactly 10 slots (5 columns * 2 rows)
-    const gridSlots = Array.from({ length: 10 }, (_, i) => favorites[i] || 'none');
+    // Generate exactly 10 slots (5 columns * 2 rows), filtering by user permissions
+    const gridSlots = Array.from({ length: 10 }, (_, i) => {
+      const favId = favorites[i];
+      if (favId && hasMenuPermission(favId)) return favId;
+      return 'none';
+    });
 
     return (
       <div className="space-y-6 animate-fadeIn pb-12">
@@ -2976,6 +3031,9 @@ export default function App() {
             </button>
 
             {menuStructure.map((cat) => {
+              // Filter sub-items by user permissions
+              const permittedItems = cat.items.filter(item => hasMenuPermission(item.id));
+              if (permittedItems.length === 0) return null;
               const IconComponent = 
                 cat.icon === 'Sliders' ? Sliders :
                 cat.icon === 'ArrowDownLeft' ? ArrowDownLeft :
@@ -3002,26 +3060,35 @@ export default function App() {
                     <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
                   {isExpanded && (
-                    <div className="pl-6 space-y-1 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                      {cat.items.map((item) => (
-                        <button 
-                          key={item.id}
-                          onClick={() => handleMenuClick(item)}
-                          className={`w-full text-left py-2 text-[11px] font-bold block transition-all ${
-                            item.implemented 
-                              ? currentView === item.id 
-                                ? 'text-blue-450 font-extrabold'
-                                : 'text-slate-400 hover:text-white' 
-                              : 'text-slate-500 hover:text-slate-400 cursor-pointer'
-                          }`}
-                        >
-                          <span className="flex items-center gap-1.5">
-                            {item.title}
-                            {!item.implemented && (
-                              <span className="text-[7.5px] px-1 py-0.2 bg-slate-850/60 text-slate-500 border border-slate-800/30 rounded scale-90 origin-left">PC 전용</span>
-                            )}
-                          </span>
-                        </button>
+                    <div className="pl-6 space-y-1.5 mt-1 border-l border-slate-800/30 ml-5 py-1">
+                      {permittedItems.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center w-full py-1">
+                          <button 
+                            onClick={() => handleMenuClick(item)}
+                            className={`flex-1 text-left text-[11px] font-bold block transition-all ${
+                              item.implemented 
+                                ? currentView === item.id 
+                                  ? 'text-blue-450 font-extrabold'
+                                  : 'text-slate-400 hover:text-white' 
+                                : 'text-slate-505 hover:text-slate-400 cursor-pointer'
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {item.title}
+                              {!item.implemented && (
+                                <span className="text-[7.5px] px-1 py-0.2 bg-slate-850/60 text-slate-500 border border-slate-800/30 rounded scale-90 origin-left">PC 전용</span>
+                              )}
+                            </span>
+                          </button>
+                          {item.implemented && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                              className="p-1 text-slate-500 hover:text-yellow-450 transition-all"
+                            >
+                              <Star size={12} className={favorites.includes(item.id) ? "text-yellow-500 fill-yellow-500" : "text-slate-700"} />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
