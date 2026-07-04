@@ -55,6 +55,87 @@ const matchesInitialSound = (target, search) => {
   return result.includes(searchClean);
 };
 
+// 초성 지원 검색형 드롭다운 컴포넌트 (PC 버전과 동일한 구동 방식)
+const SearchableSelect = ({ value, onChange, options, placeholder, emptyMessage }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const selectedOption = options.find(o => o.value === value);
+  const displayValue = selectedOption ? selectedOption.label : '';
+
+  const filteredOptions = options.filter(opt => {
+    if (!searchTerm) return true;
+    return matchesInitialSound(opt.label, searchTerm);
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder={isOpen ? "검색어 입력 (초성 가능)..." : (displayValue || placeholder)}
+          value={isOpen ? searchTerm : displayValue}
+          onChange={(e) => {
+            if (!isOpen) setIsOpen(true);
+            setSearchTerm(e.target.value);
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+            setSearchTerm('');
+          }}
+          className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none focus:border-blue-500 transition-all pr-8"
+        />
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <Search size={13} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-[9999] animate-fadeIn divide-y divide-slate-900">
+          {filteredOptions.length === 0 ? (
+            <div className="p-2.5 text-xs text-slate-500 text-center">{emptyMessage || '결과가 없습니다.'}</div>
+          ) : (
+            filteredOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                  setSearchTerm('');
+                }}
+                className={`w-full text-left p-2.5 text-xs transition-all hover:bg-slate-900 ${
+                  opt.value === value 
+                    ? 'text-blue-400 bg-slate-900/50 font-bold' 
+                    : 'text-slate-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 4x4 Grid Option Definitions
 const MENU_OPTIONS = [
   { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-indigo-400 bg-indigo-500/10' },
@@ -1452,16 +1533,13 @@ export default function App() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
             <div className="space-y-1.5">
               <label className="text-slate-400 text-xs font-bold">공급처 (매입처) 선택</label>
-              <select 
+              <SearchableSelect
                 value={purchasePartner}
-                onChange={e => setPurchasePartner(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              >
-                <option value="">-- 거래처 선택 --</option>
-                {activeSuppliers.map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
+                onChange={setPurchasePartner}
+                options={activeSuppliers.map(p => ({ value: p.name, label: p.name }))}
+                placeholder="-- 거래처 선택 --"
+                emptyMessage="검색된 거래처가 없습니다."
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -1483,16 +1561,13 @@ export default function App() {
             <label className="text-slate-400 text-xs font-bold block mb-1">매입 품목 목록</label>
             {purchaseItems.map((item, idx) => (
               <div key={idx} className="flex flex-col gap-2 bg-slate-955 border border-slate-800 p-3 rounded-lg relative">
-                <select
+                <SearchableSelect
                   value={item.productName}
-                  onChange={e => handlePurchaseItemChange(idx, 'productName', e.target.value)}
-                  className="bg-slate-900 border border-slate-850 rounded-md p-1.5 w-full text-xs text-white focus:outline-none"
-                >
-                  <option value="">-- 품목 선택 --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.name}>{p.name} ({p.spec})</option>
-                  ))}
-                </select>
+                  onChange={val => handlePurchaseItemChange(idx, 'productName', val)}
+                  options={products.map(p => ({ value: p.name, label: `${p.name} (${p.spec})` }))}
+                  placeholder="-- 품목 선택 --"
+                  emptyMessage="검색된 품목이 없습니다."
+                />
 
                 <div className="flex gap-2">
                   <div className="flex-1 space-y-1">
@@ -2070,16 +2145,13 @@ export default function App() {
         <form onSubmit={handleSubmitOrder} className="space-y-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
             <label className="text-slate-400 text-xs font-bold">고객사 (매출처) 선택</label>
-            <select 
+            <SearchableSelect
               value={selectedPartner}
-              onChange={e => setSelectedPartner(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-            >
-              <option value="">-- 거래처 선택 --</option>
-              {activePartners.map(p => (
-                <option key={p.id} value={p.name}>{p.name}</option>
-              ))}
-            </select>
+              onChange={setSelectedPartner}
+              options={activePartners.map(p => ({ value: p.name, label: p.name }))}
+              placeholder="-- 거래처 선택 --"
+              emptyMessage="검색된 거래처가 없습니다."
+            />
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
@@ -2089,16 +2161,13 @@ export default function App() {
               return (
                 <div key={idx} className="flex gap-2 items-center bg-slate-955 border border-slate-800 p-2.5 rounded-lg">
                   <div className="flex-1 space-y-1.5">
-                    <select
+                    <SearchableSelect
                       value={item.productName}
-                      onChange={e => handleOrderItemChange(idx, 'productName', e.target.value)}
-                      className="bg-slate-900 border border-slate-800 rounded-md p-1.5 w-full text-xs text-white focus:outline-none"
-                    >
-                      <option value="">-- 품목 선택 --</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.name}>{p.name} ({p.spec})</option>
-                      ))}
-                    </select>
+                      onChange={val => handleOrderItemChange(idx, 'productName', val)}
+                      options={products.map(p => ({ value: p.name, label: `${p.name} (${p.spec})` }))}
+                      placeholder="-- 품목 선택 --"
+                      emptyMessage="검색된 품목이 없습니다."
+                    />
                     <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
                       <span>단가: {currentPrice.toLocaleString()}원</span>
                       <span className="font-bold text-slate-400">계: {(currentPrice * (item.qty || 0)).toLocaleString()}원</span>
