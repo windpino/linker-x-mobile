@@ -188,6 +188,8 @@ export default function App() {
   const [purchaseBatchText, setPurchaseBatchText] = useState('');
 
   const agentChatEndRef = useRef(null);
+  const salesItemsEndRef = useRef(null);
+  const purchaseItemsEndRef = useRef(null);
 
   // 자동 스크롤 하단 이동 (마지막 지시사항 노출)
   useEffect(() => {
@@ -198,6 +200,26 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [isAgentChatOpen, devCommands]);
+
+  // 수주 등록 품목 리스트 추가 시 자동 하단 스크롤
+  useEffect(() => {
+    if (currentView === 'sales_order_new') {
+      const timer = setTimeout(() => {
+        salesItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [orderItems.length, currentView]);
+
+  // 매입 등록 품목 리스트 추가 시 자동 하단 스크롤
+  useEffect(() => {
+    if (currentView === 'purchase_invoice') {
+      const timer = setTimeout(() => {
+        purchaseItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [purchaseItems.length, currentView]);
   
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
@@ -1690,6 +1712,7 @@ export default function App() {
             >
               + 매입 품목 추가
             </button>
+            <div ref={purchaseItemsEndRef} />
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
@@ -2354,6 +2377,7 @@ export default function App() {
             >
               + 수주 품목 추가
             </button>
+            <div ref={salesItemsEndRef} />
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
