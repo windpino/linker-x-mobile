@@ -138,22 +138,22 @@ const SearchableSelect = ({ value, onChange, options, placeholder, emptyMessage 
 
 // 4x4 Grid Option Definitions
 const MENU_OPTIONS = [
-  { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-indigo-400 bg-indigo-500/10' },
-  { id: 'sales_order_new', label: '간편수주 등록', icon: ShoppingCart, color: 'text-emerald-450 bg-emerald-500/10' },
-  { id: 'sales_order_list', label: '수주목록 (상차)', icon: Truck, color: 'text-blue-400 bg-blue-500/10' },
-  { id: 'sales_invoice_list', label: '매출전표 내역', icon: DollarSign, color: 'text-amber-400 bg-amber-500/10' },
-  { id: 'inventory_lookup', label: '실시간 재고', icon: Package, color: 'text-sky-400 bg-sky-500/10' },
-  { id: 'inventory_transfer', label: '창고간 이동', icon: ArrowLeftRight, color: 'text-violet-400 bg-violet-500/10' },
-  { id: 'purchase_invoice', label: '매입전표 등록', icon: ArrowDownLeft, color: 'text-red-400 bg-red-500/10' },
-  { id: 'purchase_ledger', label: '매입전표 내역', icon: FileText, color: 'text-slate-400 bg-slate-500/10' },
-  { id: 'account_mgmt', label: '계좌관리', icon: Landmark, color: 'text-teal-400 bg-teal-500/10' },
-  { id: 'partner_mgmt', label: '거래처관리', icon: Users, color: 'text-rose-400 bg-rose-500/10' },
-  { id: 'product_mgmt', label: '품목관리', icon: FileSpreadsheet, color: 'text-amber-550 bg-amber-600/10' },
-  { id: 'staff_mgmt', label: '직원관리', icon: User, color: 'text-purple-400 bg-purple-500/10' },
-  { id: 'warehouse_mgmt', label: '창고관리', icon: Building2, color: 'text-indigo-400 bg-indigo-500/10' },
-  { id: 'agent_chat', label: 'AI 비서', icon: MessageSquare, color: 'text-violet-455 bg-violet-600/10' },
-  { id: 'logout', label: '로그아웃', icon: LogOut, color: 'text-rose-500 bg-rose-600/10' },
-  { id: 'none', label: '(비어있음)', icon: Plus, color: 'text-slate-650 bg-slate-900/60' }
+  { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-indigo-300 bg-indigo-500/20 border border-indigo-500/30' },
+  { id: 'sales_order_new', label: '간편수주 등록', icon: ShoppingCart, color: 'text-emerald-300 bg-emerald-500/20 border border-emerald-500/30' },
+  { id: 'sales_order_list', label: '수주목록 (상차)', icon: Truck, color: 'text-blue-300 bg-blue-500/20 border border-blue-500/30' },
+  { id: 'sales_invoice_list', label: '매출전표 내역', icon: DollarSign, color: 'text-amber-300 bg-amber-500/20 border border-amber-500/30' },
+  { id: 'inventory_lookup', label: '실시간 재고', icon: Package, color: 'text-sky-300 bg-sky-500/20 border border-sky-500/30' },
+  { id: 'inventory_transfer', label: '창고간 이동', icon: ArrowLeftRight, color: 'text-purple-300 bg-purple-500/20 border border-purple-500/30' },
+  { id: 'purchase_invoice', label: '매입전표 등록', icon: ArrowDownLeft, color: 'text-red-300 bg-red-500/20 border border-red-500/30' },
+  { id: 'purchase_ledger', label: '매입전표 내역', icon: FileText, color: 'text-slate-300 bg-slate-500/20 border border-slate-500/30' },
+  { id: 'account_mgmt', label: '계좌관리', icon: Landmark, color: 'text-teal-300 bg-teal-500/20 border border-teal-500/30' },
+  { id: 'partner_mgmt', label: '거래처관리', icon: Users, color: 'text-rose-300 bg-rose-500/20 border border-rose-500/30' },
+  { id: 'product_mgmt', label: '품목관리', icon: FileSpreadsheet, color: 'text-orange-300 bg-orange-500/20 border border-orange-500/30' },
+  { id: 'staff_mgmt', label: '직원관리', icon: User, color: 'text-violet-300 bg-violet-500/20 border border-violet-500/30' },
+  { id: 'warehouse_mgmt', label: '창고관리', icon: Building2, color: 'text-cyan-300 bg-cyan-500/20 border border-cyan-500/30' },
+  { id: 'agent_chat', label: 'AI 비서', icon: MessageSquare, color: 'text-fuchsia-300 bg-fuchsia-500/20 border border-fuchsia-500/30' },
+  { id: 'logout', label: '로그아웃', icon: LogOut, color: 'text-red-400 bg-red-500/20 border border-red-500/30' },
+  { id: 'none', label: '(비어있음)', icon: Plus, color: 'text-slate-600 bg-slate-900/60 border border-slate-800/40 border-dashed' }
 ];
 
 export default function App() {
@@ -977,20 +977,18 @@ export default function App() {
                       handleGridMenuClick(menuId);
                     }
                   }}
-                  className={`w-full flex flex-col items-center justify-center py-1.5 px-0.5 rounded-2xl transition-all active:scale-95 shadow-sm ${
-                    opt.id === 'none'
-                      ? 'border border-dashed border-slate-800/70 bg-transparent hover:border-slate-700/50'
-                      : 'border border-solid border-slate-800/80 bg-slate-900/20 hover:bg-slate-850/30 hover:border-slate-750'
-                  }`}
+                  className="w-full flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-95"
                 >
                   {opt.id === 'none' ? (
-                    <div className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-500 transition-all">
-                      <Plus size={34} />
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-550 border border-dashed border-slate-800 bg-slate-900/10 hover:border-slate-700 hover:text-slate-400 transition-all">
+                      <Plus size={24} />
                     </div>
                   ) : (
-                    <IconComponent size={38} className={opt.color} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-1.5 transition-all shadow-md ${opt.color}`}>
+                      <IconComponent size={24} />
+                    </div>
                   )}
-                  <span className="text-[10px] text-slate-300 font-bold mt-2 text-center leading-tight truncate w-full px-0.5">
+                  <span className="text-[10px] text-slate-300 font-bold mt-1 text-center leading-tight truncate w-full px-0.5">
                     {opt.id === 'none' ? '즐겨찾기' : opt.label}
                   </span>
                 </button>
@@ -1001,7 +999,6 @@ export default function App() {
       </div>
     );
   };
-
 
   // ---------------------------------------------------------
   // 8. 기초자료등록 - 직원관리 화면
