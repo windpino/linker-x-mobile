@@ -2416,7 +2416,7 @@ export default function App() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2.5">
             <div className="flex justify-between items-center">
               <label className="text-slate-400 text-xs font-bold">간편 일괄 입력</label>
-              <span className="text-[10px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
+              <span className="text-[10px] text-slate-500 font-bold">예: 특칠10 황압5 (또는 10 특칠)</span>
             </div>
             <div className="flex gap-2.5">
               <div className="flex-1 min-w-0">
@@ -2461,69 +2461,29 @@ export default function App() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowOrderItemsModal(true)}
-            className="w-full flex items-center justify-between bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3 text-xs text-slate-300 font-bold transition-all"
-          >
-            <span className="flex items-center gap-1.5">
-              <FileText size={14} className="text-blue-400" />
-              <span>등록 품목 목록 ({orderItems.filter(i => i.productName).length}건)</span>
-            </span>
-            <span className="text-[10px] text-slate-550 hover:text-white">자세히 보기 &gt;</span>
-          </button>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="text-slate-550 text-xs font-bold">합계 예상금액</span>
-              <span className="text-white text-base font-black">{orderTotalAmount.toLocaleString()}원</span>
+          {/* 수주 품목 목록 (모달 없이 화면에 바로 노출) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <label className="text-slate-400 text-xs font-bold">수주 품목 목록 ({orderItems.filter(i => i.productName).length}건)</label>
+              <button 
+                type="button" 
+                onClick={handleAddOrderItem}
+                className="text-blue-400 text-xs font-bold hover:underline flex items-center gap-1"
+              >
+                <PlusCircle size={12} /> 품목 개별 추가
+              </button>
             </div>
-            <div>
-              <label className="text-slate-400 text-xs font-bold block mb-1">수주 특이사항</label>
-              <textarea 
-                value={orderRemarks}
-                onChange={e => setOrderRemarks(e.target.value)}
-                placeholder="지시사항이나 배송요청 등을 남겨주세요."
-                rows="2"
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmittingOrder}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-blue-500/10"
-          >
-            {isSubmittingOrder ? '저장 중...' : '간편 수주 완료'}
-          </button>
-        </form>
-
-        {/* 수주 품목 모달 (상세 목록 팝업) */}
-        {showOrderItemsModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fadeIn">
-            <div className="bg-[#0b0f19] border border-slate-800 w-full max-w-md max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
-              {/* Modal Header */}
-              <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h4 className="text-white text-sm font-black flex items-center gap-1.5">
-                  <FileText size={16} className="text-blue-500" />
-                  <span>수주 품목 목록 ({orderItems.filter(i => i.productName).length}건)</span>
-                </h4>
-                <button 
-                  type="button" 
-                  onClick={() => setShowOrderItemsModal(false)}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-4 overflow-y-auto space-y-3 flex-1">
-                {orderItems.map((item, idx) => {
+            
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {orderItems.length === 0 || (orderItems.length === 1 && !orderItems[0].productName) ? (
+                <div className="text-slate-500 text-center py-6 text-xs">
+                  등록된 품목이 없습니다.
+                </div>
+              ) : (
+                orderItems.map((item, idx) => {
                   const currentPrice = getProductPriceForPartner(item.productName, selectedPartner);
                   return (
-                    <div key={idx} className="flex gap-2 items-center bg-slate-955 border border-slate-855 p-2.5 rounded-xl relative">
+                    <div key={idx} className="flex gap-2 items-center bg-slate-950 border border-slate-855 p-2.5 rounded-xl relative">
                       <div className="flex-1 space-y-1.5">
                         <SearchableSelect
                           value={item.productName}
@@ -2556,26 +2516,37 @@ export default function App() {
                       </button>
                     </div>
                   );
-                })}
+                })
+              )}
+            </div>
+            <div ref={salesItemsEndRef} />
+          </div>
 
-                <button 
-                  type="button" 
-                  onClick={handleAddOrderItem}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 border border-dashed border-slate-800 rounded-xl text-xs text-slate-400 font-bold hover:text-white transition-all bg-slate-955/20"
-                >
-                  <PlusCircle size={14} /> 품목 개별 추가
-                </button>
-                <div ref={salesItemsEndRef} />
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-bold">합계 예상금액</span>
-                <span className="text-white text-sm font-black">{orderTotalAmount.toLocaleString()}원</span>
-              </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <span className="text-slate-550 text-xs font-bold">합계 예상금액</span>
+              <span className="text-white text-base font-black">{orderTotalAmount.toLocaleString()}원</span>
+            </div>
+            <div>
+              <label className="text-slate-400 text-xs font-bold block mb-1">수주 특이사항</label>
+              <textarea 
+                value={orderRemarks}
+                onChange={e => setOrderRemarks(e.target.value)}
+                placeholder="지시사항이나 배송요청 등을 남겨주세요."
+                rows="2"
+                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
+              />
             </div>
           </div>
-        )}
+
+          <button
+            type="submit"
+            disabled={isSubmittingOrder}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-blue-500/10"
+          >
+            {isSubmittingOrder ? '저장 중...' : '간편 수주 완료'}
+          </button>
+        </form>
       </div>
     );
   };
