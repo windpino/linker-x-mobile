@@ -2129,6 +2129,7 @@ export default function App() {
   // 15. 매출/수주 관리 - 간편수주 등록 화면
   // ---------------------------------------------------------
   const [selectedPartner, setSelectedPartner] = useState('');
+  const [orderDate, setOrderDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [orderItems, setOrderItems] = useState([{ productName: '', qty: 1 }]);
   const [orderRemarks, setOrderRemarks] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
@@ -2212,7 +2213,7 @@ export default function App() {
 
       const newOrder = {
         id: orderId,
-        date: new Date().toISOString().split('T')[0],
+        date: orderDate,
         partner: selectedPartner,
         itemsText,
         items: structuredItems,
@@ -2230,6 +2231,7 @@ export default function App() {
       setOrderSuccess(true);
       setOrderItems([{ productName: '', qty: 1 }]);
       setSelectedPartner('');
+      setOrderDate(new Date().toISOString().split('T')[0]);
       setOrderRemarks('');
       setTimeout(() => setOrderSuccess(false), 3000);
     } catch (err) {
@@ -2300,6 +2302,16 @@ export default function App() {
         )}
 
         <form onSubmit={handleSubmitOrder} className="space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+            <label className="text-slate-400 text-xs font-bold">수주 일자</label>
+            <input
+              type="date"
+              value={orderDate}
+              onChange={e => setOrderDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
             <label className="text-slate-400 text-xs font-bold">고객사 (매출처) 선택</label>
             <SearchableSelect
