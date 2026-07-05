@@ -2134,6 +2134,7 @@ export default function App() {
   const [orderRemarks, setOrderRemarks] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [showOrderItemsModal, setShowOrderItemsModal] = useState(false);
 
   const salesItemsEndRef = useRef(null);
 
@@ -2293,7 +2294,15 @@ export default function App() {
   const renderSalesOrderNew = () => {
     return (
       <div className="space-y-4 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">신규 간편 수주</h3>
+        <div className="flex justify-between items-center gap-2">
+          <h3 className="text-white text-lg font-black shrink-0">신규 간편 수주</h3>
+          <input
+            type="date"
+            value={orderDate}
+            onChange={e => setOrderDate(e.target.value)}
+            className="bg-slate-955 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 w-32 font-bold text-center"
+          />
+        </div>
 
         {orderSuccess && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-pulse">
@@ -2302,36 +2311,28 @@ export default function App() {
         )}
 
         <form onSubmit={handleSubmitOrder} className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-            <label className="text-slate-400 text-xs font-bold">수주 일자</label>
-            <input
-              type="date"
-              value={orderDate}
-              onChange={e => setOrderDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-            <label className="text-slate-400 text-xs font-bold">고객사 (매출처) 선택</label>
-            <SearchableSelect
-              value={selectedPartner}
-              onChange={setSelectedPartner}
-              options={activePartners.map(p => ({ value: p.name, label: p.name }))}
-              placeholder="-- 거래처 선택 --"
-              emptyMessage="검색된 거래처가 없습니다."
-            />
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력 (수량 약칭)</label>
-              <span className="text-[9px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+            <label className="text-slate-400 text-xs font-bold shrink-0 w-12 text-left">매출처</label>
+            <div className="flex-1 min-w-0">
+              <SearchableSelect
+                value={selectedPartner}
+                onChange={setSelectedPartner}
+                options={activePartners.map(p => ({ value: p.name, label: p.name }))}
+                placeholder="-- 거래처 선택 --"
+                emptyMessage="검색된 거래처가 없습니다."
+              />
             </div>
-            <div className="flex gap-2">
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2.5">
+            <div className="flex justify-between items-center">
+              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력</label>
+              <span className="text-[10px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
+            </div>
+            <div className="flex gap-2.5">
               <input
                 type="text"
-                placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
+                placeholder="수량 약칭 수량 약칭 입력..."
                 value={salesBatchText}
                 onChange={e => setSalesBatchText(e.target.value)}
                 onKeyDown={e => {
@@ -2340,68 +2341,29 @@ export default function App() {
                     handleApplySalesBatch();
                   }
                 }}
-                className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
+                className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-black focus:outline-none focus:border-blue-500 font-bold shadow-inner"
               />
               <button
                 type="button"
                 onClick={handleApplySalesBatch}
-                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10"
+                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-4 py-3 rounded-xl transition-all shadow-md shadow-blue-500/10 shrink-0"
               >
                 추가
               </button>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
-            <label className="text-slate-400 text-xs font-bold block mb-1">수주 품목 목록</label>
-            {orderItems.map((item, idx) => {
-              const currentPrice = getProductPriceForPartner(item.productName, selectedPartner);
-              return (
-                <div key={idx} className="flex gap-2 items-center bg-slate-955 border border-slate-800 p-2.5 rounded-lg">
-                  <div className="flex-1 space-y-1.5">
-                    <SearchableSelect
-                      value={item.productName}
-                      onChange={val => handleOrderItemChange(idx, 'productName', val)}
-                      options={products.map(p => ({
-                        value: p.name,
-                        label: p.abbreviation ? `[${p.abbreviation}] ${p.name} (${p.spec})` : `${p.name} (${p.spec})`
-                      }))}
-                      placeholder="-- 품목 선택 --"
-                      emptyMessage="검색된 품목이 없습니다."
-                    />
-                    <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
-                      <span>단가: {currentPrice.toLocaleString()}원</span>
-                      <span className="font-bold text-slate-400">계: {(currentPrice * (item.qty || 0)).toLocaleString()}원</span>
-                    </div>
-                  </div>
-                  <input 
-                    type="number"
-                    min="1"
-                    value={item.qty}
-                    onChange={e => handleOrderItemChange(idx, 'qty', parseInt(e.target.value) || 0)}
-                    className="w-14 bg-slate-900 border border-slate-800 rounded-md p-1.5 text-center text-xs text-white font-bold"
-                  />
-                  {orderItems.length > 1 && (
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveOrderItem(idx)}
-                      className="p-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-            <button 
-              type="button" 
-              onClick={handleAddOrderItem}
-              className="text-blue-500 text-xs font-bold hover:underline flex items-center gap-1 pt-1"
-            >
-              + 수주 품목 추가
-            </button>
-            <div ref={salesItemsEndRef} />
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowOrderItemsModal(true)}
+            className="w-full flex items-center justify-between bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3 text-xs text-slate-300 font-bold transition-all"
+          >
+            <span className="flex items-center gap-1.5">
+              <FileText size={14} className="text-blue-400" />
+              <span>등록 품목 목록 ({orderItems.filter(i => i.productName).length}건)</span>
+            </span>
+            <span className="text-[10px] text-slate-550 hover:text-white">자세히 보기 &gt;</span>
+          </button>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -2415,7 +2377,7 @@ export default function App() {
                 onChange={e => setOrderRemarks(e.target.value)}
                 placeholder="지시사항이나 배송요청 등을 남겨주세요."
                 rows="2"
-                className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
+                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
               />
             </div>
           </div>
@@ -2428,6 +2390,84 @@ export default function App() {
             {isSubmittingOrder ? '저장 중...' : '간편 수주 완료'}
           </button>
         </form>
+
+        {/* 수주 품목 모달 (상세 목록 팝업) */}
+        {showOrderItemsModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-[#0b0f19] border border-slate-800 w-full max-w-md max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+              {/* Modal Header */}
+              <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h4 className="text-white text-sm font-black flex items-center gap-1.5">
+                  <FileText size={16} className="text-blue-500" />
+                  <span>수주 품목 목록 ({orderItems.filter(i => i.productName).length}건)</span>
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => setShowOrderItemsModal(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4 overflow-y-auto space-y-3 flex-1">
+                {orderItems.map((item, idx) => {
+                  const currentPrice = getProductPriceForPartner(item.productName, selectedPartner);
+                  return (
+                    <div key={idx} className="flex gap-2 items-center bg-slate-955 border border-slate-855 p-2.5 rounded-xl relative">
+                      <div className="flex-1 space-y-1.5">
+                        <SearchableSelect
+                          value={item.productName}
+                          onChange={val => handleOrderItemChange(idx, 'productName', val)}
+                          options={products.map(p => ({
+                            value: p.name,
+                            label: p.abbreviation ? `[${p.abbreviation}] ${p.name} (${p.spec})` : `${p.name} (${p.spec})`
+                          }))}
+                          placeholder="-- 품목 선택 --"
+                          emptyMessage="검색된 품목이 없습니다."
+                        />
+                        <div className="flex justify-between items-center text-[10px] text-slate-550 px-1">
+                          <span>단가: {currentPrice.toLocaleString()}원</span>
+                          <span className="font-bold text-slate-400">계: {(currentPrice * (item.qty || 0)).toLocaleString()}원</span>
+                        </div>
+                      </div>
+                      <input 
+                        type="number"
+                        min="1"
+                        value={item.qty}
+                        onChange={e => handleOrderItemChange(idx, 'qty', parseInt(e.target.value) || 0)}
+                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white text-center focus:outline-none font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOrderItem(idx)}
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                <button 
+                  type="button" 
+                  onClick={handleAddOrderItem}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 border border-dashed border-slate-800 rounded-xl text-xs text-slate-400 font-bold hover:text-white transition-all bg-slate-955/20"
+                >
+                  <PlusCircle size={14} /> 품목 개별 추가
+                </button>
+                <div ref={salesItemsEndRef} />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-bold">합계 예상금액</span>
+                <span className="text-white text-sm font-black">{orderTotalAmount.toLocaleString()}원</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
