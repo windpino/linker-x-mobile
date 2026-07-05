@@ -183,6 +183,9 @@ export default function App() {
   const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
   const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  
+  const [salesBatchText, setSalesBatchText] = useState('');
+  const [purchaseBatchText, setPurchaseBatchText] = useState('');
 
   const agentChatEndRef = useRef(null);
 
@@ -206,6 +209,43 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  const handleApplySalesBatch = () => {
+    if (!salesBatchText.trim()) return;
+    const parsed = parseBatchInput(salesBatchText);
+    if (parsed.length === 0) {
+      showToast("유효한 수량과 약칭을 입력해 주세요. (예: 10 특칠)", "info");
+      return;
+    }
+    setOrderItems(prev => {
+      const list = [...prev];
+      const isEmpty = list.length === 1 && !list[0].productName;
+      const base = isEmpty ? [] : list;
+      return [...base, ...parsed];
+    });
+    setSalesBatchText('');
+    showToast(`${parsed.length}개 품목이 수주 목록에 추가되었습니다.`, "success");
+  };
+
+  const handleApplyPurchaseBatch = () => {
+    if (!purchaseBatchText.trim()) return;
+    const parsed = parseBatchInput(purchaseBatchText).map(item => ({
+      ...item,
+      price: products.find(p => p.name === item.productName)?.purchasePrice || 0
+    }));
+    if (parsed.length === 0) {
+      showToast("유효한 수량과 약칭을 입력해 주세요. (예: 10 특칠)", "info");
+      return;
+    }
+    setPurchaseItems(prev => {
+      const list = [...prev];
+      const isEmpty = list.length === 1 && !list[0].productName;
+      const base = isEmpty ? [] : list;
+      return [...base, ...parsed];
+    });
+    setPurchaseBatchText('');
+    showToast(`${parsed.length}개 품목이 매입 목록에 추가되었습니다.`, "success");
+  };
 
   const handleMenuClick = (item) => {
     if (item.implemented) {
@@ -2170,6 +2210,51 @@ export default function App() {
     } finally {
       setIsSubmittingOrder(false);
     }
+  };
+
+  const parseBatchInput = (text) => {
+    const tokens = text.trim().split(/\s+/);
+    const items = [];
+    let currentQty = null;
+    let currentAbbrev = null;
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!token) continue;
+
+      const num = parseInt(token, 10);
+      if (!isNaN(num)) {
+        currentQty = num;
+      } else {
+        currentAbbrev = token;
+      }
+
+      if (currentQty !== null && currentAbbrev !== null) {
+        const abbrev = currentAbbrev;
+        const qty = currentQty;
+        
+        const match = products.find(p => {
+          if (p.abbreviation && p.abbreviation === abbrev) return true;
+          if (p.name.includes(`(${abbrev})`)) return true;
+          if (p.name === abbrev) return true;
+          if (matchesInitialSound(p.name, abbrev)) return true;
+          return false;
+        });
+
+        if (match) {
+          items.push({
+            productName: match.name,
+            qty: qty
+          });
+        } else {
+          showToast(`품목 '${abbrev}'을(를) 찾을 수 없습니다.`, 'info');
+        }
+
+        currentQty = null;
+        currentAbbrev = null;
+      }
+    }
+    return items;
   };
 
   const renderSalesOrderNew = () => {
