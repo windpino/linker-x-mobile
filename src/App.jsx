@@ -188,8 +188,6 @@ export default function App() {
   const [purchaseBatchText, setPurchaseBatchText] = useState('');
 
   const agentChatEndRef = useRef(null);
-  const salesItemsEndRef = useRef(null);
-  const purchaseItemsEndRef = useRef(null);
 
   // 자동 스크롤 하단 이동 (마지막 지시사항 노출)
   useEffect(() => {
@@ -200,26 +198,6 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [isAgentChatOpen, devCommands]);
-
-  // 수주 등록 품목 리스트 추가 시 자동 하단 스크롤
-  useEffect(() => {
-    if (currentView === 'sales_order_new') {
-      const timer = setTimeout(() => {
-        salesItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [orderItems.length, currentView]);
-
-  // 매입 등록 품목 리스트 추가 시 자동 하단 스크롤
-  useEffect(() => {
-    if (currentView === 'purchase_invoice') {
-      const timer = setTimeout(() => {
-        purchaseItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [purchaseItems.length, currentView]);
   
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
@@ -1510,6 +1488,18 @@ export default function App() {
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
+  const purchaseItemsEndRef = useRef(null);
+
+  // 매입 등록 품목 리스트 추가 시 자동 하단 스크롤
+  useEffect(() => {
+    if (currentView === 'purchase_invoice') {
+      const timer = setTimeout(() => {
+        purchaseItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [purchaseItems.length, currentView]);
+
   const activeSuppliers = useMemo(() => {
     return partners.filter(p => p.type === '매입처' || p.type === '공통');
   }, [partners]);
@@ -2140,6 +2130,18 @@ export default function App() {
   const [orderRemarks, setOrderRemarks] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const salesItemsEndRef = useRef(null);
+
+  // 수주 등록 품목 리스트 추가 시 자동 하단 스크롤
+  useEffect(() => {
+    if (currentView === 'sales_order_new') {
+      const timer = setTimeout(() => {
+        salesItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [orderItems.length, currentView]);
 
   const activePartners = useMemo(() => {
     return partners.filter(p => p.type === '매출처' || p.type === '공통');
