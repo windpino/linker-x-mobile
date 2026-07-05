@@ -1638,7 +1638,7 @@ export default function App() {
                     handleApplyPurchaseBatch();
                   }
                 }}
-                className="flex-1 bg-slate-955 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
               />
               <button
                 type="button"
@@ -1657,7 +1657,10 @@ export default function App() {
                 <SearchableSelect
                   value={item.productName}
                   onChange={val => handlePurchaseItemChange(idx, 'productName', val)}
-                  options={products.map(p => ({ value: p.name, label: `${p.name} (${p.spec})` }))}
+                  options={products.map(p => ({
+                    value: p.name,
+                    label: p.abbreviation ? `[${p.abbreviation}] ${p.name} (${p.spec})` : `${p.name} (${p.spec})`
+                  }))}
                   placeholder="-- 품목 선택 --"
                   emptyMessage="검색된 품목이 없습니다."
                 />
@@ -2238,7 +2241,9 @@ export default function App() {
   };
 
   const parseBatchInput = (text) => {
-    const tokens = text.trim().split(/\s+/);
+    // 숫자가 한글 약칭과 띄어쓰기 없이 붙어있는 경우 강제로 공백을 삽입 (예: 10특칠 -> 10 특칠, 황압5 -> 황압 5)
+    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
+    const tokens = cleanedText.trim().split(/\s+/);
     const items = [];
     let currentQty = null;
     let currentAbbrev = null;
@@ -2261,6 +2266,7 @@ export default function App() {
         const match = products.find(p => {
           if (p.abbreviation && p.abbreviation === abbrev) return true;
           if (p.name.includes(`(${abbrev})`)) return true;
+          if (p.name.includes(abbrev)) return true;
           if (p.name === abbrev) return true;
           if (matchesInitialSound(p.name, abbrev)) return true;
           return false;
@@ -2322,7 +2328,7 @@ export default function App() {
                     handleApplySalesBatch();
                   }
                 }}
-                className="flex-1 bg-slate-955 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
               />
               <button
                 type="button"
@@ -2344,7 +2350,10 @@ export default function App() {
                     <SearchableSelect
                       value={item.productName}
                       onChange={val => handleOrderItemChange(idx, 'productName', val)}
-                      options={products.map(p => ({ value: p.name, label: `${p.name} (${p.spec})` }))}
+                      options={products.map(p => ({
+                        value: p.name,
+                        label: p.abbreviation ? `[${p.abbreviation}] ${p.name} (${p.spec})` : `${p.name} (${p.spec})`
+                      }))}
                       placeholder="-- 품목 선택 --"
                       emptyMessage="검색된 품목이 없습니다."
                     />
