@@ -138,22 +138,22 @@ const SearchableSelect = ({ value, onChange, options, placeholder, emptyMessage 
 
 // 4x4 Grid Option Definitions
 const MENU_OPTIONS = [
-  { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-indigo-300 bg-indigo-500/20 border border-indigo-500/30' },
-  { id: 'sales_order_new', label: '간편수주 등록', icon: ShoppingCart, color: 'text-emerald-300 bg-emerald-500/20 border border-emerald-500/30' },
-  { id: 'sales_order_list', label: '수주목록 (상차)', icon: Truck, color: 'text-blue-300 bg-blue-500/20 border border-blue-500/30' },
-  { id: 'sales_invoice_list', label: '매출전표 내역', icon: DollarSign, color: 'text-amber-300 bg-amber-500/20 border border-amber-500/30' },
-  { id: 'inventory_lookup', label: '실시간 재고', icon: Package, color: 'text-sky-300 bg-sky-500/20 border border-sky-500/30' },
-  { id: 'inventory_transfer', label: '창고간 이동', icon: ArrowLeftRight, color: 'text-purple-300 bg-purple-500/20 border border-purple-500/30' },
-  { id: 'purchase_invoice', label: '매입전표 등록', icon: ArrowDownLeft, color: 'text-red-300 bg-red-500/20 border border-red-500/30' },
-  { id: 'purchase_ledger', label: '매입전표 내역', icon: FileText, color: 'text-slate-300 bg-slate-500/20 border border-slate-500/30' },
-  { id: 'account_mgmt', label: '계좌관리', icon: Landmark, color: 'text-teal-300 bg-teal-500/20 border border-teal-500/30' },
-  { id: 'partner_mgmt', label: '거래처관리', icon: Users, color: 'text-rose-300 bg-rose-500/20 border border-rose-500/30' },
-  { id: 'product_mgmt', label: '품목관리', icon: FileSpreadsheet, color: 'text-orange-300 bg-orange-500/20 border border-orange-500/30' },
-  { id: 'staff_mgmt', label: '직원관리', icon: User, color: 'text-violet-300 bg-violet-500/20 border border-violet-500/30' },
-  { id: 'warehouse_mgmt', label: '창고관리', icon: Building2, color: 'text-cyan-300 bg-cyan-500/20 border border-cyan-500/30' },
-  { id: 'agent_chat', label: 'AI 비서', icon: MessageSquare, color: 'text-fuchsia-300 bg-fuchsia-500/20 border border-fuchsia-500/30' },
-  { id: 'logout', label: '로그아웃', icon: LogOut, color: 'text-red-400 bg-red-500/20 border border-red-500/30' },
-  { id: 'none', label: '(비어있음)', icon: Plus, color: 'text-slate-600 bg-slate-900/60 border border-slate-800/40 border-dashed' }
+  { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-white bg-indigo-500 shadow-indigo-500/20' },
+  { id: 'sales_order_new', label: '간편수주 등록', icon: ShoppingCart, color: 'text-white bg-emerald-500 shadow-emerald-500/20' },
+  { id: 'sales_order_list', label: '수주목록 (상차)', icon: Truck, color: 'text-white bg-blue-500 shadow-blue-500/20' },
+  { id: 'sales_invoice_list', label: '매출전표 내역', icon: DollarSign, color: 'text-white bg-amber-550 shadow-amber-550/20' },
+  { id: 'inventory_lookup', label: '실시간 재고', icon: Package, color: 'text-white bg-sky-500 shadow-sky-500/20' },
+  { id: 'inventory_transfer', label: '창고간 이동', icon: ArrowLeftRight, color: 'text-white bg-purple-500 shadow-purple-500/20' },
+  { id: 'purchase_invoice', label: '매입전표 등록', icon: ArrowDownLeft, color: 'text-white bg-red-500 shadow-red-500/20' },
+  { id: 'purchase_ledger', label: '매입전표 내역', icon: FileText, color: 'text-white bg-slate-500 shadow-slate-500/20' },
+  { id: 'account_mgmt', label: '계좌관리', icon: Landmark, color: 'text-white bg-teal-500 shadow-teal-500/20' },
+  { id: 'partner_mgmt', label: '거래처관리', icon: Users, color: 'text-white bg-rose-500 shadow-rose-500/20' },
+  { id: 'product_mgmt', label: '품목관리', icon: FileSpreadsheet, color: 'text-white bg-orange-500 shadow-orange-500/20' },
+  { id: 'staff_mgmt', label: '직원관리', icon: User, color: 'text-white bg-violet-500 shadow-violet-500/20' },
+  { id: 'warehouse_mgmt', label: '창고관리', icon: Building2, color: 'text-white bg-cyan-550 shadow-cyan-550/20' },
+  { id: 'agent_chat', label: 'AI 비서', icon: MessageSquare, color: 'text-white bg-fuchsia-500 shadow-fuchsia-500/20' },
+  { id: 'logout', label: '로그아웃', icon: LogOut, color: 'text-white bg-red-500 shadow-red-500/20' },
+  { id: 'none', label: '(비어있음)', icon: Plus, color: 'text-slate-550 bg-slate-900/50 border border-dashed border-slate-800' }
 ];
 
 export default function App() {
