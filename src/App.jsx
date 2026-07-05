@@ -186,6 +186,74 @@ export default function App() {
   
   const [salesBatchText, setSalesBatchText] = useState('');
   const [purchaseBatchText, setPurchaseBatchText] = useState('');
+  const [salesSuggestions, setSalesSuggestions] = useState([]);
+  const [purchaseSuggestions, setPurchaseSuggestions] = useState([]);
+
+  const handleSalesBatchTextChange = (text) => {
+    setSalesBatchText(text);
+    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
+    const tokens = cleanedText.trim().split(/\s+/);
+    const lastToken = tokens[tokens.length - 1] || '';
+    if (lastToken && isNaN(parseInt(lastToken, 10))) {
+      const queryStr = lastToken.trim();
+      if (queryStr.length >= 1) {
+        const matches = products.filter(p => {
+          if (p.abbreviation && p.abbreviation.includes(queryStr)) return true;
+          if (p.name.includes(queryStr)) return true;
+          if (matchesInitialSound(p.name, queryStr)) return true;
+          return false;
+        }).slice(0, 5);
+        setSalesSuggestions(matches);
+      } else {
+        setSalesSuggestions([]);
+      }
+    } else {
+      setSalesSuggestions([]);
+    }
+  };
+
+  const handleSelectSalesSuggestion = (prod) => {
+    const text = salesBatchText;
+    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
+    const tokens = cleanedText.trim().split(/\s+/);
+    const replacement = prod.abbreviation || prod.name;
+    tokens[tokens.length - 1] = replacement;
+    setSalesBatchText(tokens.join(' ') + ' ');
+    setSalesSuggestions([]);
+  };
+
+  const handlePurchaseBatchTextChange = (text) => {
+    setPurchaseBatchText(text);
+    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
+    const tokens = cleanedText.trim().split(/\s+/);
+    const lastToken = tokens[tokens.length - 1] || '';
+    if (lastToken && isNaN(parseInt(lastToken, 10))) {
+      const queryStr = lastToken.trim();
+      if (queryStr.length >= 1) {
+        const matches = products.filter(p => {
+          if (p.abbreviation && p.abbreviation.includes(queryStr)) return true;
+          if (p.name.includes(queryStr)) return true;
+          if (matchesInitialSound(p.name, queryStr)) return true;
+          return false;
+        }).slice(0, 5);
+        setPurchaseSuggestions(matches);
+      } else {
+        setPurchaseSuggestions([]);
+      }
+    } else {
+      setPurchaseSuggestions([]);
+    }
+  };
+
+  const handleSelectPurchaseSuggestion = (prod) => {
+    const text = purchaseBatchText;
+    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
+    const tokens = cleanedText.trim().split(/\s+/);
+    const replacement = prod.abbreviation || prod.name;
+    tokens[tokens.length - 1] = replacement;
+    setPurchaseBatchText(tokens.join(' ') + ' ');
+    setPurchaseSuggestions([]);
+  };
 
   const agentChatEndRef = useRef(null);
 
@@ -1627,23 +1695,42 @@ export default function App() {
               <span className="text-[9px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
             </div>
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
-                value={purchaseBatchText}
-                onChange={e => setPurchaseBatchText(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleApplyPurchaseBatch();
-                  }
-                }}
-                className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
-              />
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
+                  value={purchaseBatchText}
+                  onChange={e => handlePurchaseBatchTextChange(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplyPurchaseBatch();
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
+                />
+                {purchaseSuggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-slate-300 rounded-lg mt-1 animate-fadeIn">
+                    {purchaseSuggestions.map((prod, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPurchaseSuggestion(prod)}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-black px-2 py-1 rounded-lg font-bold flex items-center gap-1 active:scale-95 transition-all"
+                      >
+                        {prod.abbreviation ? (
+                          <span className="text-blue-600 font-extrabold">[{prod.abbreviation}]</span>
+                        ) : null}
+                        <span>{prod.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handleApplyPurchaseBatch}
-                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10"
+                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10 self-start"
               >
                 추가
               </button>
@@ -2255,8 +2342,10 @@ export default function App() {
       const token = tokens[i];
       if (!token) continue;
 
-      const num = parseInt(token, 10);
-      if (!isNaN(num)) {
+      // 수량 단위가 임의로 붙어있는 경우 제거 (예: '10개' -> '10')
+      const cleanNumToken = token.replace(/개|번|포|통|박스|개입/g, '');
+      const num = parseInt(cleanNumToken, 10);
+      if (!isNaN(num) && /^\d+$/.test(cleanNumToken)) {
         currentQty = num;
       } else {
         currentAbbrev = token;
@@ -2300,7 +2389,7 @@ export default function App() {
             type="date"
             value={orderDate}
             onChange={e => setOrderDate(e.target.value)}
-            className="bg-slate-955 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 w-32 font-bold text-center"
+            className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-black focus:outline-none focus:border-blue-500 w-32 font-black text-center shadow-sm"
           />
         </div>
 
@@ -2330,23 +2419,42 @@ export default function App() {
               <span className="text-[10px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
             </div>
             <div className="flex gap-2.5">
-              <input
-                type="text"
-                placeholder="수량 약칭 수량 약칭 입력..."
-                value={salesBatchText}
-                onChange={e => setSalesBatchText(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleApplySalesBatch();
-                  }
-                }}
-                className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-black focus:outline-none focus:border-blue-500 font-bold shadow-inner"
-              />
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  placeholder="수량 약칭 수량 약칭 입력..."
+                  value={salesBatchText}
+                  onChange={e => handleSalesBatchTextChange(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplySalesBatch();
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-black focus:outline-none focus:border-blue-500 font-bold shadow-inner"
+                />
+                {salesSuggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-slate-300 rounded-xl mt-1.5 animate-fadeIn">
+                    {salesSuggestions.map((prod, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectSalesSuggestion(prod)}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-black px-2 py-1 rounded-lg font-bold flex items-center gap-1 active:scale-95 transition-all"
+                      >
+                        {prod.abbreviation ? (
+                          <span className="text-blue-600 font-extrabold">[{prod.abbreviation}]</span>
+                        ) : null}
+                        <span>{prod.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handleApplySalesBatch}
-                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-4 py-3 rounded-xl transition-all shadow-md shadow-blue-500/10 shrink-0"
+                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-4 py-3 rounded-xl transition-all shadow-md shadow-blue-500/10 shrink-0 self-start"
               >
                 추가
               </button>
