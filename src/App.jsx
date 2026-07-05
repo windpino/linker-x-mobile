@@ -1569,6 +1569,35 @@ export default function App() {
             </div>
           </div>
 
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력 (수량 약칭)</label>
+              <span className="text-[9px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
+                value={purchaseBatchText}
+                onChange={e => setPurchaseBatchText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleApplyPurchaseBatch();
+                  }
+                }}
+                className="flex-1 bg-slate-955 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleApplyPurchaseBatch}
+                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10"
+              >
+                추가
+              </button>
+            </div>
+          </div>
+
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
             <label className="text-slate-400 text-xs font-bold block mb-1">매입 품목 목록</label>
             {purchaseItems.map((item, idx) => (
@@ -2164,6 +2193,35 @@ export default function App() {
               placeholder="-- 거래처 선택 --"
               emptyMessage="검색된 거래처가 없습니다."
             />
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력 (수량 약칭)</label>
+              <span className="text-[9px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
+                value={salesBatchText}
+                onChange={e => setSalesBatchText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleApplySalesBatch();
+                  }
+                }}
+                className="flex-1 bg-slate-955 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleApplySalesBatch}
+                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10"
+              >
+                추가
+              </button>
+            </div>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
