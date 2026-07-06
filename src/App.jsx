@@ -2924,14 +2924,14 @@ function App() {
 
             {/* Mobile Schedule List without Calendar Elements */}
             <div className="mobile-schedule-planner" style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '16px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+              backgroundColor: 'transparent',
+              borderRadius: '0',
+              padding: '0',
+              boxShadow: 'none',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              border: '1px solid #f1f5f9'
+              border: 'none'
             }}>
               {/* Clean Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
@@ -3039,31 +3039,34 @@ function App() {
             </div>
           </div>
 
-          <div className="right-side-grid" style={{ gridRow: `span 3` }}>
-            {(() => {
-              const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
-              const maxWidgets = 6;
-              const displayWidgets = activeWidgets.slice(0, maxWidgets);
-              
-              return displayWidgets.map((widgetId) => {
-                return (
-                  <div 
-                    key={widgetId} 
-                    className="grid-item" 
-                    style={{ 
-                      gridRow: 'span 1',
-                      height: '100%',
-                      minHeight: '290px',
-                      maxHeight: '290px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {renderWidget(widgetId, '')}
-                  </div>
-                );
-              });
-            })()}
-          </div>
+          {/* right-side-grid is hidden per user request to simplify mobile view */}
+          {false && (
+            <div className="right-side-grid" style={{ gridRow: `span 3` }}>
+              {(() => {
+                const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
+                const maxWidgets = 6;
+                const displayWidgets = activeWidgets.slice(0, maxWidgets);
+                
+                return displayWidgets.map((widgetId) => {
+                  return (
+                    <div 
+                      key={widgetId} 
+                      className="grid-item" 
+                      style={{ 
+                        gridRow: 'span 1',
+                        height: '100%',
+                        minHeight: '290px',
+                        maxHeight: '290px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {renderWidget(widgetId, '')}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
         </div>
       </div>
 
@@ -3958,12 +3961,12 @@ function FavoriteMenuBar({
 
   return (
     <div className="calendar-favorites-section" style={{
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '14px 16px',
-      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
-      border: '1px solid #e2e8f0',
-      marginBottom: '4px',
+      backgroundColor: 'transparent',
+      borderRadius: '0',
+      padding: '0',
+      boxShadow: 'none',
+      border: 'none',
+      marginBottom: '12px',
       position: 'relative'
     }}>
       {/* 헤더 행 */}
@@ -4001,7 +4004,7 @@ function FavoriteMenuBar({
       </div>
 
       {/* 7칸 메뉴 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
         {Array.from({ length: 7 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
@@ -4014,19 +4017,19 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '70px', border: '2px dashed #cbd5e1',
+                    width: '100%', height: '56px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
                     borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: '10px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '4px',
+                    borderRadius: '8px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '2px',
                     cursor: 'pointer', transition: 'all 0.18s'
                   }}
                   onMouseEnter={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#93c5fd'; } }}
                   onMouseLeave={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; } }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>메뉴 추가</span>
+                  <Plus size={14} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.6rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>메뉴 추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
@@ -4122,16 +4125,16 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '70px', border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc', borderRadius: '10px',
+                  width: '100%', height: '56px', border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc', borderRadius: '8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '5px', cursor: 'pointer', transition: 'all 0.18s'
+                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.18s'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.backgroundColor = '#eff6ff';
                   e.currentTarget.style.borderColor = '#3b82f6';
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.08)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.backgroundColor = '#f8fafc';
@@ -4141,8 +4144,8 @@ function FavoriteMenuBar({
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
                   {menuInfo.name}
                 </span>
               </button>
