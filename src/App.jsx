@@ -129,7 +129,15 @@ function App() {
 
 
   const [selectedDate, setSelectedDate] = useState(new Date()); 
-  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser')) || null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user?.userId === 'sadmin' || user?.userId === 'madmin' || localStorage.getItem('autoLogin') === 'true') {
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('autoLogin');
+      return null;
+    }
+    return user || null;
+  });
   const [staffList, setStaffList] = useState(() => JSON.parse(localStorage.getItem('staffList')) || []);
 
   const checkWritePermission = (docCreator = null, isMasterData = false) => {
