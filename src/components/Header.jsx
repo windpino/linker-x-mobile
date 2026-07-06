@@ -1,6 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, Star } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
+
+const ALL_FAVORITE_MENUS = [
+  { id: 'staff',               name: '직원 관리',      category: '기초자료등록',   emoji: '👤' },
+  { id: 'warehouse',           name: '창고 관리',      category: '기초자료등록',   emoji: '🏠' },
+  { id: 'partner',             name: '거래처 관리',    category: '기초자료등록',   emoji: '🤝' },
+  { id: 'product',             name: '품목 관리',      category: '기초자료등록',   emoji: '📦' },
+  { id: 'schedule',            name: '일정 추가',      category: '스마트지원',     emoji: '📅' },
+  { id: 'purchase_invoice',    name: '매입전표 등록',  category: '매입/발주관리',   emoji: '📥' },
+  { id: 'purchase_ledger',     name: '매입전표 관리',  category: '매입/발주관리',   emoji: '📋' },
+  { id: 'purchase_order',      name: '발주 등록',      category: '매입/발주관리',   emoji: '📤' },
+  { id: 'sales_invoice',       name: '매출전표 등록',  category: '매출/수주관리',   emoji: '🧾' },
+  { id: 'sales_invoice_list',  name: '매출전표 내역',  category: '매출/수주관리',   emoji: '📄' },
+  { id: 'sales_ledger',        name: '매출 원장',      category: '매출/수주관리',   emoji: '📊' },
+  { id: 'sales_order',         name: '간편수주 등록',  category: '매출/수주관리',   emoji: '🛒' },
+  { id: 'account',             name: '계좌 관리',      category: '입출금관리',     emoji: '💳' },
+  { id: 'cash_report_1',       name: '결산 보고',      category: '입출금관리',     emoji: '💰' },
+  { id: 'cash_report_2',       name: '입출금 현황',    category: '입출금관리',     emoji: '📈' },
+  { id: 'expense',             name: '경비 등록',      category: '입출금관리',     emoji: '💸' },
+  { id: 'sales_report',        name: '매출 보고',      category: '스마트지원',     emoji: '📉' },
+  { id: 'inventory_report_1',  name: '일자별 재고현황', category: '스마트지원',     emoji: '🗃️' },
+  { id: 'inventory_report_2',  name: '최종 재고 현황', category: '스마트지원',     emoji: '📦' },
+  { id: 'inventory_mismatch',  name: '재고 불일치',    category: '스마트지원',     emoji: '⚠️' },
+  { id: 'receivables',         name: '미수금 보고',    category: '스마트지원',     emoji: '💵' },
+  { id: 'edit_delete',         name: '수정삭제 보고',  category: '스마트지원',     emoji: '🔍' },
+  { id: 'staff_perf',          name: '직원 실적',      category: '스마트지원',     emoji: '🏆' },
+  { id: 'tax_report',          name: '부가세 보고',    category: '스마트지원',     emoji: '🧮' },
+  { id: 'data_manager',        name: '데이터 관리',    category: '시스템관리',     emoji: '🗄️' },
+  { id: 'settings',            name: '환경 설정',      category: '환경설정&정품등록', emoji: '⚙️' },
+  { id: 'license',             name: '정품 등록',      category: '환경설정&정품등록', emoji: '🔑' },
+];
 
 const Header = ({ 
   currentUser, companyLogo, onLogout, onOpenWarehouseManager, onOpenStaffManager, 
@@ -13,11 +43,47 @@ const Header = ({
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
-  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch
+  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch,
+  favoriteMenus, setIsFavoriteSettingsOpen
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
-  const dropdownRef = useRef(null);
+  const handleMenuAction = (menuId) => {
+    const actions = {
+      staff:              onOpenStaffManager,
+      warehouse:          onOpenWarehouseManager,
+      partner:            onOpenPartnerManager,
+      product:            onOpenProductManager,
+      schedule:           onOpenScheduleList,
+      purchase_invoice:   onOpenPurchaseInvoice,
+      purchase_ledger:    onOpenPurchaseLedger,
+      purchase_order:     onOpenPurchaseOrder,
+      sales_invoice:      onOpenSalesInvoice,
+      sales_invoice_list: onOpenSalesInvoiceList,
+      sales_ledger:       onOpenSalesLedger,
+      sales_order:        onOpenSalesOrder,
+      order_list:         onOpenOrderList,
+      inventory_transfer: onOpenInventoryTransfer,
+      sales_report:       onOpenSalesReport,
+      order_report:       onOpenOrderReport,
+      edit_delete_report: onOpenEditDeleteReport,
+      receivables_report: onOpenReceivablesReport,
+      partner_special_price: onOpenPartnerSpecialPriceManager,
+      staff_perf:         onOpenStaffPerformanceReport,
+      tax_report:         onOpenTaxReport,
+      expense:            onOpenExpenseRegistration,
+      data_manager:       onOpenDataManager,
+      settings:           onOpenSettings,
+      inventory_mismatch: onOpenInventoryMismatch,
+      account:            onOpenAccountManager,
+      cash_report_1:      () => onOpenCashReport && onOpenCashReport('결산'),
+      cash_report_2:      () => onOpenCashReport && onOpenCashReport('일자별'),
+      license:            onOpenLicense
+    };
+    if (actions[menuId]) {
+      actions[menuId]();
+    }
+  };
 
   // Mobile drawer states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -590,6 +656,107 @@ const Header = ({
               >
                 <LogOut size={12} /> 로그아웃
               </button>
+            </div>
+
+            {/* Quick Favorites (자주 찾는 메뉴) */}
+            <div style={{ padding: '16px', borderBottom: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'white' }}>자주 찾는 메뉴</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (setIsFavoriteSettingsOpen) setIsFavoriteSettingsOpen(true);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    fontWeight: 700
+                  }}
+                >
+                  설정
+                </button>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '8px',
+                width: '100%'
+              }}>
+                {Array.from({ length: 5 }).map((_, idx) => {
+                  const menuId = (favoriteMenus || [])[idx];
+                  const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
+                  if (menuInfo) {
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleMenuAction(menuId);
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          aspectRatio: '1',
+                          backgroundColor: '#334155',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        title={menuInfo.name}
+                      >
+                        <span style={{ fontSize: '1.4rem', marginBottom: '2px' }}>{menuInfo.emoji}</span>
+                        <span style={{ 
+                          fontSize: '0.55rem', 
+                          color: '#cbd5e1', 
+                          whiteSpace: 'nowrap', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          width: '100%', 
+                          textAlign: 'center' 
+                        }}>
+                          {menuInfo.name}
+                        </span>
+                      </button>
+                    );
+                  } else {
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          if (setIsFavoriteSettingsOpen) setIsFavoriteSettingsOpen(true);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          aspectRatio: '1',
+                          backgroundColor: 'rgba(255,255,255,0.02)',
+                          border: '1px dashed #475569',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          color: '#475569',
+                          fontSize: '1rem',
+                          fontWeight: 'bold'
+                        }}
+                        title="빈 슬롯 (클릭하여 설정)"
+                      >
+                        +
+                      </div>
+                    );
+                  }
+                })}
+              </div>
             </div>
 
             {/* Quick Links */}
