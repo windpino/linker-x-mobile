@@ -1,0 +1,104 @@
+/* Signup specific styles extending Login styles */
+
+.signup-card {
+  width: 900px;
+  height: 800px; /* Taller card for signup */
+}
+
+.signup-right {
+  padding: 30px 40px;
+  overflow-y: auto; /* Scrollable if needed on smaller screens */
+}
+
+.signup-form-container {
+  max-width: 380px; /* Slightly wider for two columns */
+  margin-top: 20px;
+}
+
+.signup-form .input-group {
+  margin-bottom: 16px;
+}
+
+.signup-input {
+  width: 100%;
+  background-color: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: white;
+  padding: 10px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.signup-input:focus {
+  border-color: #3b82f6;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .input-group {
+  flex: 1;
+}
+
+/* Staff Grid */
+.staff-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.staff-btn {
+  background-color: #334155;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.staff-btn:hover {
+  background-color: #475569;
+  color: white;
+}
+
+.staff-btn.active {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  font-weight: 500;
+}
+
+/* Memo Textarea */
+.memo-wrapper {
+  align-items: flex-start;
+}
+
+.memo-icon {
+  top: 12px;
+}
+
+.signup-textarea {
+  width: 100%;
+  background-color: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: white;
+  padding: 10px 10px 10px 36px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+
+.signup-textarea:focus {
+  border-color: #3b82f6;
+}
+
+.signup-submit-btn {
+  margin-top: 10px;
+}
