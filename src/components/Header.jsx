@@ -543,16 +543,16 @@ const Header = ({
           zIndex: 20000, display: 'flex', justifyContent: 'flex-start'
         }} onClick={() => setIsMobileMenuOpen(false)}>
           <div className="mobile-drawer-content" style={{
-            width: '280px', height: '100%', backgroundColor: '#0f172a',
+            width: '280px', height: '100%', backgroundColor: '#1e293b',
             boxShadow: '4px 0 25px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
             animation: 'slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-            color: '#e2e8f0', overflowY: 'auto'
+            color: '#cbd5e1', overflowY: 'auto'
           }} onClick={e => e.stopPropagation()}>
             
             {/* Drawer Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)'
+              padding: '16px', borderBottom: '1px solid #334155'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {companyLogo ? (
@@ -570,7 +570,7 @@ const Header = ({
             {/* User Profile */}
             <div style={{
               padding: '16px', backgroundColor: 'rgba(255,255,255,0.01)',
-              borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex',
+              borderBottom: '1px solid #334155', display: 'flex',
               flexDirection: 'column', gap: '10px'
             }}>
               <div>
@@ -632,7 +632,7 @@ const Header = ({
                   onKeyDown={handleSearchKeyDown}
                   style={{
                     width: '100%', padding: '8px 10px 8px 30px', borderRadius: '8px',
-                    border: '1.5px solid rgba(255,255,255,0.08)', backgroundColor: '#090d16',
+                    border: '1px solid #475569', backgroundColor: '#334155',
                     color: 'white', fontSize: '0.8rem', outline: 'none'
                   }}
                 />
@@ -640,7 +640,7 @@ const Header = ({
               {isSearchFocused && searchQuery.trim() !== '' && (
                 <div className="search-results-dropdown" style={{
                   position: 'absolute', top: '100%', left: '16px', right: '16px',
-                  backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155',
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)', zIndex: 20005, overflow: 'hidden'
                 }}>
                   {searchResults.length > 0 ? (
@@ -682,8 +682,8 @@ const Header = ({
                         style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           padding: '10px 8px', borderRadius: '6px', cursor: 'pointer',
-                          backgroundColor: isExpanded ? 'rgba(255,255,255,0.02)' : 'transparent',
-                          color: isExpanded ? '#3b82f6' : '#cbd5e1', fontWeight: 700, fontSize: '0.85rem',
+                          backgroundColor: isExpanded ? '#334155' : 'transparent',
+                          color: isExpanded ? 'white' : '#cbd5e1', fontWeight: 700, fontSize: '0.85rem',
                           transition: 'all 0.2s'
                         }}
                       >
@@ -697,7 +697,7 @@ const Header = ({
                       {/* Category Items */}
                       {isExpanded && (
                         <div style={{
-                          paddingLeft: '10px', borderLeft: '1.5px solid rgba(255,255,255,0.05)',
+                          paddingLeft: '10px', borderLeft: '1.5px solid #334155',
                           marginLeft: '10px', marginTop: '2px', marginBottom: '6px',
                           display: 'flex', flexDirection: 'column', gap: '2px',
                           textAlign: 'left'
@@ -709,10 +709,10 @@ const Header = ({
                               onClick={() => { setIsMobileMenuOpen(false); item.action(); }}
                               style={{
                                 padding: '8px', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '0.8rem', color: '#94a3b8', transition: 'all 0.2s'
+                                fontSize: '0.8rem', color: '#cbd5e1', transition: 'all 0.2s'
                               }}
-                              onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                              onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                              onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.backgroundColor = '#334155'; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = '#cbd5e1'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                             >
                               {item.title}
                             </div>
@@ -733,7 +733,8 @@ const Header = ({
                                       style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                         padding: '8px', borderRadius: '6px', cursor: 'pointer',
-                                        color: isSubExpanded ? '#f59e0b' : '#94a3b8', fontWeight: 600, fontSize: '0.8rem'
+                                        backgroundColor: isSubExpanded ? '#334155' : 'transparent',
+                                        color: isSubExpanded ? 'white' : '#cbd5e1', fontWeight: 600, fontSize: '0.8rem'
                                       }}
                                     >
                                       <span>재고관리</span>
@@ -747,10 +748,10 @@ const Header = ({
                                             onClick={() => { setIsMobileMenuOpen(false); item.action(); }}
                                             style={{
                                               padding: '6px 8px', borderRadius: '6px', cursor: 'pointer',
-                                              fontSize: '0.75rem', color: '#64748b'
+                                              fontSize: '0.75rem', color: '#cbd5e1'
                                             }}
-                                            onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                                            onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+                                            onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.backgroundColor = '#334155'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.color = '#cbd5e1'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                                           >
                                             {item.title}
                                           </div>
@@ -773,7 +774,8 @@ const Header = ({
                                       style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                         padding: '8px', borderRadius: '6px', cursor: 'pointer',
-                                        color: isSubExpanded ? '#f59e0b' : '#94a3b8', fontWeight: 600, fontSize: '0.8rem'
+                                        backgroundColor: isSubExpanded ? '#334155' : 'transparent',
+                                        color: isSubExpanded ? 'white' : '#cbd5e1', fontWeight: 600, fontSize: '0.8rem'
                                       }}
                                     >
                                       <span>재고보고서</span>
@@ -787,10 +789,10 @@ const Header = ({
                                             onClick={() => { setIsMobileMenuOpen(false); item.action(); }}
                                             style={{
                                               padding: '6px 8px', borderRadius: '6px', cursor: 'pointer',
-                                              fontSize: '0.75rem', color: '#64748b'
+                                              fontSize: '0.75rem', color: '#cbd5e1'
                                             }}
-                                            onMouseEnter={e => e.currentTarget.style.color = 'white'}
-                                            onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+                                            onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.backgroundColor = '#334155'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.color = '#cbd5e1'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                                           >
                                             {item.title}
                                           </div>

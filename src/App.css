@@ -910,6 +910,12 @@
   padding: 0 !important;
 }
 
+.mobile-view-active .header {
+  min-width: 100% !important;
+  width: 100% !important;
+  padding: 0 12px !important;
+}
+
 .mobile-simulator-screen {
   font-family: 'Inter', sans-serif;
   max-width: 100%;
