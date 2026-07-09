@@ -1682,6 +1682,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   background-color: #0f172a;
+  /* Crucial: creates a containing block that traps position: fixed elements inside the phone screen! */
+  transform: translate3d(0, 0, 0);
 }
 
 /* Simulated Status Bar */

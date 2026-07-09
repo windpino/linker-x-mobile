@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
@@ -107,6 +107,28 @@ const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수
 
 function App() {
   const { isMobile } = useDevice();
+  const [isDesktopBrowser, setIsDesktopBrowser] = useState(() => window.innerWidth > 480);
+  const [simulatedTime, setSimulatedTime] = useState('09:00');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktopBrowser(window.innerWidth > 480);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      setSimulatedTime(`${hours}:${minutes}`);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [currentView, setCurrentView] = useState(() => {
     try {
@@ -3829,12 +3851,12 @@ function App() {
 
 const viewContent = renderAppView();
 
-if (!isMobile) {
+if (isDesktopBrowser) {
   return (
     <div className="mobile-device-simulator mobile-view-active">
       <div className="mobile-phone-frame">
         <div className="simulated-status-bar">
-          <span>21:53</span>
+          <span>{simulatedTime}</span>
           <div className="status-bar-icons">
             <span>LTE</span>
             <span>📶</span>
