@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, Settings, Bot, Terminal, Activity, RefreshCw } from 'lucide-react';
 import './ChatAssistant.css';
+import { db } from '../firebase';
+import { collection, onSnapshot, query, orderBy, addDoc } from 'firebase/firestore';
 
 export default function ChatAssistant({ context }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,10 +24,34 @@ export default function ChatAssistant({ context }) {
 
   const logEndRef = useRef(null);
 
-  // Check backend server online status on mount
+  // Real-time Firestore sync & server status check on mount
   useEffect(() => {
     checkServerStatus();
-  }, []);
+
+    // Subscribe to Firestore agentChats
+    const q = query(collection(db, 'companies', 'DMK', 'agentChats'), orderBy('timestamp', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const chatMsgs = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        chatMsgs.push({
+          id: doc.id,
+          sender: data.sender === 'User' ? 'user' : 'agent',
+          senderName: data.senderName || (data.sender === 'User' ? '나' : persona),
+          text: data.text || '',
+          timestamp: data.timestamp ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+        });
+      });
+
+      if (chatMsgs.length > 0) {
+        setMessages(chatMsgs);
+      }
+    }, (err) => {
+      console.error("Firestore chat subscription error:", err);
+    });
+
+    return () => unsubscribe();
+  }, [persona]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -33,6 +59,8 @@ export default function ChatAssistant({ context }) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping, isOpen]);
+
+  const showTypingIndicator = isTyping || (messages.length > 0 && messages[messages.length - 1].sender === 'user');
 
   const checkServerStatus = async () => {
     try {
@@ -105,46 +133,29 @@ export default function ChatAssistant({ context }) {
 
     const userText = inputMessage;
     setInputMessage('');
-
-    // Append user message
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const newUserMsg = { sender: 'user', text: userText, timestamp };
-    setMessages(prev => [...prev, newUserMsg]);
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userText,
-          persona: persona,
-          system_prompt: systemPrompt,
-          context: context,
-          history: messages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
-        }),
+      // Write message to Firestore (this will trigger the local daemon & agent)
+      const timestamp = new Date().toISOString();
+      await addDoc(collection(db, 'companies', 'DMK', 'agentChats'), {
+        timestamp: timestamp,
+        sender: "User",
+        senderName: context?.currentUser?.name || "최고관리자",
+        text: userText,
+        status: "pending"
       });
 
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await response.json();
-      setIsOnline(true);
+      // Attempt to ping local API server to keep online status badge up-to-date
+      checkServerStatus();
       setIsTyping(false);
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'agent',
-          text: data.response || '응답을 받지 못했습니다.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
     } catch (err) {
-      // Backend offline fallback
+      console.warn("Firestore send failed, falling back to local simulation:", err.message);
       setIsOnline(false);
+      // Fallback local append and simulation response
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMessages(prev => [...prev, { sender: 'user', text: userText, timestamp: timeStr }]);
+      
       setTimeout(() => {
         setIsTyping(false);
         const fallbackText = getLocalSimulationResponse(userText);
@@ -243,7 +254,7 @@ export default function ChatAssistant({ context }) {
               <span className="message-time">{msg.timestamp}</span>
             </div>
           ))}
-          {isTyping && (
+          {showTypingIndicator && (
             <div className="typing-indicator">
               <div className="typing-dot"></div>
               <div className="typing-dot"></div>

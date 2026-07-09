@@ -3820,7 +3820,9 @@ function App() {
           {toast.message}
         </div>
       )}
-      <ChatAssistant context={getAgentContext()} />
+      {currentUser?.role === 'super_admin' && (
+        <ChatAssistant context={getAgentContext()} />
+      )}
     </div>
   );
 };
