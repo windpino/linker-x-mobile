@@ -12,6 +12,7 @@ import ChatAssistant from './ChatAssistant';
 
 const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const [activeTab, setActiveTab] = useState('schedules');
+  const [mobileScheduleView, setMobileScheduleView] = useState('calendar');
   const [companies, setCompanies] = useState([]);
   const [csHistory, setCsHistory] = useState([]);
   const [notices, setNotices] = useState([]);
@@ -668,7 +669,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         </div>
 
         {/* Horizontal Navigation Menu Tabs */}
-        <nav style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <nav className="sa-header-tabs" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {[
             { id: 'schedules', icon: Calendar, label: '일정 및 대리점' },
             { id: 'agencies', icon: Building2, label: '회원사 관리' },
@@ -699,7 +700,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         </nav>
 
         {/* Top Summary Stats */}
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem' }}>
+        <div className="sa-header-stats" style={{ display: 'flex', gap: '20px', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem' }}>
           <div style={{ display: 'flex', gap: '6px' }}>
             <span style={{ color: '#94a3b8' }}>회원사</span>
             <span style={{ fontWeight: 700, color: '#10b981' }}>{companies.length}</span>
@@ -833,112 +834,237 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
         <div className="sa-view-content" style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
           {activeTab === 'agencies' && (
-            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', borderBottom: '2px solid #f1f5f9' }}>
-                    <th style={{ padding: '20px' }}>회원사 정보</th>
-                    <th style={{ padding: '20px' }}>만료일</th>
-                    <th style={{ padding: '20px' }}>운영 상태</th>
-                    <th style={{ padding: '20px', textAlign: 'center' }}>액션</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {companies.filter(c => 
-                    (categoryFilter === '' || c.category === categoryFilter) &&
-                    ((c.name || '').toLowerCase().includes(search.toLowerCase()) || 
-                     (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
-                     (c.ceo || '').toLowerCase().includes(search.toLowerCase()))
-                  ).map(c => {
-                    const expiring = isExpiringSoon(c.expiryDate);
-                    return (
-                      <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: expiring ? '#fff1f2' : 'transparent' }}>
-                        <td style={{ padding: '16px 20px' }}>
-                          <div style={{ fontWeight: 700, color: '#1e293b' }}>
-                            {c.name}
-                            {c.category && <span style={{ fontSize: '0.7rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{c.category}</span>}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.id} | {c.ceo} | {c.email}</div>
-                          {c.managerContact && <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={10} /> {c.managerContact}</div>}
-                        </td>
-                        <td style={{ padding: '16px 20px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Calendar size={14} color={expiring ? '#e11d48' : '#64748b'} />
-                            <input 
-                              type="date" 
-                              value={c.expiryDate || ''} 
-                              onChange={(e) => handleUpdateExpiryDate(c.id, e.target.value)}
+            <>
+              <div className="sa-desktop-table" style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', borderBottom: '2px solid #f1f5f9' }}>
+                      <th style={{ padding: '20px' }}>회원사 정보</th>
+                      <th style={{ padding: '20px' }}>만료일</th>
+                      <th style={{ padding: '20px' }}>운영 상태</th>
+                      <th style={{ padding: '20px', textAlign: 'center' }}>액션</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {companies.filter(c => 
+                      (categoryFilter === '' || c.category === categoryFilter) &&
+                      ((c.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                       (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+                       (c.ceo || '').toLowerCase().includes(search.toLowerCase()))
+                    ).map(c => {
+                      const expiring = isExpiringSoon(c.expiryDate);
+                      return (
+                        <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: expiring ? '#fff1f2' : 'transparent' }}>
+                          <td style={{ padding: '16px 20px' }}>
+                            <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                              {c.name}
+                              {c.category && <span style={{ fontSize: '0.7rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{c.category}</span>}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.id} | {c.ceo} | {c.email}</div>
+                            {c.managerContact && <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={10} /> {c.managerContact}</div>}
+                          </td>
+                          <td style={{ padding: '16px 20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Calendar size={14} color={expiring ? '#e11d48' : '#64748b'} />
+                              <input 
+                                type="date" 
+                                value={c.expiryDate || ''} 
+                                onChange={(e) => handleUpdateExpiryDate(c.id, e.target.value)}
+                                style={{ 
+                                  padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0',
+                                  fontSize: '0.85rem', color: expiring ? '#e11d48' : '#1e293b',
+                                  fontWeight: expiring ? 700 : 400,
+                                  backgroundColor: expiring ? '#fff1f2' : 'transparent',
+                                  outline: 'none'
+                                }}
+                              />
+                              {expiring && <button 
+                                onClick={() => { setCsForm({ ...csForm, companyId: c.id, companyName: c.name, type: '연장상담', content: '라이선스 만료 예정 안내' }); setIsCsModalOpen(true); }}
+                                style={{ padding: '2px 8px', fontSize: '0.7rem', backgroundColor: '#e11d48', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                              >CS 등록</button>}
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px 20px' }}>
+                            <select 
+                              value={c.status || 'active'} 
+                              onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
                               style={{ 
-                                padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                                fontSize: '0.85rem', color: expiring ? '#e11d48' : '#1e293b',
-                                fontWeight: expiring ? 700 : 400,
-                                backgroundColor: expiring ? '#fff1f2' : 'transparent',
-                                outline: 'none'
+                                padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
+                                backgroundColor: c.status === 'active' ? '#dcfce7' : c.status === 'suspended' ? '#fee2e2' : '#f1f5f9',
+                                color: c.status === 'active' ? '#166534' : c.status === 'suspended' ? '#991b1b' : '#475569',
+                                border: 'none', cursor: 'pointer', outline: 'none'
                               }}
-                            />
-                            {expiring && <button 
-                              onClick={() => { setCsForm({ ...csForm, companyId: c.id, companyName: c.name, type: '연장상담', content: '라이선스 만료 예정 안내' }); setIsCsModalOpen(true); }}
-                              style={{ padding: '2px 8px', fontSize: '0.7rem', backgroundColor: '#e11d48', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                            >CS 등록</button>}
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px 20px' }}>
-                          <select 
-                            value={c.status || 'active'} 
-                            onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
+                            >
+                              <option value="active">정상 운영</option>
+                              <option value="suspended">운영 정지</option>
+                              <option value="expired">기간 만료</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                              <button 
+                                onClick={() => onEnterCompany(c.id)}
+                                style={{ padding: '6px 12px', border: '1px solid #e2e8f0', backgroundColor: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                title="사용자 뷰 접속"
+                              >
+                                <ExternalLink size={14} color="#3b82f6" /> 사용자 뷰
+                              </button>
+                              <button 
+                                onClick={() => { 
+                                  setAgencyForm(c); 
+                                  setOriginalAgencyId(c.id);
+                                  setIsAgencyModalOpen(true); 
+                                }}
+                                style={{ padding: '6px 12px', border: '1px solid #e2e8f0', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer' }}
+                                title="정보 수정"
+                              >
+                                <Edit2 size={14} color="#64748b" />
+                              </button>
+                              <button 
+                                onClick={() => setDeletingAgency({ id: c.id, name: c.name })}
+                                style={{ padding: '6px 12px', border: '1px solid #fee2e2', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer' }}
+                                title="회원사 삭제"
+                              >
+                                <Trash2 size={14} color="#ef4444" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="sa-mobile-cards" style={{ display: 'none' }}>
+                {companies.filter(c => 
+                  (categoryFilter === '' || c.category === categoryFilter) &&
+                  ((c.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                   (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (c.ceo || '').toLowerCase().includes(search.toLowerCase()))
+                ).map(c => {
+                  const expiring = isExpiringSoon(c.expiryDate);
+                  return (
+                    <div key={c.id} className="sa-mobile-card" style={{ backgroundColor: expiring ? '#fff1f2' : 'white' }}>
+                      <div className="card-header">
+                        <div className="card-title">
+                          <ShieldCheck size={16} color="#3b82f6" />
+                          <span>{c.name}</span>
+                          {c.category && <span className="category-badge">{c.category}</span>}
+                        </div>
+                        <select 
+                          value={c.status || 'active'} 
+                          onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
+                          className="status-select"
+                          style={{
+                            padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700,
+                            backgroundColor: c.status === 'active' ? '#dcfce7' : c.status === 'suspended' ? '#fee2e2' : '#f1f5f9',
+                            color: c.status === 'active' ? '#166534' : c.status === 'suspended' ? '#991b1b' : '#475569',
+                            border: 'none', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          <option value="active">정상 운영</option>
+                          <option value="suspended">운영 정지</option>
+                          <option value="expired">기간 만료</option>
+                        </select>
+                      </div>
+                      <div className="card-body">
+                        <div><strong>ID:</strong> {c.id}</div>
+                        <div><strong>대표자:</strong> {c.ceo}</div>
+                        <div><strong>이메일:</strong> {c.email}</div>
+                        {c.managerContact && <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6' }}><Phone size={12} /> {c.managerContact}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                          <strong>만료일:</strong>
+                          <Calendar size={14} color={expiring ? '#e11d48' : '#64748b'} />
+                          <input 
+                            type="date" 
+                            value={c.expiryDate || ''} 
+                            onChange={(e) => handleUpdateExpiryDate(c.id, e.target.value)}
                             style={{ 
-                              padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                              backgroundColor: c.status === 'active' ? '#dcfce7' : c.status === 'suspended' ? '#fee2e2' : '#f1f5f9',
-                              color: c.status === 'active' ? '#166534' : c.status === 'suspended' ? '#991b1b' : '#475569',
-                              border: 'none', cursor: 'pointer', outline: 'none'
+                              padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0',
+                              fontSize: '0.85rem', color: expiring ? '#e11d48' : '#1e293b',
+                              fontWeight: expiring ? 700 : 400,
+                              backgroundColor: expiring ? '#fff1f2' : 'transparent',
+                              outline: 'none'
                             }}
-                          >
-                            <option value="active">정상 운영</option>
-                            <option value="suspended">운영 정지</option>
-                            <option value="expired">기간 만료</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                            <button 
-                              onClick={() => onEnterCompany(c.id)}
-                              style={{ padding: '6px 12px', border: '1px solid #e2e8f0', backgroundColor: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
-                              title="사용자 뷰 접속"
-                            >
-                              <ExternalLink size={14} color="#3b82f6" /> 사용자 뷰
-                            </button>
-                            <button 
-                              onClick={() => { 
-                                setAgencyForm(c); 
-                                setOriginalAgencyId(c.id);
-                                setIsAgencyModalOpen(true); 
-                              }}
-                              style={{ padding: '6px 12px', border: '1px solid #e2e8f0', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer' }}
-                              title="정보 수정"
-                            >
-                              <Edit2 size={14} color="#64748b" />
-                            </button>
-                            <button 
-                              onClick={() => setDeletingAgency({ id: c.id, name: c.name })}
-                              style={{ padding: '6px 12px', border: '1px solid #fee2e2', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer' }}
-                              title="회원사 삭제"
-                            >
-                              <Trash2 size={14} color="#ef4444" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          />
+                          {expiring && <button 
+                            onClick={() => { setCsForm({ ...csForm, companyId: c.id, companyName: c.name, type: '연장상담', content: '라이선스 만료 예정 안내' }); setIsCsModalOpen(true); }}
+                            style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: '#e11d48', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                          >CS 등록</button>}
+                        </div>
+                      </div>
+                      <div className="card-actions">
+                        <button 
+                          onClick={() => onEnterCompany(c.id)}
+                          className="action-btn"
+                          style={{ color: '#3b82f6' }}
+                          title="사용자 뷰 접속"
+                        >
+                          <ExternalLink size={14} /> 사용자 뷰
+                        </button>
+                        <button 
+                          onClick={() => { 
+                            setAgencyForm(c); 
+                            setOriginalAgencyId(c.id);
+                            setIsAgencyModalOpen(true); 
+                          }}
+                          className="action-btn"
+                          style={{ color: '#64748b' }}
+                          title="정보 수정"
+                        >
+                          <Edit2 size={14} /> 수정
+                        </button>
+                        <button 
+                          onClick={() => setDeletingAgency({ id: c.id, name: c.name })}
+                          className="action-btn"
+                          style={{ color: '#ef4444', borderColor: '#fee2e2' }}
+                          title="회원사 삭제"
+                        >
+                          <Trash2 size={14} /> 삭제
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {activeTab === 'schedules' && (
-            <div ref={containerRef} style={{ display: 'flex', width: '100%', height: 'calc(100vh - 220px)', overflow: 'hidden', userSelect: isResizing ? 'none' : 'auto' }}>
-              {/* Left Column: Pure React Grid Calendar */}
-              <div style={{ width: `${leftWidth}%`, backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
+            <>
+              {/* Mobile View Toggle Bar */}
+              <div className="sa-mobile-schedule-toggle" style={{ display: 'none', margin: '0 0 16px 0', gap: '8px' }}>
+                <button 
+                  onClick={() => setMobileScheduleView('calendar')}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '0.85rem',
+                    backgroundColor: mobileScheduleView === 'calendar' ? '#3b82f6' : '#eff6ff',
+                    color: mobileScheduleView === 'calendar' ? 'white' : '#3b82f6',
+                    cursor: 'pointer', boxShadow: mobileScheduleView === 'calendar' ? '0 4px 12px rgba(59, 130, 246, 0.2)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📅 달력 보기
+                </button>
+                <button 
+                  onClick={() => setMobileScheduleView('list')}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '0.85rem',
+                    backgroundColor: mobileScheduleView === 'list' ? '#3b82f6' : '#eff6ff',
+                    color: mobileScheduleView === 'list' ? 'white' : '#3b82f6',
+                    cursor: 'pointer', boxShadow: mobileScheduleView === 'list' ? '0 4px 12px rgba(59, 130, 246, 0.2)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📋 일정 목록 ({masterSchedules.length})
+                </button>
+              </div>
+
+              <div ref={containerRef} className="sa-schedules-container" style={{ display: 'flex', width: '100%', height: 'calc(100vh - 220px)', overflow: 'hidden', userSelect: isResizing ? 'none' : 'auto' }}>
+                {/* Left Column: Pure React Grid Calendar */}
+                <div className={`sa-schedules-left ${mobileScheduleView === 'calendar' ? 'mobile-visible' : 'mobile-hidden'}`} style={{ width: `${leftWidth}%`, backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>
@@ -1159,6 +1285,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                             setScheduleForm({ id: '', title: '', date: dateStr, category: '', type: '업무', content: '', startTime: '', endTime: '', priority: '보통' });
                             setIsScheduleModalOpen(true);
                           }}
+                          className="calendar-day-cell"
                           style={{ 
                             minHeight: '80px', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', 
                             padding: '6px', cursor: 'pointer', position: 'relative', transition: 'all 0.15s',
@@ -1180,7 +1307,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                             backgroundColor: isToday ? '#eff6ff' : 'transparent',
                             margin: '2px 0 0 2px'
                           }}>{day}</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px', overflowY: 'hidden', flex: 1 }}>
+                          <div className="day-schedule-texts" style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px', overflowY: 'hidden', flex: 1 }}>
                             {daySchedules.slice(0, 3).map(s => {
                               const typeObj = masterScheduleTypes.find(t => t.name === s.type);
                               const typeColor = typeObj ? typeObj.color : '#64748b';
@@ -1219,6 +1346,19 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                               <div style={{ fontSize: '0.6rem', color: '#94a3b8', textAlign: 'center', fontWeight: 700 }}>+{daySchedules.length - 3}개 더보기</div>
                             )}
                           </div>
+                          <div className="day-schedule-dots" style={{ display: 'none', justifyContent: 'center', gap: '2px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            {daySchedules.map(s => {
+                              const typeObj = masterScheduleTypes.find(t => t.name === s.type);
+                              const typeColor = typeObj ? typeObj.color : '#64748b';
+                              return (
+                                <span 
+                                  key={s.id} 
+                                  style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: typeColor }}
+                                  title={`${s.title} (${s.type})`}
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     }
@@ -1235,6 +1375,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
               {/* Splitter Handle Bar */}
               <div 
+                className="sa-schedules-splitter"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setIsResizing(true);
@@ -1260,7 +1401,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               </div>
 
               {/* Right Column: Schedule Management Panel */}
-              <div style={{ width: `${100 - leftWidth - 1}%`, display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
+              <div className={`sa-schedules-right ${mobileScheduleView === 'list' ? 'mobile-visible' : 'mobile-hidden'}`} style={{ width: `${100 - leftWidth - 1}%`, display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
                 {/* Stats row */}
                 <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                   {[
@@ -1550,6 +1691,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                 </div>
               </div>
             </div>
+            </>
           )}
 
           {activeTab === 'cs' && (
@@ -1568,7 +1710,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                 ))}
               </div>
 
-              <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+              <div className="sa-desktop-table" style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', borderBottom: '2px solid #f1f5f9' }}>
@@ -1618,6 +1760,57 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Card List View for CS logs */}
+              <div className="sa-mobile-cards" style={{ display: 'none' }}>
+                {csHistory.map(log => (
+                  <div key={log.id} className="sa-mobile-card">
+                    <div className="card-header">
+                      <div className="card-title">
+                        <span>{log.companyName}</span>
+                      </div>
+                      <span style={{ 
+                        fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px', 
+                        backgroundColor: log.status === '대기' ? '#fff7ed' : '#f0fdf4', 
+                        color: log.status === '대기' ? '#c2410c' : '#15803d', 
+                        fontWeight: 700 
+                      }}>
+                        {log.status}
+                      </span>
+                    </div>
+                    <div className="card-body">
+                      <div><strong>상담 유형:</strong> {log.type}</div>
+                      <div><strong>등록 일시:</strong> {log.createdAt?.split('T')[0]} {log.createdAt?.split('T')[1]?.substring(0, 5)}</div>
+                      {log.contact && <div><strong>연락처:</strong> {log.contact}</div>}
+                      <div style={{ 
+                        marginTop: '8px', padding: '12px', backgroundColor: '#f8fafc', 
+                        borderRadius: '8px', borderLeft: '3px solid #3b82f6', 
+                        fontSize: '0.85rem', color: '#334155', lineHeight: 1.5 
+                      }}>
+                        {log.content}
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        onClick={() => { setCsForm(log); setIsCsModalOpen(true); }}
+                        className="action-btn"
+                        style={{ color: '#64748b' }}
+                        title="상담 수정"
+                      >
+                        <Edit2 size={14} /> 수정
+                      </button>
+                      <button 
+                        onClick={() => setDeletingCs({ id: log.id, companyName: log.companyName })}
+                        className="action-btn"
+                        style={{ color: '#ef4444', borderColor: '#fee2e2' }}
+                        title="상담 삭제"
+                      >
+                        <Trash2 size={14} /> 삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -1927,7 +2120,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Agency Modal */}
       {isAgencyModalOpen && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10001 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '480px', padding: '32px' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '20px', width: '480px', padding: '32px' }}>
             <h2 style={{ margin: '0 0 24px', fontWeight: 800 }}>회원사 정보 관리</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -2032,7 +2225,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Deletion Confirm Modal */}
       {deletingAgency && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 11000 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Trash2 size={40} color="#ef4444" />
             </div>
@@ -2062,7 +2255,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       )}
       {isCsModalOpen && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10001 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '520px', padding: '32px' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '20px', width: '520px', padding: '32px' }}>
             <h2 style={{ margin: '0 0 24px', fontWeight: 800 }}>상담 내용 기록</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <select 
@@ -2104,7 +2297,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* CS Deletion Confirm Modal */}
       {deletingCs && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 11000 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Trash2 size={40} color="#ef4444" />
             </div>
@@ -2134,7 +2327,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Notice Deletion Confirm Modal */}
       {deletingNotice && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 11000 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Trash2 size={40} color="#ef4444" />
             </div>
@@ -2164,7 +2357,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Category Management Modal */}
       {isCategoryManageModalOpen && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10001 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '420px', padding: '32px' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '20px', width: '420px', padding: '32px' }}>
             <h2 style={{ margin: '0 0 24px', fontWeight: 800 }}>카테고리 관리</h2>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <input 
@@ -2251,7 +2444,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Notice Modal */}
       {isNoticeModalOpen && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10001 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '520px', padding: '32px' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '20px', width: '520px', padding: '32px' }}>
             <h2 style={{ margin: '0 0 24px', fontWeight: 800 }}>시스템 공지 배포</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <input type="text" placeholder="공지 제목" value={noticeForm.title} onChange={e => setNoticeForm({...noticeForm, title: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
@@ -2280,7 +2473,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Master Schedule Modal */}
       {isScheduleModalOpen && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10001 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '500px', padding: '32px' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '20px', width: '500px', padding: '32px' }}>
             <h2 style={{ margin: '0 0 24px', fontWeight: 800 }}>{scheduleForm.id ? '마스터 일정 수정' : '신규 마스터 일정 등록'}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -2363,7 +2556,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Schedule Deletion Confirm Modal */}
       {deletingSchedule && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 11000 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
+          <div className="sa-modal-card" style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Trash2 size={40} color="#ef4444" />
             </div>
