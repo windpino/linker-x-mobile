@@ -1403,7 +1403,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               {/* Right Column: Schedule Management Panel */}
               <div className={`sa-schedules-right ${mobileScheduleView === 'list' ? 'mobile-visible' : 'mobile-hidden'}`} style={{ width: `${100 - leftWidth - 1}%`, display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
                 {/* Stats row */}
-                <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                <div className="sa-stats-grid" style={{ backgroundColor: 'white', borderRadius: '20px', padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
                   {[
                     { label: '이번달 전체 일정', value: masterSchedules.filter(s => s.date?.startsWith(`${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}`)).length, color: '#3b82f6' },
                     { label: '카테고리 지정 일정', value: masterSchedules.filter(s => !!s.category).length, color: '#f59e0b' },
@@ -1696,7 +1696,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
           {activeTab === 'cs' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+              <div className="sa-stats-grid" style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                 {[
                   { label: '전체 상담', value: csHistory.length, color: '#3b82f6' },
                   { label: '미해결건', value: csHistory.filter(h => h.status === '대기').length, color: '#f59e0b' },
@@ -2603,6 +2603,208 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+          .sa-wrapper {
+            padding: 8px !important;
+          }
+          
+          .sa-header-nav {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 12px 16px !important;
+            gap: 12px !important;
+          }
+          
+          .sa-header-tabs {
+            overflow-x: auto !important;
+            width: 100% !important;
+            padding-bottom: 8px !important;
+            display: flex !important;
+            gap: 6px !important;
+            scrollbar-width: none;
+          }
+          .sa-header-tabs::-webkit-scrollbar {
+            display: none;
+          }
+          
+          .sa-header-tabs button {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            padding: 8px 14px !important;
+            font-size: 0.8rem !important;
+          }
+          
+          .sa-header-stats {
+            display: none !important;
+          }
+          
+          .sa-top-bar {
+            padding: 16px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          
+          .sa-top-bar h1 {
+            font-size: 1.15rem !important;
+            white-space: normal !important;
+          }
+          
+          .sa-view-content {
+            padding: 12px !important;
+          }
+          
+          .sa-schedules-container {
+            flex-direction: column !important;
+            height: auto !important;
+            min-height: calc(100vh - 280px) !important;
+            overflow-y: auto !important;
+          }
+          
+          .sa-schedules-left {
+            width: 100% !important;
+            padding: 16px !important;
+            margin-bottom: 12px !important;
+          }
+          
+          .sa-schedules-right {
+            width: 100% !important;
+            margin-top: 12px !important;
+          }
+          
+          .sa-schedules-splitter {
+            display: none !important;
+          }
+          
+          .sa-schedules-left.mobile-hidden {
+            display: none !important;
+          }
+          .sa-schedules-left.mobile-visible {
+            display: flex !important;
+          }
+          .sa-schedules-right.mobile-hidden {
+            display: none !important;
+          }
+          .sa-schedules-right.mobile-visible {
+            display: flex !important;
+          }
+          
+          .calendar-day-cell {
+            min-height: 50px !important;
+            padding: 4px !important;
+          }
+          
+          .calendar-day-cell span {
+            font-size: 0.75rem !important;
+            margin: 0 !important;
+          }
+          
+          .day-schedule-texts {
+            display: none !important;
+          }
+          
+          .day-schedule-dots {
+            display: flex !important;
+          }
+          
+          .sa-mobile-schedule-toggle {
+            display: flex !important;
+            width: 100% !important;
+          }
+          .sa-mobile-schedule-toggle button {
+            flex: 1 !important;
+            text-align: center !important;
+          }
+
+          .sa-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+            padding: 16px !important;
+          }
+          
+          .sa-desktop-table {
+            display: none !important;
+          }
+          
+          .sa-mobile-cards {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 4px !important;
+          }
+          
+          .sa-mobile-card {
+            border-radius: 12px !important;
+            padding: 16px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+            border: 1px solid #e2e8f0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+          
+          .sa-mobile-card .card-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding-bottom: 8px !important;
+          }
+          
+          .sa-mobile-card .card-title {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            font-weight: 700 !important;
+            color: #1e293b !important;
+            font-size: 0.95rem !important;
+          }
+          
+          .sa-mobile-card .category-badge {
+            font-size: 0.65rem !important;
+            background-color: #e2e8f0 !important;
+            color: #475569 !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+          }
+          
+          .sa-mobile-card .card-body {
+            font-size: 0.8rem !important;
+            color: #64748b !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+          }
+          
+          .sa-mobile-card .card-actions {
+            display: flex !important;
+            justify-content: flex-end !important;
+            gap: 8px !important;
+            border-top: 1px solid #f1f5f9 !important;
+            padding-top: 10px !important;
+          }
+          
+          .sa-mobile-card .action-btn {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            padding: 6px 12px !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+            background: white !important;
+            cursor: pointer !important;
+          }
+          
+          .sa-modal-card {
+            width: 95% !important;
+            max-width: 480px !important;
+            padding: 20px !important;
+            border-radius: 16px !important;
+          }
         }
       `}</style>
       <ChatAssistant context={getSuperAdminContext()} />
