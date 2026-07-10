@@ -6,6 +6,24 @@ import './WindowModal.css';
 let minimizedWindowsList = [];
 let minimizedChangeListeners = [];
 
+// Global tracking for open windows to cascade their positions on desktop
+let openWindowsList = [];
+let openChangeListeners = [];
+
+const addOpenWindow = (title) => {
+  if (!openWindowsList.includes(title)) {
+    openWindowsList = [...openWindowsList, title];
+    openChangeListeners.forEach(fn => fn());
+  }
+};
+
+const removeOpenWindow = (title) => {
+  if (openWindowsList.includes(title)) {
+    openWindowsList = openWindowsList.filter(t => t !== title);
+    openChangeListeners.forEach(fn => fn());
+  }
+};
+
 const addMinimizedWindow = (title) => {
   if (!minimizedWindowsList.includes(title)) {
     minimizedWindowsList = [...minimizedWindowsList, title];
@@ -79,13 +97,19 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     }
   });
 
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState(() => {
+    if (isMobileView) return { x: 0, y: 0 };
+    // Cascade open windows: offset each new window slightly
+    const index = openWindowsList.length;
+    return { x: index * 25, y: index * 25 };
+  });
   const [isDragging, setIsDragging] = useState(false);
   
   // Default isMaximized should prioritize saved state, then mobile detection
   const [isMaximized, setIsMaximized] = useState(() => {
+    if (isMobileView) return true;
     if (savedData?.isMaximized !== undefined) return savedData.isMaximized;
-    return isMobileView;
+    return false;
   });
   const [isMinimized, setIsMinimized] = useState(false);
   const [minimizedIndex, setMinimizedIndex] = useState(-1);
@@ -135,6 +159,13 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    addOpenWindow(title);
+    return () => {
+      removeOpenWindow(title);
+    };
+  }, [title]);
 
   useEffect(() => {
     const unsubscribe = subscribeToMinimizedChanges(() => {
@@ -264,7 +295,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
         onTouchStartCapture={bringToFront}
         className={`window-container ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
         style={{ 
-          transform: isMaximized ? 'none' : `translate(${targetX}px, ${targetY}px)`,
+          transform: (isMaximized || isMobileView) ? 'none' : `translate(${targetX}px, ${targetY}px)`,
           transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s, height 0.3s',
           width: isMaximized ? '100vw' : (isMinimized ? '280px' : (savedData?.width || width || '1400px')),
           height: isMaximized ? '100vh' : (isMinimized ? '40px' : (savedData?.height || height || '1100px')),
@@ -293,12 +324,16 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
                 <Star size={14} color={isFavorite ? "#eab308" : "#94a3b8"} fill={isFavorite ? "#eab308" : "none"} />
               </button>
             )}
-            <button className="window-btn" onClick={toggleMinimize}>
-              {isMinimized ? <Maximize2 size={12} /> : <Minus size={14} />}
-            </button>
-            <button className="window-btn" onClick={toggleMaximize}>
-              {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-            </button>
+            {!isMobileView && (
+              <>
+                <button className="window-btn" onClick={toggleMinimize}>
+                  {isMinimized ? <Maximize2 size={12} /> : <Minus size={14} />}
+                </button>
+                <button className="window-btn" onClick={toggleMaximize}>
+                  {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                </button>
+              </>
+            )}
             <button className="window-btn close-btn" onClick={onClose}><X size={16} /></button>
           </div>
         </div>

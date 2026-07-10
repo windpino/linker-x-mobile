@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
@@ -107,28 +107,6 @@ const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수
 
 function App() {
   const { isMobile } = useDevice();
-  const [isDesktopBrowser, setIsDesktopBrowser] = useState(() => window.innerWidth > 480);
-  const [simulatedTime, setSimulatedTime] = useState('09:00');
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktopBrowser(window.innerWidth > 480);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      setSimulatedTime(`${hours}:${minutes}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   const [currentView, setCurrentView] = useState(() => {
     try {
@@ -380,10 +358,10 @@ function App() {
   const [favoriteMenus, setFavoriteMenus] = useState(() => {
     const saved = JSON.parse(localStorage.getItem('favoriteMenus'));
     if (saved && Array.isArray(saved)) {
-      return saved.slice(0, 5);
+      return saved.slice(0, 7);
     }
     return [
-      'sales_order', 'partner', 'product', 'warehouse', 'staff'
+      'sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense'
     ];
   });
   
@@ -2849,9 +2827,6 @@ function App() {
           companyLogo={companySettings?.theme?.logoUrl}
           companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
           onLogout={handleLogout} 
-          favoriteMenus={favoriteMenus}
-          setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
-          onOpenInventoryMovementManager={() => setIsInventoryMovementManagerOpen(true)}
         onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
         onOpenStaffManager={() => setIsStaffManagerOpen(true)}
         onOpenInventoryTransfer={openInventoryTransfer}
@@ -2901,6 +2876,52 @@ function App() {
           gridTemplateRows: 'none'
         }}>
           <div className="calendar-area" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 달력 위 자주 찾는 메뉴 (즐겨찾기) 영역 */}
+            <FavoriteMenuBar
+              favoriteMenus={favoriteMenus}
+              currentUser={currentUser}
+              db={db}
+              setFavoriteMenus={setFavoriteMenus}
+              showToast={showToast}
+              SYSTEM_NOTICES={SYSTEM_NOTICES}
+              currentNoticeIdx={currentNoticeIdx}
+              noticeFade={noticeFade}
+              setSelectedSystemNotice={setSelectedSystemNotice}
+              setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
+              onMenuAction={(menuId) => {
+                const actions = {
+                  staff:              () => setIsStaffManagerOpen(true),
+                  warehouse:          () => setIsWarehouseManagerOpen(true),
+                  partner:            () => setIsPartnerManagerOpen(true),
+                  product:            () => setIsProductManagerOpen(true),
+                  account:            () => setIsAccountManagerOpen(true),
+                  schedule:           () => setIsScheduleRegistrationOpen(true),
+                  purchase_invoice:   () => setIsPurchaseInvoiceOpen(true),
+                  purchase_ledger:    () => setIsPurchaseLedgerOpen(true),
+                  purchase_order:     () => setIsPurchaseOrderOpen(true),
+                  sales_invoice:      () => setIsSalesInvoiceOpen(true),
+                  sales_invoice_list: () => setIsSalesInvoiceListOpen(true),
+                  sales_ledger:       () => setIsSalesLedgerOpen(true),
+                  sales_order:        () => setIsSalesOrderOpen(true),
+                  order_list:         () => setIsOrderListOpen(true),
+                  inventory_transfer: () => setIsInventoryTransferOpen(true),
+                  inventory_movement: () => setIsInventoryMovementManagerOpen(true),
+                  sales_report:       () => setIsSalesReportOpen(true),
+                  order_report:       () => setIsOrderReportOpen(true),
+                  edit_delete_report: () => setIsEditDeleteReportOpen(true),
+                  receivables_report: () => setIsReceivablesReportOpen(true),
+                  partner_special_price: () => setIsPartnerSpecialPriceManagerOpen(true),
+                  staff_perf:         () => setIsStaffPerformanceReportOpen(true),
+                  tax_report:         () => setIsTaxReportOpen(true),
+                  expense:            () => setIsExpenseRegistrationOpen(true),
+                  data_manager:       () => setIsDataManagerOpen(true),
+                  settings:           () => setIsSettingsOpen(true),
+                  inventory_mismatch: () => setIsInventoryMismatchOpen(true),
+                };
+                if (actions[menuId]) actions[menuId]();
+              }}
+            />
+
             {/* Mobile Schedule List without Calendar Elements */}
             <div className="mobile-schedule-planner" style={{
               backgroundColor: 'transparent',
@@ -3842,21 +3863,19 @@ function App() {
           {toast.message}
         </div>
       )}
-      {currentUser?.role === 'super_admin' && (
-        <ChatAssistant context={getAgentContext()} />
-      )}
+      <ChatAssistant context={getAgentContext()} />
     </div>
   );
 };
 
 const viewContent = renderAppView();
 
-if (isDesktopBrowser) {
+if (!isMobile) {
   return (
     <div className="mobile-device-simulator mobile-view-active">
       <div className="mobile-phone-frame">
         <div className="simulated-status-bar">
-          <span>{simulatedTime}</span>
+          <span>21:53</span>
           <div className="status-bar-icons">
             <span>LTE</span>
             <span>📶</span>
@@ -4158,8 +4177,8 @@ function FavoriteMenuBar({
 // Sub-component for Favorite Settings Modal
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   const [tempMenus, setTempMenus] = useState(() => {
-    const base = (currentMenus || []).slice(0, 5);
-    return [...base, ...Array(5 - base.length).fill(null)];
+    const base = (currentMenus || []).slice(0, 7);
+    return [...base, ...Array(7 - base.length).fill(null)];
   });
 
   const ALL_AVAILABLE_OPTIONS = [
@@ -4220,13 +4239,13 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   };
 
   return (
-    <WindowModal title="자주 찾는 메뉴 설정 (5칸)" onClose={onClose}>
+    <WindowModal title="자주 찾는 메뉴 설정 (7칸)" onClose={onClose}>
       <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
-        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 5개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 7개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
         
         <div className="settings-grid" style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(5, 1fr)', 
+          gridTemplateColumns: 'repeat(7, 1fr)', 
           gap: '12px',
           maxHeight: '400px',
           overflowY: 'auto',

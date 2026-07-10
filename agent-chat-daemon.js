@@ -3,12 +3,6 @@ import {
   getFirestore, collection, doc, onSnapshot, 
   query, where, getDocs, setDoc, getDoc 
 } from 'firebase/firestore';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Firebase Config
 const firebaseConfig = {
@@ -114,43 +108,6 @@ async function getReceivablesTop() {
 
 async function handleMessage(msgText, docId) {
   const clean = msgText.trim().replace(/\s+/g, " ");
-
-  // Check if it is a code modification request
-  if (isCodeModificationRequest(msgText)) {
-    const bridgePath = path.join(__dirname, 'pending_commands.json');
-    const newCmd = {
-      id: docId,
-      message: msgText,
-      status: "pending",
-      response: "",
-      timestamp: new Date().toISOString(),
-      source: "daemon"
-    };
-
-    let commands = [];
-    try {
-      if (fs.existsSync(bridgePath)) {
-        commands = JSON.parse(fs.readFileSync(bridgePath, 'utf8'));
-      }
-    } catch (e) {
-      commands = [];
-    }
-
-    commands.push(newCmd);
-    try {
-      fs.writeFileSync(bridgePath, JSON.stringify(commands, null, 2), 'utf8');
-      console.log(`📝 Daemon wrote command to pending_commands.json: ${msgText}`);
-    } catch (e) {
-      console.error("❌ Daemon failed to write to pending_commands.json:", e);
-    }
-
-    const receiptMsg = `🛠️ **[코드 수정 명령 접수]**\n\n` +
-      `지시사항: "${msgText}"\n\n` +
-      `AI 에이전트가 이 명령을 감지하여 백그라운드에서 코드를 수정하고 배포하는 작업을 수행할 예정입니다. 잠시만 기다려주세요! 완료 시 알려드리겠습니다.`;
-    
-    await respondToUser(receiptMsg, docId);
-    return;
-  }
   
   // 1. Check for apikey setup command
   if (clean.startsWith("!apikey ")) {
@@ -238,51 +195,3 @@ onSnapshot(
     });
   }
 );
-
-function isCodeModificationRequest(message) {
-  const keywords = ["수정", "변경", "바꿔", "지워", "추가", "크기", "색상", "여백", "가려", "조정", "삭제", "레이아웃", "폰트", "스타일", "배경", "테두리", "패딩", "마진", "코드", "화면", "메뉴", "너비", "높이"];
-  const clean = message.replace(/\s+/g, "").toLowerCase();
-  const excludeKeywords = ["!매출", "오늘매출", "매출현황", "!재고", "재고현황", "재고부족", "!미수금", "미수금현황", "외상"];
-  if (excludeKeywords.some(ex => clean.includes(ex))) {
-    return false;
-  }
-  return keywords.some(kw => clean.includes(kw));
-}
-
-// Completed command monitor
-const bridgePath = path.join(__dirname, 'pending_commands.json');
-setInterval(async () => {
-  try {
-    if (!fs.existsSync(bridgePath)) return;
-    
-    let commands = JSON.parse(fs.readFileSync(bridgePath, 'utf8'));
-    let updated = false;
-    
-    for (let cmd of commands) {
-      if (cmd.status === 'completed' && !cmd.reported) {
-        console.log(`🔔 Command completed: "${cmd.message}" -> Response: "${cmd.response}"`);
-        
-        const responseText = cmd.response || `✅ 작업이 성공적으로 완료되었습니다!`;
-        
-        const responseId = `msg_rep_${Date.now()}`;
-        await setDoc(doc(db, "companies", "DMK", "agentChats", responseId), {
-          id: responseId,
-          timestamp: new Date().toISOString(),
-          sender: "IBG-Dev",
-          senderName: "IBG-데브 (AI)",
-          text: responseText,
-          status: "processed"
-        });
-        
-        cmd.reported = true;
-        updated = true;
-      }
-    }
-    
-    if (updated) {
-      fs.writeFileSync(bridgePath, JSON.stringify(commands, null, 2), 'utf8');
-    }
-  } catch (err) {
-    console.error("❌ Error in completed command monitor:", err);
-  }
-}, 5000);

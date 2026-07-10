@@ -1,8 +1,6 @@
 import http.server
 import json
 import sys
-import os
-import time
 from urllib.parse import urlparse
 
 PORT = 8000
@@ -19,14 +17,6 @@ class AgentChatHandler(http.server.BaseHTTPRequestHandler):
         # Handle preflight CORS request
         self.send_response(200)
         self.end_headers()
-
-    def is_code_modification_request(self, message):
-        keywords = ["수정", "변경", "바꿔", "지워", "추가", "크기", "색상", "여백", "가려", "조정", "삭제", "레이아웃", "폰트", "스타일", "배경", "테두리", "패딩", "마진", "코드", "화면", "메뉴", "너비", "높이"]
-        clean_msg = message.replace(" ", "").lower()
-        exclude_keywords = ["!매출", "오늘매출", "매출현황", "!재고", "재고현황", "재고부족", "!미수금", "미수금현황", "외상"]
-        if any(ex in clean_msg for ex in exclude_keywords):
-            return False
-        return any(kw in clean_msg for kw in keywords)
 
     def do_POST(self):
         parsed_path = urlparse(self.path)
@@ -60,43 +50,8 @@ class AgentChatHandler(http.server.BaseHTTPRequestHandler):
             print(f"📚 History Length: {len(history)} messages")
             print("="*60)
 
-            # Check if it is a code modification request
-            if self.is_code_modification_request(message):
-                cmd_id = f"msg_{int(time.time() * 1000)}"
-                new_cmd = {
-                    "id": cmd_id,
-                    "message": message,
-                    "status": "pending",
-                    "response": "",
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    "source": "server"
-                }
-                
-                bridge_path = os.path.join(os.path.dirname(__file__), "pending_commands.json")
-                commands = []
-                if os.path.exists(bridge_path):
-                    try:
-                        with open(bridge_path, "r", encoding="utf-8") as f:
-                            commands = json.load(f)
-                    except Exception:
-                        commands = []
-                
-                commands.append(new_cmd)
-                try:
-                    with open(bridge_path, "w", encoding="utf-8") as f:
-                        json.dump(commands, f, indent=2, ensure_ascii=False)
-                    print(f"📝 Command written to pending_commands.json: {message}")
-                except Exception as e:
-                    print(f"❌ Failed to write to pending_commands.json: {e}")
-                
-                response_text = (
-                    f"🛠️ **[코드 수정 명령 접수]**\n\n"
-                    f"지시사항: \"{message}\"\n\n"
-                    f"AI 에이전트가 이 명령을 감지하여 백그라운드에서 코드를 수정하고 배포하는 작업을 수행할 예정입니다. 잠시만 기다려주세요!"
-                )
-            else:
-                # Generate smart context-aware response
-                response_text = self.generate_smart_response(message, persona, context)
+            # Generate smart context-aware response
+            response_text = self.generate_smart_response(message, persona, context)
 
             # Send response
             self.send_response(200)

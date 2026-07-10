@@ -927,8 +927,8 @@
 }
 
 .mobile-view-active .window-container {
-  width: 100vw !important;
-  height: 100vh !important;
+  width: 100% !important;
+  height: 100% !important;
   top: 0 !important;
   left: 0 !important;
   transform: none !important;
@@ -936,7 +936,7 @@
 }
 
 .mobile-view-active .window-content-area {
-  height: calc(100vh - 40px) !important;
+  height: calc(100% - 40px) !important;
   padding: 12px !important;
 }
 
@@ -1023,15 +1023,15 @@
     padding: 0 !important;
   }
   .window-container {
-    width: 100vw !important;
-    height: 100vh !important;
+    width: 100% !important;
+    height: 100% !important;
     top: 0 !important;
     left: 0 !important;
     transform: none !important;
     border-radius: 0 !important;
   }
   .window-content-area {
-    height: calc(100vh - 40px) !important;
+    height: calc(100% - 40px) !important;
     padding: 12px !important;
   }
 }
@@ -1682,8 +1682,6 @@
   overflow-y: auto;
   overflow-x: hidden;
   background-color: #0f172a;
-  /* Crucial: creates a containing block that traps position: fixed elements inside the phone screen! */
-  transform: translate3d(0, 0, 0);
 }
 
 /* Simulated Status Bar */
