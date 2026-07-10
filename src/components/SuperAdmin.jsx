@@ -2412,7 +2412,6 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <ChatAssistant context={getSuperAdminContext()} />
     </div>
   );
 };

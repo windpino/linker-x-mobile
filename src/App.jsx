@@ -3863,7 +3863,6 @@ function App() {
           {toast.message}
         </div>
       )}
-      <ChatAssistant context={getAgentContext()} />
     </div>
   );
 };
