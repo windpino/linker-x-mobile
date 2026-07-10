@@ -1033,14 +1033,14 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
             <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
               <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: isMobileMode ? '100%' : '700px' }}>
                 <colgroup>
-                  <col style={{ width: (isMobileMode ? '35%' : (colWidths.name + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '40%' : (colWidths.name + 'px')) }} />
                   {!isMobileMode && <col style={{ width: colWidths.spec + 'px' }} />}
-                  <col style={{ width: (isMobileMode ? '15%' : (colWidths.qty + 'px')) }} />
-                  <col style={{ width: (isMobileMode ? '15%' : (colWidths.stock + 'px')) }} />
-                  <col style={{ width: (isMobileMode ? '18%' : (colWidths.price + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '18%' : (colWidths.qty + 'px')) }} />
+                  {!isMobileMode && <col style={{ width: colWidths.stock + 'px' }} />}
+                  <col style={{ width: (isMobileMode ? '22%' : (colWidths.price + 'px')) }} />
                   {!isMobileMode && <col style={{ width: colWidths.supply + 'px' }} />}
                   {!isMobileMode && <col style={{ width: colWidths.tax + 'px' }} />}
-                  <col style={{ width: (isMobileMode ? '17%' : (colWidths.total + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '20%' : (colWidths.total + 'px')) }} />
                   <col style={{ width: (isMobileMode ? '40px' : (colWidths.del + 'px')) }} />
                 </colgroup>
                 <thead>
@@ -1049,7 +1049,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
                       { key: 'name',   label: '품목명',  align: 'center', pl: undefined },
                       !isMobileMode && { key: 'spec',   label: '규격',    align: 'center', pl: undefined },
                       { key: 'qty',    label: '수량',    align: 'center', pl: undefined },
-                      { key: 'stock',  label: '현재고',  align: 'center', pl: undefined, color: '#3b82f6' },
+                      !isMobileMode && { key: 'stock',  label: '현재고',  align: 'center', pl: undefined, color: '#3b82f6' },
                       { key: 'price',  label: '단가',    align: 'center', pl: undefined },
                       !isMobileMode && { key: 'supply', label: '공급가',  align: 'center', pl: undefined },
                       !isMobileMode && { key: 'tax',    label: '세액',    align: 'center', pl: undefined },
@@ -1108,26 +1108,28 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
                         ) : item.qty}
                       </td>
                       {/* 현재고 셀 */}
-                      <td>
-                        {(() => {
-                          const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(invoiceData.id));
-                          const baseSq = getStockQty(item.productId, invoiceData.warehouse);
-                          const sq = baseSq !== null ? (baseSq - (isAlreadySaved ? 0 : item.qty)) : null;
-                          const badge = getStockBadge(sq);
-                          return (
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 7px', borderRadius: '10px',
-                              backgroundColor: badge.bg,
-                              color: badge.color, fontWeight: 700,
-                              fontSize: '0.78rem', border: `1px solid ${badge.color}30`,
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {sq !== null ? `${sq}개` : '-'}
-                            </span>
-                          );
-                        })()}
-                      </td>
+                      {!isMobileMode && (
+                        <td>
+                          {(() => {
+                            const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(invoiceData.id));
+                            const baseSq = getStockQty(item.productId, invoiceData.warehouse);
+                            const sq = baseSq !== null ? (baseSq - (isAlreadySaved ? 0 : item.qty)) : null;
+                            const badge = getStockBadge(sq);
+                            return (
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '2px 7px', borderRadius: '10px',
+                                backgroundColor: badge.bg,
+                                color: badge.color, fontWeight: 700,
+                                fontSize: '0.78rem', border: `1px solid ${badge.color}30`,
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {sq !== null ? `${sq}개` : '-'}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                      )}
                        <td>
                          <input
                            type="text"
@@ -1182,7 +1184,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
                   ))}
                   {invoiceData.items.length === 0 && (
                     <tr>
-                      <td colSpan={isMobileMode ? 6 : 9} style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
+                      <td colSpan={isMobileMode ? 5 : 9} style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
                     </tr>
                   )}
                 </tbody>
