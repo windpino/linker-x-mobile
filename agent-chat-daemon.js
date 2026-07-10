@@ -106,6 +106,149 @@ async function getReceivablesTop() {
   return text;
 }
 
+async function getStaffInfo(clean) {
+  try {
+    const snap = await getDocs(collection(db, "companies", "DMK", "staffList"));
+    const staff = [];
+    snap.forEach(d => {
+      staff.push(d.data());
+    });
+
+    const matched = staff.find(s => s.name && clean.includes(s.name));
+    if (matched) {
+      return `👤 [직원 정보 조회]\n` +
+        `- **이름**: ${matched.name}\n` +
+        `- **역할/직책**: ${matched.role || "지정 없음"}\n` +
+        `- **연락처**: ${matched.phone || "등록 없음"}\n` +
+        `- **이메일**: ${matched.email || "등록 없음"}\n` +
+        `- **소속**: ${matched.department || "지정 없음"}`;
+    }
+
+    let text = `👥 [전체 직원 현황 - 총 ${staff.length}명]\n`;
+    staff.slice(0, 10).forEach((s, idx) => {
+      text += `${idx + 1}. **${s.name}** (${s.role || "사원"}) - ${s.phone || "연락처 없음"}\n`;
+    });
+    if (staff.length > 10) {
+      text += `...외 ${staff.length - 10}명의 직원이 더 등록되어 있습니다.`;
+    }
+    return text;
+  } catch (err) {
+    return `직원 정보 조회 에러: ${err.message}`;
+  }
+}
+
+async function getWarehouseInfo(clean) {
+  try {
+    const snap = await getDocs(collection(db, "companies", "DMK", "warehouses"));
+    const list = [];
+    snap.forEach(d => {
+      list.push(d.data());
+    });
+
+    let text = `🏢 [창고 현황 - 총 ${list.length}개소]\n`;
+    list.forEach((w, idx) => {
+      text += `${idx + 1}. **${w.name}**\n` +
+        `   - 위치/주소: ${w.location || "기록 없음"}\n` +
+        `   - 담당자: ${w.manager || "미지정"}\n`;
+    });
+    return text;
+  } catch (err) {
+    return `창고 정보 조회 에러: ${err.message}`;
+  }
+}
+
+async function getPartnerInfo(clean) {
+  try {
+    const snap = await getDocs(collection(db, "companies", "DMK", "partners"));
+    const list = [];
+    snap.forEach(d => {
+      list.push(d.data());
+    });
+
+    const matched = list.find(p => p.name && clean.includes(p.name));
+    if (matched) {
+      return `🤝 [거래처 상세 정보]\n` +
+        `- **거래처명**: ${matched.name}\n` +
+        `- **구분**: ${matched.type || "미지정"}\n` +
+        `- **담당자**: ${matched.manager || "미지정"}\n` +
+        `- **연락처**: ${matched.phone || "기록 없음"}\n` +
+        `- **주소**: ${matched.address || "기록 없음"}\n` +
+        `- **미수금**: ${(Number(matched.receivables) || 0).toLocaleString()}원\n` +
+        `- **미지급금**: ${(Number(matched.payables) || 0).toLocaleString()}원`;
+    }
+
+    let text = `🤝 [전체 거래처 현황 - 총 ${list.length}개소]\n`;
+    list.slice(0, 8).forEach((p, idx) => {
+      text += `${idx + 1}. **${p.name}** (${p.type || "일반"}) - 미수금: ${(Number(p.receivables) || 0).toLocaleString()}원\n`;
+    });
+    if (list.length > 8) {
+      text += `...외 ${list.length - 8}개의 거래처가 더 등록되어 있습니다.`;
+    }
+    return text;
+  } catch (err) {
+    return `거래처 정보 조회 에러: ${err.message}`;
+  }
+}
+
+async function getProductInfo(clean) {
+  try {
+    const snap = await getDocs(collection(db, "companies", "DMK", "products"));
+    const list = [];
+    snap.forEach(d => {
+      list.push(d.data());
+    });
+
+    const matched = list.find(p => p.name && clean.includes(p.name));
+    if (matched) {
+      return `📦 [품목 상세 정보]\n` +
+        `- **품목명**: ${matched.name}\n` +
+        `- **카테고리**: ${matched.category || "일반"}\n` +
+        `- **기본 단가**: ${(Number(matched.basePrice) || 0).toLocaleString()}원\n` +
+        `- **초기 재고**: ${(Number(matched.initialStock) || 0).toLocaleString()}개\n` +
+        `- **적정 재고**: ${(Number(matched.optimalStock) || 0).toLocaleString()}개`;
+    }
+
+    let text = `📦 [전체 품목 현황 - 총 ${list.length}가지]\n`;
+    list.slice(0, 10).forEach((p, idx) => {
+      text += `${idx + 1}. **${p.name}** (${p.category || "일반"}) - 단가: ${(Number(p.basePrice) || 0).toLocaleString()}원\n`;
+    });
+    if (list.length > 10) {
+      text += `...외 ${list.length - 10}개의 품목이 더 등록되어 있습니다.`;
+    }
+    return text;
+  } catch (err) {
+    return `품목 정보 조회 에러: ${err.message}`;
+  }
+}
+
+async function getSmartFallbackResponse(clean) {
+  try {
+    const staffSnap = await getDocs(collection(db, "companies", "DMK", "staffList"));
+    const warehouseSnap = await getDocs(collection(db, "companies", "DMK", "warehouses"));
+    const productSnap = await getDocs(collection(db, "companies", "DMK", "products"));
+    const partnerSnap = await getDocs(collection(db, "companies", "DMK", "partners"));
+
+    return `🤖 [IBG-데브 실시간 AI 비서]\n` +
+      `안녕하세요! 동명식품 ERP 데이터에 직접 연결되어 작동 중인 스마트 에이전트입니다.\n\n` +
+      `현재 **API 키 없이 작동하도록 설정되어 있습니다.** 실시간 데이터 조회를 위해 다음 명령어나 질문을 입력해 보세요:\n\n` +
+      `📊 **시스템 통계**:\n` +
+      `- 등록 창고: ${warehouseSnap.size}개소\n` +
+      `- 활성 직원: ${staffSnap.size}명\n` +
+      `- 등록 품목: ${productSnap.size}종\n` +
+      `- 거래처: ${partnerSnap.size}개사\n\n` +
+      `💡 **입력할 수 있는 질문 예시**:\n` +
+      `- \`오늘 매출\` 또는 \`!매출\`\n` +
+      `- \`재고 현황\` 또는 \`!재고\`\n` +
+      `- \`미수금 현황\` 또는 \`!미수금\`\n` +
+      `- \`직원 정보\` 또는 \`직원 누구 있어?\` (특정 이름 포함 시 상세조회)\n` +
+      `- \`창고 현황\` 또는 \`창고 목록\`\n` +
+      `- \`거래처 목록\` 또는 특정 거래처명 정보 (예: 특정 회사명)\n` +
+      `- \`품목 목록\` 또는 특정 제품명 정보`;
+  } catch (err) {
+    return `통계 조회 에러: ${err.message}`;
+  }
+}
+
 async function handleMessage(msgText, docId) {
   const clean = msgText.trim().replace(/\s+/g, " ");
   
@@ -119,18 +262,38 @@ async function handleMessage(msgText, docId) {
   }
 
   // 2. Check for core ERP commands
-  if (clean === "!매출" || clean === "오늘 매출" || clean === "매출 현황") {
+  if (clean === "!매출" || clean === "오늘 매출" || clean === "매출 현황" || clean.includes("매출")) {
     const res = await getSalesToday();
     await respondToUser(res, docId);
     return;
   }
-  if (clean === "!재고" || clean === "재고 현황" || clean === "재고 부족") {
+  if (clean === "!재고" || clean === "재고 현황" || clean === "재고 부족" || clean.includes("재고")) {
     const res = await getInventoryAlerts();
     await respondToUser(res, docId);
     return;
   }
-  if (clean === "!미수금" || clean === "미수금 현황" || clean === "외상") {
+  if (clean === "!미수금" || clean === "미수금 현황" || clean === "외상" || clean.includes("미수금") || clean.includes("외상")) {
     const res = await getReceivablesTop();
+    await respondToUser(res, docId);
+    return;
+  }
+  if (clean.includes("직원") || clean.includes("사원") || clean.includes("인원") || clean.includes("멤버") || clean.includes("대리") || clean.includes("과장") || clean.includes("부장") || clean.includes("차장") || clean.includes("주임")) {
+    const res = await getStaffInfo(clean);
+    await respondToUser(res, docId);
+    return;
+  }
+  if (clean.includes("창고") || clean.includes("웨어하우스") || clean.includes("보관소")) {
+    const res = await getWarehouseInfo(clean);
+    await respondToUser(res, docId);
+    return;
+  }
+  if (clean.includes("거래처") || clean.includes("파트너") || clean.includes("상사") || clean.includes("식품") || clean.includes("유통") || clean.includes("물류")) {
+    const res = await getPartnerInfo(clean);
+    await respondToUser(res, docId);
+    return;
+  }
+  if (clean.includes("품목") || clean.includes("제품") || clean.includes("상품") || clean.includes("물건") || clean.includes("간장") || clean.includes("고추장") || clean.includes("된장") || clean.includes("쌈장") || clean.includes("소금") || clean.includes("설탕")) {
+    const res = await getProductInfo(clean);
     await respondToUser(res, docId);
     return;
   }
@@ -149,16 +312,9 @@ async function handleMessage(msgText, docId) {
     const reply = await callGemini(prompt, key);
     await respondToUser(reply, docId);
   } else {
-    // Return help instructions
-    const helpMsg = `🤖 [IBG-데브 비서 안내]\n` +
-      `동명식품 ERP 명령창에 오신 것을 환영합니다.\n\n` +
-      `📌 **사용 가능한 단축 명령어**:\n` +
-      `- \`오늘 매출\` 또는 \`!매출\` : 오늘자 총 매출 금액 요약\n` +
-      `- \`재고 현황\` 또는 \`!재고\` : 안전재고 부족 품목 경고\n` +
-      `- \`미수금 현황\` 또는 \`!미수금\` : 거래처별 외상 매출 잔액 탑5\n\n` +
-      `💬 **일반 대화 및 똑똑한 AI 비서 분석**을 활성화하려면 아래 명령어로 API 키를 등록하세요:\n` +
-      `\`!apikey 발급받은_Gemini_API_키\``;
-    await respondToUser(helpMsg, docId);
+    // Generate smart mock response without API key
+    const reply = await getSmartFallbackResponse(clean);
+    await respondToUser(reply, docId);
   }
 }
 
