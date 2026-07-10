@@ -8,7 +8,7 @@ import './SalesManagementCommon.css';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
+const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || 
                  warehouses.find(w => w.name.includes('메인'))?.name || 
                  warehouses.find(w => w.name.includes('main'))?.name || 
@@ -1031,30 +1031,30 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             })()}
 
             <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
-              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: '700px' }}>
+              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: isMobileMode ? '100%' : '700px' }}>
                 <colgroup>
-                  <col style={{ width: colWidths.name + 'px' }} />
-                  <col style={{ width: colWidths.spec + 'px' }} />
-                  <col style={{ width: colWidths.qty + 'px' }} />
-                  <col style={{ width: colWidths.stock + 'px' }} />
-                  <col style={{ width: colWidths.price + 'px' }} />
-                  <col style={{ width: colWidths.supply + 'px' }} />
-                  <col style={{ width: colWidths.tax + 'px' }} />
-                  <col style={{ width: colWidths.total + 'px' }} />
-                  <col style={{ width: colWidths.del + 'px' }} />
+                  <col style={{ width: (isMobileMode ? '35%' : (colWidths.name + 'px')) }} />
+                  {!isMobileMode && <col style={{ width: colWidths.spec + 'px' }} />}
+                  <col style={{ width: (isMobileMode ? '15%' : (colWidths.qty + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '15%' : (colWidths.stock + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '18%' : (colWidths.price + 'px')) }} />
+                  {!isMobileMode && <col style={{ width: colWidths.supply + 'px' }} />}
+                  {!isMobileMode && <col style={{ width: colWidths.tax + 'px' }} />}
+                  <col style={{ width: (isMobileMode ? '17%' : (colWidths.total + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '40px' : (colWidths.del + 'px')) }} />
                 </colgroup>
                 <thead>
                   <tr>
                     {[
                       { key: 'name',   label: '품목명',  align: 'center', pl: undefined },
-                      { key: 'spec',   label: '규격',    align: 'center', pl: undefined },
+                      !isMobileMode && { key: 'spec',   label: '규격',    align: 'center', pl: undefined },
                       { key: 'qty',    label: '수량',    align: 'center', pl: undefined },
                       { key: 'stock',  label: '현재고',  align: 'center', pl: undefined, color: '#3b82f6' },
                       { key: 'price',  label: '단가',    align: 'center', pl: undefined },
-                      { key: 'supply', label: '공급가',  align: 'center', pl: undefined },
-                      { key: 'tax',    label: '세액',    align: 'center', pl: undefined },
+                      !isMobileMode && { key: 'supply', label: '공급가',  align: 'center', pl: undefined },
+                      !isMobileMode && { key: 'tax',    label: '세액',    align: 'center', pl: undefined },
                       { key: 'total',  label: '합계',    align: 'center', pl: undefined },
-                    ].map(col => (
+                    ].filter(Boolean).map(col => (
                       <th key={col.key} style={{
                         position: 'relative', userSelect: 'none', overflow: 'hidden',
                         textAlign: col.align, paddingLeft: col.pl || '8px',
@@ -1063,25 +1063,27 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       }}>
                         {col.label}
                         {/* 드래그 리사이즈 핸들 */}
-                        <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                          style={{
-                            position: 'absolute', right: 0, top: 0, bottom: 0,
-                            width: '6px', cursor: 'col-resize',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 2,
-                          }}
-                          title={`${col.label} 너비 조절`}
-                        >
-                          <span style={{
-                            display: 'block', width: '0px', height: '100%',
-                            borderLeft: resizingCol.current === col.key ? `2px dotted ${themeColor}` : '1px dotted #cbd5e1',
-                            transition: 'border-color 0.15s, border-width 0.15s',
-                          }} />
-                        </span>
+                        {!isMobileMode && (
+                          <span
+                            onMouseDown={(e) => onResizeMouseDown(e, col.key)}
+                            style={{
+                              position: 'absolute', right: 0, top: 0, bottom: 0,
+                              width: '6px', cursor: 'col-resize',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              zIndex: 2,
+                            }}
+                            title={`${col.label} 너비 조절`}
+                          >
+                            <span style={{
+                              display: 'block', width: '0px', height: '100%',
+                              borderLeft: resizingCol.current === col.key ? `2px dotted ${themeColor}` : '1px dotted #cbd5e1',
+                              transition: 'border-color 0.15s, border-width 0.15s',
+                            }} />
+                          </span>
+                        )}
                       </th>
                     ))}
-                    <th style={{ width: colWidths.del + 'px' }}>
+                    <th style={{ width: isMobileMode ? '40px' : (colWidths.del + 'px') }}>
                       <button
                         onClick={handleClearAllItems}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
@@ -1095,8 +1097,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 <tbody>
                   {invoiceData.items.map(item => (
                     <tr key={item.id}>
-                      <td style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: colWidths.name + 'px' }}>{item.name}</td>
-                      <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.spec}</td>
+                      <td style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobileMode ? '120px' : (colWidths.name + 'px') }}>{item.name}</td>
+                      {!isMobileMode && <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.spec}</td>}
                       <td>
                         {item.isBox ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1150,8 +1152,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                            }}
                          />
                        </td>
-                      <td>{item.supplyValue.toLocaleString()}</td>
-                      <td>{item.tax.toLocaleString()}</td>
+                      {!isMobileMode && <td>{item.supplyValue.toLocaleString()}</td>}
+                      {!isMobileMode && <td>{item.tax.toLocaleString()}</td>}
                       <td style={{ fontWeight: 700 }}>{item.total.toLocaleString()}</td>
                       <td><button className="icon-btn" onClick={() => {
                         const updatedItems = invoiceData.items.filter(i => i.id !== item.id);
@@ -1180,7 +1182,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   ))}
                   {invoiceData.items.length === 0 && (
                     <tr>
-                      <td colSpan="9" style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
+                      <td colSpan={isMobileMode ? 6 : 9} style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
                     </tr>
                   )}
                 </tbody>

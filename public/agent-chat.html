@@ -26,9 +26,14 @@
         <span class="text-[10px] text-slate-400 font-bold">동명식품 실시간 통합 에이전트 채널</span>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
-      <span class="text-xs text-slate-350 font-bold bg-slate-900 border border-slate-800 px-3 py-1 rounded-full shadow-sm">에이전트 온라인</span>
+    <div class="flex items-center gap-4">
+      <div id="user-status" class="text-xs text-slate-400 font-semibold bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-xl shadow-sm">
+        로그인 확인 중...
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+        <span class="text-xs text-slate-350 font-bold bg-slate-900 border border-slate-800 px-3 py-1 rounded-full shadow-sm">에이전트 온라인</span>
+      </div>
     </div>
   </header>
 
@@ -109,6 +114,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Read logged-in user from localStorage
+    let currentUser = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    } catch (e) {
+      console.error("Error reading currentUser:", e);
+    }
+
+    const userStatusEl = document.getElementById("user-status");
+    if (currentUser) {
+      userStatusEl.innerHTML = `👤 로그인: <strong class="text-blue-400">${currentUser.name} (${currentUser.userId})</strong>`;
+    } else {
+      userStatusEl.innerHTML = `👤 비회원 사용자 (임시 권한)`;
+    }
+
     const messagesContainer = document.getElementById("messages-container");
     const chatForm = document.getElementById("chat-form");
     const messageInput = document.getElementById("message-input");
@@ -134,7 +154,7 @@
             htmlContent += `
               <div class="flex justify-end items-start gap-2.5 animate-fadeIn">
                 <div class="flex flex-col items-end">
-                  <span class="text-[10px] text-slate-500 font-bold mb-1">사용자</span>
+                  <span class="text-[10px] text-slate-500 font-bold mb-1">${msg.senderName || '사용자'}</span>
                   <div class="bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-2.5 text-xs max-w-md shadow-md">
                     ${msg.text.replace(/\n/g, '<br/>')}
                   </div>
@@ -175,13 +195,23 @@
 
       const messageId = `msg_u_${Date.now()}`;
       
+      const senderName = currentUser ? `${currentUser.name} (${currentUser.userId})` : "사용자";
+      const senderId = currentUser ? currentUser.userId : "guest";
+
+      // TODO: 추후 sadmin으로만 코드 수정 권한 제한 예정
+      // if (senderId !== 'sadmin') {
+      //   alert("코드 수정 권한이 없습니다. (sadmin 전용)");
+      //   return;
+      // }
+
       try {
         messageInput.value = "";
         await db.collection("companies").doc("DMK").collection("agentChats").doc(messageId).set({
           id: messageId,
           timestamp: new Date().toISOString(),
           sender: "User",
-          senderName: "사용자",
+          senderName: senderName,
+          senderId: senderId,
           text: text,
           status: "pending"
         });

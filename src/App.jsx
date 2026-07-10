@@ -3273,6 +3273,7 @@ function App() {
       />}
 
       {isSalesInvoiceOpen && <SalesInvoice
+        isMobileMode={true}
         themeColor={systemSettings.display?.salesThemeColor || '#3b82f6'}
         zIndex={activeSalesModal === 'invoice' ? 6000 : 3000}
         onClose={() => { setIsSalesInvoiceOpen(false); setEditingInvoice(null); }}

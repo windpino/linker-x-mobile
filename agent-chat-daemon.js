@@ -252,6 +252,21 @@ async function getSmartFallbackResponse(clean) {
 async function handleMessage(msgText, docId) {
   const clean = msgText.trim().replace(/\s+/g, " ");
   
+  // 0. Ignore developer/coding commands so the development agent can process them
+  const devKeywords = [
+    "수정", "변경", "추가", "삭제", "만들어", "코드", "화면", "디자인", "배열", 
+    "정렬", "레이아웃", "버튼", "메뉴", "설정", "조정", "크기", "여백", "박스",
+    "위젯", "닫고", "열고", "보여주고", "없에", "없애", "숨겨", "가려", "표시해", 
+    "구현", "작동", "설치", "로컬", "서버", "빌드", "배포", "적용", "파일", 
+    "메인", "모바일", "데스크탑"
+  ];
+  
+  const hasDevKeyword = devKeywords.some(keyword => clean.includes(keyword));
+  if (hasDevKeyword) {
+    console.log(`🛠️ Dev command detected: "${clean}". Leaving it pending for coding agent.`);
+    return;
+  }
+  
   // 1. Check for apikey setup command
   if (clean.startsWith("!apikey ")) {
     const key = clean.split(" ")[1];
