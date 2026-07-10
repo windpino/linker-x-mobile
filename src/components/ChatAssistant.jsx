@@ -5,13 +5,7 @@ import './ChatAssistant.css';
 export default function ChatAssistant({ context }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      sender: 'agent',
-      text: '안녕하세요! Linker X ERP AI 비서입니다. 무엇을 도와드릴까요?',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [persona, setPersona] = useState('ERP 전문 관리 비서');
   const [systemPrompt, setSystemPrompt] = useState(
