@@ -624,7 +624,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
             border-radius: 8px !important;
           }
           .invoice-table {
-            min-width: 650px !important;
+            min-width: 100% !important;
           }
           .sales-header {
             flex-direction: column !important;
@@ -1033,15 +1033,15 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
             <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
               <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: isMobileMode ? '100%' : '700px' }}>
                 <colgroup>
-                  <col style={{ width: (isMobileMode ? '40%' : (colWidths.name + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '38%' : (colWidths.name + 'px')) }} />
                   {!isMobileMode && <col style={{ width: colWidths.spec + 'px' }} />}
-                  <col style={{ width: (isMobileMode ? '18%' : (colWidths.qty + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '16%' : (colWidths.qty + 'px')) }} />
                   {!isMobileMode && <col style={{ width: colWidths.stock + 'px' }} />}
-                  <col style={{ width: (isMobileMode ? '22%' : (colWidths.price + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '20%' : (colWidths.price + 'px')) }} />
                   {!isMobileMode && <col style={{ width: colWidths.supply + 'px' }} />}
                   {!isMobileMode && <col style={{ width: colWidths.tax + 'px' }} />}
-                  <col style={{ width: (isMobileMode ? '20%' : (colWidths.total + 'px')) }} />
-                  <col style={{ width: (isMobileMode ? '40px' : (colWidths.del + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '18%' : (colWidths.total + 'px')) }} />
+                  <col style={{ width: (isMobileMode ? '8%' : (colWidths.del + 'px')) }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -1083,7 +1083,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
                         )}
                       </th>
                     ))}
-                    <th style={{ width: isMobileMode ? '40px' : (colWidths.del + 'px') }}>
+                    <th style={{ width: isMobileMode ? '8%' : (colWidths.del + 'px') }}>
                       <button
                         onClick={handleClearAllItems}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
