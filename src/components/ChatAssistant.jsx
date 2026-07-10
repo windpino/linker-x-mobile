@@ -8,7 +8,7 @@ export default function ChatAssistant({ context }) {
   const [messages, setMessages] = useState([
     {
       sender: 'agent',
-      text: '안녕하세요! Linker X ERP AI 비서입니다. 무엇을 도와드릴까요?\n\n(하단 Context 정보가 에이전트에 실시간 주입됩니다.)',
+      text: '안녕하세요! Linker X ERP AI 비서입니다. 무엇을 도와드릴까요?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
