@@ -358,10 +358,10 @@ function App() {
   const [favoriteMenus, setFavoriteMenus] = useState(() => {
     const saved = JSON.parse(localStorage.getItem('favoriteMenus'));
     if (saved && Array.isArray(saved)) {
-      return saved.slice(0, 7);
+      return saved.slice(0, 5);
     }
     return [
-      'sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense'
+      'sales_order', 'partner', 'product', 'warehouse', 'staff'
     ];
   });
   
@@ -1762,8 +1762,8 @@ function App() {
           showToast('즐겨찾기 메뉴에서 삭제되었습니다.', 'info');
         } else {
           // 즐겨찾기에 등록되지 않은 경우 추가
-          if (activeFavs.length >= 7) {
-            alert('자주 찾는 메뉴는 최대 7개까지만 등록할 수 있습니다.');
+          if (activeFavs.length >= 5) {
+            alert('자주 찾는 메뉴는 최대 5개까지만 등록할 수 있습니다.');
             return prev;
           }
           
@@ -4003,9 +4003,9 @@ function FavoriteMenuBar({
         </button>
       </div>
 
-      {/* 7칸 메뉴 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-        {Array.from({ length: 7 }).map((_, idx) => {
+      {/* 5칸 메뉴 그리드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+        {Array.from({ length: 5 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
           const isSelecting = selectingSlot === idx;
@@ -4177,8 +4177,8 @@ function FavoriteMenuBar({
 // Sub-component for Favorite Settings Modal
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   const [tempMenus, setTempMenus] = useState(() => {
-    const base = (currentMenus || []).slice(0, 7);
-    return [...base, ...Array(7 - base.length).fill(null)];
+    const base = (currentMenus || []).slice(0, 5);
+    return [...base, ...Array(5 - base.length).fill(null)];
   });
 
   const ALL_AVAILABLE_OPTIONS = [
@@ -4239,13 +4239,13 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   };
 
   return (
-    <WindowModal title="자주 찾는 메뉴 설정 (7칸)" onClose={onClose}>
+    <WindowModal title="자주 찾는 메뉴 설정 (5칸)" onClose={onClose}>
       <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
-        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 7개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 5개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
         
         <div className="settings-grid" style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(7, 1fr)', 
+          gridTemplateColumns: 'repeat(5, 1fr)', 
           gap: '12px',
           maxHeight: '400px',
           overflowY: 'auto',

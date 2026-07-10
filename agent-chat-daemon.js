@@ -6,7 +6,7 @@ import {
 
 // Firebase Config
 const firebaseConfig = {
-  apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO5C3-GQuqkpk",
+  apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
   authDomain: "link-x-6606e.firebaseapp.com",
   projectId: "link-x-6606e",
   storageBucket: "link-x-6606e.firebasestorage.app",
