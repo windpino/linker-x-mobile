@@ -240,6 +240,16 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                       <span className="slider"></span>
                     </label>
                   </div>
+                  <div className="toggle-item">
+                    <div className="toggle-info">
+                      <h4>모바일 하드웨어 뒤로가기 제어</h4>
+                      <p>스마트폰 취소키(뒤로가기) 입력 시 즉시 종료되지 않고 이전 메뉴로 이동시킵니다.</p>
+                    </div>
+                    <label className="switch">
+                      <input type="checkbox" checked={localSettings.display.preventBackExit !== false} onChange={e => updateDisplay('preventBackExit', e.target.checked)} />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
 

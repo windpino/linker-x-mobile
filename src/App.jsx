@@ -386,7 +386,7 @@ function App() {
   
   const [systemSettings, setSystemSettings] = useState(() => JSON.parse(localStorage.getItem('systemSettings')) || {
     company: { name: '', bizNum: '', ceo: '', type: '', address: '', tel: '', email: '' },
-    display: { darkMode: false, soundEffects: true, realTimeUpdate: true },
+    display: { darkMode: false, soundEffects: true, realTimeUpdate: true, preventBackExit: true },
     transaction: { defaultVat: 10, decimalPlaces: 0, autoNumbering: true },
     salesInvoice: { warnNoStock: true },
     language: '한국어 (Korean)',
@@ -438,6 +438,124 @@ function App() {
     }
   });
 
+
+  const navStateRef = React.useRef({
+    preventBackExit: systemSettings.display?.preventBackExit !== false,
+    currentView,
+    currentUser,
+    modals: []
+  });
+
+  React.useEffect(() => {
+    navStateRef.current = {
+      preventBackExit: systemSettings.display?.preventBackExit !== false,
+      currentView,
+      currentUser,
+      modals: [
+        { name: 'SalesInvoice', value: isSalesInvoiceOpen, close: () => { setIsSalesInvoiceOpen(false); setEditingInvoice(null); } },
+        { name: 'SalesInvoiceList', value: isSalesInvoiceListOpen, close: () => setIsSalesInvoiceListOpen(false) },
+        { name: 'SalesLedger', value: isSalesLedgerOpen, close: () => setIsSalesLedgerOpen(false) },
+        { name: 'SalesOrder', value: isSalesOrderOpen, close: () => setIsSalesOrderOpen(false) },
+        { name: 'OrderList', value: isOrderListOpen, close: () => setIsOrderListOpen(false) },
+        { name: 'PurchaseInvoice', value: isPurchaseInvoiceOpen, close: () => setIsPurchaseInvoiceOpen(false) },
+        { name: 'PurchaseLedger', value: isPurchaseLedgerOpen, close: () => setIsPurchaseLedgerOpen(false) },
+        { name: 'PurchaseOrder', value: isPurchaseOrderOpen, close: () => setIsPurchaseOrderOpen(false) },
+        { name: 'CashReport', value: isCashReportOpen, close: () => setIsCashReportOpen(false) },
+        { name: 'SalesReport', value: isSalesReportOpen, close: () => setIsSalesReportOpen(false) },
+        { name: 'OrderReport', value: isOrderReportOpen, close: () => setIsOrderReportOpen(false) },
+        { name: 'InventoryReport', value: isInventoryReportOpen, close: () => setIsInventoryReportOpen(false) },
+        { name: 'ReceivablesReport', value: isReceivablesReportOpen, close: () => setIsReceivablesReportOpen(false) },
+        { name: 'EditDeleteReport', value: isEditDeleteReportOpen, close: () => setIsEditDeleteReportOpen(false) },
+        { name: 'CashBook', value: isCashBookOpen, close: () => setIsCashBookOpen(false) },
+        { name: 'ExpenseRegistration', value: isExpenseRegistrationOpen, close: () => setIsExpenseRegistrationOpen(false) },
+        { name: 'StaffPerformanceReport', value: isStaffPerformanceReportOpen, close: () => setIsStaffPerformanceReportOpen(false) },
+        { name: 'DataManager', value: isDataManagerOpen, close: () => setIsDataManagerOpen(false) },
+        { name: 'PartnerExcel', value: isPartnerExcelOpen, close: () => setIsPartnerExcelOpen(false) },
+        { name: 'ProductExcel', value: isProductExcelOpen, close: () => setIsProductExcelOpen(false) },
+        { name: 'PurchaseLedgerExcel', value: isPurchaseLedgerExcelOpen, close: () => setIsPurchaseLedgerExcelOpen(false) },
+        { name: 'SalesLedgerExcel', value: isSalesLedgerExcelOpen, close: () => setIsSalesLedgerExcelOpen(false) },
+        { name: 'Settings', value: isSettingsOpen, close: () => setIsSettingsOpen(false) },
+        { name: 'License', value: isLicenseOpen, close: () => setIsLicenseOpen(false) },
+        { name: 'DashboardSettings', value: isDashboardSettingsOpen, close: () => setIsDashboardSettingsOpen(false) },
+        { name: 'FavoriteSettings', value: isFavoriteSettingsOpen, close: () => setIsFavoriteSettingsOpen(false) },
+        { name: 'InventoryAdjustment', value: isInventoryAdjustmentOpen, close: () => setIsInventoryAdjustmentOpen(false) },
+        { name: 'InventoryMismatch', value: isInventoryMismatchOpen, close: () => setIsInventoryMismatchOpen(false) },
+        { name: 'TaxReport', value: isTaxReportOpen, close: () => setIsTaxReportOpen(false) },
+        { name: 'WarehouseManager', value: isWarehouseManagerOpen, close: () => setIsWarehouseManagerOpen(false) },
+        { name: 'PartnerSpecialPriceManager', value: isPartnerSpecialPriceManagerOpen, close: () => setIsPartnerSpecialPriceManagerOpen(false) },
+        { name: 'StaffManager', value: isStaffManagerOpen, close: () => setIsStaffManagerOpen(false) },
+        { name: 'InventoryTransfer', value: isInventoryTransferOpen, close: () => setIsInventoryTransferOpen(false) },
+        { name: 'PartnerManager', value: isPartnerManagerOpen, close: () => setIsPartnerManagerOpen(false) },
+        { name: 'ProductManager', value: isProductManagerOpen, close: () => setIsProductManagerOpen(false) },
+        { name: 'PartnerBulk', value: isPartnerBulkOpen, close: () => setIsPartnerBulkOpen(false) },
+        { name: 'ProductBulk', value: isProductBulkOpen, close: () => setIsProductBulkOpen(false) },
+        { name: 'AccountManager', value: isAccountManagerOpen, close: () => setIsAccountManagerOpen(false) },
+        { name: 'ScheduleList', value: isScheduleListOpen, close: () => setIsScheduleListOpen(false) },
+        { name: 'ScheduleRegistration', value: isScheduleRegistrationOpen, close: () => setIsScheduleRegistrationOpen(false) },
+        { name: 'TypeManagement', value: isTypeManagementOpen, close: () => setIsTypeManagementOpen(false) },
+        { name: 'ScheduleDetail', value: isScheduleDetailOpen, close: () => setIsScheduleDetailOpen(false) }
+      ]
+    };
+  }, [
+    systemSettings.display?.preventBackExit, currentView, currentUser,
+    isSalesInvoiceOpen, isSalesInvoiceListOpen, isSalesLedgerOpen, isSalesOrderOpen, isOrderListOpen,
+    isPurchaseInvoiceOpen, isPurchaseLedgerOpen, isPurchaseOrderOpen, isCashReportOpen, isSalesReportOpen,
+    isOrderReportOpen, isInventoryReportOpen, isReceivablesReportOpen, isEditDeleteReportOpen,
+    isCashBookOpen, isExpenseRegistrationOpen, isStaffPerformanceReportOpen, isDataManagerOpen,
+    isPartnerExcelOpen, isProductExcelOpen, isPurchaseLedgerExcelOpen, isSalesLedgerExcelOpen,
+    isSettingsOpen, isLicenseOpen, isDashboardSettingsOpen, isFavoriteSettingsOpen,
+    isInventoryAdjustmentOpen, isInventoryMismatchOpen, isTaxReportOpen,
+    isWarehouseManagerOpen, isPartnerSpecialPriceManagerOpen, isStaffManagerOpen, isInventoryTransferOpen,
+    isPartnerManagerOpen, isProductManagerOpen, isPartnerBulkOpen, isProductBulkOpen,
+    isAccountManagerOpen, isScheduleListOpen, isScheduleRegistrationOpen, isTypeManagementOpen,
+    isScheduleDetailOpen
+  ]);
+
+  React.useEffect(() => {
+    // Push the initial root state to intercept back button actions
+    window.history.pushState({ path: 'root' }, '');
+
+    const handlePopState = (e) => {
+      const { preventBackExit, currentView, currentUser, modals } = navStateRef.current;
+      
+      if (!preventBackExit) {
+        return;
+      }
+
+      // 1. If any modal is currently open, close the active one
+      const openModal = modals.find(m => m.value === true);
+      if (openModal) {
+        openModal.close();
+        window.history.pushState({ path: 'root' }, '');
+        return;
+      }
+
+      // 2. If not on dashboard/login, navigate back to dashboard/login
+      if (currentView !== 'dashboard' && currentView !== 'login') {
+        if (currentUser) {
+          setCurrentView('dashboard');
+        } else {
+          setCurrentView('login');
+        }
+        window.history.pushState({ path: 'root' }, '');
+        return;
+      }
+
+      // 3. If already on dashboard, confirm closing
+      if (currentView === 'dashboard') {
+        if (window.confirm('정말 종료하시겠습니까?')) {
+          window.close();
+        } else {
+          window.history.pushState({ path: 'root' }, '');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   React.useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'agencyCategories'), (snapshot) => {
@@ -3963,17 +4081,19 @@ function FavoriteMenuBar({
     <div className="calendar-favorites-section" style={{
       backgroundColor: 'transparent',
       borderRadius: '0',
-      padding: '0',
+      padding: '0 8px',
       boxShadow: 'none',
       border: 'none',
       marginBottom: '12px',
-      position: 'relative'
+      position: 'relative',
+      marginLeft: '-16px',
+      marginRight: '-16px'
     }}>
       {/* 헤더 행 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', overflow: 'hidden', padding: '0 8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <Star size={16} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴</h4>
+          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴</h4>
         </div>
 
         {/* 롤오버 공지사항 */}
@@ -3988,8 +4108,8 @@ function FavoriteMenuBar({
           onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
         >
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap' }}>NOTICE</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap' }}>NOTICE</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {SYSTEM_NOTICES[currentNoticeIdx]?.title}
           </span>
         </div>
@@ -4017,25 +4137,25 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '56px', border: '1.5px dashed #cbd5e1',
+                    width: '100%', height: '68px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
                     borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
                     borderRadius: '8px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '2px',
+                    alignItems: 'center', justifyContent: 'center', gap: '3px',
                     cursor: 'pointer', transition: 'all 0.18s'
                   }}
                   onMouseEnter={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#93c5fd'; } }}
                   onMouseLeave={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; } }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={14} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.6rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>메뉴 추가</span>
+                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.72rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 700 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
                 {isSelecting && (
                   <div ref={popupRef} style={{
-                    position: 'absolute', top: '78px', left: idx >= 4 ? 'auto' : '0',
+                    position: 'absolute', top: '90px', left: idx >= 4 ? 'auto' : '0',
                     right: idx >= 4 ? '0' : 'auto',
                     width: '260px', backgroundColor: 'white',
                     borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
@@ -4125,10 +4245,10 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '56px', border: '1px solid #e2e8f0',
+                  width: '100%', height: '68px', border: '1px solid #e2e8f0',
                   backgroundColor: '#f8fafc', borderRadius: '8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.18s'
+                  justifyContent: 'center', gap: '3px', cursor: 'pointer', transition: 'all 0.18s'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.backgroundColor = '#eff6ff';
@@ -4144,8 +4264,8 @@ function FavoriteMenuBar({
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '1.8rem', lineHeight: 1.1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
                   {menuInfo.name}
                 </span>
               </button>

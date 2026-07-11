@@ -617,7 +617,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
             gap: 8px !important;
           }
           .invoice-table-container {
-            overflow-x: auto !important;
+             overflow-x: hidden !important;
             width: 100% !important;
             margin-top: 10px !important;
             border: 1px solid #e2e8f0 !important;
@@ -1030,7 +1030,7 @@ const SalesInvoice = ({ isMobileMode, onClose, products, partners, staffList, on
               );
             })()}
 
-            <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
+            <div className="invoice-table-container" style={{ overflowX: isMobileMode ? 'hidden' : 'auto' }}>
               <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: isMobileMode ? '100%' : '700px' }}>
                 <colgroup>
                   <col style={{ width: (isMobileMode ? '38%' : (colWidths.name + 'px')) }} />
