@@ -13,7 +13,7 @@ const Header = ({
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
-  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch
+  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenAgentChat
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -85,6 +85,7 @@ const Header = ({
     { id: 'settings', label: '환경설정 & 정품등록', items: [
       { title: '환경설정', action: onOpenSettings, perm: true },
       { title: '정품등록', action: onOpenLicense, perm: true },
+      { title: 'AI 명령창 (Antigravity)', action: onOpenAgentChat, perm: true },
     ]}
   ];
   

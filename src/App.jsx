@@ -65,6 +65,7 @@ import TaxInvoiceDocument from './components/TaxInvoiceDocument';
 import PartnerShoppingMall from './components/PartnerShoppingMall';
 import WindowModal from './components/WindowModal';
 import PartnerSpecialPriceManager from './components/PartnerSpecialPriceManager'; // Import Special Price Manager
+import AgentChatModal from './components/AgentChatModal';
 import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import useDevice from './hooks/useDevice';
@@ -102,6 +103,7 @@ const ALL_FAVORITE_MENUS = [
   { id: 'data_manager',        name: '데이터 관리',    category: '시스템관리',     emoji: '🗄️' },
   { id: 'settings',            name: '환경 설정',      category: '환경설정&정품등록', emoji: '⚙️' },
   { id: 'license',             name: '정품 등록',      category: '환경설정&정품등록', emoji: '🔑' },
+  { id: 'agent_chat',          name: 'AI 명령창',      category: '환경설정&정품등록', emoji: '🤖' },
 ];
 const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'];
 
@@ -298,6 +300,7 @@ function App() {
   const [mismatchInitialWarehouse, setMismatchInitialWarehouse] = useState('');
   const [mismatchInitialSearchTerm, setMismatchInitialSearchTerm] = useState('');
   const [isTaxReportOpen, setIsTaxReportOpen] = useState(false);
+  const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
   const [isResizeLocked, setIsResizeLocked] = useState(true);
   const [isDashboardLocked, setIsDashboardLocked] = useState(() => {
     const saved = localStorage.getItem('isDashboardLocked');
@@ -493,7 +496,8 @@ function App() {
         { name: 'ScheduleList', value: isScheduleListOpen, close: () => setIsScheduleListOpen(false) },
         { name: 'ScheduleRegistration', value: isScheduleRegistrationOpen, close: () => setIsScheduleRegistrationOpen(false) },
         { name: 'TypeManagement', value: isTypeManagementOpen, close: () => setIsTypeManagementOpen(false) },
-        { name: 'ScheduleDetail', value: isScheduleDetailOpen, close: () => setIsScheduleDetailOpen(false) }
+        { name: 'ScheduleDetail', value: isScheduleDetailOpen, close: () => setIsScheduleDetailOpen(false) },
+        { name: 'AgentChat', value: isAgentChatOpen, close: () => setIsAgentChatOpen(false) }
       ]
     };
   }, [
@@ -508,7 +512,7 @@ function App() {
     isWarehouseManagerOpen, isPartnerSpecialPriceManagerOpen, isStaffManagerOpen, isInventoryTransferOpen,
     isPartnerManagerOpen, isProductManagerOpen, isPartnerBulkOpen, isProductBulkOpen,
     isAccountManagerOpen, isScheduleListOpen, isScheduleRegistrationOpen, isTypeManagementOpen,
-    isScheduleDetailOpen
+    isScheduleDetailOpen, isAgentChatOpen
   ]);
 
   React.useEffect(() => {
@@ -2945,6 +2949,7 @@ function App() {
           companyLogo={companySettings?.theme?.logoUrl}
           companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
           onLogout={handleLogout} 
+          onOpenAgentChat={() => setIsAgentChatOpen(true)}
         onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
         onOpenStaffManager={() => setIsStaffManagerOpen(true)}
         onOpenInventoryTransfer={openInventoryTransfer}
@@ -3035,6 +3040,7 @@ function App() {
                   data_manager:       () => setIsDataManagerOpen(true),
                   settings:           () => setIsSettingsOpen(true),
                   inventory_mismatch: () => setIsInventoryMismatchOpen(true),
+                  agent_chat:         () => setIsAgentChatOpen(true),
                 };
                 if (actions[menuId]) actions[menuId]();
               }}
@@ -3872,6 +3878,20 @@ function App() {
             showToast('자주 찾는 메뉴가 저장되었습니다.', 'success');
           }}
         />
+      )}
+      {isAgentChatOpen && (
+        <WindowModal 
+          title="AI 명령창 (Antigravity)" 
+          onClose={() => setIsAgentChatOpen(false)}
+          width="480px"
+          height="600px"
+          noScroll={true}
+        >
+          <AgentChatModal 
+            currentUser={currentUser} 
+            onClose={() => setIsAgentChatOpen(false)} 
+          />
+        </WindowModal>
       )}
       {selectedSystemNotice && (
         <WindowModal 
