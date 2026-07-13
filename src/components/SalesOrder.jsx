@@ -818,7 +818,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         .so-items-textarea {
           width: 100%;
           flex: 1;
-          min-height: 150px;
+          min-height: 90px;
           padding: 16px;
           font-size: 1.1rem;
           border-radius: 12px;
@@ -1163,7 +1163,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
           }
 
           .so-items-textarea {
-            min-height: 140px;
+            min-height: 80px;
           }
         }
       `}</style>
