@@ -99,14 +99,14 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
       title={formData.id ? "일정 수정" : "일정 추가"} 
       onClose={onClose}
       style={isMobileView ? {
-        backgroundColor: '#0a0f1d',
-        border: '1px solid rgba(255, 255, 255, 0.08)'
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0'
       } : {}}
       contentPadding={isMobileView ? "16px" : undefined}
     >
-      <div style={{ paddingBottom: '16px', borderBottom: isMobileView ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e2e8f0', marginBottom: '20px' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', color: isMobileView ? '#f8fafc' : '#1e293b', margin: 0 }}>
-          <CalendarIcon color={isMobileView ? 'var(--primary)' : '#3b82f6'} size={20} />
+      <div style={{ paddingBottom: '16px', borderBottom: isMobileView ? '1px solid #e2e8f0' : '1px solid #e2e8f0', marginBottom: '20px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', color: '#1e293b', margin: 0 }}>
+          <CalendarIcon color={'#3b82f6'} size={20} />
           {formData.id ? "일정 정보 수정" : "신규 일정 등록"}
         </h3>
       </div>
@@ -203,14 +203,14 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
           display: 'flex', 
           flexDirection: 'column', 
           gap: '12px', 
-          backgroundColor: isMobileView ? '#0a0f1d' : '#f8fafc', 
+          backgroundColor: '#f8fafc', 
           padding: '16px', 
           borderRadius: '12px', 
-          border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' 
+          border: '1px solid #e2e8f0' 
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: isMobileView ? 'wrap' : 'nowrap' }}>
             <div style={{ flex: 1, minWidth: isMobileView ? '100%' : 'auto' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: isMobileView ? '#94a3b8' : '#64748b', display: 'block', marginBottom: '4px' }}>시작 일시</label>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '4px' }}>시작 일시</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input 
                   type="date" 
@@ -219,10 +219,10 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                   style={{ 
                     flex: 2, 
                     padding: '8px', 
-                    border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                    border: '1px solid #cbd5e1', 
                     borderRadius: '6px', 
-                    backgroundColor: isMobileView ? '#0f172a' : '#f8fafc',
-                    color: isMobileView ? '#f1f5f9' : '#334155'
+                    backgroundColor: '#ffffff',
+                    color: '#334155'
                   }}
                 />
                 <input 
@@ -233,17 +233,17 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                   style={{ 
                     flex: 1, 
                     padding: '8px', 
-                    border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                    border: '1px solid #cbd5e1', 
                     borderRadius: '6px', 
-                    backgroundColor: isMobileView ? '#0f172a' : '#f8fafc',
-                    color: isMobileView ? '#f1f5f9' : '#334155'
+                    backgroundColor: '#ffffff',
+                    color: '#334155'
                   }}
                 />
               </div>
             </div>
             {!isMobileView && <ArrowRight size={20} color="#94a3b8" style={{ marginTop: '20px' }} />}
             <div style={{ flex: 1, minWidth: isMobileView ? '100%' : 'auto' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: isMobileView ? '#94a3b8' : '#64748b', display: 'block', marginBottom: '4px' }}>종료 일시</label>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '4px' }}>종료 일시</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input 
                   type="date" 
@@ -253,10 +253,10 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                   style={{ 
                     flex: 2, 
                     padding: '8px', 
-                    border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                    border: '1px solid #cbd5e1', 
                     borderRadius: '6px', 
-                    backgroundColor: isMobileView ? '#0f172a' : '#f8fafc',
-                    color: isMobileView ? '#f1f5f9' : '#334155'
+                    backgroundColor: '#ffffff',
+                    color: '#334155'
                   }}
                 />
                 <input 
@@ -267,10 +267,10 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                   style={{ 
                     flex: 1, 
                     padding: '8px', 
-                    border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                    border: '1px solid #cbd5e1', 
                     borderRadius: '6px', 
-                    backgroundColor: isMobileView ? '#0f172a' : '#f8fafc',
-                    color: isMobileView ? '#f1f5f9' : '#334155'
+                    backgroundColor: '#ffffff',
+                    color: '#334155'
                   }}
                 />
               </div>
@@ -280,7 +280,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
 
         <div style={{ display: 'flex', gap: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: isMobileView ? '#cbd5e1' : '#475569' }}>알림 설정</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>알림 설정</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Bell size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', zIndex: 1 }} />
               <select 
@@ -290,21 +290,21 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                 style={{ 
                   width: '100%', 
                   padding: '10px 12px 10px 32px', 
-                  border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                  border: '1px solid #cbd5e1', 
                   borderRadius: '6px', 
                   outline: 'none', 
                   appearance: 'none', 
-                  backgroundColor: isMobileView ? '#0f172a' : '#f8fafc', 
-                  color: isMobileView ? '#f1f5f9' : '#334155', 
+                  backgroundColor: '#ffffff', 
+                  color: '#334155', 
                   fontFamily: 'inherit', 
                   position: 'relative' 
                 }}
               >
-                <option value="설정 안함" style={{ backgroundColor: isMobileView ? '#0f172a' : '#ffffff', color: isMobileView ? '#f1f5f9' : '#334155' }}>설정 안함</option>
-                <option value="5분 전" style={{ backgroundColor: isMobileView ? '#0f172a' : '#ffffff', color: isMobileView ? '#f1f5f9' : '#334155' }}>5분 전</option>
-                <option value="10분 전" style={{ backgroundColor: isMobileView ? '#0f172a' : '#ffffff', color: isMobileView ? '#f1f5f9' : '#334155' }}>10분 전</option>
-                <option value="30분 전" style={{ backgroundColor: isMobileView ? '#0f172a' : '#ffffff', color: isMobileView ? '#f1f5f9' : '#334155' }}>30분 전</option>
-                <option value="1시간 전" style={{ backgroundColor: isMobileView ? '#0f172a' : '#ffffff', color: isMobileView ? '#f1f5f9' : '#334155' }}>1시간 전</option>
+                <option value="설정 안함" style={{ backgroundColor: '#ffffff', color: '#334155' }}>설정 안함</option>
+                <option value="5분 전" style={{ backgroundColor: '#ffffff', color: '#334155' }}>5분 전</option>
+                <option value="10분 전" style={{ backgroundColor: '#ffffff', color: '#334155' }}>10분 전</option>
+                <option value="30분 전" style={{ backgroundColor: '#ffffff', color: '#334155' }}>30분 전</option>
+                <option value="1시간 전" style={{ backgroundColor: '#ffffff', color: '#334155' }}>1시간 전</option>
               </select>
               <div style={{ position: 'absolute', right: '12px', pointerEvents: 'none', fontSize: '10px', color: '#94a3b8' }}>▼</div>
             </div>
@@ -313,7 +313,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: isMobileView ? '#cbd5e1' : '#475569' }}>일정 설명 <span style={{ color: '#dc2626' }}>*</span></label>
+          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>일정 설명 <span style={{ color: '#dc2626' }}>*</span></label>
           <div style={{ position: 'relative' }}>
             <FileText size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '12px' }} />
             <textarea 
@@ -326,13 +326,13 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
               style={{ 
                 width: '100%', 
                 padding: '10px 12px 10px 32px', 
-                border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1', 
+                border: '1px solid #cbd5e1', 
                 borderRadius: '6px', 
                 outline: 'none', 
                 resize: 'vertical', 
                 fontFamily: 'inherit', 
-                color: isMobileView ? '#f1f5f9' : '#334155', 
-                backgroundColor: isMobileView ? '#0f172a' : '#f8fafc' 
+                color: '#334155', 
+                backgroundColor: '#ffffff' 
               }} 
             ></textarea>
           </div>
@@ -344,10 +344,10 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
             onClick={onClose} 
             style={{ 
               padding: '10px 16px', 
-              backgroundColor: isMobileView ? '#1e293b' : 'white', 
-              border: isMobileView ? 'none' : '1px solid #cbd5e1', 
+              backgroundColor: 'white', 
+              border: '1px solid #cbd5e1', 
               borderRadius: '6px', 
-              color: isMobileView ? '#cbd5e1' : '#475569', 
+              color: '#475569', 
               fontWeight: 600, 
               cursor: 'pointer' 
             }}
