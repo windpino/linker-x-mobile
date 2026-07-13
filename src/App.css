@@ -937,7 +937,7 @@
 
 .mobile-view-active .window-content-area {
   height: calc(100% - 40px) !important;
-  padding: 12px !important;
+  padding: 8px !important;
 }
 
 /* Component scaling */
@@ -946,7 +946,7 @@
 .mobile-view-active .bulk-editor-header {
   flex-direction: column !important;
   align-items: stretch !important;
-  gap: 12px !important;
+  gap: 8px !important;
 }
 
 .mobile-view-active .partner-actions,
@@ -964,7 +964,7 @@
 
 .mobile-view-active .form-row-multi {
   flex-direction: column !important;
-  gap: 12px !important;
+  gap: 8px !important;
 }
 
 .mobile-view-active .table-wrapper {
@@ -1052,9 +1052,9 @@
 .mobile-view-active .report-v2-header {
   flex-direction: column !important;
   align-items: stretch !important;
-  gap: 12px !important;
-  padding: 12px !important;
-  margin-bottom: 12px !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  margin-bottom: 8px !important;
 }
 
 /* Titles */
@@ -1141,13 +1141,13 @@
 .mobile-view-active .invoice-main-fields,
 .mobile-view-active .purchase-invoice-main-fields {
   grid-template-columns: 1fr !important;
-  gap: 12px !important;
+  gap: 8px !important;
 }
 
 .mobile-view-active .purchase-invoice-body {
   flex-direction: column !important;
   align-items: stretch !important;
-  padding: 12px !important;
+  padding: 8px !important;
 }
 
 .mobile-view-active .purchase-invoice-summary-card {
@@ -1191,9 +1191,9 @@
   .report-v2-header {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 12px !important;
-    padding: 12px !important;
-    margin-bottom: 12px !important;
+    gap: 8px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 8px !important;
   }
 
   /* Titles */
@@ -1280,13 +1280,13 @@
   .invoice-main-fields,
   .purchase-invoice-main-fields {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 8px !important;
   }
 
   .purchase-invoice-body {
     flex-direction: column !important;
     align-items: stretch !important;
-    padding: 12px !important;
+    padding: 8px !important;
   }
 
   .purchase-invoice-summary-card {

@@ -547,7 +547,7 @@ function App() {
 
       // 3. If already on dashboard, confirm closing
       if (currentView === 'dashboard') {
-        if (window.confirm('정말 종료하시겠습니까?')) {
+        if (window.confirm('앱을 닫을까요?')) {
           window.close();
         } else {
           window.history.pushState({ path: 'root' }, '');
