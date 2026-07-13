@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, Sparkles } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
 
 const Header = ({ 
@@ -504,12 +504,41 @@ const Header = ({
           <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white', letterSpacing: '-0.3px' }}>
             {companyName}
           </span>
+          <button 
+            onClick={onOpenAgentChat}
+            style={{
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#f59e0b',
+              marginLeft: '4px',
+              transition: 'all 0.2s',
+              boxShadow: '0 0 8px rgba(245, 158, 11, 0.3)'
+            }}
+            title="AI 명령창 (Antigravity)"
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.transform = 'scale(1.15)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <Sparkles size={13} fill="#f59e0b" />
+          </button>
         </div>
       </div>
 
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button 
-          onClick={() => window.open('/agent-chat.html', '_blank', 'width=500,height=700,resizable=yes,scrollbars=yes')}
+          onClick={onOpenAgentChat}
           className="action-icon-btn"
           title="AI 명령창 / 채팅방"
           style={{ 
@@ -562,6 +591,25 @@ const Header = ({
                   <Package size={16} color="#3b82f6" />
                 )}
                 <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>{companyName}</span>
+                <button 
+                  onClick={() => { setIsMobileMenuOpen(false); onOpenAgentChat(); }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '22px',
+                    height: '22px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#f59e0b',
+                    marginLeft: '4px'
+                  }}
+                  title="AI 명령창 (Antigravity)"
+                >
+                  <Sparkles size={11} fill="#f59e0b" />
+                </button>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
                 <X size={18} />
