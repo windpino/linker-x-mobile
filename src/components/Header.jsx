@@ -538,7 +538,7 @@ const Header = ({
 
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button 
-          onClick={onOpenAgentChat}
+          onClick={() => window.open('/agent-chat.html', '_blank', 'width=500,height=700,resizable=yes,scrollbars=yes')}
           className="action-icon-btn"
           title="AI 명령창 / 채팅방"
           style={{ 
