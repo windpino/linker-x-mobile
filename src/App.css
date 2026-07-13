@@ -1646,8 +1646,11 @@
 }
 
 .mobile-phone-frame {
-  width: 384px; /* Inner width: 360px (Galaxy S21 Viewport Width) */
-  height: 824px; /* Inner height: 800px (Galaxy S21 Viewport Height) */
+  width: 90%;
+  max-width: 384px; /* Galaxy S21 Viewport Width (360px + 24px borders) */
+  height: 90vh;
+  max-height: 824px; /* Galaxy S21 Viewport Height (800px + 24px borders) */
+  aspect-ratio: 384 / 824;
   background: #090d16;
   border: 12px solid #1e293b;
   border-radius: 40px;
