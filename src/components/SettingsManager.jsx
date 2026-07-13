@@ -116,7 +116,7 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
             </div>
           ))}
           <div style={{ marginTop: 'auto', padding: '20px 24px', fontSize: '0.8rem', color: '#94a3b8' }}>
-            시스템 버전: v2.4.0 (Stable)
+            시스템 버전: v2.4.1 (Stable)
           </div>
         </div>
 
