@@ -550,7 +550,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     </div>
                   )}
                 </div>
-                <div className="form-group" style={{ marginTop: '16px' }}>
+                 <div className="form-group" style={{ marginTop: isMobileView ? '8px' : '16px' }}>
                   <label>비고 (메모)</label>
                   <input 
                     type="text" 
@@ -1130,6 +1130,21 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
             flex: 1;
             overflow-y: auto;
             padding-bottom: 8px;
+            gap: 10px !important;
+          }
+          
+          .so-pane-left .so-card {
+            padding: 12px 14px !important;
+            border-radius: 12px !important;
+          }
+
+          .so-pane-left .so-card-title {
+            margin-bottom: 8px !important;
+            font-size: 0.9rem !important;
+          }
+
+          .so-pane-left .form-group {
+            margin-bottom: 8px !important;
           }
 
           .so-pane-right {

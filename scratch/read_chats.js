@@ -37,23 +37,23 @@ console.log("🔊 Antigravity real-time Firestore chat listener started...");
 const colRef = collection(db, "companies", "DMK", "agentChats");
 const q = query(colRef, where("status", "==", "pending"));
 
-// Track already processed IDs to avoid double printing on initial load
-const knownPendingIds = new Set();
-
 const unsubscribe = onSnapshot(q, (snapshot) => {
   snapshot.docChanges().forEach((change) => {
     if (change.type === "added") {
       const docId = change.doc.id;
       const data = change.doc.data();
       
-      // Only notify if it's from the user and not already handled
-      if (data.sender !== "IBG-Dev" && !knownPendingIds.has(docId)) {
-        knownPendingIds.add(docId);
+      // Only notify if it's from the user
+      if (data.sender !== "IBG-Dev") {
         console.log(`\n🚨 [NEW_USER_CHAT_RECEIVED]`);
         console.log(`- ID: ${docId}`);
         console.log(`- User: ${data.senderName || data.sender}`);
         console.log(`- Text: "${data.text}"`);
         console.log(`----------------------------------------\n`);
+        
+        // Unsubscribe and exit to complete the task and wake up the AI agent instantly
+        unsubscribe();
+        process.exit(0);
       }
     }
   });
