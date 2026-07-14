@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar } from 'lucide-react';
+import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar, Printer } from 'lucide-react';
 import WindowModal from './WindowModal';
 
 const OrderList = ({ 
@@ -525,120 +525,236 @@ const OrderList = ({
                                 colorScheme: 'light'
                               }}
                             />
+                            {isMobileView && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setPrintConfig({ order, copies: 1 }); }}
+                                style={{
+                                  border: 'none',
+                                  background: 'transparent',
+                                  cursor: 'pointer',
+                                  padding: '2px 4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#3b82f6',
+                                  marginLeft: '4px',
+                                  borderLeft: '1px solid #e2e8f0',
+                                  paddingLeft: '6px'
+                                }}
+                                title="수주서 인쇄"
+                              >
+                                <Printer size={15} />
+                              </button>
+                            )}
                           </div>
                         </div>
-                        
-                        {/* Action buttons row on mobile */}
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: '6px',
-                          justifyContent: isMobileView ? 'space-between' : 'flex-end',
-                          flexWrap: 'wrap'
-                        }}>
-                          {(() => {
-                            const currentItems = order.items || parsedItems;
-                            const hasUnloaded = currentItems.some((item, idx) => !(item.loaded || processedItems[`${order.id}-${idx}`]));
-                            if (hasUnloaded) {
-                              return (
-                                <button 
-                                  onClick={() => handleCreatePartialOrder(order)}
-                                  style={{ 
-                                    color: '#fff', 
-                                    background: '#8b5cf6', 
-                                    border: '1px solid #7c3aed',
-                                    padding: '6px 12px', 
-                                    fontSize: '0.72rem', 
-                                    fontWeight: 700, 
-                                    gap: '4px',
-                                    flex: isMobileView ? 1 : 'none',
-                                    justifyContent: 'center',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <FileText size={13} /> 추가수주서작성
-                                </button>
-                              );
-                            }
-                            return null;
-                          })()}
-                          <button 
-                            onClick={() => setPrintConfig({ order, copies: 1 })}
-                            style={{ 
-                              color: '#fff', 
-                              background: '#3b82f6', 
-                              border: '1px solid #2563eb',
-                              padding: '6px 12px', 
-                              fontSize: '0.72rem', 
-                              fontWeight: 700, 
-                              gap: '4px',
-                              flex: isMobileView ? 1 : 'none',
-                              justifyContent: 'center',
-                              display: 'flex',
-                              alignItems: 'center',
-                              borderRadius: '6px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FileText size={13} /> 수주서 인쇄
-                          </button>
-                          <button 
-                            onClick={() => handleTransferCheckedItems(order)}
-                            style={{ 
-                              color: '#fff', 
-                              background: '#10b981', 
-                              border: '1px solid #059669',
-                              padding: '6px 12px', 
-                              fontSize: '0.72rem', 
-                              fontWeight: 700, 
-                              gap: '4px',
-                              flex: isMobileView ? 1 : 'none',
-                              justifyContent: 'center',
-                              display: 'flex',
-                              alignItems: 'center',
-                              borderRadius: '6px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FileText size={13} /> 전표전송
-                          </button>
-                          <button 
-                            onClick={() => onEditOrder(order)} 
-                            style={{ 
-                              color: '#3b82f6', 
-                              background: '#eff6ff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              width: '32px',
-                              height: '32px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Edit3 size={15} />
-                          </button>
-                          <button 
-                            onClick={() => { if(window.confirm('삭제하시겠습니까?')) onDeleteOrder(order.id); }} 
-                            style={{ 
-                              color: '#ef4444', 
-                              background: '#fee2e2',
-                              border: 'none',
-                              borderRadius: '6px',
-                              width: '32px',
-                              height: '32px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                        {/* Action buttons row */}
+                        {isMobileView ? (
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '6px',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '8px',
+                            width: '100%'
+                          }}>
+                            {/* Text buttons group */}
+                            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+                              {(() => {
+                                const currentItems = order.items || parsedItems;
+                                const hasUnloaded = currentItems.some((item, idx) => !(item.loaded || processedItems[`${order.id}-${idx}`]));
+                                if (hasUnloaded) {
+                                  return (
+                                    <button 
+                                      onClick={() => handleCreatePartialOrder(order)}
+                                      style={{ 
+                                        color: '#fff', 
+                                        background: '#8b5cf6', 
+                                        border: '1px solid #7c3aed',
+                                        padding: '6px 10px', 
+                                        fontSize: '0.74rem', 
+                                        fontWeight: 700, 
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        flex: 1,
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      추가수주서작성
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              
+                              <button 
+                                onClick={() => handleTransferCheckedItems(order)}
+                                style={{ 
+                                  color: '#fff', 
+                                  background: '#10b981', 
+                                  border: '1px solid #059669',
+                                  padding: '6px 10px', 
+                                  fontSize: '0.74rem', 
+                                  fontWeight: 700, 
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  flex: 1,
+                                  textAlign: 'center'
+                                }}
+                              >
+                                전표전송
+                              </button>
+                            </div>
+                            
+                            {/* Edit/Delete icon buttons group */}
+                            <div style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
+                              <button 
+                                onClick={() => onEditOrder(order)} 
+                                style={{ 
+                                  color: '#3b82f6', 
+                                  background: '#eff6ff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  width: '32px',
+                                  height: '32px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Edit3 size={15} />
+                              </button>
+                              <button 
+                                onClick={() => { if(window.confirm('삭제하시겠습니까?')) onDeleteOrder(order.id); }} 
+                                style={{ 
+                                  color: '#ef4444', 
+                                  background: '#fee2e2',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  width: '32px',
+                                  height: '32px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '6px',
+                            justifyContent: 'flex-end',
+                            flexWrap: 'wrap'
+                          }}>
+                            {(() => {
+                              const currentItems = order.items || parsedItems;
+                              const hasUnloaded = currentItems.some((item, idx) => !(item.loaded || processedItems[`${order.id}-${idx}`]));
+                              if (hasUnloaded) {
+                                return (
+                                  <button 
+                                    onClick={() => handleCreatePartialOrder(order)}
+                                    style={{ 
+                                      color: '#fff', 
+                                      background: '#8b5cf6', 
+                                      border: '1px solid #7c3aed',
+                                      padding: '6px 12px', 
+                                      fontSize: '0.72rem', 
+                                      fontWeight: 700, 
+                                      gap: '4px',
+                                      justifyContent: 'center',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <FileText size={13} /> 추가수주서작성
+                                  </button>
+                                );
+                              }
+                              return null;
+                            })()}
+                            <button 
+                              onClick={() => setPrintConfig({ order, copies: 1 })}
+                              style={{ 
+                                color: '#fff', 
+                                background: '#3b82f6', 
+                                border: '1px solid #2563eb',
+                                padding: '6px 12px', 
+                                fontSize: '0.72rem', 
+                                fontWeight: 700, 
+                                gap: '4px',
+                                justifyContent: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <FileText size={13} /> 수주서 인쇄
+                            </button>
+                            <button 
+                              onClick={() => handleTransferCheckedItems(order)}
+                              style={{ 
+                                color: '#fff', 
+                                background: '#10b981', 
+                                border: '1px solid #059669',
+                                padding: '6px 12px', 
+                                fontSize: '0.72rem', 
+                                fontWeight: 700, 
+                                gap: '4px',
+                                justifyContent: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <FileText size={13} /> 전표전송
+                            </button>
+                            <button 
+                              onClick={() => onEditOrder(order)} 
+                              style={{ 
+                                color: '#3b82f6', 
+                                background: '#eff6ff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button 
+                              onClick={() => { if(window.confirm('삭제하시겠습니까?')) onDeleteOrder(order.id); }} 
+                              style={{ 
+                                color: '#ef4444', 
+                                background: '#fee2e2',
+                                border: 'none',
+                                borderRadius: '6px',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Print Settings Row */}
