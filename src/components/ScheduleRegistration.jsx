@@ -57,6 +57,8 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
     id: initialData?.id || null,
   });
 
+  const [showTypes, setShowTypes] = useState(false);
+
   const handleStartChange = (field, value) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
@@ -114,7 +116,26 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: isMobileView ? '#cbd5e1' : '#475569' }}>일정 유형 <span style={{ color: '#dc2626' }}>*</span></label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: isMobileView ? '#cbd5e1' : '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              일정 유형 <span style={{ color: '#dc2626' }}>*</span>
+              <button
+                type="button"
+                onClick={() => setShowTypes(!showTypes)}
+                style={{
+                  fontSize: '0.75rem',
+                  color: '#3b82f6',
+                  background: isMobileView ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                  border: isMobileView ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #dbeafe',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  marginLeft: '6px'
+                }}
+              >
+                {showTypes ? '가리기' : '펼치기'}
+              </button>
+            </label>
             <button 
               type="button" 
               onClick={() => onOpenTypeManagement && onOpenTypeManagement()}
@@ -124,79 +145,112 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {scheduleTypes.map(typeObj => {
-              const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
-              const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
-              const isSelected = formData.type === name;
-              
-              return (
-                <div key={name} className="type-item-group" style={{ 
-                  display: 'flex', 
-                  alignItems: 'stretch', 
-                  backgroundColor: isSelected 
-                    ? (isMobileView ? `color-mix(in srgb, ${color} 20%, transparent)` : `${color}15`)
-                    : (isMobileView ? '#1e293b' : '#f8fafc'),
-                  border: isSelected ? `1.5px solid ${color}` : (isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
-                  borderRadius: '20px',
-                  overflow: 'hidden',
-                  transition: 'all 0.2s',
-                  height: '32px'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, type: name }))}
-                    style={{
-                      padding: '0 12px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      color: isSelected 
-                        ? (color === '#ffffff' ? (isMobileView ? '#f8fafc' : '#1e293b') : color) 
-                        : (isMobileView ? '#94a3b8' : '#64748b'),
-                      fontWeight: isSelected ? 700 : 500,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, border: '1px solid rgba(0,0,0,0.08)' }}></span>
-                    {name}
-                  </button>
-                </div>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => onOpenTypeManagement && onOpenTypeManagement()}
-              style={{
-                padding: '0 12px',
-                backgroundColor: isMobileView ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
-                border: isMobileView ? '1.5px dashed var(--primary)' : '1.5px dashed #3b82f6',
-                borderRadius: '20px',
-                color: isMobileView ? 'var(--primary)' : '#3b82f6',
-                fontWeight: 700,
+          {!showTypes ? (
+            <div 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '6px 12px', 
+                backgroundColor: isMobileView ? '#1e293b' : '#f8fafc',
+                border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                borderRadius: '8px',
+                width: 'fit-content',
                 fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                height: '32px',
-                transition: 'all 0.2s'
+                fontWeight: 700,
+                color: isMobileView ? '#f8fafc' : '#334155',
+                cursor: 'pointer'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isMobileView ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe';
-                e.currentTarget.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = isMobileView ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              onClick={() => setShowTypes(true)}
+              title="클릭하여 유형 전체 보기"
             >
-              <Plus size={14} /> 유형 추가
-            </button>
-          </div>
+              {(() => {
+                const matched = scheduleTypes.find(t => (typeof t === 'object' ? t.name : t) === formData.type);
+                const color = matched && typeof matched === 'object' ? matched.color : '#64748b';
+                return (
+                  <>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color }}></span>
+                    <span>{formData.type || '선택 없음'}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '4px', fontWeight: 500 }}>(클릭하여 펼치기)</span>
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {scheduleTypes.map(typeObj => {
+                const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
+                const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
+                const isSelected = formData.type === name;
+                
+                return (
+                  <div key={name} className="type-item-group" style={{ 
+                    display: 'flex', 
+                    alignItems: 'stretch', 
+                    backgroundColor: isSelected 
+                      ? (isMobileView ? `color-mix(in srgb, ${color} 20%, transparent)` : `${color}15`)
+                      : (isMobileView ? '#1e293b' : '#f8fafc'),
+                    border: isSelected ? `1.5px solid ${color}` : (isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s',
+                    height: '32px'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, type: name }))}
+                      style={{
+                        padding: '0 12px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isSelected 
+                          ? (color === '#ffffff' ? (isMobileView ? '#f8fafc' : '#1e293b') : color) 
+                          : (isMobileView ? '#94a3b8' : '#64748b'),
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, border: '1px solid rgba(0,0,0,0.08)' }}></span>
+                      {name}
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => onOpenTypeManagement && onOpenTypeManagement()}
+                style={{
+                  padding: '0 12px',
+                  backgroundColor: isMobileView ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
+                  border: isMobileView ? '1.5px dashed var(--primary)' : '1.5px dashed #3b82f6',
+                  borderRadius: '20px',
+                  color: isMobileView ? 'var(--primary)' : '#3b82f6',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '32px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isMobileView ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe';
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isMobileView ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <Plus size={14} /> 유형 추가
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ 
