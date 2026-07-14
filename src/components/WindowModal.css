@@ -118,8 +118,8 @@
 }
 
 .window-container.is-maximized {
-  max-width: 100vw !important;
-  max-height: 100vh !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   border-radius: 0;
   resize: none;
   border: none;

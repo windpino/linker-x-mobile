@@ -297,8 +297,8 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
         style={{ 
           transform: (isMaximized || isMobileView) ? 'none' : `translate(${targetX}px, ${targetY}px)`,
           transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s, height 0.3s',
-          width: isMaximized ? '100vw' : (isMinimized ? '280px' : (savedData?.width || width || '1400px')),
-          height: isMaximized ? '100vh' : (isMinimized ? '40px' : (savedData?.height || height || '1100px')),
+          width: isMaximized ? '100%' : (isMinimized ? '280px' : (savedData?.width || width || '1400px')),
+          height: isMaximized ? '100%' : (isMinimized ? '40px' : (savedData?.height || height || '1100px')),
           top: isMaximized ? 0 : undefined,
           left: isMaximized ? 0 : undefined,
           borderRadius: isMaximized ? 0 : undefined,

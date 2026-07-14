@@ -335,11 +335,12 @@ const OrderList = ({
         {isMobileView && (
           <div style={{ 
             display: 'flex', 
-            background: 'rgba(255,255,255,0.03)', 
-            padding: '2px', 
+            background: '#f1f5f9', 
+            padding: '4px', 
             borderRadius: '10px', 
-            border: '1px solid rgba(255,255,255,0.06)',
-            width: '100%'
+            border: '1px solid #e2e8f0',
+            width: '100%',
+            marginBottom: '10px'
           }}>
             <button 
               onClick={() => setActiveTab('summary')}
@@ -756,9 +757,9 @@ const OrderList = ({
                                   justifyContent: 'space-between',
                                   gap: '8px',
                                   padding: '8px 10px',
-                                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                                  backgroundColor: isProcessed ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255,255,255,0.01)',
-                                  border: isProcessed ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255, 255, 255, 0.04)',
+                                  borderBottom: '1px solid #e2e8f0',
+                                  backgroundColor: isProcessed ? '#f0fdf4' : '#ffffff',
+                                  border: isProcessed ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
                                   borderRadius: '8px',
                                   cursor: 'pointer',
                                   transition: 'all 0.15s ease',
@@ -777,7 +778,7 @@ const OrderList = ({
                                       fontSize: '0.62rem', 
                                       padding: '1px 4px', 
                                       borderRadius: '4px', 
-                                      backgroundColor: (item.category || '기타') === '미등록상품' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.08)', 
+                                      backgroundColor: (item.category || '기타') === '미등록상품' ? '#fee2e2' : '#f1f5f9', 
                                       color: getCategoryColor(item.category || '기타'), 
                                       fontWeight: 600,
                                       flexShrink: 0,
@@ -787,17 +788,17 @@ const OrderList = ({
                                     </span>
                                     <span style={{ 
                                       fontWeight: 700, 
-                                      color: (item.category || '기타') === '미등록상품' ? '#f87171' : '#f8fafc', 
+                                      color: (item.category || '기타') === '미등록상품' ? '#ef4444' : '#1e293b', 
                                       fontSize: '0.82rem',
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
+                                      whiteSpace: 'normal',
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: '6px'
                                     }}>
                                       {item.name}
-                                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>
+                                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>
                                         (재고: {(() => {
                                           const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
                                           const initialStock = prod?.initialStock || 0;
@@ -810,13 +811,13 @@ const OrderList = ({
 
                                   {/* Right part: Quantity + Status Badge */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                    <span style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                                       {item.qty.toLocaleString()}개
                                     </span>
                                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                                       {isProcessed ? (
                                         <span 
-                                          style={{ fontSize: '0.7rem', backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.7rem', backgroundColor: '#e2fbe9', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', border: '1px solid #bbf7d0' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                           title="상차 취소"
                                         >
@@ -824,14 +825,14 @@ const OrderList = ({
                                         </span>
                                       ) : (
                                         <span 
-                                          style={{ fontSize: '0.7rem', border: '1px solid #3b82f6', color: '#60a5fa', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.7rem', border: '1px solid #3b82f6', color: '#2563eb', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', backgroundColor: '#eff6ff' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                         >
                                           상차
                                         </span>
                                       )}
                                       <span 
-                                        style={{ fontSize: '0.7rem', border: '1px solid #f59e0b', color: '#fbbf24', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                        style={{ fontSize: '0.7rem', border: '1px solid #f59e0b', color: '#d97706', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', backgroundColor: '#fffbeb' }}
                                         onClick={(e) => { e.stopPropagation(); onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name); }}
                                       >
                                         불일치
