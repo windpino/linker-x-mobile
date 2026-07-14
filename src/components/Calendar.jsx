@@ -124,18 +124,18 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 gap: '6px',
                 fontSize: '0.78rem',
                 fontWeight: 800,
-                color: '#3b82f6',
+                color: '#475569',
                 cursor: 'pointer',
-                backgroundColor: '#eff6ff',
-                border: '1.5px solid #3b82f6',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 padding: '5px 12px',
                 borderRadius: '16px',
                 transition: 'all 0.15s',
                 height: '28px',
                 boxSizing: 'border-box'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
               title="일정 유형 필터 및 편집 관리"
             >
               <Filter size={12} />
@@ -199,6 +199,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                           onChange={() => {
                             playMenuClickSound();
                             if (onToggleScheduleType) onToggleScheduleType(name);
+                            setShowTypeFilter(false); // Collapses dropdown when type selected
                           }}
                           style={{
                             margin: 0,
@@ -225,9 +226,9 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                     padding: '8px',
                     fontSize: '0.78rem',
                     fontWeight: 800,
-                    color: '#3b82f6',
-                    backgroundColor: '#eff6ff',
-                    border: 'none',
+                    color: '#475569',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     textAlign: 'center',
@@ -236,8 +237,8 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                     justifyContent: 'center',
                     gap: '4px'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                 >
                   <Settings size={12} />
                   유형 편집 / 관리
