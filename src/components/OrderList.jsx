@@ -798,14 +798,6 @@ const OrderList = ({
                                       gap: '6px'
                                     }}>
                                       {item.name}
-                                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>
-                                        (재고: {(() => {
-                                          const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
-                                          const initialStock = prod?.initialStock || 0;
-                                          const currentStock = initialStock + (inventory[order.outWarehouse]?.[item.name] || 0);
-                                          return currentStock.toLocaleString();
-                                        })()}개)
-                                      </span>
                                     </span>
                                   </div>
 
@@ -872,14 +864,6 @@ const OrderList = ({
                                 <span style={{ color: getCategoryColor(item.category || '기타'), fontWeight: 600 }}>{item.category || '기타'}</span>
                                 <span style={{ fontWeight: 700, color: (item.category || '기타') === '미등록상품' ? '#ef4444' : 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {item.name}
-                                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
-                                    (출고창고 재고: {(() => {
-                                      const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
-                                      const initialStock = prod?.initialStock || 0;
-                                      const currentStock = initialStock + (inventory[order.outWarehouse]?.[item.name] || 0);
-                                      return currentStock.toLocaleString();
-                                    })()}개)
-                                  </span>
                                 </span>
                                 <span style={{ textAlign: 'right', fontWeight: 800, color: '#1e293b' }}>{item.qty.toLocaleString()}</span>
                                 <div style={{ textAlign: 'center', position: 'relative' }}>
