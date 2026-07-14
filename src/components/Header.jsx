@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, Sparkles } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, Sparkles, LayoutGrid } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
 
 const Header = ({ 
@@ -13,7 +13,8 @@ const Header = ({
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
-  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenAgentChat
+  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenAgentChat,
+  onOpenWidgets
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -537,6 +538,19 @@ const Header = ({
       </div>
 
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button 
+          onClick={onOpenWidgets}
+          className="action-icon-btn"
+          title="위젯 목록"
+          style={{ 
+            background: '#f0fdf4', border: 'none', borderRadius: '8px', 
+            width: '32px', height: '32px', display: 'flex', alignItems: 'center', 
+            justifyContent: 'center', cursor: 'pointer', color: '#16a34a',
+            transition: 'all 0.2s'
+          }}
+        >
+          <LayoutGrid size={18} />
+        </button>
         <button 
           onClick={() => window.open('/agent-chat.html', '_blank', 'width=500,height=700,resizable=yes,scrollbars=yes')}
           className="action-icon-btn"

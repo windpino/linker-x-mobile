@@ -109,6 +109,8 @@ const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수
 
 function App() {
   const { isMobile } = useDevice();
+  const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
+  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
 
   const [currentView, setCurrentView] = useState(() => {
     try {
@@ -259,6 +261,7 @@ function App() {
   const [selectedScheduleForDetail, setSelectedScheduleForDetail] = useState(null);
   const [isScheduleDetailOpen, setIsScheduleDetailOpen] = useState(false);
   const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
+  const [isMobileWidgetsOpen, setIsMobileWidgetsOpen] = useState(false);
 
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [copiedSchedule, setCopiedSchedule] = useState(null);
@@ -2184,7 +2187,7 @@ function App() {
             <div className="favorites-grid-wrapper" style={{ padding: '4px 0' }}>
               <div className="favorites-grid" style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(5, 1fr)', 
+                gridTemplateColumns: isMobileView ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', 
                 gap: '8px',
                 rowGap: '12px'
               }}>
@@ -2993,6 +2996,7 @@ function App() {
           companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
           onLogout={handleLogout} 
           onOpenAgentChat={() => setIsAgentChatOpen(true)}
+          onOpenWidgets={() => setIsMobileWidgetsOpen(true)}
         onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
         onOpenStaffManager={() => setIsStaffManagerOpen(true)}
         onOpenInventoryTransfer={openInventoryTransfer}
@@ -3442,6 +3446,32 @@ function App() {
               onToggleScheduleType={handleToggleScheduleType}
               onOpenTypeManagement={() => setIsTypeManagementOpen(true)}
             />
+          </div>
+        </WindowModal>
+      )}
+      {isMobileWidgetsOpen && (
+        <WindowModal title="대시보드 위젯 목록" onClose={() => setIsMobileWidgetsOpen(false)} width="100%" height="90vh">
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '16px', 
+            padding: '8px', 
+            backgroundColor: '#f8fafc' 
+          }}>
+            {dashboardConfig.widgets
+              .filter(id => id !== 'Calendar')
+              .map(widgetId => (
+                <div key={widgetId} className="mobile-widget-wrapper" style={{ 
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                  padding: '12px',
+                  border: '1px solid #e2e8f0',
+                  minHeight: '290px'
+                }}>
+                  {renderWidget(widgetId, '')}
+                </div>
+              ))}
           </div>
         </WindowModal>
       )}
