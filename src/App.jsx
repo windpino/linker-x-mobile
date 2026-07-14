@@ -164,11 +164,33 @@ function App() {
   const [hiddenScheduleTypes, setHiddenScheduleTypes] = useState(() => {
     try {
       const saved = localStorage.getItem('hiddenScheduleTypes');
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return [];
+      return null;
     }
   });
+
+  const handleToggleScheduleType = (typeName) => {
+    setHiddenScheduleTypes(prev => {
+      const current = prev || [];
+      const next = current.includes(typeName)
+        ? current.filter(t => t !== typeName)
+        : [...current, typeName];
+      localStorage.setItem('hiddenScheduleTypes', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleShowAllScheduleTypes = () => {
+    setHiddenScheduleTypes([]);
+    localStorage.setItem('hiddenScheduleTypes', JSON.stringify([]));
+  };
+
+  const handleHideAllScheduleTypes = () => {
+    const allNames = scheduleTypes.map(t => typeof t === 'object' ? t.name : t);
+    setHiddenScheduleTypes(allNames);
+    localStorage.setItem('hiddenScheduleTypes', JSON.stringify(allNames));
+  };
 
   // Firestore에서 일정유형 데이터를 fetch(불러오기)하여 로딩하는 훅
   React.useEffect(() => {
@@ -200,10 +222,27 @@ function App() {
         
         setScheduleTypes(typesList);
         localStorage.setItem('scheduleTypes', JSON.stringify(typesList));
+        
+        setHiddenScheduleTypes(prev => {
+          if (prev === null) {
+            const allNames = typesList.map(t => t.name);
+            localStorage.setItem('hiddenScheduleTypes', JSON.stringify(allNames));
+            return allNames;
+          }
+          return prev;
+        });
       } catch (err) {
         console.error("Error fetching schedule types from Firestore:", err);
         const local = JSON.parse(localStorage.getItem('scheduleTypes')) || [];
         setScheduleTypes(local);
+        setHiddenScheduleTypes(prev => {
+          if (prev === null) {
+            const allNames = local.map(t => t.name);
+            localStorage.setItem('hiddenScheduleTypes', JSON.stringify(allNames));
+            return allNames;
+          }
+          return prev;
+        });
       }
     };
 
@@ -2055,6 +2094,9 @@ function App() {
             currentUser={currentUser} 
             scheduleTypes={scheduleTypes}
             hiddenScheduleTypes={hiddenScheduleTypes}
+            onToggleScheduleType={handleToggleScheduleType}
+            onShowAllScheduleTypes={handleShowAllScheduleTypes}
+            onHideAllScheduleTypes={handleHideAllScheduleTypes}
             onAdd={() => setIsScheduleRegistrationOpen(true)}
             isDashboardLocked={isDashboardLocked}
             onOpenScheduleDetail={handleOpenScheduleDetail}
@@ -3074,6 +3116,88 @@ function App() {
                 </button>
               </div>
 
+              {/* Schedule Type Filter Bar on Mobile */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '6px 8px', 
+                backgroundColor: '#f8fafc', 
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.72rem',
+                marginTop: '-8px',
+                marginBottom: '4px'
+              }}>
+                <div style={{ display: 'flex', gap: '4px', marginRight: '6px', borderRight: '1px solid #e2e8f0', paddingRight: '6px', flexShrink: 0 }}>
+                  <button 
+                    onClick={handleShowAllScheduleTypes}
+                    style={{ 
+                      border: 'none', 
+                      background: '#eff6ff', 
+                      color: '#3b82f6', 
+                      padding: '3px 8px', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer',
+                      fontWeight: 800,
+                      fontSize: '0.68rem'
+                    }}
+                  >
+                    펼치기
+                  </button>
+                  <button 
+                    onClick={handleHideAllScheduleTypes}
+                    style={{ 
+                      border: 'none', 
+                      background: '#f1f5f9', 
+                      color: '#64748b', 
+                      padding: '3px 8px', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer',
+                      fontWeight: 800,
+                      fontSize: '0.68rem'
+                    }}
+                  >
+                    가리기
+                  </button>
+                </div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '4px', 
+                  overflowX: 'auto', 
+                  flex: 1,
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none'
+                }}>
+                  {scheduleTypes.map(typeObj => {
+                    const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
+                    const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
+                    const isHidden = (hiddenScheduleTypes || []).includes(name);
+                    return (
+                      <span
+                        key={name}
+                        onClick={() => handleToggleScheduleType(name)}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          whiteSpace: 'nowrap',
+                          backgroundColor: isHidden ? '#f1f5f9' : `${color}20`,
+                          color: isHidden ? '#94a3b8' : color,
+                          border: `1px solid ${isHidden ? '#e2e8f0' : `${color}50`}`,
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        {name}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Schedule List Content */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

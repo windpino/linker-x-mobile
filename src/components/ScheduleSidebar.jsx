@@ -3,7 +3,23 @@ import { Clock, CheckCircle2, Trash2, Edit3, Plus, Copy } from 'lucide-react';
 import { format, isSameDay, startOfDay, isWithinInterval } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUser, onAdd, onCopy, onEdit, onDelete, isDashboardLocked, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [] }) => {
+const ScheduleSidebar = ({ 
+  selectedDate, 
+  schedules = [], 
+  setSchedules, 
+  currentUser, 
+  onAdd, 
+  onCopy, 
+  onEdit, 
+  onDelete, 
+  isDashboardLocked, 
+  onOpenScheduleDetail, 
+  scheduleTypes = [], 
+  hiddenScheduleTypes = [],
+  onToggleScheduleType,
+  onShowAllScheduleTypes,
+  onHideAllScheduleTypes
+}) => {
   const getBadgeStyles = (type) => {
     const match = scheduleTypes.find(t => t.name === type);
     if (match) {
@@ -77,6 +93,89 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
           <Plus size={14} /> 일정 추가
         </button>
       </div>
+      
+      {/* Schedule Type Filter Bar */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '6px', 
+        padding: '6px 8px', 
+        backgroundColor: '#f8fafc', 
+        borderBottom: '1px solid #e2e8f0',
+        fontSize: '0.7rem',
+        flexShrink: 0
+      }}>
+        {/* Toggle buttons */}
+        <div style={{ display: 'flex', gap: '4px', marginRight: '6px', borderRight: '1px solid #e2e8f0', paddingRight: '6px', flexShrink: 0 }}>
+          <button 
+            onClick={onShowAllScheduleTypes}
+            style={{ 
+              border: 'none', 
+              background: '#eff6ff', 
+              color: '#3b82f6', 
+              padding: '2px 6px', 
+              borderRadius: '4px', 
+              cursor: 'pointer',
+              fontWeight: 800
+            }}
+            title="모두 펼치기 (전체 표시)"
+          >
+            펼치기
+          </button>
+          <button 
+            onClick={onHideAllScheduleTypes}
+            style={{ 
+              border: 'none', 
+              background: '#f1f5f9', 
+              color: '#64748b', 
+              padding: '2px 6px', 
+              borderRadius: '4px', 
+              cursor: 'pointer',
+              fontWeight: 800
+            }}
+            title="모두 가리기 (전체 숨김)"
+          >
+            가리기
+          </button>
+        </div>
+        
+        {/* Horizontal scroll of types */}
+        <div className="no-scrollbar" style={{ 
+          display: 'flex', 
+          gap: '4px', 
+          overflowX: 'auto', 
+          flex: 1,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
+          {scheduleTypes.map(typeObj => {
+            const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
+            const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
+            const isHidden = (hiddenScheduleTypes || []).includes(name);
+            return (
+              <span
+                key={name}
+                onClick={() => onToggleScheduleType && onToggleScheduleType(name)}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.65rem',
+                  whiteSpace: 'nowrap',
+                  backgroundColor: isHidden ? '#f1f5f9' : `${color}20`,
+                  color: isHidden ? '#94a3b8' : color,
+                  border: `1px solid ${isHidden ? '#e2e8f0' : `${color}50`}`,
+                  transition: 'all 0.15s'
+                }}
+              >
+                {name}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="sidebar-content" style={{ padding: '0' }}>
         {dailySchedules.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
