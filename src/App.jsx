@@ -258,6 +258,7 @@ function App() {
   const [isManagingTypesOnOpen, setIsManagingTypesOnOpen] = useState(false);
   const [selectedScheduleForDetail, setSelectedScheduleForDetail] = useState(null);
   const [isScheduleDetailOpen, setIsScheduleDetailOpen] = useState(false);
+  const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
 
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [copiedSchedule, setCopiedSchedule] = useState(null);
@@ -2998,7 +2999,13 @@ function App() {
         onOpenPartnerManager={() => setIsPartnerManagerOpen(true)}
         onOpenProductManager={() => setIsProductManagerOpen(true)}
         onOpenAccountManager={() => setIsAccountManagerOpen(true)}
-        onOpenScheduleList={() => setIsScheduleListOpen(true)}
+        onOpenScheduleList={() => {
+          if (isMobileView) {
+            setIsMobileCalendarOpen(true);
+          } else {
+            setIsScheduleListOpen(true);
+          }
+        }}
         onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
         onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
         onOpenPurchaseOrder={() => setIsPurchaseOrderOpen(true)}
@@ -3402,6 +3409,41 @@ function App() {
             }
           }}
         />
+      )}
+      {isMobileCalendarOpen && (
+        <WindowModal title="달력 일정표" onClose={() => setIsMobileCalendarOpen(false)} width="100%">
+          <div style={{ padding: '4px' }}>
+            <Calendar
+              selectedDate={selectedDate}
+              onDateSelect={(d) => {
+                setSelectedDate(d);
+              }}
+              onLogout={handleLogout}
+              onAddSchedule={() => setIsScheduleRegistrationOpen(true)}
+              onAddOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
+              onOpenDashboardSettings={() => setIsSettingsOpen(true)}
+              isDashboardLocked={isDashboardLocked}
+              onToggleDashboardLock={() => setIsDashboardLocked(!isDashboardLocked)}
+              schedules={schedules}
+              salesOrders={salesOrders}
+              salesInvoices={salesInvoices}
+              purchaseOrders={purchaseOrders}
+              purchaseInvoices={purchaseInvoices}
+              inventoryTransferHistory={inventoryTransferHistory}
+              staffList={staffList}
+              currentUser={currentUser}
+              onOpenOrderListForDate={() => setIsOrderListOpen(true)}
+              onOpenSalesInvoiceListForDate={() => setIsSalesInvoiceListOpen(true)}
+              onOpenPurchaseLedgerForDate={() => setIsPurchaseLedgerOpen(true)}
+              onOpenInventoryTransferForDate={() => setIsInventoryTransferOpen(true)}
+              onOpenScheduleDetail={handleOpenScheduleDetail}
+              scheduleTypes={scheduleTypes}
+              hiddenScheduleTypes={hiddenScheduleTypes}
+              onToggleScheduleType={handleToggleScheduleType}
+              onOpenTypeManagement={() => setIsTypeManagementOpen(true)}
+            />
+          </div>
+        </WindowModal>
       )}
       {isTypeManagementOpen && (
         <ScheduleTypeManagement

@@ -6,6 +6,8 @@ import { ko } from 'date-fns/locale';
 
 const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOrder, onOpenDashboardSettings, isDashboardLocked, onToggleDashboardLock, schedules = [], salesOrders = [], salesInvoices = [], purchaseOrders = [], purchaseInvoices = [], inventoryTransferHistory = [], staffList = [], currentUser, onOpenOrderListForDate, onOpenSalesInvoiceListForDate, onOpenPurchaseLedgerForDate, onOpenInventoryTransferForDate, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [], onToggleScheduleType, onOpenTypeManagement }) => {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
+  const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
+  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
   const [showTypeFilter, setShowTypeFilter] = useState(false);
   const typeFilterRef = useRef(null);
 
@@ -93,9 +95,20 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
   };
   return (
     <div className="calendar-container">
-      <div className="calendar-header">
-        <div className="month-selector">
-          <h3>{format(selectedDate, 'yyyy년 M월 d일')}</h3>
+      <div className="calendar-header" style={{
+        flexDirection: isMobileView ? 'column' : 'row',
+        alignItems: isMobileView ? 'stretch' : 'center',
+        gap: isMobileView ? '10px' : '20px',
+        height: 'auto',
+        padding: isMobileView ? '8px 12px' : '16px 24px'
+      }}>
+        <div className="month-selector" style={{
+          flexDirection: isMobileView ? 'column' : 'row',
+          alignItems: isMobileView ? 'flex-start' : 'center',
+          gap: isMobileView ? '8px' : '16px',
+          width: isMobileView ? '100%' : 'auto'
+        }}>
+          <h3 style={{ fontSize: isMobileView ? '1.1rem' : '1.3rem' }}>{format(selectedDate, 'yyyy년 M월 d일')}</h3>
 
           {/* 일정 유형 필터 드롭다운 영역 */}
           <div ref={typeFilterRef} className="schedule-type-filters" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -233,13 +246,22 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
             )}
           </div>
 
-          <div className="month-nav">
+          <div className="month-nav" style={{ 
+            alignSelf: isMobileView ? 'flex-end' : 'auto',
+            marginTop: isMobileView ? '-28px' : '0'
+          }}>
             <button onClick={prevMonth}><ChevronLeft size={18} /></button>
             <button onClick={nextMonth}><ChevronRight size={18} /></button>
           </div>
         </div>
 
-        <div className="calendar-actions">
+        <div className="calendar-actions" style={{ 
+          flexWrap: 'wrap', 
+          justifyContent: isMobileView ? 'space-between' : 'flex-end', 
+          gap: isMobileView ? '6px' : '10px',
+          width: isMobileView ? '100%' : 'auto',
+          marginTop: isMobileView ? '4px' : '0'
+        }}>
           <button 
             className={`btn-outline ${!isDashboardLocked ? 'active-lock' : ''}`} 
             style={{ padding: '8px', color: !isDashboardLocked ? 'var(--primary)' : 'inherit', borderColor: !isDashboardLocked ? 'var(--primary)' : '#e2e8f0' }} 
@@ -254,11 +276,11 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           <button className="btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => { playMenuClickSound(); onDateSelect(new Date()); }}>
             오늘 날짜로 이동
           </button>
-          <button className="btn-sub-outline" onClick={handleAddSchedule}>
+          <button className="btn-sub-outline" onClick={handleAddSchedule} style={{ fontSize: '0.8rem', padding: '6px 10px' }}>
             <Plus size={16} />
             일정 추가
           </button>
-          <button className="btn-sub-primary" onClick={handleAddOrder}>
+          <button className="btn-sub-primary" onClick={handleAddOrder} style={{ fontSize: '0.8rem', padding: '6px 10px' }}>
             <Plus size={16} />
             수주 추가
           </button>
@@ -268,7 +290,10 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
       <div className="calendar-grid">
         {/* Day names */}
         {['일', '월', '화', '수', '목', '금', '토'].map((dayName, idx) => (
-          <div key={dayName} className={`day-name ${idx === 0 ? 'sunday' : ''}`}>
+          <div key={dayName} className={`day-name ${idx === 0 ? 'sunday' : ''}`} style={{ 
+            padding: isMobileView ? '6px 0' : '12px 0', 
+            fontSize: isMobileView ? '0.75rem' : '0.85rem' 
+          }}>
             {dayName}
           </div>
         ))}
@@ -286,7 +311,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           });
 
           if (!isCurrentMonth) {
-            return <div key={i} className="calendar-day empty" style={{ border: '1px solid #e2e8f0' }}></div>;
+            return <div key={i} className="calendar-day empty" style={{ border: '1px solid #e2e8f0', minHeight: isMobileView ? '70px' : '120px' }}></div>;
           }
 
           const isToday = isSameDay(d, new Date());
@@ -312,19 +337,21 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 flexDirection: 'column', 
                 overflow: 'hidden',
                 backgroundColor: hasHoliday ? 'rgba(239, 68, 68, 0.1)' : (isSelected ? 'rgba(59, 130, 246, 0.1)' : 'inherit'),
-                border: `1px solid ${isSelected ? 'var(--primary)' : '#e2e8f0'}`
+                border: `1px solid ${isSelected ? 'var(--primary)' : '#e2e8f0'}`,
+                minHeight: isMobileView ? '70px' : '120px',
+                padding: isMobileView ? '4px' : '8px'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '4px' }}>
                 <div className={`day-number ${isSunday ? 'sunday' : ''}`} style={{
-                  fontSize: isToday ? '1.1rem' : '0.9rem',
+                  fontSize: isToday ? (isMobileView ? '0.9rem' : '1.1rem') : (isMobileView ? '0.78rem' : '0.9rem'),
                   fontWeight: isToday ? '800' : '500',
                   color: isToday ? 'var(--primary)' : (isSunday ? 'var(--red)' : 'inherit'),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: isToday ? '28px' : 'auto',
-                  height: isToday ? '28px' : 'auto',
+                  width: isToday ? (isMobileView ? '20px' : '28px') : 'auto',
+                  height: isToday ? (isMobileView ? '20px' : '28px') : 'auto',
                   borderRadius: isToday ? '50%' : '0',
                   backgroundColor: isToday ? '#eff6ff' : 'transparent',
                   margin: '2px 0 0 2px'
@@ -351,7 +378,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                         if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(d);
                       }}
                       style={{ 
-                        fontSize: '0.65rem', 
+                        fontSize: isMobileView ? '0.55rem' : '0.65rem', 
                         backgroundColor: '#fce7f3', 
                         color: '#9d174d', 
                         padding: '1px 4px', 
@@ -381,7 +408,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                       }}
                       title={`${schedule.time || ''} [${schedule.type}] ${schedule.description || ''}`}
                       style={{ 
-                        fontSize: '0.7rem', 
+                        fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                         backgroundColor: badgeStyle.backgroundColor, 
                         color: badgeStyle.color, 
                         border: badgeStyle.border,
@@ -410,7 +437,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                     })
                 )).map(wh => (
                     <div key={`notice-${wh}`} style={{ 
-                      fontSize: '0.7rem', 
+                      fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                       backgroundColor: '#fffbeb', 
                       color: '#92400e', 
                       padding: '2px 4px', 
@@ -439,7 +466,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 {daySalesInvoices.length > 0 && (
                   <div 
                     style={{ 
-                      fontSize: '0.7rem', 
+                      fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                       backgroundColor: '#fdf2f8', 
                       color: '#be185d', 
                       padding: '2px 4px', 
@@ -468,7 +495,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 {dayPurchaseOrders.length > 0 && (
                   <div 
                     style={{ 
-                      fontSize: '0.7rem', 
+                      fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                       backgroundColor: '#ecfdf5', 
                       color: '#047857', 
                       padding: '2px 4px', 
@@ -497,7 +524,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 {dayPurchaseInvoices.length > 0 && (
                   <div 
                     style={{ 
-                      fontSize: '0.7rem', 
+                      fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                       backgroundColor: '#fef2f2', 
                       color: '#b91c1c', 
                       padding: '2px 4px', 
@@ -526,7 +553,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 {dayTransfers.length > 0 && (
                   <div 
                     style={{ 
-                      fontSize: '0.7rem', 
+                      fontSize: isMobileView ? '0.62rem' : '0.7rem', 
                       backgroundColor: '#eff6ff', 
                       color: '#1e40af', 
                       padding: '2px 4px', 
