@@ -152,13 +152,13 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                 alignItems: 'center', 
                 gap: '6px', 
                 padding: '6px 12px', 
-                backgroundColor: isMobileView ? '#1e293b' : '#f8fafc',
-                border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 borderRadius: '8px',
                 width: 'fit-content',
                 fontSize: '0.85rem',
                 fontWeight: 700,
-                color: isMobileView ? '#f8fafc' : '#334155',
+                color: '#334155',
                 cursor: 'pointer'
               }}
               onClick={() => setShowTypes(true)}
@@ -188,9 +188,9 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     display: 'flex', 
                     alignItems: 'stretch', 
                     backgroundColor: isSelected 
-                      ? (isMobileView ? `color-mix(in srgb, ${color} 20%, transparent)` : `${color}15`)
-                      : (isMobileView ? '#1e293b' : '#f8fafc'),
-                    border: isSelected ? `1.5px solid ${color}` : (isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                      ? (color === '#ffffff' ? '#e2e8f0' : `${color}15`)
+                      : '#f8fafc',
+                    border: isSelected ? `1.5px solid ${color}` : '1px solid #e2e8f0',
                     borderRadius: '20px',
                     overflow: 'hidden',
                     transition: 'all 0.2s',
@@ -198,14 +198,17 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                   }}>
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, type: name }))}
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, type: name }));
+                        setShowTypes(false); // Collapses the type list when selected!
+                      }}
                       style={{
                         padding: '0 12px',
                         border: 'none',
                         backgroundColor: 'transparent',
                         color: isSelected 
-                          ? (color === '#ffffff' ? (isMobileView ? '#f8fafc' : '#1e293b') : color) 
-                          : (isMobileView ? '#94a3b8' : '#64748b'),
+                          ? (color === '#ffffff' ? '#1e293b' : color) 
+                          : '#64748b',
                         fontWeight: isSelected ? 700 : 500,
                         fontSize: '0.85rem',
                         cursor: 'pointer',

@@ -281,11 +281,11 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           <button className="btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => { playMenuClickSound(); onDateSelect(new Date()); }}>
             오늘 날짜로 이동
           </button>
-          <button className="btn-sub-outline" onClick={handleAddSchedule} style={{ fontSize: '0.8rem', padding: '6px 10px' }}>
+          <button className="btn-outline" onClick={handleAddSchedule} style={{ fontSize: '0.8rem', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Plus size={16} />
             일정 추가
           </button>
-          <button className="btn-sub-primary" onClick={handleAddOrder} style={{ fontSize: '0.8rem', padding: '6px 10px' }}>
+          <button className="btn-outline" onClick={handleAddOrder} style={{ fontSize: '0.8rem', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Plus size={16} />
             수주 추가
           </button>
