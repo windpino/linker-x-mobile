@@ -3123,88 +3123,90 @@ function App() {
                 </button>
               </div>
 
-              {/* Schedule Type Filter Bar on Mobile */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '6px 8px', 
-                backgroundColor: '#f8fafc', 
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                fontSize: '0.72rem',
-                marginTop: '-8px',
-                marginBottom: '4px'
-              }}>
-                <div style={{ display: 'flex', gap: '4px', marginRight: '6px', borderRight: '1px solid #e2e8f0', paddingRight: '6px', flexShrink: 0 }}>
-                  <button 
-                    onClick={handleShowAllScheduleTypes}
-                    style={{ 
-                      border: 'none', 
-                      background: '#eff6ff', 
-                      color: '#3b82f6', 
-                      padding: '3px 8px', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer',
-                      fontWeight: 800,
-                      fontSize: '0.68rem'
-                    }}
-                  >
-                    펼치기
-                  </button>
-                  <button 
-                    onClick={handleHideAllScheduleTypes}
-                    style={{ 
-                      border: 'none', 
-                      background: '#f1f5f9', 
-                      color: '#64748b', 
-                      padding: '3px 8px', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer',
-                      fontWeight: 800,
-                      fontSize: '0.68rem'
-                    }}
-                  >
-                    가리기
-                  </button>
-                </div>
-                
+              {/* Schedule Type Filter Bar on Mobile (Hidden on mobile view) */}
+              {!isMobileView && (
                 <div style={{ 
                   display: 'flex', 
-                  gap: '4px', 
-                  overflowX: 'auto', 
-                  flex: 1,
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none'
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '6px 8px', 
+                  backgroundColor: '#f8fafc', 
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.72rem',
+                  marginTop: '-8px',
+                  marginBottom: '4px'
                 }}>
-                  {scheduleTypes.map(typeObj => {
-                    const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
-                    const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
-                    const isHidden = (hiddenScheduleTypes || []).includes(name);
-                    return (
-                      <span
-                        key={name}
-                        onClick={() => handleToggleScheduleType(name)}
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          fontWeight: 700,
-                          fontSize: '0.68rem',
-                          whiteSpace: 'nowrap',
-                          backgroundColor: isHidden ? '#f1f5f9' : `${color}20`,
-                          color: isHidden ? '#94a3b8' : color,
-                          border: `1px solid ${isHidden ? '#e2e8f0' : `${color}50`}`,
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {name}
-                      </span>
-                    );
-                  })}
+                  <div style={{ display: 'flex', gap: '4px', marginRight: '6px', borderRight: '1px solid #e2e8f0', paddingRight: '6px', flexShrink: 0 }}>
+                    <button 
+                      onClick={handleShowAllScheduleTypes}
+                      style={{ 
+                        border: 'none', 
+                        background: '#eff6ff', 
+                        color: '#3b82f6', 
+                        padding: '3px 8px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: '0.68rem'
+                      }}
+                    >
+                      펼치기
+                    </button>
+                    <button 
+                      onClick={handleHideAllScheduleTypes}
+                      style={{ 
+                        border: 'none', 
+                        background: '#f1f5f9', 
+                        color: '#64748b', 
+                        padding: '3px 8px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: '0.68rem'
+                      }}
+                    >
+                      가리기
+                    </button>
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '4px', 
+                    overflowX: 'auto', 
+                    flex: 1,
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
+                  }}>
+                    {scheduleTypes.map(typeObj => {
+                      const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
+                      const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
+                      const isHidden = (hiddenScheduleTypes || []).includes(name);
+                      return (
+                        <span
+                          key={name}
+                          onClick={() => handleToggleScheduleType(name)}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.68rem',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: isHidden ? '#f1f5f9' : `${color}20`,
+                            color: isHidden ? '#94a3b8' : color,
+                            border: `1px solid ${isHidden ? '#e2e8f0' : `${color}50`}`,
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {name}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Schedule List Content */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -3213,7 +3215,7 @@ function App() {
                   const filtered = schedules.filter(s => {
                     const sStart = s.startDate || s.date;
                     const sEnd = s.endDate || s.startDate || s.date;
-                    return dayStr >= sStart && dayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
+                    return dayStr >= sStart && dayStr <= sEnd && !(isMobileView ? [] : hiddenScheduleTypes || []).includes(s.type);
                   }).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
                   if (filtered.length === 0) {
