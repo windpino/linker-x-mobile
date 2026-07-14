@@ -146,6 +146,16 @@
   padding: 0 !important;
 }
 
+.no-border-modal.window-overlay .window-container,
+.no-border-modal .window-container,
+.no-border-modal.window-container {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+}
+
 .mobile-view-active .window-content-area * {
   max-width: 100% !important;
   box-sizing: border-box !important;

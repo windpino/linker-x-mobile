@@ -3411,7 +3411,7 @@ function App() {
         />
       )}
       {isMobileCalendarOpen && (
-        <WindowModal title="달력 일정표" onClose={() => setIsMobileCalendarOpen(false)} width="100%" className="no-padding-modal">
+        <WindowModal title="달력 일정표" onClose={() => setIsMobileCalendarOpen(false)} width="100%" className="no-padding-modal no-border-modal">
           <div style={{ padding: '0' }}>
             <Calendar
               selectedDate={selectedDate}
