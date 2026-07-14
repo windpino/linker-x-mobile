@@ -3344,7 +3344,7 @@ function App() {
         onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
         purchaseInvoices={purchaseInvoices}
         onOpenPurchaseInvoice={openPurchaseInvoice}
-        initialDate={inventoryTransferInitialDate}
+        initialDate={inventoryTransferInitialDate || selectedDate}
       />}
       {isPartnerManagerOpen && (
         <PartnerManagement 
@@ -3527,6 +3527,7 @@ function App() {
         staffList={staffList}
         warehouses={warehouses}
         themeColor={systemSettings.display?.purchaseThemeColor || '#cbd5e1'}
+        selectedDate={selectedDate}
         onTransferToInvoice={(invData) => { setIsPurchaseOrderOpen(false); openPurchaseInvoice(invData); }}
         onSave={async (od) => {
           try {

@@ -6,7 +6,7 @@ import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
 import './PurchaseInvoice.css';
 
-const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, purchaseOrders = [], currentUser, staffList = [], warehouses = [], themeColor: propThemeColor }) => {
+const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, purchaseOrders = [], currentUser, staffList = [], warehouses = [], themeColor: propThemeColor, selectedDate }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
 
@@ -18,7 +18,10 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
 
   const [orderData, setOrderData] = useState({
     id: Date.now(),
-    date: new Date().toISOString().split('T')[0],
+    date: (() => {
+      const d = selectedDate || new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })(),
     partner: '',
     itemsText: '',
     memo: '',
