@@ -3004,11 +3004,7 @@ function App() {
         onOpenProductManager={() => setIsProductManagerOpen(true)}
         onOpenAccountManager={() => setIsAccountManagerOpen(true)}
         onOpenScheduleList={() => {
-          if (isMobileView) {
-            setIsMobileCalendarOpen(true);
-          } else {
-            setIsScheduleListOpen(true);
-          }
+          setIsMobileCalendarOpen(true);
         }}
         onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
         onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
@@ -3421,6 +3417,7 @@ function App() {
               selectedDate={selectedDate}
               onDateSelect={(d) => {
                 setSelectedDate(d);
+                setIsMobileCalendarOpen(false);
               }}
               onLogout={handleLogout}
               onAddSchedule={() => setIsScheduleRegistrationOpen(true)}
