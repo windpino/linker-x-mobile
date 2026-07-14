@@ -262,17 +262,21 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           width: isMobileView ? '100%' : 'auto',
           marginTop: isMobileView ? '4px' : '0'
         }}>
-          <button 
-            className={`btn-outline ${!isDashboardLocked ? 'active-lock' : ''}`} 
-            style={{ padding: '8px', color: !isDashboardLocked ? 'var(--primary)' : 'inherit', borderColor: !isDashboardLocked ? 'var(--primary)' : '#e2e8f0' }} 
-            onClick={() => { playMenuClickSound(); onToggleDashboardLock(); }} 
-            title={isDashboardLocked ? "위젯 이동 잠금 (클릭 시 해제)" : "위젯 이동 가능 (클릭 시 잠금)"}
-          >
-            {isDashboardLocked ? <Lock size={18} /> : <Unlock size={18} />}
-          </button>
-          <button className="btn-outline" style={{ padding: '8px' }} onClick={() => { playMenuClickSound(); onOpenDashboardSettings(); }} title="대시보드 설정">
-            <Settings size={18} />
-          </button>
+          {!isMobileView && (
+            <>
+              <button 
+                className={`btn-outline ${!isDashboardLocked ? 'active-lock' : ''}`} 
+                style={{ padding: '8px', color: !isDashboardLocked ? 'var(--primary)' : 'inherit', borderColor: !isDashboardLocked ? 'var(--primary)' : '#e2e8f0' }} 
+                onClick={() => { playMenuClickSound(); onToggleDashboardLock(); }} 
+                title={isDashboardLocked ? "위젯 이동 잠금 (클릭 시 해제)" : "위젯 이동 가능 (클릭 시 잠금)"}
+              >
+                {isDashboardLocked ? <Lock size={18} /> : <Unlock size={18} />}
+              </button>
+              <button className="btn-outline" style={{ padding: '8px' }} onClick={() => { playMenuClickSound(); onOpenDashboardSettings(); }} title="대시보드 설정">
+                <Settings size={18} />
+              </button>
+            </>
+          )}
           <button className="btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => { playMenuClickSound(); onDateSelect(new Date()); }}>
             오늘 날짜로 이동
           </button>
@@ -287,12 +291,17 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
         </div>
       </div>
 
-      <div className="calendar-grid">
+      <div className="calendar-grid" style={{ 
+        borderTop: isMobileView ? 'none' : '1px solid var(--border-color)', 
+        borderLeft: isMobileView ? 'none' : '1px solid var(--border-color)' 
+      }}>
         {/* Day names */}
         {['일', '월', '화', '수', '목', '금', '토'].map((dayName, idx) => (
           <div key={dayName} className={`day-name ${idx === 0 ? 'sunday' : ''}`} style={{ 
             padding: isMobileView ? '6px 0' : '12px 0', 
-            fontSize: isMobileView ? '0.75rem' : '0.85rem' 
+            fontSize: isMobileView ? '0.75rem' : '0.85rem',
+            borderRight: isMobileView ? 'none' : '1px solid var(--border-color)',
+            borderBottom: isMobileView ? 'none' : '1px solid var(--border-color)'
           }}>
             {dayName}
           </div>
@@ -311,7 +320,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           });
 
           if (!isCurrentMonth) {
-            return <div key={i} className="calendar-day empty" style={{ border: '1px solid #e2e8f0', minHeight: isMobileView ? '70px' : '120px' }}></div>;
+            return <div key={i} className="calendar-day empty" style={{ border: isMobileView ? 'none' : '1px solid #e2e8f0', minHeight: isMobileView ? '70px' : '120px' }}></div>;
           }
 
           const isToday = isSameDay(d, new Date());
@@ -337,7 +346,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 flexDirection: 'column', 
                 overflow: 'hidden',
                 backgroundColor: hasHoliday ? 'rgba(239, 68, 68, 0.1)' : (isSelected ? 'rgba(59, 130, 246, 0.1)' : 'inherit'),
-                border: `1px solid ${isSelected ? 'var(--primary)' : '#e2e8f0'}`,
+                border: isSelected ? '1.5px solid var(--primary)' : (isMobileView ? 'none' : '1px solid #e2e8f0'),
                 minHeight: isMobileView ? '70px' : '120px',
                 padding: isMobileView ? '4px' : '8px'
               }}

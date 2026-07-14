@@ -142,6 +142,10 @@
   overflow-x: hidden !important;
 }
 
+.no-padding-modal .window-content-area {
+  padding: 0 !important;
+}
+
 .mobile-view-active .window-content-area * {
   max-width: 100% !important;
   box-sizing: border-box !important;
