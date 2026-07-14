@@ -6,8 +6,8 @@ import WindowModal from './WindowModal';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 
-const roundToNext5Min = (date) => {
-  const coeff = 1000 * 60 * 5;
+const roundToNext10Min = (date) => {
+  const coeff = 1000 * 60 * 10;
   return new Date(Math.ceil(date.getTime() / coeff) * coeff);
 };
 
@@ -30,7 +30,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
     
     let start;
     if (isToday) {
-      start = roundToNext5Min(now);
+      start = roundToNext10Min(now);
     } else {
       start = new Date(selectedDate);
       start.setHours(9, 0, 0, 0);
