@@ -4510,6 +4510,9 @@ function FavoriteMenuBar({
 
 // Sub-component for Favorite Settings Modal
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
+  const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
+  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+
   const [tempMenus, setTempMenus] = useState(() => {
     const base = (currentMenus || []).slice(0, 5);
     return [...base, ...Array(5 - base.length).fill(null)];
@@ -4579,7 +4582,7 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
         
         <div className="settings-grid" style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(5, 1fr)', 
+          gridTemplateColumns: isMobileView ? '1fr' : 'repeat(5, 1fr)', 
           gap: '12px',
           maxHeight: '400px',
           overflowY: 'auto',

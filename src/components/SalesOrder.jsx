@@ -352,7 +352,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   cursor: 'pointer',
                   padding: 0,
                   fontFamily: 'inherit',
-                  width: isMobileView ? '95px' : '120px'
+                  width: isMobileView ? '125px' : '120px'
                 }}
               />
               {orderData.partner && (partnerDayOrders.length > 0 || orderData.itemsText) && (
