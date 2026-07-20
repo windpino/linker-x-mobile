@@ -430,224 +430,12 @@ const Header = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  if (isMobile) {
-    return (
-      <header className="header mobile-header" ref={dropdownRef} style={{
-        minWidth: 'auto',
-        width: '100%',
-        height: 'auto',
-        minHeight: '60px',
-        padding: '10px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--bg-darker)',
-        position: 'relative',
-        zIndex: 99990
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '100%',
-          height: '40px'
-        }}>
-          {/* Logo */}
-          <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {companyLogo ? (
-              <img src={companyLogo} alt="Company Logo" style={{ height: '28px', objectFit: 'contain' }} />
-            ) : (
-              <Package size={20} color="white" />
-            )}
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>
-              {companyName}
-            </span>
-          </div>
-
-          {/* Hamburger / Close Icon */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Collapsible Mobile Menu Drawer */}
-        {isMobileMenuOpen && (
-          <div className="mobile-menu-drawer" style={{
-            width: '100%',
-            marginTop: '12px',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            paddingTop: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            {/* Search Bar */}
-            <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', margin: '0 0 8px 0' }}>
-              <Search size={16} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="메뉴 검색" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onKeyDown={handleSearchKeyDown}
-                style={{ width: '100%' }}
-              />
-              {isSearchFocused && searchQuery.trim() !== '' && (
-                <div className="search-results-dropdown" style={{ left: 0, right: 0, width: 'auto' }}>
-                  {searchResults.map((item, index) => (
-                    <div 
-                      key={index}
-                      className={`search-result-item ${index === selectedIndex ? 'active' : ''}`}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      onClick={() => handleSearchResultClick(item)}
-                    >
-                      <div className="search-result-category">{item.category}</div>
-                      <div className="search-result-title">{item.title}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Quick Link - 거래처몰 */}
-            <div 
-              style={{ padding: '8px 12px', color: '#ff4d4d', fontWeight: 800, cursor: 'pointer' }}
-              onClick={() => { setIsMobileMenuOpen(false); onOpenPartnerMall(); }}
-            >
-              거래처몰
-            </div>
-
-            {/* Platform Manager */}
-            {currentUser?.role === 'super_admin' && (
-              <div 
-                style={{ padding: '8px 12px', color: '#fbbf24', fontWeight: 800, cursor: 'pointer' }}
-                onClick={() => { setIsMobileMenuOpen(false); onOpenPlatformManager(); }}
-              >
-                플랫폼 관리
-              </div>
-            )}
-
-            {/* Category Dropdowns styled for mobile */}
-            {[
-              { id: 'basic', label: '기초자료등록', items: [
-                { perm: hasPerm('직원관리'), label: '직원관리', action: onOpenStaffManager },
-                { perm: hasPerm('창고관리'), label: '창고관리', action: onOpenWarehouseManager },
-                { perm: (hasPerm('거래처등록') || hasPerm('거래처관리')), label: '거래처등록/관리', action: onOpenPartnerManager },
-                { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
-              ]},
-              { id: 'inventory', label: '재고관리', items: [
-                { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
-                { perm: hasPerm('재고이동'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
-                { perm: true, label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
-                { perm: true, label: '재고 불일치 현황', action: onOpenInventoryMismatch },
-                { perm: hasPerm('재고보고서'), label: '일자별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('daily') },
-                { perm: hasPerm('재고보고서'), label: '최종 재고 현황', action: () => onOpenInventoryReport && onOpenInventoryReport('final') },
-                { perm: hasPerm('재고보고서'), label: '매입처별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('partner') },
-              ]},
-              { id: 'purchase', label: '매입/발주관리', items: [
-                { perm: hasPerm('매입전표'), label: '매입전표 등록', action: onOpenPurchaseInvoice },
-                { perm: hasPerm('매입원장'), label: '매입전표 관리', action: onOpenPurchaseLedger },
-                { perm: hasPerm('발주'), label: '발주 등록', action: onOpenPurchaseOrder },
-              ]},
-              { id: 'sales', label: '매출/수주관리', items: [
-                { perm: hasPerm('매출전표'), label: '매출전표등록', action: onOpenSalesInvoice },
-                { perm: hasPerm('매출전표내역'), label: '매출전표내역', action: onOpenSalesInvoiceList },
-                { perm: hasPerm('매출원장'), label: '매출원장', action: onOpenSalesLedger },
-                { perm: hasPerm('수주'), label: '간편수주 등록', action: onOpenSalesOrder },
-                { perm: hasPerm('수주'), label: '수주목록', action: onOpenOrderList },
-              ]},
-              { id: 'cash_mgmt', label: '입출금관리', items: [
-                { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
-                { perm: hasPerm('입출금보고서'), label: '결산보고서', action: () => onOpenCashReport && onOpenCashReport('결산') },
-                { perm: hasPerm('입출금보고서'), label: '일자별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('일자별') },
-                { perm: hasPerm('입출금보고서'), label: '계좌별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('계좌별') },
-                { perm: hasPerm('금전출납부'), label: '금전출납부', action: onOpenCashBook },
-                { perm: hasPerm('경비출금'), label: '경비출금', action: onOpenExpenseRegistration },
-              ]},
-              { id: 'report_management', label: '스마트지원', items: [
-                { perm: hasPerm('매출보고서'), label: '매출보고서', action: onOpenSalesReport },
-                { perm: hasPerm('수주'), label: '수주보고서', action: onOpenOrderReport },
-                { perm: hasPerm('전표수정/삭제 보고서'), label: '전표수정/삭제 보고서', action: onOpenEditDeleteReport },
-                { perm: hasPerm('직원 실적 보고서'), label: '직원 실적 보고서', action: onOpenStaffPerformanceReport },
-                { perm: true, label: '미수금관리', action: onOpenReceivablesReport },
-                { perm: hasPerm('특별단가관리'), label: '거래처별 특별단가 관리', action: onOpenPartnerSpecialPriceManager },
-                { perm: true, label: '세금신고 지원 보고서', action: onOpenTaxReport },
-                { perm: hasPerm('일정'), label: '일정추가', action: onOpenScheduleList },
-              ]},
-              { id: 'data', label: '시스템관리', items: [
-                { perm: hasPerm('데이터 전체 저장/불러오기'), label: '데이터 전체 저장/불러오기', action: onOpenDataManager },
-                { perm: hasPerm('거래처 엑셀파일로 저장/불러오기'), label: '거래처 엑셀파일로 저장/불러오기', action: onOpenPartnerExcel },
-                { perm: hasPerm('품목 엑셀파일로 저장/불러오기'), label: '품목 엑셀파일로 저장/불러오기', action: onOpenProductExcel },
-                { perm: hasPerm('매출처원장 저장/불러오기'), label: '매출처원장 저장/불러오기', action: onOpenSalesLedgerExcel },
-                { perm: hasPerm('매입처원장 저장/불러오기'), label: '매입처원장 저장/불러오기', action: onOpenPurchaseLedgerExcel },
-              ]},
-              { id: 'settings_license', label: '환경설정&정품등록', items: [
-                { perm: true, label: '환경설정', action: onOpenSettings },
-                { perm: true, label: '정품등록', action: onOpenLicense },
-              ]}
-            ].map(group => (
-              <div key={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', padding: '4px 12px' }}>
-                  {group.label}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: '8px' }}>
-                  {group.items.filter(item => item.perm).map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={() => { setIsMobileMenuOpen(false); playMenuClickSound(); item.action(); }}
-                      style={{
-                        padding: '10px 12px',
-                        fontSize: '0.9rem',
-                        color: '#e2e8f0',
-                        cursor: 'pointer',
-                        borderRadius: '6px',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      {item.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* Profile & Logout */}
-            <div style={{ 
-              marginTop: '16px', 
-              paddingTop: '16px', 
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingBottom: '16px'
-            }}>
-              <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
-                {currentUser?.name} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{currentUser?.jobTitle}</span>
-              </span>
-              <button 
-                onClick={() => { setIsMobileMenuOpen(false); onLogout(); }}
-                style={{ background: 'transparent', border: 'none', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                <LogOut size={16} /> 로그아웃
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
-    );
-  }
-
   return (
     <header className="header" ref={dropdownRef}>
       {/* 맨 왼쪽: 햄버거 버튼 + 회사명 */}
       <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button 
-          onClick={onToggleMobileDrawer}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           title="전체 메뉴"
           style={{
             background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
@@ -655,7 +443,7 @@ const Header = ({
             justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0
           }}
         >
-          <Menu size={20} />
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -696,8 +484,154 @@ const Header = ({
           <CalendarIcon size={18} />
         </button>
       </div>
+
+      {/* 햄버거 클릭 시 슬라이드 수직 메뉴 드로어 */}
+      {isMobileMenuOpen && (
+        <div className="mobile-menu-drawer" style={{
+          position: 'absolute',
+          top: '52px',
+          left: 0,
+          right: 0,
+          backgroundColor: '#0f172a',
+          borderBottom: '1px solid #1e293b',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          padding: '16px',
+          zIndex: 99999,
+          maxHeight: '80vh',
+          overflowY: 'auto'
+        }}>
+          {/* 검색 바 */}
+          <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px' }}>
+            <Search size={16} className="search-icon" />
+            <input 
+              type="text" 
+              placeholder="메뉴 검색" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onKeyDown={handleSearchKeyDown}
+              style={{ width: '100%' }}
+            />
+            {isSearchFocused && searchQuery.trim() !== '' && (
+              <div className="search-results-dropdown" style={{ left: 0, right: 0, width: 'auto' }}>
+                {searchResults.map((item, index) => (
+                  <div 
+                    key={index}
+                    className={`search-result-item ${index === selectedIndex ? 'active' : ''}`}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    onClick={() => { setIsMobileMenuOpen(false); handleSearchResultClick(item); }}
+                  >
+                    <div className="search-result-category">{item.category}</div>
+                    <div className="search-result-title">{item.title}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 전체 카테고리 메뉴 목록 */}
+          {[
+            { id: 'basic', label: '기초자료등록', items: [
+              { perm: hasPerm('직원관리'), label: '직원관리', action: onOpenStaffManager },
+              { perm: hasPerm('창고관리'), label: '창고관리', action: onOpenWarehouseManager },
+              { perm: (hasPerm('거래처등록') || hasPerm('거래처관리')), label: '거래처등록/관리', action: onOpenPartnerManager },
+              { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
+            ]},
+            { id: 'inventory', label: '재고관리', items: [
+              { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
+              { perm: hasPerm('재고이동'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
+              { perm: true, label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
+              { perm: true, label: '재고 불일치 현황', action: onOpenInventoryMismatch },
+              { perm: hasPerm('재고보고서'), label: '일자별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('daily') },
+              { perm: hasPerm('재고보고서'), label: '최종 재고 현황', action: () => onOpenInventoryReport && onOpenInventoryReport('final') },
+              { perm: hasPerm('재고보고서'), label: '매입처별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('partner') },
+            ]},
+            { id: 'purchase', label: '매입/발주관리', items: [
+              { perm: hasPerm('매입전표'), label: '매입전표 등록', action: onOpenPurchaseInvoice },
+              { perm: hasPerm('매입원장'), label: '매입전표 관리', action: onOpenPurchaseLedger },
+              { perm: hasPerm('발주'), label: '발주 등록', action: onOpenPurchaseOrder },
+            ]},
+            { id: 'sales', label: '매출/수주관리', items: [
+              { perm: hasPerm('매출전표'), label: '매출전표등록', action: onOpenSalesInvoice },
+              { perm: hasPerm('매출전표내역'), label: '매출전표내역', action: onOpenSalesInvoiceList },
+              { perm: hasPerm('매출원장'), label: '매출원장', action: onOpenSalesLedger },
+              { perm: hasPerm('수주'), label: '간편수주 등록', action: onOpenSalesOrder },
+              { perm: hasPerm('수주'), label: '수주목록', action: onOpenOrderList },
+            ]},
+            { id: 'cash_mgmt', label: '입출금관리', items: [
+              { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
+              { perm: hasPerm('입출금보고서'), label: '결산보고서', action: () => onOpenCashReport && onOpenCashReport('결산') },
+              { perm: hasPerm('입출금보고서'), label: '일자별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('일자별') },
+              { perm: hasPerm('입출금보고서'), label: '계좌별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('계좌별') },
+              { perm: hasPerm('금전출납부'), label: '금전출납부', action: onOpenCashBook },
+              { perm: hasPerm('경비출금'), label: '경비출금', action: onOpenExpenseRegistration },
+            ]},
+            { id: 'report_management', label: '스마트지원', items: [
+              { perm: hasPerm('매출보고서'), label: '매출보고서', action: onOpenSalesReport },
+              { perm: hasPerm('수주'), label: '수주보고서', action: onOpenOrderReport },
+              { perm: hasPerm('전표수정/삭제 보고서'), label: '전표수정/삭제 보고서', action: onOpenEditDeleteReport },
+              { perm: hasPerm('직원 실적 보고서'), label: '직원 실적 보고서', action: onOpenStaffPerformanceReport },
+              { perm: true, label: '미수금관리', action: onOpenReceivablesReport },
+              { perm: hasPerm('특별단가관리'), label: '거래처별 특별단가 관리', action: onOpenPartnerSpecialPriceManager },
+              { perm: true, label: '세금신고 지원 보고서', action: onOpenTaxReport },
+              { perm: hasPerm('일정'), label: '일정추가', action: onOpenScheduleList },
+            ]},
+            { id: 'data', label: '시스템관리', items: [
+              { perm: hasPerm('데이터 전체 저장/불러오기'), label: '데이터 전체 저장/불러오기', action: onOpenDataManager },
+              { perm: hasPerm('거래처 엑셀파일로 저장/불러오기'), label: '거래처 엑셀파일로 저장/불러오기', action: onOpenPartnerExcel },
+              { perm: hasPerm('품목 엑셀파일로 저장/불러오기'), label: '품목 엑셀파일로 저장/불러오기', action: onOpenProductExcel },
+              { perm: hasPerm('매출처원장 저장/불러오기'), label: '매출처원장 저장/불러오기', action: onOpenSalesLedgerExcel },
+              { perm: hasPerm('매입처원장 저장/불러오기'), label: '매입처원장 저장/불러오기', action: onOpenPurchaseLedgerExcel },
+            ]},
+            { id: 'settings_license', label: '환경설정&정품등록', items: [
+              { perm: true, label: '환경설정', action: onOpenSettings },
+              { perm: true, label: '정품등록', action: onOpenLicense },
+            ]}
+          ].map(group => (
+            <div key={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '8px' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', padding: '4px 8px' }}>
+                {group.label}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: '6px' }}>
+                {group.items.filter(item => item.perm).map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => { setIsMobileMenuOpen(false); playMenuClickSound(); item.action(); }}
+                    style={{
+                      padding: '8px 10px',
+                      fontSize: '0.85rem',
+                      color: '#e2e8f0',
+                      cursor: 'pointer',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* 프로필 & 로그아웃 */}
+          <div style={{ 
+            marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #1e293b',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+              {currentUser?.name} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{currentUser?.jobTitle}</span>
+            </span>
+            <button 
+              onClick={() => { setIsMobileMenuOpen(false); onLogout(); }}
+              style={{ background: 'transparent', border: 'none', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              <LogOut size={16} /> 로그아웃
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
 
 export default Header;
+
