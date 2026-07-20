@@ -7,19 +7,21 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  /* 실제 모바일 뷰포트 높이 — dvh 미지원 구형 브라우저용 fallback 포함 */
   height: 100vh;                        /* 기본 fallback */
   height: calc(var(--vh, 1vh) * 100);  /* JS로 주입된 실제 높이 */
   height: 100dvh;                       /* 최신 브라우저: 주소창 변동 없는 고정 높이 */
-  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   overflow-y: hidden;
 }
 
 .main-content {
   display: flex;
+  flex-direction: column;
   flex: 1;
-  padding: 12px 16px;
-  gap: 8px;
+  padding: 8px 10px;
+  gap: 12px;
   overflow-y: auto;
   max-width: 100%;
   margin: 0;
@@ -30,35 +32,28 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  width: 100%;
 }
 
 .right-column {
-  width: 320px;
+  width: 100%;
   flex-shrink: 0;
 }
 
-/* Header Styles */
+/* Header Styles (모바일 고정 너비) */
 .header {
   background-color: var(--bg-darker);
   color: var(--text-light);
-  height: 60px;
+  height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 12px;
   justify-content: space-between;
-  /* 데스크탑: 창이 좁아질 때 스크롤 생기도록 최소 너비 유지 */
-  min-width: 1200px;
+  width: 100%;
+  min-width: 0 !important;
 }
 
-/* 모바일: min-width 강제 해제 — 실제 기기 너비에 맞춤 */
-@media (max-width: 768px) {
-  .header {
-    min-width: 0 !important;
-    width: 100% !important;
-    padding: 0 12px !important;
-  }
-}
 
 .header-left {
   display: flex;

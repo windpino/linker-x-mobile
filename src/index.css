@@ -58,22 +58,34 @@
 
 body {
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
-  background-color: var(--bg-light);
+  background-color: #0f172a; /* 데스크탑 바깥 배경 어두운 톤 */
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
 
-  /* ── 모바일 뷰포트 정규화 ── */
-  /* dvh: 실제 기기 뷰포트 (주소창 포함/제외 변동 없이 고정) */
+  /* ── 데스크탑 접속 시에도 갤럭시 S21 모바일 뷰로 중앙 정렬 ── */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
   min-height: 100dvh;
-  /* 가로 스크롤 완전 차단 */
   overflow-x: hidden;
-  /* iOS 탭 하이라이트 제거 */
   -webkit-tap-highlight-color: transparent;
-  /* 텍스트 크기 자동 조정 방지 (iOS 회전 시 폰트 커지는 현상 제거) */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+
+#root {
+  width: 100%;
+  max-width: 430px; /* Galaxy S21 / iPhone Max 모바일 규격 최적화 */
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  height: 100dvh;
+  background-color: var(--bg-light);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  position: relative;
+}
+
 
 button {
   cursor: pointer;
