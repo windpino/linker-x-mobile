@@ -4320,8 +4320,8 @@ function FavoriteMenuBar({
   // 슬롯에 메뉴 배정
   const assignMenuToSlot = (slotIdx, menuId) => {
     const next = [...favoriteMenus];
-    // 7칸 보장
-    while (next.length < 7) next.push(null);
+    // 10칸 보장
+    while (next.length < 10) next.push(null);
     next[slotIdx] = menuId || null;
     saveFavorites(next);
     setSelectingSlot(null);
@@ -4332,7 +4332,7 @@ function FavoriteMenuBar({
   // 슬롯 제거
   const removeSlot = (slotIdx) => {
     const next = [...favoriteMenus];
-    while (next.length < 7) next.push(null);
+    while (next.length < 10) next.push(null);
     next[slotIdx] = null;
     saveFavorites(next);
     showToast('메뉴가 제거되었습니다.', 'info');
@@ -4348,17 +4348,17 @@ function FavoriteMenuBar({
     <div className="calendar-favorites-section" style={{
       backgroundColor: 'white',
       borderRadius: '12px',
-      padding: '14px 16px',
+      padding: '12px',
       boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
       border: '1px solid #e2e8f0',
       marginBottom: '4px',
       position: 'relative'
     }}>
       {/* 헤더 행 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <Star size={16} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴</h4>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          <Star size={15} color="#f59e0b" fill="#f59e0b" />
+          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴 (10개)</h4>
         </div>
 
         {/* 롤오버 공지사항 */}
@@ -4366,15 +4366,13 @@ function FavoriteMenuBar({
           onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
           style={{
             flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center',
-            backgroundColor: '#f1f5f9', borderRadius: '20px', padding: '4px 14px',
-            cursor: 'pointer', height: '26px', transition: 'all 0.2s',
+            backgroundColor: '#f1f5f9', borderRadius: '20px', padding: '3px 10px',
+            cursor: 'pointer', height: '24px', transition: 'all 0.2s',
             opacity: noticeFade ? 1 : 0, transform: noticeFade ? 'none' : 'translateY(-2px)'
           }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
         >
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap' }}>NOTICE</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#ef4444', marginRight: '6px', whiteSpace: 'nowrap' }}>NOTICE</span>
+          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {SYSTEM_NOTICES[currentNoticeIdx]?.title}
           </span>
         </div>
@@ -4388,9 +4386,9 @@ function FavoriteMenuBar({
         </button>
       </div>
 
-      {/* 7칸 메뉴 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
-        {Array.from({ length: 7 }).map((_, idx) => {
+      {/* 10칸 메뉴 그리드 (1열당 5개 x 2행 = 총 10개) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+        {Array.from({ length: 10 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
           const isSelecting = selectingSlot === idx;
@@ -4402,32 +4400,30 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '70px', border: '2px dashed #cbd5e1',
+                    width: '100%', height: '58px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
                     borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: '10px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '4px',
+                    borderRadius: '8px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '2px',
                     cursor: 'pointer', transition: 'all 0.18s'
                   }}
-                  onMouseEnter={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#93c5fd'; } }}
-                  onMouseLeave={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; } }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>메뉴 추가</span>
+                  <Plus size={14} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.62rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
                 {isSelecting && (
                   <div ref={popupRef} style={{
-                    position: 'absolute', top: '78px', left: idx >= 4 ? 'auto' : '0',
-                    right: idx >= 4 ? '0' : 'auto',
-                    width: '260px', backgroundColor: 'white',
-                    borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                    position: 'absolute', top: '64px', left: (idx % 5) >= 3 ? 'auto' : '0',
+                    right: (idx % 5) >= 3 ? '0' : 'auto',
+                    width: '240px', backgroundColor: 'white',
+                    borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
                     border: '1px solid #e2e8f0', zIndex: 9999, overflow: 'hidden'
                   }}>
-                    <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                    <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
                         슬롯 {idx + 1} 메뉴 선택
                       </div>
                       <input
@@ -4438,30 +4434,28 @@ function FavoriteMenuBar({
                         onChange={e => setSearchTerm(e.target.value)}
                         onClick={e => e.stopPropagation()}
                         style={{
-                          width: '100%', padding: '6px 10px', borderRadius: '6px',
-                          border: '1px solid #e2e8f0', fontSize: '0.8rem',
+                          width: '100%', padding: '5px 8px', borderRadius: '6px',
+                          border: '1px solid #e2e8f0', fontSize: '0.75rem',
                           outline: 'none', boxSizing: 'border-box'
                         }}
                       />
                     </div>
-                    <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '6px 0' }}>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto', padding: '4px 0' }}>
                       {searchTerm ? (
                         filteredMenus.length === 0 ? (
-                          <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>검색 결과 없음</div>
+                          <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>검색 결과 없음</div>
                         ) : filteredMenus.map(opt => (
                           <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
                             style={{
-                              width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
-                              padding: '8px 14px', border: 'none', background: 'none',
+                              width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '6px 10px', border: 'none', background: 'none',
                               cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
                             }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0f9ff'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                           >
-                            <span style={{ fontSize: '1rem' }}>{opt.emoji}</span>
+                            <span style={{ fontSize: '0.9rem' }}>{opt.emoji}</span>
                             <div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
-                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{opt.category}</div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
+                              <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{opt.category}</div>
                             </div>
                           </button>
                         ))
@@ -4470,23 +4464,21 @@ function FavoriteMenuBar({
                           const catMenus = ALL_FAVORITE_MENUS.filter(m => m.category === cat);
                           return (
                             <div key={cat}>
-                              <div style={{ padding: '6px 14px 2px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <div style={{ padding: '4px 10px 2px', fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>
                                 {cat}
                               </div>
                               {catMenus.map(opt => (
                                 <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
                                   style={{
-                                    width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
-                                    padding: '7px 14px', border: 'none', background: 'none',
-                                    cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+                                    padding: '5px 10px', border: 'none', background: 'none',
+                                    cursor: 'pointer', textAlign: 'left'
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0f9ff'}
-                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
-                                  <span style={{ fontSize: '0.95rem', minWidth: '20px', textAlign: 'center' }}>{opt.emoji}</span>
-                                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
+                                  <span style={{ fontSize: '0.85rem' }}>{opt.emoji}</span>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
                                   {(favoriteMenus || []).includes(opt.id) && (
-                                    <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '2px 6px', borderRadius: '10px' }}>등록됨</span>
+                                    <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '6px' }}>등록됨</span>
                                   )}
                                 </button>
                               ))}
@@ -4510,27 +4502,15 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '70px', border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc', borderRadius: '10px',
+                  width: '100%', height: '58px', border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc', borderRadius: '8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '5px', cursor: 'pointer', transition: 'all 0.18s'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#eff6ff';
-                  e.currentTarget.style.borderColor = '#3b82f6';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = '#f8fafc';
-                  e.currentTarget.style.borderColor = '#e2e8f0';
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = 'none';
+                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.18s'
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
                   {menuInfo.name}
                 </span>
               </button>
@@ -4539,10 +4519,10 @@ function FavoriteMenuBar({
                 className="slot-remove-btn"
                 onClick={e => { e.stopPropagation(); removeSlot(idx); }}
                 style={{
-                  position: 'absolute', top: '-6px', right: '-6px',
-                  width: '18px', height: '18px', borderRadius: '50%',
-                  backgroundColor: '#ef4444', border: '2px solid white',
-                  color: 'white', fontSize: '10px', display: 'flex',
+                  position: 'absolute', top: '-4px', right: '-4px',
+                  width: '16px', height: '16px', borderRadius: '50%',
+                  backgroundColor: '#ef4444', border: '1.5px solid white',
+                  color: 'white', fontSize: '9px', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
                   padding: 0, lineHeight: 1
@@ -4559,11 +4539,11 @@ function FavoriteMenuBar({
   );
 }
 
-// Sub-component for Favorite Settings Modal
+// Sub-component for Favorite Settings Modal (10개)
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   const [tempMenus, setTempMenus] = useState(() => {
-    const base = (currentMenus || []).slice(0, 7);
-    return [...base, ...Array(7 - base.length).fill(null)];
+    const base = (currentMenus || []).slice(0, 10);
+    return [...base, ...Array(10 - base.length).fill(null)];
   });
 
   const updateSlot = (index, value) => {
@@ -4595,9 +4575,9 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   };
 
   return (
-    <WindowModal title="자주 찾는 메뉴 설정 (7칸)" onClose={onClose}>
+    <WindowModal title="자주 찾는 메뉴 설정 (총 10개)" onClose={onClose}>
       <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
-        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 7개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 10개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
         
         <div className="settings-grid" style={{ 
           display: 'grid', 
