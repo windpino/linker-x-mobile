@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
 
 const Header = ({ 
@@ -13,7 +13,8 @@ const Header = ({
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
-  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch
+  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch,
+  onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -644,20 +645,54 @@ const Header = ({
   return (
     <header className="header" ref={dropdownRef}>
       <div className="header-left">
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* 모바일 아이콘 3개 그룹: [ 햄버거 | 위젯창 | 달력창 ] */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '6px' }}>
+          <button 
+            onClick={onToggleMobileDrawer}
+            title="전체 메뉴"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
+              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0
+            }}
+          >
+            <Menu size={20} />
+          </button>
+          
+          <button 
+            onClick={onOpenWidgetModal}
+            title="위젯창 열기 (6개 위젯)"
+            style={{
+              background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '8px',
+              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', color: '#60a5fa', flexShrink: 0
+            }}
+          >
+            <LayoutDashboard size={18} />
+          </button>
+
+          <button 
+            onClick={onOpenCalendarModal}
+            title="달력 열기"
+            style={{
+              background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px',
+              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', color: '#fbbf24', flexShrink: 0
+            }}
+          >
+            <CalendarIcon size={18} />
+          </button>
+        </div>
+
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {companyLogo ? (
-            <img src={companyLogo} alt="Company Logo" style={{ height: '32px', objectFit: 'contain' }} />
+            <img src={companyLogo} alt="Company Logo" style={{ height: '28px', objectFit: 'contain' }} />
           ) : (
-            <Package size={24} color="white" />
+            <Package size={20} color="white" />
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.5px', color: 'white' }}>
-              {companyName}
-            </span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Management System
-            </span>
-          </div>
+          <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
+            {companyName}
+          </span>
         </div>
         <nav className="nav-links">
           <div className="nav-item" onClick={onOpenPartnerMall} style={{ color: '#ff4d4d', fontWeight: 800 }}>거래처몰</div>

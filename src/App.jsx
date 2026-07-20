@@ -179,6 +179,8 @@ function App() {
   const [isProductManagerOpen, setIsProductManagerOpen] = useState(false);
   const [isPartnerBulkOpen, setIsPartnerBulkOpen] = useState(false);
   const [isProductBulkOpen, setIsProductBulkOpen] = useState(false);
+  const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [scheduleTypes, setScheduleTypes] = useState([]);
   const [hiddenScheduleTypes, setHiddenScheduleTypes] = useState(() => {
     try {
@@ -3227,110 +3229,169 @@ function App() {
           companyLogo={companySettings?.theme?.logoUrl}
           companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
           onLogout={handleLogout} 
-        onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
-        onOpenStaffManager={() => setIsStaffManagerOpen(true)}
-        onOpenInventoryTransfer={openInventoryTransfer}
-        onOpenInventoryMovementManager={() => setIsInventoryMovementManagerOpen(true)}
-        onOpenPartnerManager={() => setIsPartnerManagerOpen(true)}
-        onOpenProductManager={() => setIsProductManagerOpen(true)}
-        onOpenAccountManager={() => setIsAccountManagerOpen(true)}
-        onOpenScheduleList={() => setIsScheduleListOpen(true)}
-        onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
-        onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
-        onOpenPurchaseOrder={() => setIsPurchaseOrderOpen(true)}
-        onOpenSalesInvoice={openSalesInvoice}
-        onOpenSalesInvoiceList={openSalesInvoiceList}
-        onOpenSalesLedger={openSalesLedger}
-        onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
-        onOpenOrderList={() => setIsOrderListOpen(true)}
-        onOpenCashReport={openCashReport}
-        onOpenSalesReport={() => setIsSalesReportOpen(true)}
-        onOpenOrderReport={() => setIsOrderReportOpen(true)}
-        onOpenInventoryReport={openInventoryReport}
-        onOpenReceivablesReport={() => setIsReceivablesReportOpen(true)}
-        onOpenEditDeleteReport={() => setIsEditDeleteReportOpen(true)}
-        onOpenCashBook={() => setIsCashBookOpen(true)}
-        onOpenExpenseRegistration={() => setIsExpenseRegistrationOpen(true)}
-        onOpenStaffPerformanceReport={() => setIsStaffPerformanceReportOpen(true)}
-        onOpenDataManager={() => setIsDataManagerOpen(true)}
-        onOpenPartnerExcel={() => setIsPartnerExcelOpen(true)}
-        onOpenProductExcel={() => setIsProductExcelOpen(true)}
-        onOpenPurchaseLedgerExcel={() => setIsPurchaseLedgerExcelOpen(true)}
-        onOpenSalesLedgerExcel={() => setIsSalesLedgerExcelOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenLicense={() => setIsLicenseOpen(true)}
-        onOpenInventoryAdjustment={() => setIsInventoryAdjustmentOpen(true)}
-        onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
-        onOpenTaxReport={() => setIsTaxReportOpen(true)}
-        onOpenPartnerMall={() => setCurrentView('shopping')}
-        onOpenPlatformManager={() => setCurrentView('super_admin')}
-        onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
-      />
-      <div className="main-content">
-        <div className="dashboard-grid-layout" style={{ 
-          gridTemplateRows: `${calendarHeight}px auto auto`,
-          height: isResizeLocked ? 'calc(100vh - 80px)' : 'auto'
-        }}>
-          <div className="calendar-area" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 달력 위 자주 찾는 메뉴 (즐겨찾기) 영역 */}
-            <FavoriteMenuBar
-              favoriteMenus={favoriteMenus}
-              currentUser={currentUser}
-              db={db}
-              setFavoriteMenus={setFavoriteMenus}
-              showToast={showToast}
-              SYSTEM_NOTICES={SYSTEM_NOTICES}
-              currentNoticeIdx={currentNoticeIdx}
-              noticeFade={noticeFade}
-              setSelectedSystemNotice={setSelectedSystemNotice}
-              setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
-              onMenuAction={(menuId) => {
-                const actions = {
-                  staff:                      () => setIsStaffManagerOpen(true),
-                  warehouse:                  () => setIsWarehouseManagerOpen(true),
-                  partner:                    () => setIsPartnerManagerOpen(true),
-                  product:                    () => setIsProductManagerOpen(true),
-                  inventory_transfer:         () => openInventoryTransfer(),
-                  inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
-                  inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
-                  inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
-                  inventory_report_1:         () => openInventoryReport('일자별'),
-                  inventory_report_2:         () => openInventoryReport('최종'),
-                  inventory_report_3:         () => openInventoryReport('partner'),
-                  purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
-                  purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
-                  purchase_order:             () => setIsPurchaseOrderOpen(true),
-                  sales_invoice:              () => setIsSalesInvoiceOpen(true),
-                  sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
-                  sales_ledger:               () => setIsSalesLedgerOpen(true),
-                  sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
-                  order_list:                 () => setIsOrderListOpen(true),
-                  account:                    () => setIsAccountManagerOpen(true),
-                  cash_report_1:              () => openCashReport('결산'),
-                  cash_report_2:              () => openCashReport('일자별'),
-                  cash_report_3:              () => openCashReport('계좌별'),
-                  cash_book:                  () => setIsCashBookOpen(true),
-                  expense:                    () => setIsExpenseRegistrationOpen(true),
-                  sales_report:               () => setIsSalesReportOpen(true),
-                  order_report:               () => setIsOrderReportOpen(true),
-                  edit_delete:                () => setIsEditDeleteReportOpen(true),
-                  staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
-                  receivables:                () => setIsReceivablesReportOpen(true),
-                  partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
-                  tax_report:                 () => setIsTaxReportOpen(true),
-                  schedule:                   () => setIsScheduleRegistrationOpen(true),
-                  data_manager:               () => setIsDataManagerOpen(true),
-                  partner_excel:              () => setIsPartnerExcelOpen(true),
-                  product_excel:              () => setIsProductExcelOpen(true),
-                  sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
-                  purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
-                  settings:                   () => setIsSettingsOpen(true),
-                  license:                    () => setIsLicenseOpen(true),
-                };
-                if (actions[menuId]) actions[menuId]();
+          onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
+          onOpenStaffManager={() => setIsStaffManagerOpen(true)}
+          onOpenInventoryTransfer={openInventoryTransfer}
+          onOpenInventoryMovementManager={() => setIsInventoryMovementManagerOpen(true)}
+          onOpenPartnerManager={() => setIsPartnerManagerOpen(true)}
+          onOpenProductManager={() => setIsProductManagerOpen(true)}
+          onOpenAccountManager={() => setIsAccountManagerOpen(true)}
+          onOpenScheduleList={() => setIsScheduleListOpen(true)}
+          onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
+          onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
+          onOpenPurchaseOrder={() => setIsPurchaseOrderOpen(true)}
+          onOpenSalesInvoice={openSalesInvoice}
+          onOpenSalesInvoiceList={openSalesInvoiceList}
+          onOpenSalesLedger={openSalesLedger}
+          onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
+          onOpenOrderList={() => setIsOrderListOpen(true)}
+          onOpenCashReport={openCashReport}
+          onOpenSalesReport={() => setIsSalesReportOpen(true)}
+          onOpenOrderReport={() => setIsOrderReportOpen(true)}
+          onOpenInventoryReport={openInventoryReport}
+          onOpenReceivablesReport={() => setIsReceivablesReportOpen(true)}
+          onOpenEditDeleteReport={() => setIsEditDeleteReportOpen(true)}
+          onOpenCashBook={() => setIsCashBookOpen(true)}
+          onOpenExpenseRegistration={() => setIsExpenseRegistrationOpen(true)}
+          onOpenStaffPerformanceReport={() => setIsStaffPerformanceReportOpen(true)}
+          onOpenDataManager={() => setIsDataManagerOpen(true)}
+          onOpenPartnerExcel={() => setIsPartnerExcelOpen(true)}
+          onOpenProductExcel={() => setIsProductExcelOpen(true)}
+          onOpenPurchaseLedgerExcel={() => setIsPurchaseLedgerExcelOpen(true)}
+          onOpenSalesLedgerExcel={() => setIsSalesLedgerExcelOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenLicense={() => setIsLicenseOpen(true)}
+          onOpenInventoryAdjustment={() => setIsInventoryAdjustmentOpen(true)}
+          onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
+          onOpenTaxReport={() => setIsTaxReportOpen(true)}
+          onOpenPartnerMall={() => setCurrentView('shopping')}
+          onOpenPlatformManager={() => setCurrentView('super_admin')}
+          onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
+          onOpenWidgetModal={() => setIsWidgetModalOpen(true)}
+          onOpenCalendarModal={() => setIsCalendarModalOpen(true)}
+          onToggleMobileDrawer={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
+
+      <div className="main-content" style={{ padding: '8px 10px' }}>
+        {/* 모바일 메인 뷰: [ 상단 자주 찾는 메뉴 ] + [ 하단 일정 목록 ] */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+          {/* 자주 찾는 메뉴 (퀵메뉴) */}
+          <FavoriteMenuBar
+            favoriteMenus={favoriteMenus}
+            currentUser={currentUser}
+            db={db}
+            setFavoriteMenus={setFavoriteMenus}
+            showToast={showToast}
+            SYSTEM_NOTICES={SYSTEM_NOTICES}
+            currentNoticeIdx={currentNoticeIdx}
+            noticeFade={noticeFade}
+            setSelectedSystemNotice={setSelectedSystemNotice}
+            setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
+            onMenuAction={(menuId) => {
+              const actions = {
+                staff:                      () => setIsStaffManagerOpen(true),
+                warehouse:                  () => setIsWarehouseManagerOpen(true),
+                partner:                    () => setIsPartnerManagerOpen(true),
+                product:                    () => setIsProductManagerOpen(true),
+                inventory_transfer:         () => openInventoryTransfer(),
+                inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
+                inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
+                inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
+                inventory_report_1:         () => openInventoryReport('일자별'),
+                inventory_report_2:         () => openInventoryReport('최종'),
+                inventory_report_3:         () => openInventoryReport('partner'),
+                purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
+                purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
+                purchase_order:             () => setIsPurchaseOrderOpen(true),
+                sales_invoice:              () => setIsSalesInvoiceOpen(true),
+                sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
+                sales_ledger:               () => setIsSalesLedgerOpen(true),
+                sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
+                order_list:                 () => setIsOrderListOpen(true),
+                account:                    () => setIsAccountManagerOpen(true),
+                cash_report_1:              () => openCashReport('결산'),
+                cash_report_2:              () => openCashReport('일자별'),
+                cash_report_3:              () => openCashReport('계좌별'),
+                cash_book:                  () => setIsCashBookOpen(true),
+                expense:                    () => setIsExpenseRegistrationOpen(true),
+                sales_report:               () => setIsSalesReportOpen(true),
+                order_report:               () => setIsOrderReportOpen(true),
+                edit_delete:                () => setIsEditDeleteReportOpen(true),
+                staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
+                receivables:                () => setIsReceivablesReportOpen(true),
+                partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
+                tax_report:                 () => setIsTaxReportOpen(true),
+                schedule:                   () => setIsScheduleRegistrationOpen(true),
+                data_manager:               () => setIsDataManagerOpen(true),
+                partner_excel:              () => setIsPartnerExcelOpen(true),
+                product_excel:              () => setIsProductExcelOpen(true),
+                sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
+                purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
+                settings:                   () => setIsSettingsOpen(true),
+                license:                    () => setIsLicenseOpen(true),
+              };
+              if (actions[menuId]) actions[menuId]();
+            }}
+          />
+
+          {/* 일정 목록만 노출되는 메인 영역 */}
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px', padding: '12px',
+            border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+          }}>
+            <ScheduleSidebar 
+              selectedDate={selectedDate} 
+              schedules={schedules} 
+              setSchedules={setSchedules} 
+              currentUser={currentUser} 
+              scheduleTypes={scheduleTypes}
+              hiddenScheduleTypes={hiddenScheduleTypes}
+              onAdd={() => setIsScheduleRegistrationOpen(true)}
+              isDashboardLocked={true}
+              onOpenScheduleDetail={handleOpenScheduleDetail}
+              onCopy={(s) => {
+                setCopiedSchedule(s);
+                alert('일정이 복사되었습니다.');
+              }}
+              onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
+              onDelete={async (id) => {
+                setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
+                try {
+                  const companyId = currentUser?.companyId || 'default';
+                  await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+                  showToast('일정이 삭제되었습니다.', 'success');
+                } catch (err) { console.error(err); }
               }}
             />
+          </div>
+        </div>
+      </div>
 
+      {/* 위젯 모달 창 (상단 헤더의 위젯 아이콘 클릭 시 노출) */}
+      {isWidgetModalOpen && (
+        <WindowModal title="대시보드 주요 위젯 (6개 현황)" onClose={() => setIsWidgetModalOpen(false)}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '12px', padding: '12px', maxHeight: '80vh', overflowY: 'auto'
+          }}>
+            {(() => {
+              const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
+              const maxWidgets = 6;
+              const displayWidgets = activeWidgets.slice(0, maxWidgets);
+              return displayWidgets.map((widgetId) => (
+                <div key={widgetId} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', height: '290px' }}>
+                  {renderWidget(widgetId, '')}
+                </div>
+              ));
+            })()}
+          </div>
+        </WindowModal>
+      )}
+
+      {/* 달력 모달 창 (상단 헤더의 달력 아이콘 클릭 시 노출) */}
+      {isCalendarModalOpen && (
+        <WindowModal title="전체 달력 (스케줄러)" onClose={() => setIsCalendarModalOpen(false)}>
+          <div style={{ padding: '8px', maxHeight: '85vh', overflowY: 'auto' }}>
             <Calendar 
               selectedDate={selectedDate} 
               onDateSelect={setSelectedDate} 
@@ -3383,34 +3444,8 @@ function App() {
               onOpenScheduleDetail={handleOpenScheduleDetail}
             />
           </div>
-
-          <div className="right-side-grid" style={{ gridRow: `span 3` }}>
-            {(() => {
-              const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
-              const maxWidgets = 6;
-              const displayWidgets = activeWidgets.slice(0, maxWidgets);
-              
-              return displayWidgets.map((widgetId) => {
-                return (
-                  <div 
-                    key={widgetId} 
-                    className="grid-item" 
-                    style={{ 
-                      gridRow: 'span 1',
-                      height: '100%',
-                      minHeight: '290px',
-                      maxHeight: '290px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {renderWidget(widgetId, '')}
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        </div>
-      </div>
+        </WindowModal>
+      )}
 
       {/* Modals */}
       {isInventoryMovementManagerOpen && (
