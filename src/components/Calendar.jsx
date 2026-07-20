@@ -92,10 +92,31 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
     }
   };
   return (
-    <div className="calendar-container">
-      <div className="calendar-header">
-        <div className="month-selector">
-          <h3>{format(selectedDate, 'yyyy년 M월 d일')}</h3>
+    <div className="calendar-container" style={{ width: '100%', padding: '4px' }}>
+      {/* 달력 상단 조작부 (모바일 컴팩트 2행 레이아웃) */}
+      <div className="calendar-header" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        padding: '10px 12px',
+        backgroundColor: '#f8fafc',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        marginBottom: '10px'
+      }}>
+        {/* 행 1: 년월 선택 + 이전/다음 월 + 일정 유형 필터 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={prevMonth} style={{ padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <ChevronLeft size={16} />
+            </button>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+              {format(selectedDate, 'yyyy년 M월')}
+            </h3>
+            <button onClick={nextMonth} style={{ padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
 
           {/* 일정 유형 필터 드롭다운 영역 */}
           <div ref={typeFilterRef} className="schedule-type-filters" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -108,26 +129,22 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.78rem',
+                gap: '4px',
+                fontSize: '0.75rem',
                 fontWeight: 800,
                 color: '#3b82f6',
                 cursor: 'pointer',
                 backgroundColor: '#eff6ff',
                 border: '1.5px solid #3b82f6',
-                padding: '5px 12px',
-                borderRadius: '16px',
-                transition: 'all 0.15s',
-                height: '28px',
-                boxSizing: 'border-box'
+                padding: '4px 8px',
+                borderRadius: '12px',
+                height: '28px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
-              title="일정 유형 필터 및 편집 관리"
+              title="일정 유형 필터"
             >
-              <Filter size={12} />
-              일정 유형 {hiddenScheduleTypes.length > 0 ? `(${scheduleTypes.length - hiddenScheduleTypes.length})` : ''}
-              <ChevronDown size={12} style={{ transform: showTypeFilter ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              <Filter size={11} />
+              유형 {hiddenScheduleTypes.length > 0 ? `(${scheduleTypes.length - hiddenScheduleTypes.length})` : ''}
+              <ChevronDown size={11} style={{ transform: showTypeFilter ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
             
             {showTypeFilter && (
@@ -135,23 +152,23 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
-                  left: 0,
+                  right: 0,
                   background: '#ffffff',
                   border: '1px solid #cbd5e1',
                   borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  padding: '12px',
-                  minWidth: '200px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                  padding: '10px',
+                  minWidth: '190px',
                   zIndex: 1000,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '6px'
                 }}
               >
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   보여줄 일정 유형 선택
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
                   {scheduleTypes.map(typeObj => {
                     const name = typeof typeObj === 'object' ? typeObj.name : typeObj;
                     const color = typeof typeObj === 'object' ? typeObj.color : '#64748b';
@@ -161,23 +178,11 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                       <label 
                         key={name}
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          fontSize: '0.75rem', fontWeight: 700,
                           color: isChecked ? '#1e293b' : '#94a3b8',
-                          cursor: 'pointer',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: isChecked ? `${color}10` : 'transparent',
-                          transition: 'background-color 0.15s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = isChecked ? `${color}20` : '#f1f5f9';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = isChecked ? `${color}10` : 'transparent';
+                          cursor: 'pointer', padding: '4px 6px', borderRadius: '4px',
+                          backgroundColor: isChecked ? `${color}10` : 'transparent'
                         }}
                       >
                         <input
@@ -187,13 +192,9 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                             playMenuClickSound();
                             if (onToggleScheduleType) onToggleScheduleType(name);
                           }}
-                          style={{
-                            margin: 0,
-                            cursor: 'pointer',
-                            accentColor: color
-                          }}
+                          style={{ margin: 0, cursor: 'pointer', accentColor: color }}
                         />
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, display: 'inline-block' }}></span>
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: color, display: 'inline-block' }}></span>
                         <span>{name}</span>
                       </label>
                     );
@@ -207,60 +208,39 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                     if (onOpenTypeManagement) onOpenTypeManagement();
                   }}
                   style={{
-                    marginTop: '6px',
-                    width: '100%',
-                    padding: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    color: '#3b82f6',
-                    backgroundColor: '#eff6ff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
+                    marginTop: '4px', width: '100%', padding: '6px',
+                    fontSize: '0.75rem', fontWeight: 800, color: '#3b82f6',
+                    backgroundColor: '#eff6ff', border: 'none', borderRadius: '6px',
+                    cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
                 >
                   <Settings size={12} />
-                  유형 편집 / 관리
+                  유형 편집
                 </button>
               </div>
             )}
           </div>
-
-          <div className="month-nav">
-            <button onClick={prevMonth}><ChevronLeft size={18} /></button>
-            <button onClick={nextMonth}><ChevronRight size={18} /></button>
-          </div>
         </div>
 
-        <div className="calendar-actions">
+        {/* 행 2: 액션 버튼 그룹 (오늘, 일정 추가, 수주 추가) */}
+        <div className="calendar-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
           <button 
-            className={`btn-outline ${!isDashboardLocked ? 'active-lock' : ''}`} 
-            style={{ padding: '8px', color: !isDashboardLocked ? 'var(--primary)' : 'inherit', borderColor: !isDashboardLocked ? 'var(--primary)' : '#e2e8f0' }} 
-            onClick={() => { playMenuClickSound(); onToggleDashboardLock(); }} 
-            title={isDashboardLocked ? "위젯 이동 잠금 (클릭 시 해제)" : "위젯 이동 가능 (클릭 시 잠금)"}
+            style={{ padding: '6px 10px', fontSize: '0.78rem', fontWeight: 700, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }} 
+            onClick={() => { playMenuClickSound(); onDateSelect(new Date()); }}
           >
-            {isDashboardLocked ? <Lock size={18} /> : <Unlock size={18} />}
+            오늘
           </button>
-          <button className="btn-outline" style={{ padding: '8px' }} onClick={() => { playMenuClickSound(); onOpenDashboardSettings(); }} title="대시보드 설정">
-            <Settings size={18} />
+          <button 
+            style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 800, color: '#0284c7', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap' }} 
+            onClick={handleAddSchedule}
+          >
+            <Plus size={14} /> 일정 추가
           </button>
-          <button className="btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => { playMenuClickSound(); onDateSelect(new Date()); }}>
-            오늘 날짜로 이동
-          </button>
-          <button className="btn-sub-outline" onClick={handleAddSchedule}>
-            <Plus size={16} />
-            일정 추가
-          </button>
-          <button className="btn-sub-primary" onClick={handleAddOrder}>
-            <Plus size={16} />
-            수주 추가
+          <button 
+            style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 800, color: 'white', backgroundColor: '#2563eb', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap' }} 
+            onClick={handleAddOrder}
+          >
+            <Plus size={14} /> 수주 추가
           </button>
         </div>
       </div>
