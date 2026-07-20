@@ -644,268 +644,57 @@ const Header = ({
 
   return (
     <header className="header" ref={dropdownRef}>
-      <div className="header-left">
-        {/* 모바일 아이콘 3개 그룹: [ 햄버거 | 위젯창 | 달력창 ] */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '6px' }}>
-          <button 
-            onClick={onToggleMobileDrawer}
-            title="전체 메뉴"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0
-            }}
-          >
-            <Menu size={20} />
-          </button>
-          
-          <button 
-            onClick={onOpenWidgetModal}
-            title="위젯창 열기 (6개 위젯)"
-            style={{
-              background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '8px',
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer', color: '#60a5fa', flexShrink: 0
-            }}
-          >
-            <LayoutDashboard size={18} />
-          </button>
+      {/* 맨 왼쪽: 햄버거 버튼 + 회사명 */}
+      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button 
+          onClick={onToggleMobileDrawer}
+          title="전체 메뉴"
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
+            width: '36px', height: '36px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0
+          }}
+        >
+          <Menu size={20} />
+        </button>
 
-          <button 
-            onClick={onOpenCalendarModal}
-            title="달력 열기"
-            style={{
-              background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px',
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer', color: '#fbbf24', flexShrink: 0
-            }}
-          >
-            <CalendarIcon size={18} />
-          </button>
-        </div>
-
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {companyLogo ? (
-            <img src={companyLogo} alt="Company Logo" style={{ height: '28px', objectFit: 'contain' }} />
+            <img src={companyLogo} alt="Company Logo" style={{ height: '26px', objectFit: 'contain' }} />
           ) : (
-            <Package size={20} color="white" />
+            <Package size={18} color="white" />
           )}
-          <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
             {companyName}
           </span>
         </div>
-        <nav className="nav-links">
-          <div className="nav-item" onClick={onOpenPartnerMall} style={{ color: '#ff4d4d', fontWeight: 800 }}>거래처몰</div>
-
-          
-          {currentUser?.role === 'super_admin' && (
-            <div className="nav-item" onClick={onOpenPlatformManager} style={{ color: '#fbbf24', fontWeight: 800, border: '1px solid #fbbf24', borderRadius: '4px', padding: '2px 8px', marginLeft: '8px' }}>
-              플랫폼 관리
-            </div>
-          )}
-          
-          {/* 기초자료등록 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'basic' ? 'active' : ''}`} onClick={() => handleMenuClick('basic')}>
-              기초자료등록 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'basic' && (
-              <div className="dropdown-menu">
-                {hasPerm('직원관리') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenStaffManager)}>직원관리</div>}
-                {hasPerm('창고관리') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenWarehouseManager)}>창고관리</div>}
-                {(hasPerm('거래처등록') || hasPerm('거래처관리')) && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPartnerManager)}>거래처등록/관리</div>}
-                {(hasPerm('품목등록') || hasPerm('품목관리')) && <div className="dropdown-item" onClick={() => closeDropdown(onOpenProductManager)}>품목등록/관리</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 재고관리 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'inventory' ? 'active' : ''}`} onClick={() => handleMenuClick('inventory')}>
-              재고관리 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'inventory' && (
-              <div className="dropdown-menu">
-                {hasPerm('재고이동') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenInventoryTransfer)}>재고이동</div>}
-                {hasPerm('재고이동') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenInventoryMovementManager)}>재고 이동 현황 관리</div>}
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenInventoryAdjustment)}>재고조정 (손실처리)</div>
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenInventoryMismatch)}>재고 불일치 현황</div>
-                {hasPerm('재고보고서') && (
-                  <>
-                    <div style={{ borderTop: '1px solid #e2e8f0', margin: '6px 0' }}></div>
-                    <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenInventoryReport && onOpenInventoryReport('daily'))}>일자별 재고현황</div>
-                    <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenInventoryReport && onOpenInventoryReport('final'))}>최종 재고 현황</div>
-                    <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenInventoryReport && onOpenInventoryReport('partner'))}>매입처별 재고현황</div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 매입/발주관리 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'purchase' ? 'active' : ''}`} onClick={() => handleMenuClick('purchase')}>
-              매입/발주관리 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'purchase' && (
-              <div className="dropdown-menu">
-                {hasPerm('매입전표') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPurchaseInvoice)}>매입전표 등록</div>}
-                {hasPerm('매입원장') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPurchaseLedger)}>매입전표 관리</div>}
-                {hasPerm('매입원장') && <div className="dropdown-item">매입원장</div>}
-                {hasPerm('매입원장') && <div className="dropdown-item">매입처미지급현황</div>}
-                {hasPerm('발주') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPurchaseOrder)}>발주 등록</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 매출/수주관리 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'sales' ? 'active' : ''}`} onClick={() => handleMenuClick('sales')}>
-              매출/수주관리 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'sales' && (
-              <div className="dropdown-menu">
-                {hasPerm('매출전표') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesInvoice)}>매출전표등록</div>}
-                {hasPerm('매출전표내역') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesInvoiceList)}>매출전표내역</div>}
-                {hasPerm('매출원장') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesLedger)}>매출원장</div>}
-                {hasPerm('수주') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesOrder)}>간편수주 등록</div>}
-                {hasPerm('수주') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenOrderList)}>수주목록</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 입출금관리 (신규 추가) */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'cash_mgmt' ? 'active' : ''}`} onClick={() => handleMenuClick('cash_mgmt')}>
-              입출금관리 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'cash_mgmt' && (
-              <div className="dropdown-menu">
-                {hasPerm('계좌관리') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenAccountManager)}>계좌관리</div>}
-                {hasPerm('입출금보고서') && <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenCashReport && onOpenCashReport('결산'))}>결산보고서</div>}
-                {hasPerm('입출금보고서') && <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenCashReport && onOpenCashReport('일자별'))}>일자별 입출금 현황</div>}
-                {hasPerm('입출금보고서') && <div className="dropdown-item" onClick={() => closeDropdown(() => onOpenCashReport && onOpenCashReport('계좌별'))}>계좌별 입출금 현황</div>}
-                {hasPerm('금전출납부') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenCashBook)}>금전출납부</div>}
-                {hasPerm('경비출금') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenExpenseRegistration)}>경비출금</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 스마트지원 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'report_management' ? 'active' : ''}`} onClick={() => handleMenuClick('report_management')}>
-              스마트지원 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'report_management' && (
-              <div className="dropdown-menu">
-                {hasPerm('매출보고서') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesReport)}>매출보고서</div>}
-                {hasPerm('수주') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenOrderReport)}>수주보고서</div>}
-                 {hasPerm('전표수정/삭제 보고서') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenEditDeleteReport)}>전표수정/삭제 보고서</div>}
-                {hasPerm('직원 실적 보고서') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenStaffPerformanceReport)}>직원 실적 보고서</div>}
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenReceivablesReport)}>미수금관리</div>
-                
-                {hasPerm('특별단가관리') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPartnerSpecialPriceManager)}>거래처별 특별단가 관리</div>}
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenTaxReport)}>세금신고 지원 보고서</div>
-                {hasPerm('일정') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenScheduleList)}>일정추가</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 시스템관리 */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'data' ? 'active' : ''}`} onClick={() => handleMenuClick('data')}>
-              시스템관리 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'data' && (
-              <div className="dropdown-menu">
-                {hasPerm('데이터 전체 저장/불러오기') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenDataManager)}>데이터 전체 저장/불러오기</div>}
-                {hasPerm('거래처 엑셀파일로 저장/불러오기') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPartnerExcel)}>거래처 엑셀파일로 저장/불러오기</div>}
-                {hasPerm('품목 엑셀파일로 저장/불러오기') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenProductExcel)}>품목 엑셀파일로 저장/불러오기</div>}
-                {hasPerm('매출처원장 저장/불러오기') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenSalesLedgerExcel)}>매출처원장 저장/불러오기</div>}
-                {hasPerm('매입처원장 저장/불러오기') && <div className="dropdown-item" onClick={() => closeDropdown(onOpenPurchaseLedgerExcel)}>매입처원장 저장/불러오기</div>}
-              </div>
-            )}
-          </div>
-
-          {/* 환경설정&정품등록 (통합) */}
-          <div className="dropdown-container">
-            <div className={`nav-item ${activeDropdown === 'settings_license' ? 'active' : ''}`} onClick={() => handleMenuClick('settings_license')}>
-              환경설정&정품등록 <ChevronDown size={14} />
-            </div>
-            {activeDropdown === 'settings_license' && (
-              <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenSettings)}>환경설정</div>
-                <div className="dropdown-item" onClick={() => closeDropdown(onOpenLicense)}>정품등록</div>
-              </div>
-            )}
-          </div>
-        </nav>
       </div>
-      <div className="header-right">
-        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '16px' }}>
-          <button 
-            onClick={() => window.open('/agent-chat.html', '_blank', 'width=500,height=700,resizable=yes,scrollbars=yes')}
-            className="action-icon-btn"
-            title="AI 명령창 / 채팅방"
-            style={{ 
-              background: '#e0f2fe', border: 'none', borderRadius: '8px', 
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', cursor: 'pointer', color: '#0284c7',
-              transition: 'all 0.2s'
-            }}
-          >
-            <MessageSquare size={20} />
-          </button>
-          <button 
-            onClick={onOpenScheduleList}
-            className="action-icon-btn"
-            title="일정 리스트"
-            style={{ 
-              background: '#f1f5f9', border: 'none', borderRadius: '8px', 
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', cursor: 'pointer', color: '#64748b',
-              transition: 'all 0.2s'
-            }}
-          >
-            <CalendarIcon size={20} />
-          </button>
-        </div>
-        <div className="search-bar" ref={searchContainerRef}>
-          <Search size={16} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="메뉴 검색" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onKeyDown={handleSearchKeyDown}
-          />
-          {isSearchFocused && searchQuery.trim() !== '' && (
-            <div className="search-results-dropdown">
-              {searchResults.length > 0 ? (
-                searchResults.map((item, index) => (
-                  <div 
-                    key={index}
-                    className={`search-result-item ${index === selectedIndex ? 'active' : ''}`}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    onClick={() => handleSearchResultClick(item)}
-                  >
-                    <div className="search-result-category">{item.category}</div>
-                    <div className="search-result-title">{item.title}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="search-no-results">검색 결과가 없습니다</div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="user-profile">
-          <span className="user-role">{currentUser?.name} <span className="user-account">{currentUser?.jobTitle}</span></span>
-          <button className="logout-btn" onClick={onLogout} style={{ background: 'transparent', border: 'none', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>
-            <LogOut size={16} /> 로그아웃
-          </button>
-        </div>
+
+      {/* 맨 오른쪽 정렬: [ 위젯창 아이콘 | 달력 아이콘 ] */}
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button 
+          onClick={onOpenWidgetModal}
+          title="위젯창 열기 (6개 위젯)"
+          style={{
+            background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '8px',
+            width: '34px', height: '34px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', color: '#60a5fa', flexShrink: 0
+          }}
+        >
+          <LayoutDashboard size={18} />
+        </button>
+
+        <button 
+          onClick={onOpenCalendarModal}
+          title="달력 열기"
+          style={{
+            background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px',
+            width: '34px', height: '34px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', color: '#fbbf24', flexShrink: 0
+          }}
+        >
+          <CalendarIcon size={18} />
+        </button>
       </div>
     </header>
   );
