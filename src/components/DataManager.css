@@ -1,0 +1,241 @@
+/* Data Manager Styles */
+
+.data-header {
+  padding: 32px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.data-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.data-icon-bg {
+  width: 48px;
+  height: 48px;
+  background: #f5f3ff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.data-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.data-desc {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 4px 0 0 0;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 32px;
+  background-color: #f8fafc;
+}
+
+.data-card {
+  background: white;
+  padding: 32px 24px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.data-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -10px rgba(0,0,0,0.1);
+}
+
+.card-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.card-icon.blue { background-color: #eff6ff; color: #3b82f6; }
+.card-icon.green { background-color: #f0fdf4; color: #10b981; }
+.card-icon.red { background-color: #fef2f2; color: #ef4444; }
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  white-space: nowrap;
+}
+
+.card-desc {
+  font-size: 0.88rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  flex-grow: 1; /* Key for uniform height */
+}
+
+.warning-box {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  display: flex;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.warning-box.yellow { background-color: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
+.warning-box.red { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
+
+.btn-data {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.btn-data.blue { background-color: #3b82f6; color: white; }
+.btn-data.red { background-color: #ef4444; color: white; }
+
+.btn-data-outline {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-weight: 700;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.data-guide-footer {
+  margin: 0 32px 32px 32px;
+  padding: 24px;
+  background-color: #1e293b;
+  border-radius: 12px;
+  color: #f8fafc;
+}
+
+.guide-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+
+.guide-list {
+  padding-left: 18px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.guide-list li::marker {
+  color: #10b981;
+}
+
+/* Sub menus guide section styling */
+.sub-menus-guide-section {
+  padding: 32px;
+  background-color: white;
+  border-top: 1px solid #f1f5f9;
+}
+
+.sub-menus-guide-section .section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-menus-guide-section .section-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 24px 0;
+}
+
+.sub-menus-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.sub-menu-card {
+  background: #f8fafc;
+  padding: 20px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.sub-menu-card:hover {
+  border-color: #cbd5e1;
+  background-color: #f1f5f9;
+  transform: translateY(-2px);
+}
+
+.sub-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1e293b;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.sub-menu-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.sub-menu-bullets li strong {
+  color: #0f172a;
+}

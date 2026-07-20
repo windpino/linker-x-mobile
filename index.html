@@ -1,50 +1,51 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        var errStr = message + '\nAt: ' + source + ':' + lineno + ':' + colno;
-        if (error && error.stack) {
-          errStr += '\nStack: ' + error.stack;
-        }
-        localStorage.setItem('last_runtime_error', errStr);
-      };
-      window.addEventListener('unhandledrejection', function(event) {
-        localStorage.setItem('last_runtime_error', 'Unhandled Rejection: ' + (event.reason ? (event.reason.stack || event.reason) : 'Unknown'));
-      });
-    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>LinkerX Mobile ERP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Link X - 물류관리 시스템 (Mobile)</title>
+    
     <!-- Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              slate: {
-                850: '#1e293b/80',
-                950: '#070a13',
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <!-- Outfit & Inter Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet" />
-    <!-- PWA Settings -->
+    
+    <!-- PWA Web Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0b0f19" />
+    
+    <!-- Mobile App Customizations -->
+    <meta name="theme-color" content="#1d4ed8" />
     <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- iOS Specific Standalone Settings (Hides Safari navigation bar) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="LinkerX Mobile" />
+    <meta name="apple-mobile-web-app-title" content="Link X" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
   </head>
-  <body class="bg-[#0b0f19] text-slate-200 antialiased overflow-x-hidden">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          if (window.location.hostname === 'localhost') {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (let registration of registrations) {
+                registration.unregister().then(success => {
+                  if (success) {
+                    console.log('Development Service worker unregistered.');
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+          } else {
+            navigator.serviceWorker.register('/sw.js')
+              .then(reg => console.log('Service worker registered successfully:', reg.scope))
+              .catch(err => console.error('Service worker registration failed:', err));
+          }
+        });
+      }
+    </script>
   </body>
 </html>

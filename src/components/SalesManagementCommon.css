@@ -1,0 +1,57 @@
+/* Sales Management Common Styles */
+
+.sales-header {
+  padding: 24px;
+  background-color: #3b82f6; /* Blue color for Sales */
+  color: white;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sales-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.sales-summary-card {
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-card-blue { background-color: #eff6ff; color: #1e40af; }
+.summary-card-purple { background-color: #f5f3ff; color: #5b21b6; }
+.summary-card-cyan { background-color: #ecfeff; color: #155e75; }
+.summary-card-green { background-color: #f0fdf4; color: #166534; }
+.summary-card-dark { background-color: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0; }
+
+.summary-label { font-size: 0.85rem; font-weight: 600; }
+.summary-value { font-size: 1.25rem; font-weight: 800; }
+
+.sales-ledger-filter {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

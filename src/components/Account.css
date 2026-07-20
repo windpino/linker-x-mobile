@@ -1,0 +1,164 @@
+/* Account Management Styles */
+
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background-color: #fff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.acc-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acc-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.acc-desc {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.acc-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.acc-search-box {
+  position: relative;
+  width: 280px;
+}
+
+.acc-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.acc-search-box input {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.account-table-container {
+  padding: 0 24px 24px;
+  overflow-x: auto;
+}
+
+.account-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 16px;
+}
+
+.account-table th {
+  background-color: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.account-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.bank-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background-color: #eff6ff;
+  color: #3b82f6;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.acc-number {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Registration Form */
+.acc-registration-container {
+  padding: 24px;
+}
+
+.acc-form-group {
+  margin-bottom: 20px;
+}
+
+.acc-form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.acc-form-group label span {
+  color: #ef4444;
+  margin-left: 4px;
+}
+
+.acc-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.acc-input-wrapper .icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+}
+
+.acc-input-wrapper input,
+.acc-input-wrapper textarea {
+  width: 100%;
+  padding: 12px 12px 12px 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.acc-input-wrapper.no-icon input {
+  padding-left: 12px;
+}
+
+.acc-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}

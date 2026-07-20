@@ -1,3640 +1,4688 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
-  Sliders, Search, ShoppingCart, ArrowLeftRight, Menu, X,
-  User, LogOut, CheckCircle2, ChevronDown, ChevronUp, 
-  DollarSign, Package, AlertCircle, Phone, MapPin, Truck,
-  Cpu, Send, Calendar, Sparkles, Building2, Info, TrendingUp,
-  MessageSquare, Lock, Check, Eye, EyeOff, Mail, Users,
-  ArrowUpRight, ArrowDownLeft, FileText, Landmark, FileSpreadsheet, Settings, Database, BarChart2,
-  UserPlus, Plus, PlusCircle, Compass, HelpCircle, Star
+  AlertTriangle, Package, TrendingUp, ShoppingCart, Users, Home, ClipboardList, Star, Settings as SettingsIcon,
+  CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
+  CheckCircle2, Info, FileSearch, Percent, History,
+  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, doc, onSnapshot, setDoc, collection, 
-  getDocs, getDoc, query, where, addDoc 
-} from 'firebase/firestore';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import Header from './components/Header';
+import DashboardBanner from './components/DashboardBanner';
+import Calendar from './components/Calendar';
+import ScheduleSidebar from './components/ScheduleSidebar';
+import ScheduleDetailModal from './components/ScheduleDetailModal';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import AgencySignup from './components/AgencySignup';
+import UserSignup from './components/UserSignup';
+import Onboarding from './components/Onboarding';
+import SuperAdmin from './components/SuperAdmin';
+import HomepageApp from './homepage/HomepageApp';
 
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
-  authDomain: "link-x-6606e.firebaseapp.com",
-  projectId: "link-x-6606e",
-  storageBucket: "link-x-6606e.firebasestorage.app",
-  messagingSenderId: "236294239528",
-  appId: "1:236294239528:web:8f735c42d36d6d1c434c1d",
-  measurementId: "G-G8626RZH6X"
+const ALL_PERMS = {
+  warehouse: true, staff: true, partner: true, product: true, account: true,
+  schedule: true, purchase: true, sales: true, inventory: true, report: true,
+  settings: true, license: true
 };
+import WarehouseManagement from './components/WarehouseManagement';
+import StaffManagement from './components/StaffManagement';
+import InventoryTransfer from './components/InventoryTransfer';
+import PartnerManagement from './components/PartnerManagement';
+import ProductManagement from './components/ProductManagement';
+import AccountManagement from './components/AccountManagement';
+import ScheduleList from './components/ScheduleList';
+import ScheduleRegistration from './components/ScheduleRegistration';
+import ScheduleTypeManagement from './components/ScheduleTypeManagement';
+import PurchaseInvoice from './components/PurchaseInvoice';
+import PurchaseLedger from './components/PurchaseLedger';
+import PurchaseOrder from './components/PurchaseOrder';
+import SalesInvoice from './components/SalesInvoice';
+import SalesInvoiceList from './components/SalesInvoiceList';
+import SalesLedger from './components/SalesLedger';
+import SalesOrder from './components/SalesOrder';
+import OrderList from './components/OrderList';
+import CashReport from './components/CashReport';
+import SalesReport from './components/SalesReport';
+import OrderReport from './components/OrderReport';
+import InventoryReport from './components/InventoryReport';
+import ReceivablesReport from './components/ReceivablesReport';
+import RecentActivityModal from './components/RecentActivityModal';
+import BulkEditor from './components/BulkEditor';
+import EditDeleteReport from './components/EditDeleteReport';
+import CashBook from './components/CashBook';
+import ExpenseRegistration from './components/ExpenseRegistration';
+import StaffPerformanceReport from './components/StaffPerformanceReport';
+import DataManager from './components/DataManager';
+import PartnerExcelManager from './components/PartnerExcelManager';
+import ProductExcelManager from './components/ProductExcelManager';
+import PurchaseLedgerExcelManager from './components/PurchaseLedgerExcelManager';
+import SalesLedgerExcelManager from './components/SalesLedgerExcelManager';
+import SettingsManager from './components/SettingsManager';
+import LicenseManager from './components/LicenseManager';
+import InventoryAdjustment from './components/InventoryAdjustment';
+import InventoryMismatch from './components/InventoryMismatch';
+import TaxReport from './components/TaxReport';
+import TaxInvoiceDocument from './components/TaxInvoiceDocument';
+import PartnerShoppingMall from './components/PartnerShoppingMall';
+import WindowModal from './components/WindowModal';
+import PartnerSpecialPriceManager from './components/PartnerSpecialPriceManager'; // Import Special Price Manager
+import InventoryMovementManager from './components/InventoryMovementManager';
+import './App.css';
+import ChatAssistant from './components/ChatAssistant';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
+import useDevice from './hooks/useDevice';
+import { db } from './firebase';
+import { doc, onSnapshot, setDoc, collection, getDocs, getDoc, writeBatch, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// ─────────────────────────────────────────────────────────
+// 자주 찾는 메뉴 전체 목록 (App 함수 외부에 한 번만 정의)
+// ─────────────────────────────────────────────────────────
+const ALL_FAVORITE_MENUS = [
+  { id: 'staff',               name: '직원관리',        category: '기초자료등록',   emoji: '👤' },
+  { id: 'warehouse',           name: '창고관리',        category: '기초자료등록',   emoji: '🏠' },
+  { id: 'partner',             name: '거래처등록/관리',  category: '기초자료등록',   emoji: '🤝' },
+  { id: 'product',             name: '품목등록/관리',    category: '기초자료등록',   emoji: '📦' },
+  { id: 'inventory_transfer',  name: '재고이동',        category: '기초자료등록',   emoji: '🚚' },
+  { id: 'inventory_movement_manager', name: '재고 이동 현황 관리', category: '기초자료등록', emoji: '📋' },
+  { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
+  { id: 'inventory_mismatch',  name: '재고 불일치 현황', category: '기초자료등록',   emoji: '⚠️' },
+  { id: 'inventory_report_1',  name: '일자별 재고현황',  category: '기초자료등록',   emoji: '🗃️' },
+  { id: 'inventory_report_2',  name: '최종 재고 현황',  category: '기초자료등록',   emoji: '📦' },
+  { id: 'inventory_report_3',  name: '매입처별 재고현황', category: '기초자료등록',   emoji: '📋' },
 
-// 초성 검색 도우미 함수
-const matchesInitialSound = (target, search) => {
-  if (!search) return true;
-  if (!target) return false;
-  
-  const searchClean = search.replace(/\s/g, "").toLowerCase();
-  const targetClean = target.replace(/\s/g, "").toLowerCase();
-  
-  if (targetClean.includes(searchClean)) return true;
-  
-  const CHO = [
-    'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 
-    'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
-  ];
-  
-  let result = "";
-  for (let i = 0; i < targetClean.length; i++) {
-    const code = targetClean.charCodeAt(i) - 44032;
-    if (code >= 0 && code <= 11172) {
-      result += CHO[Math.floor(code / 588)];
-    } else {
-      result += targetClean.charAt(i);
+  { id: 'purchase_invoice',    name: '매입전표 등록',  category: '매입/발주관리',   emoji: '📥' },
+  { id: 'purchase_ledger',     name: '매입전표 관리',  category: '매입/발주관리',   emoji: '📋' },
+  { id: 'purchase_order',      name: '발주 등록',      category: '매입/발주관리',   emoji: '📤' },
+
+  { id: 'sales_invoice',       name: '매출전표등록',    category: '매출/수주관리',   emoji: '🧾' },
+  { id: 'sales_invoice_list',  name: '매출전표내역',    category: '매출/수주관리',   emoji: '📄' },
+  { id: 'sales_ledger',        name: '매출원장',        category: '매출/수주관리',   emoji: '📊' },
+  { id: 'sales_order',         name: '간편수주 등록',    category: '매출/수주관리',   emoji: '🛒' },
+  { id: 'order_list',          name: '수주목록',        category: '매출/수주관리',   emoji: '📝' },
+
+  { id: 'account',             name: '계좌관리',        category: '입출금관리',     emoji: '💳' },
+  { id: 'cash_report_1',       name: '결산보고서',      category: '입출금관리',     emoji: '💰' },
+  { id: 'cash_report_2',       name: '일자별 입출금 현황', category: '입출금관리',   emoji: '📈' },
+  { id: 'cash_report_3',       name: '계좌별 입출금 현황', category: '입출금관리',   emoji: '📊' },
+  { id: 'cash_book',           name: '금전출납부',      category: '입출금관리',     emoji: '📓' },
+  { id: 'expense',             name: '경비출금',        category: '입출금관리',     emoji: '💸' },
+
+  { id: 'sales_report',        name: '매출보고서',      category: '스마트지원',     emoji: '📉' },
+  { id: 'order_report',        name: '수주보고서',      category: '스마트지원',     emoji: '📊' },
+  { id: 'edit_delete',         name: '전표수정/삭제 보고서', category: '스마트지원', emoji: '🔍' },
+  { id: 'staff_perf',          name: '직원 실적 보고서', category: '스마트지원',     emoji: '🏆' },
+  { id: 'receivables',         name: '미수금관리',      category: '스마트지원',     emoji: '💵' },
+  { id: 'partner_special_price', name: '거래처별 특별단가 관리', category: '스마트지원', emoji: '🏷️' },
+  { id: 'tax_report',          name: '세금신고 지원 보고서', category: '스마트지원', emoji: '🧮' },
+  { id: 'schedule',            name: '일정추가',        category: '스마트지원',     emoji: '📅' },
+
+  { id: 'data_manager',        name: '데이터 전체 저장/불러오기', category: '시스템관리', emoji: '🗄️' },
+  { id: 'partner_excel',       name: '거래처 엑셀파일로 저장/불러오기', category: '시스템관리', emoji: '📊' },
+  { id: 'product_excel',       name: '품목 엑셀파일로 저장/불러오기', category: '시스템관리', emoji: '📈' },
+  { id: 'sales_ledger_excel',  name: '매출처원장 저장/불러오기', category: '시스템관리', emoji: '📋' },
+  { id: 'purchase_ledger_excel', name: '매입처원장 저장/불러오기', category: '시스템관리', emoji: '📝' },
+
+  { id: 'settings',            name: '환경설정',        category: '환경설정&정품등록', emoji: '⚙️' },
+  { id: 'license',             name: '정품등록',        category: '환경설정&정품등록', emoji: '🔑' },
+];
+const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'];
+
+function App() {
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('home') === 'true') {
+        return 'homepage';
+      }
+      
+      if (window.location.pathname === '/madmin') return 'super_admin';
+      
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser && savedUser !== 'undefined') {
+        const user = JSON.parse(savedUser);
+        if (user) {
+          if (user.role === 'super_admin') return 'super_admin';
+          if (user.role === 'partner') return 'shopping';
+          return 'dashboard';
+        }
+      }
+    } catch (err) {
+      console.error('Error initializing currentView:', err);
     }
-  }
-  return result.includes(searchClean);
-};
+    return 'homepage';
+  }); 
 
-// 초성 지원 검색형 드롭다운 컴포넌트 (PC 버전과 동일한 구동 방식)
-const SearchableSelect = ({ value, onChange, options, placeholder, emptyMessage }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
 
-  const selectedOption = options.find(o => o.value === value);
-  const displayValue = selectedOption ? selectedOption.label : '';
+  const [selectedDate, setSelectedDate] = useState(new Date()); 
+  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser')) || null);
+  const [staffList, setStaffList] = useState(() => JSON.parse(localStorage.getItem('staffList')) || []);
 
-  const filteredOptions = options.filter(opt => {
-    if (!searchTerm) return true;
-    return matchesInitialSound(opt.label, searchTerm);
+  const checkWritePermission = (docCreator = null, isMasterData = false) => {
+    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
+    if (currentUser?.allowAllEditDelete === true) return true;
+    if (isMasterData) return false;
+    return docCreator && currentUser?.name && docCreator === currentUser.name;
+  };
+
+  // Modal States
+  const [isWarehouseManagerOpen, setIsWarehouseManagerOpen] = useState(false);
+  const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
+  const [recentActivityWidgetCategory, setRecentActivityWidgetCategory] = useState('전체');
+  const [isPartnerSpecialPriceManagerOpen, setIsPartnerSpecialPriceManagerOpen] = useState(false);
+  const [isStaffManagerOpen, setIsStaffManagerOpen] = useState(false);
+  const [isInventoryTransferOpen, setIsInventoryTransferOpen] = useState(false);
+  const [isInventoryMovementManagerOpen, setIsInventoryMovementManagerOpen] = useState(false);
+  const [inventoryTransferInitialDate, setInventoryTransferInitialDate] = useState(null);
+  const [syncedCollections, setSyncedCollections] = useState({});
+  const [isPartnerManagerOpen, setIsPartnerManagerOpen] = useState(false);
+  const [isProductManagerOpen, setIsProductManagerOpen] = useState(false);
+  const [isPartnerBulkOpen, setIsPartnerBulkOpen] = useState(false);
+  const [isProductBulkOpen, setIsProductBulkOpen] = useState(false);
+  const [scheduleTypes, setScheduleTypes] = useState([]);
+  const [hiddenScheduleTypes, setHiddenScheduleTypes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hiddenScheduleTypes');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
+  // Firestore에서 일정유형 데이터를 fetch(불러오기)하여 로딩하는 훅
+  React.useEffect(() => {
+    const fetchScheduleTypes = async () => {
+      const companyId = currentUser?.companyId || 'default';
+      try {
+        const querySnapshot = await getDocs(collection(db, 'companies', companyId, 'schedule_types'));
+        let typesList = [];
+        querySnapshot.forEach((doc) => {
+          typesList.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // 만약 비어있다면 최초 기본 6개 유형을 생성 및 저장합니다.
+        if (typesList.length === 0) {
+          const defaultTypes = [
+            { name: '입고예정', color: '#10b981', userId: currentUser?.userId || 'system' },
+            { name: '납품', color: '#3b82f6', userId: currentUser?.userId || 'system' },
+            { name: '업무지시', color: '#f59e0b', userId: currentUser?.userId || 'system' },
+            { name: '회식', color: '#ec4899', userId: currentUser?.userId || 'system' },
+            { name: '휴무일', color: '#ef4444', userId: currentUser?.userId || 'system' },
+            { name: '기타', color: '#8b5cf6', userId: currentUser?.userId || 'system' }
+          ];
+          
+          for (const dt of defaultTypes) {
+            await setDoc(doc(db, 'companies', companyId, 'schedule_types', dt.name), dt);
+          }
+          typesList = defaultTypes;
+        }
+        
+        setScheduleTypes(typesList);
+        localStorage.setItem('scheduleTypes', JSON.stringify(typesList));
+      } catch (err) {
+        console.error("Error fetching schedule types from Firestore:", err);
+        const local = JSON.parse(localStorage.getItem('scheduleTypes')) || [];
+        setScheduleTypes(local);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, []);
 
-  return (
-    <div className="relative w-full" ref={containerRef}>
-      <div className="relative">
-        <input
-          type="text"
-          placeholder={isOpen ? "검색어 입력 (초성 가능)..." : (displayValue || placeholder)}
-          value={isOpen ? searchTerm : displayValue}
-          onChange={(e) => {
-            if (!isOpen) setIsOpen(true);
-            setSearchTerm(e.target.value);
-          }}
-          onFocus={() => {
-            setIsOpen(true);
-            setSearchTerm('');
-          }}
-          className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none focus:border-blue-500 transition-all pr-8"
-        />
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-          <Search size={13} />
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-[9999] animate-fadeIn divide-y divide-slate-900">
-          {filteredOptions.length === 0 ? (
-            <div className="p-2.5 text-xs text-slate-500 text-center">{emptyMessage || '결과가 없습니다.'}</div>
-          ) : (
-            filteredOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                  setSearchTerm('');
-                }}
-                className={`w-full text-left p-2.5 text-xs transition-all hover:bg-slate-900 ${
-                  opt.value === value 
-                    ? 'text-blue-400 bg-slate-900/50 font-bold' 
-                    : 'text-slate-200'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// 4x4 Grid Option Definitions
-const MENU_OPTIONS = [
-  { id: 'dashboard', label: '홈 대시보드', icon: Sliders, color: 'text-white bg-indigo-500 shadow-indigo-500/20' },
-  { id: 'sales_order_new', label: '간편수주 등록', icon: ShoppingCart, color: 'text-white bg-emerald-500 shadow-emerald-500/20' },
-  { id: 'sales_order_list', label: '수주목록 (상차)', icon: Truck, color: 'text-white bg-blue-500 shadow-blue-500/20' },
-  { id: 'sales_invoice_list', label: '매출전표 내역', icon: DollarSign, color: 'text-white bg-amber-550 shadow-amber-550/20' },
-  { id: 'inventory_lookup', label: '실시간 재고', icon: Package, color: 'text-white bg-sky-500 shadow-sky-500/20' },
-  { id: 'inventory_transfer', label: '창고간 이동', icon: ArrowLeftRight, color: 'text-white bg-purple-500 shadow-purple-500/20' },
-  { id: 'purchase_invoice', label: '매입전표 등록', icon: ArrowDownLeft, color: 'text-white bg-red-500 shadow-red-500/20' },
-  { id: 'purchase_ledger', label: '매입전표 내역', icon: FileText, color: 'text-white bg-slate-500 shadow-slate-500/20' },
-  { id: 'account_mgmt', label: '계좌관리', icon: Landmark, color: 'text-white bg-teal-500 shadow-teal-500/20' },
-  { id: 'partner_mgmt', label: '거래처관리', icon: Users, color: 'text-white bg-rose-500 shadow-rose-500/20' },
-  { id: 'product_mgmt', label: '품목관리', icon: FileSpreadsheet, color: 'text-white bg-orange-500 shadow-orange-500/20' },
-  { id: 'staff_mgmt', label: '직원관리', icon: User, color: 'text-white bg-violet-500 shadow-violet-500/20' },
-  { id: 'warehouse_mgmt', label: '창고관리', icon: Building2, color: 'text-white bg-cyan-550 shadow-cyan-550/20' },
-  { id: 'agent_chat', label: 'AI 비서', icon: MessageSquare, color: 'text-white bg-fuchsia-500 shadow-fuchsia-500/20' },
-  { id: 'logout', label: '로그아웃', icon: LogOut, color: 'text-white bg-red-500 shadow-red-500/20' },
-  { id: 'none', label: '(비어있음)', icon: Plus, color: 'text-slate-550 bg-slate-900/50 border border-dashed border-slate-800' }
-];
-
-export default function App() {
-  // ---------------------------------------------------------
-  // 1. 로그인 및 인증 관련 상태
-  // ---------------------------------------------------------
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [runtimeError, setRuntimeError] = useState(() => localStorage.getItem('last_runtime_error'));
-  const [step, setStep] = useState(1);
-  const [agencyInput, setAgencyInput] = useState('');
-  const [agencyPassword, setAgencyPassword] = useState('');
-  const [selectedAgency, setSelectedAgency] = useState(null);
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [autoSave, setAutoSave] = useState(true);
-  const [autoLogin, setAutoLogin] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showAgencyPassword, setShowAgencyPassword] = useState(false);
-  
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authError, setAuthError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDevMode, setIsDevMode] = useState(false);
-  const [devCommandInput, setDevCommandInput] = useState('');
-  const [devCommands, setDevCommands] = useState([]);
-  const [isSubmittingDevCmd, setIsSubmittingDevCmd] = useState(false);
-  const [isAgentChatOpen, setIsAgentChatOpen] = useState(false);
-  const [toast, setToast] = useState(null);
-  
-  const [salesBatchText, setSalesBatchText] = useState('');
-  const [purchaseBatchText, setPurchaseBatchText] = useState('');
-  const [salesSuggestions, setSalesSuggestions] = useState([]);
-  const [purchaseSuggestions, setPurchaseSuggestions] = useState([]);
-
-  const handleSalesBatchTextChange = (text) => {
-    setSalesBatchText(text);
-    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
-    const tokens = cleanedText.trim().split(/\s+/);
-    const lastToken = tokens[tokens.length - 1] || '';
-    if (lastToken && isNaN(parseInt(lastToken, 10))) {
-      const queryStr = lastToken.trim();
-      if (queryStr.length >= 1) {
-        const matches = products.filter(p => {
-          if (p.abbreviation && p.abbreviation.includes(queryStr)) return true;
-          if (p.name.includes(queryStr)) return true;
-          if (matchesInitialSound(p.name, queryStr)) return true;
-          return false;
-        }).slice(0, 5);
-        setSalesSuggestions(matches);
-      } else {
-        setSalesSuggestions([]);
-      }
-    } else {
-      setSalesSuggestions([]);
+    if (currentUser) {
+      fetchScheduleTypes();
     }
-  };
+  }, [currentUser]);
 
-  const handleSelectSalesSuggestion = (prod) => {
-    const text = salesBatchText;
-    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
-    const tokens = cleanedText.trim().split(/\s+/);
-    const replacement = prod.abbreviation || prod.name;
-    tokens[tokens.length - 1] = replacement;
-    setSalesBatchText(tokens.join(' ') + ' ');
-    setSalesSuggestions([]);
-  };
+  const [isAccountManagerOpen, setIsAccountManagerOpen] = useState(false);
+  const [isScheduleListOpen, setIsScheduleListOpen] = useState(false);
+  const [isScheduleRegistrationOpen, setIsScheduleRegistrationOpen] = useState(false);
+  const [isTypeManagementOpen, setIsTypeManagementOpen] = useState(false);
+  const [isManagingTypesOnOpen, setIsManagingTypesOnOpen] = useState(false);
+  const [selectedScheduleForDetail, setSelectedScheduleForDetail] = useState(null);
+  const [isScheduleDetailOpen, setIsScheduleDetailOpen] = useState(false);
 
-  const handlePurchaseBatchTextChange = (text) => {
-    setPurchaseBatchText(text);
-    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
-    const tokens = cleanedText.trim().split(/\s+/);
-    const lastToken = tokens[tokens.length - 1] || '';
-    if (lastToken && isNaN(parseInt(lastToken, 10))) {
-      const queryStr = lastToken.trim();
-      if (queryStr.length >= 1) {
-        const matches = products.filter(p => {
-          if (p.abbreviation && p.abbreviation.includes(queryStr)) return true;
-          if (p.name.includes(queryStr)) return true;
-          if (matchesInitialSound(p.name, queryStr)) return true;
-          return false;
-        }).slice(0, 5);
-        setPurchaseSuggestions(matches);
-      } else {
-        setPurchaseSuggestions([]);
-      }
-    } else {
-      setPurchaseSuggestions([]);
-    }
-  };
-
-  const handleSelectPurchaseSuggestion = (prod) => {
-    const text = purchaseBatchText;
-    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
-    const tokens = cleanedText.trim().split(/\s+/);
-    const replacement = prod.abbreviation || prod.name;
-    tokens[tokens.length - 1] = replacement;
-    setPurchaseBatchText(tokens.join(' ') + ' ');
-    setPurchaseSuggestions([]);
-  };
-
-  const agentChatEndRef = useRef(null);
-
-  // 자동 스크롤 하단 이동 (마지막 지시사항 노출)
-  useEffect(() => {
-    if (isAgentChatOpen) {
-      const timer = setTimeout(() => {
-        agentChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isAgentChatOpen, devCommands]);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [copiedSchedule, setCopiedSchedule] = useState(null);
   
+  const [isPurchaseInvoiceOpen, setIsPurchaseInvoiceOpen] = useState(false);
+  const [editingPurchaseInvoice, setEditingPurchaseInvoice] = useState(null);
+  const [isPurchaseLedgerOpen, setIsPurchaseLedgerOpen] = useState(false);
+
+  const openPurchaseInvoice = (invoice = null) => {
+    setEditingPurchaseInvoice(invoice);
+    setIsPurchaseInvoiceOpen(true);
+  };
+  const [isPurchaseOrderOpen, setIsPurchaseOrderOpen] = useState(false);
+  const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [isSalesLedgerOpen, setIsSalesLedgerOpen] = useState(false);
+  const [isSalesInvoiceListOpen, setIsSalesInvoiceListOpen] = useState(false);
+
+  const [activeSalesModal, setActiveSalesModal] = useState(null);
+  const openSalesInvoice = (invoice = null) => {
+    setEditingInvoice(invoice);
+    setIsSalesInvoiceOpen(true);
+    setActiveSalesModal('invoice');
+  };
+  const openSalesInvoiceList = () => {
+    setIsSalesInvoiceListOpen(true);
+    setActiveSalesModal('invoice_list');
+  };
+  const openSalesLedger = () => {
+    setIsSalesLedgerOpen(true);
+    setActiveSalesModal('ledger');
+  };
+  const [isSalesOrderOpen, setIsSalesOrderOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [isOrderListOpen, setIsOrderListOpen] = useState(false);
+  const [orderListSelectedStaff, setOrderListSelectedStaff] = useState('all');
+  const [isCashReportOpen, setIsCashReportOpen] = useState(false);
+  const [cashReportTab, setCashReportTab] = useState('결산');
+
+  const openCashReport = (tab = '결산') => {
+    setCashReportTab(tab);
+    setIsCashReportOpen(true);
+  };
+  const [isSalesReportOpen, setIsSalesReportOpen] = useState(false);
+  const [isOrderReportOpen, setIsOrderReportOpen] = useState(false);
+  const [isInventoryReportOpen, setIsInventoryReportOpen] = useState(false);
+  const [isReceivablesReportOpen, setIsReceivablesReportOpen] = useState(false);
+  const [inventoryReportTab, setInventoryReportTab] = useState('daily');
+
+  const openInventoryReport = (tab = 'daily') => {
+    const norm = tab === '일자별' || tab === 'daily' ? 'daily' :
+                 tab === '최종' || tab === 'final' ? 'final' :
+                 tab === '매입처별' || tab === 'partner' ? 'partner' : 'daily';
+    setInventoryReportTab(norm);
+    setIsInventoryReportOpen(true);
+  };
+  const openInventoryTransfer = (date = null) => {
+    setInventoryTransferInitialDate(date);
+    setIsInventoryTransferOpen(true);
+  };
+  const [isEditDeleteReportOpen, setIsEditDeleteReportOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [prefilledAgencyId, setPrefilledAgencyId] = useState('');
+  const [selectedAgencyForSignup, setSelectedAgencyForSignup] = useState(null);
+  const [isCashBookOpen, setIsCashBookOpen] = useState(false);
+  const [isExpenseRegistrationOpen, setIsExpenseRegistrationOpen] = useState(false);
+  const [isStaffPerformanceReportOpen, setIsStaffPerformanceReportOpen] = useState(false);
+  const [isDataManagerOpen, setIsDataManagerOpen] = useState(false);
+  const [isPartnerExcelOpen, setIsPartnerExcelOpen] = useState(false);
+  const [isProductExcelOpen, setIsProductExcelOpen] = useState(false);
+  const [isPurchaseLedgerExcelOpen, setIsPurchaseLedgerExcelOpen] = useState(false);
+  const [isSalesLedgerExcelOpen, setIsSalesLedgerExcelOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLicenseOpen, setIsLicenseOpen] = useState(false);
+  const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = useState(false);
+  const [isFavoriteSettingsOpen, setIsFavoriteSettingsOpen] = useState(false);
+  const [isInventoryAdjustmentOpen, setIsInventoryAdjustmentOpen] = useState(false);
+  const [isInventoryMismatchOpen, setIsInventoryMismatchOpen] = useState(false);
+  const [mismatchInitialWarehouse, setMismatchInitialWarehouse] = useState('');
+  const [mismatchInitialSearchTerm, setMismatchInitialSearchTerm] = useState('');
+  const [isTaxReportOpen, setIsTaxReportOpen] = useState(false);
+  const [isResizeLocked, setIsResizeLocked] = useState(true);
+  const [isDashboardLocked, setIsDashboardLocked] = useState(() => {
+    const saved = localStorage.getItem('isDashboardLocked');
+    return saved === null ? true : saved === 'true';
+  });
+  
+  React.useEffect(() => {
+    localStorage.setItem('isDashboardLocked', isDashboardLocked);
+  }, [isDashboardLocked]);
+  const [calendarHeight, setCalendarHeight] = useState(() => Number(localStorage.getItem('calendarHeight')) || 550);
+  const [toast, setToast] = useState({ message: '', type: '' });
+
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
+    setTimeout(() => setToast({ message: '', type: '' }), 5000);
   };
+  const [printingTaxInvoice, setPrintingTaxInvoice] = useState(null); // { invoice, isTaxFree }
+  const [orderingPartner, setOrderingPartner] = useState(null);
 
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-
-  const handleApplySalesBatch = () => {
-    if (!salesBatchText.trim()) return;
-    const parsed = parseBatchInput(salesBatchText);
-    if (parsed.length === 0) {
-      showToast("유효한 수량과 약칭을 입력해 주세요. (예: 10 특칠)", "info");
-      return;
-    }
-    setOrderItems(prev => {
-      const list = [...prev];
-      const isEmpty = list.length === 1 && !list[0].productName;
-      const base = isEmpty ? [] : list;
-      return [...base, ...parsed];
-    });
-    setSalesBatchText('');
-    showToast(`${parsed.length}개 품목이 수주 목록에 추가되었습니다.`, "success");
-  };
-
-  const handleApplyPurchaseBatch = () => {
-    if (!purchaseBatchText.trim()) return;
-    const parsed = parseBatchInput(purchaseBatchText).map(item => ({
-      ...item,
-      price: products.find(p => p.name === item.productName)?.purchasePrice || 0
-    }));
-    if (parsed.length === 0) {
-      showToast("유효한 수량과 약칭을 입력해 주세요. (예: 10 특칠)", "info");
-      return;
-    }
-    setPurchaseItems(prev => {
-      const list = [...prev];
-      const isEmpty = list.length === 1 && !list[0].productName;
-      const base = isEmpty ? [] : list;
-      return [...base, ...parsed];
-    });
-    setPurchaseBatchText('');
-    showToast(`${parsed.length}개 품목이 매입 목록에 추가되었습니다.`, "success");
-  };
-
-  const handleMenuClick = (item) => {
-    if (item.implemented) {
-      navigateToView(item.id);
-    } else {
-      showToast(`"${item.title}" 기능은 준비 중입니다.\nPC 버전 마스터허브를 이용해 주세요.`, 'info');
-    }
-  };
-
-  const menuStructure = [
-    {
-      id: 'basic',
-      title: '기초자료등록',
-      icon: 'Sliders',
-      items: [
-        { id: 'staff_mgmt', title: '직원관리', implemented: true },
-        { id: 'warehouse_mgmt', title: '창고관리', implemented: true },
-        { id: 'partner_mgmt', title: '거래처등록/관리', implemented: true },
-        { id: 'product_mgmt', title: '품목등록/관리', implemented: true }
-      ]
+  // System notice data and states for rollover announcement
+  const SYSTEM_NOTICES = [
+    { 
+      id: 1, 
+      title: '[공지] Linker X 시스템 정기 업데이트 (v2.8.5) 완료 안내', 
+      date: '2026-05-27', 
+      content: '안녕하세요. 마스터허브입니다.\n\nLinker X 시스템의 기능 향상 및 안정화를 위한 v2.8.5 정기 업데이트가 완료되었습니다.\n\n[주요 업데이트 사항]\n1. 즐겨찾기(자주 찾는 메뉴) UI 달력 상단 배치 및 7개 한도 개편\n2. 메뉴 검색 및 카테고리 명칭 변경 (보고서 및 관리 통합)\n3. 대시보드 위젯 설정 연동성 최적화\n\n앞으로도 더욱 편리하고 안정적인 서비스를 제공하기 위해 최선을 다하겠습니다.\n감사합니다.' 
     },
-    {
-      id: 'purchase',
-      title: '매입/발주 관리',
-      icon: 'ArrowDownLeft',
-      items: [
-        { id: 'purchase_invoice', title: '매입전표 등록', implemented: true },
-        { id: 'purchase_ledger', title: '매입전표 관리 (내역)', implemented: true },
-        { id: 'purchase_ledger_raw', title: '매입원장', implemented: false },
-        { id: 'purchase_unpaid', title: '매입처미지급현황', implemented: false },
-        { id: 'purchase_order', title: '발주 등록', implemented: false }
-      ]
+    { 
+      id: 2, 
+      title: '[알림] 클라우드 서버 데이터베이스 정기 백업 점검 예정 (5/29 02:00)', 
+      date: '2026-05-27', 
+      content: '안녕하세요. 마스터허브입니다.\n\n보다 안전한 데이터 보호를 위해 클라우드 서버 데이터베이스 정기 백업 점검이 진행될 예정입니다.\n\n[점검 일정]\n- 일시: 2026년 5월 29일(금) 오전 02:00 ~ 오전 04:00 (약 2시간)\n- 대상: Linker X ERP 전체 클라우드 DB\n\n점검 시간 동안 일시적인 데이터 지연이 발생할 수 있으니 회원 여러분의 너른 양해 부탁드립니다.\n감사합니다.' 
     },
-    {
-      id: 'sales',
-      title: '매출/수주 관리',
-      icon: 'ArrowUpRight',
-      items: [
-        { id: 'sales_invoice_list', title: '매출전표 내역 (수금)', implemented: true },
-        { id: 'sales_order_new', title: '간편수주 등록', implemented: true },
-        { id: 'sales_order_list', title: '수주목록 (상차)', implemented: true },
-        { id: 'sales_invoice_new', title: '매출전표등록', implemented: false },
-        { id: 'sales_ledger', title: '매출원장', implemented: false }
-      ]
-    },
-    {
-      id: 'cash',
-      title: '입출금관리',
-      icon: 'DollarSign',
-      items: [
-        { id: 'account_mgmt', title: '계좌관리', implemented: true },
-        { id: 'settlement_report', title: '결산보고서', implemented: false },
-        { id: 'cash_flow_daily', title: '일자별 입출금 현황', implemented: false },
-        { id: 'cash_flow_account', title: '계좌별 입출금 현황', implemented: false },
-        { id: 'cash_book', title: '금전출납부', implemented: false },
-        { id: 'expense_withdraw', title: '경비출금', implemented: false }
-      ]
-    },
-    {
-      id: 'inventory',
-      title: '재고관리',
-      icon: 'Package',
-      items: [
-        { id: 'inventory_lookup', title: '실시간 재고 조회', implemented: true },
-        { id: 'inventory_transfer', title: '창고 간 재고 이동', implemented: true },
-        { id: 'inventory_transfer_history', title: '재고 이동 현황 관리', implemented: false },
-        { id: 'inventory_adjustment', title: '재고조정 (손실처리)', implemented: false },
-        { id: 'inventory_mismatch', title: '재고 불일치 현황', implemented: false }
-      ]
-    },
-    {
-      id: 'inventory_report',
-      title: '재고보고서',
-      icon: 'BarChart2',
-      items: [
-        { id: 'inv_daily_status', title: '일자별 재고현황', implemented: false },
-        { id: 'inv_final_status', title: '최종 재고 현황', implemented: false },
-        { id: 'inv_partner_status', title: '매입처별 재고현황', implemented: false }
-      ]
-    },
-    {
-      id: 'smart',
-      title: '스마트지원',
-      icon: 'Sparkles',
-      items: [
-        { id: 'agent_chat', title: 'AI 비서 명령창', implemented: true },
-        { id: 'schedule_add', title: '일정 관리', implemented: false },
-        { id: 'sales_report', title: '매출보고서', implemented: false },
-        { id: 'order_report', title: '수주보고서', implemented: false },
-        { id: 'invoice_edit_delete_report', title: '전표수정/삭제 보고서', implemented: false },
-        { id: 'staff_perf_report', title: '직원 실적 보고서', implemented: false },
-        { id: 'receivables_mgmt', title: '미수금관리', implemented: false },
-        { id: 'tax_report', title: '세금신고 지원 보고서', implemented: false },
-        { id: 'partner_special_price', title: '거래처별 특별단가 관리', implemented: false }
-      ]
-    },
-    {
-      id: 'system',
-      title: '시스템관리',
-      icon: 'Database',
-      items: [
-        { id: 'sys_backup_restore', title: '데이터 전체 저장/불러오기', implemented: false },
-        { id: 'sys_excel_partner', title: '거래처 엑셀파일 저장/불러오기', implemented: false },
-        { id: 'sys_excel_product', title: '품목 엑셀파일 저장/불러오기', implemented: false },
-        { id: 'sys_excel_sales_ledger', title: '매출처원장 저장/불러오기', implemented: false },
-        { id: 'sys_excel_purchase_ledger', title: '매입처원장 저장/불러오기', implemented: false }
-      ]
-    },
-    {
-      id: 'config',
-      title: '환경설정 & 정품',
-      icon: 'Settings',
-      items: [
-        { id: 'cfg_settings', title: '환경설정', implemented: false },
-        { id: 'cfg_license', title: '정품등록', implemented: false }
-      ]
+    { 
+      id: 3, 
+      title: '[안내] 거래처 실시간 모니터링을 위한 "모바일 미리보기" 기능 활용 가이드', 
+      date: '2026-05-27', 
+      content: '안녕하세요. 마스터허브입니다.\n\n언제 어디서나 모바일 디바이스 환경에서 ERP 핵심 대시보드를 시뮬레이션할 수 있는 "모바일 미리보기" 기능이 정식 출시되었습니다.\n\n상단 내비게이션 바의 "모바일 미리보기" 버튼을 누르시면 390x844 모바일 뷰 전용 시뮬레이터 창이 즉시 실행되어 현장 업무나 이동 중 상태 조회가 간편해집니다.\n\n많은 활용 부탁드립니다.\n감사합니다.' 
     }
   ];
-  const [agentChatInput, setAgentChatInput] = useState('');
-  const [activeSuccessPopup, setActiveSuccessPopup] = useState(null);
-  const [lastProcessedCmdId, setLastProcessedCmdId] = useState(null);
-  const [loginFontSize, setLoginFontSize] = useState(() => {
-    const saved = localStorage.getItem('login_font_size');
-    return saved ? parseInt(saved, 10) : 12;
-  });
 
-  useEffect(() => {
-    localStorage.setItem('login_font_size', loginFontSize);
-    const rootSize = (loginFontSize / 12) * 16;
-    document.documentElement.style.fontSize = `${rootSize}px`;
-  }, [loginFontSize]);
-  
-    useEffect(() => {
-    if (devCommands.length > 0) {
-      const latestCmd = devCommands[0];
-      if (latestCmd.status === 'success' && latestCmd.id !== lastProcessedCmdId) {
-        if (lastProcessedCmdId === null) {
-          setLastProcessedCmdId(latestCmd.id);
-        } else {
-          setActiveSuccessPopup(latestCmd);
-          setLastProcessedCmdId(latestCmd.id);
-        }
-      }
-    }
-  }, [devCommands, lastProcessedCmdId]);
+  const [currentNoticeIdx, setCurrentNoticeIdx] = useState(0);
+  const [noticeFade, setNoticeFade] = useState(true);
+  const [selectedSystemNotice, setSelectedSystemNotice] = useState(null);
 
-  // ---------------------------------------------------------
-  // 2. 메뉴 및 뷰 상태
-  // ---------------------------------------------------------
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeMenuDropdown, setActiveMenuDropdown] = useState(null);
-  const [currentView, setCurrentView] = useState('dashboard');
-  
-  // Favorites Menu State
-  const [favorites, setFavorites] = useState(() => {
-    try {
-      const saved = localStorage.getItem('m_favorites');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.error("Failed to parse favorites:", e);
-    }
-    return ['sales_order_new', 'inventory_lookup', 'sales_order_list', 'sales_invoice_list', 'agent_chat'];
-  });
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setNoticeFade(false);
+      setTimeout(() => {
+        setCurrentNoticeIdx(prev => (prev + 1) % SYSTEM_NOTICES.length);
+        setNoticeFade(true);
+      }, 300);
+    }, 5000);
 
-  const toggleFavorite = (menuId) => {
-    setFavorites(prev => {
-      const arr = Array.isArray(prev) ? prev : [];
-      const next = arr.includes(menuId) 
-        ? arr.filter(id => id !== menuId) 
-        : [...arr, menuId];
-      localStorage.setItem('m_favorites', JSON.stringify(next));
-      return next;
-    });
-  };
+    return () => clearInterval(timer);
+  }, []);
 
-  // Enforce role/permission-based menu access
-  const hasMenuPermission = (menuId) => {
-    if (!isLoggedIn || !currentUser) return false;
-    
-    // Super admins and system administrators get full access
-    if (
-      currentUser.role === 'super_admin' || 
-      currentUser.userId === 'sadmin' || 
-      currentUser.userId === 'madmin' || 
-      currentUser.role === 'master' || 
-      currentUser.role === 'admin'
-    ) {
-      return true;
-    }
-
-    const perms = currentUser.permissions;
-    if (perms) {
-      if (perms.ALL === true || perms.ALL === 'true') return true;
-      if (Array.isArray(perms) && perms.includes('ALL')) return true;
-    }
-
-    const hasPerm = (title) => {
-      if (!perms) return false;
-      
-      // Case 1: permissions is an Array
-      if (Array.isArray(perms)) {
-        return perms.some(p => p && typeof p === 'string' && p.includes(title));
-      }
-      
-      // Case 2: permissions is a Map/Object
-      return Object.keys(perms).some(key => {
-        return key.includes(title) && (perms[key] === true || perms[key] === 'true');
-      });
-    };
-
-    switch (menuId) {
-      case 'dashboard':
-        return true;
-      case 'staff_mgmt':
-        return hasPerm('직원') || hasPerm('직원관리') || currentUser.role === 'manager';
-      case 'warehouse_mgmt':
-        return hasPerm('창고') || hasPerm('창고관리') || currentUser.role === 'manager';
-      case 'partner_mgmt':
-        return hasPerm('거래처') || hasPerm('거래처등록') || currentUser.role === 'manager';
-      case 'product_mgmt':
-        return hasPerm('품목') || hasPerm('품목등록') || currentUser.role === 'manager';
-      case 'purchase_invoice':
-      case 'purchase_ledger':
-        return hasPerm('매입') || hasPerm('매입전표') || hasPerm('매입원장');
-      case 'sales_invoice_list':
-        return hasPerm('매출') || hasPerm('매출전표') || hasPerm('매출원장');
-      case 'sales_order_new':
-      case 'sales_order_list':
-        return hasPerm('수주') || hasPerm('상차');
-      case 'account_mgmt':
-        return hasPerm('계좌') || hasPerm('계좌관리') || hasPerm('입출금');
-      case 'inventory_lookup':
-      case 'inventory_transfer':
-        return hasPerm('재고') || hasPerm('재고이동');
-      case 'agent_chat':
-        return hasPerm('비서') || hasPerm('AI') || hasPerm('AI 비서');
-      case 'logout':
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  // 4x4 Grid Customization States
-  const [isGridSettingsOpen, setIsGridSettingsOpen] = useState(false);
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
-  
-  // 16 slots default configuration
-  const [gridConfig, setGridConfig] = useState(() => {
-    const saved = localStorage.getItem('m_grid_config');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.length === 10) return parsed;
+  const [favoriteMenus, setFavoriteMenus] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('favoriteMenus'));
+    if (saved && Array.isArray(saved)) {
+      return saved.slice(0, 7);
     }
     return [
-      'sales_order_new', 'sales_order_list', 'sales_invoice_list', 'inventory_lookup', 'inventory_transfer',
-      'purchase_invoice', 'purchase_ledger', 'account_mgmt', 'agent_chat', 'logout'
+      'sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense'
     ];
   });
-
-  const saveGridConfig = (newConfig) => {
-    setGridConfig(newConfig);
-    localStorage.setItem('m_grid_config', JSON.stringify(newConfig));
-  };
   
-  // ---------------------------------------------------------
-  // 3. Firestore 데이터 상태
-  // ---------------------------------------------------------
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
-  const [partners, setPartners] = useState([]);
-  const [specialPrices, setSpecialPrices] = useState([]);
-  const [inventory, setInventory] = useState({});
-  const [salesOrders, setSalesOrders] = useState([]);
-  const [salesInvoices, setSalesInvoices] = useState([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState([]);
-  const [accounts, setAccounts] = useState([]);
-  const [agentChats, setAgentChats] = useState([]);
-  const [staffList, setStaffList] = useState([]);
-  const [schedules, setSchedules] = useState([]);
+  const [dashboardConfig, setDashboardConfig] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('dashboardConfig'));
+    if (saved && saved.widgets) {
+      return { ...saved, widgets: saved.widgets.filter(id => id !== 'Calendar') };
+    }
+    return saved || {
+      widgets: ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses']
+    };
+  });
+  
+  const [licenseData, setLicenseData] = useState(() => JSON.parse(localStorage.getItem('licenseData')) || {
+    expiryDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 1 month free
+    plan: '무료 체험판',
+    isLockedOnExpiry: false,
+    lastPaymentDate: null
+  });
 
-  // ---------------------------------------------------------
-  // 4. 로컬 스토리지 자동 로그인 정보 로딩
-  // ---------------------------------------------------------
-  useEffect(() => {
-    const isAutoSave = localStorage.getItem('autoSaveLogin') === 'true';
-    const isAutoLogin = localStorage.getItem('autoLogin') === 'true' && !localStorage.getItem('last_runtime_error');
-    setAutoSave(isAutoSave);
-    setAutoLogin(isAutoLogin);
+  const [showLicenseAlert, setShowLicenseAlert] = useState(false);
+  
+  const [systemSettings, setSystemSettings] = useState(() => JSON.parse(localStorage.getItem('systemSettings')) || {
+    company: { name: '', bizNum: '', ceo: '', type: '', address: '', tel: '', email: '' },
+    display: { darkMode: false, soundEffects: true, realTimeUpdate: true },
+    transaction: { defaultVat: 10, decimalPlaces: 0, autoNumbering: true },
+    salesInvoice: { warnNoStock: true },
+    language: '한국어 (Korean)',
+    timezone: '(GMT+09:00) Seoul',
+    theme: {
+      primaryColor: '#3b82f6',
+      logoUrl: null
+    }
+  });
 
-    if (isAutoSave) {
-      const savedAgencyInput = localStorage.getItem('savedAgencyInput');
-      const savedAgencyPw = localStorage.getItem('savedAgencyPw');
-      if (savedAgencyInput) setAgencyInput(savedAgencyInput);
-      if (savedAgencyPw) setAgencyPassword(savedAgencyPw);
+  const [companySettings, setCompanySettings] = useState(null);
 
-      const savedAgency = localStorage.getItem('savedAgency');
-      if (savedAgency) {
-        const agency = JSON.parse(savedAgency);
-        setSelectedAgency(agency);
-        setStep(2);
-        
-        const savedEmail = localStorage.getItem('savedLoginId');
-        const savedPw = localStorage.getItem('savedLoginPw');
-        if (savedEmail) setEmail(savedEmail);
-        if (savedPw) setPassword(savedPw);
-
-        if (isAutoLogin && savedAgencyInput && savedAgencyPw && savedEmail && savedPw) {
-          const performAutoLogin = async () => {
-            setIsLoading(true);
-            const agencyData = await findAgencyHelper(savedAgencyInput, savedAgencyPw);
-            if (agencyData) {
-              if (agencyData.isMaster) {
-                setIsLoading(false);
-                return;
-              }
-              const userSuccess = await loginHelper(savedEmail, savedPw, agencyData.id);
-              if (userSuccess) {
-                setIsLoggedIn(true);
-              }
-            }
-            setIsLoading(false);
-          };
-          performAutoLogin();
+  // Pre-fetch theme based on URL query (?company=ID)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const companyQuery = params.get('company');
+    
+    if (companyQuery) {
+      const fetchCompanyTheme = async () => {
+        const docRef = doc(db, 'companies', companyQuery);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+          setCompanySettings(snapshot.data());
+          console.log(`Pre-fetched theme for: ${companyQuery}`);
         }
-      }
+      };
+      fetchCompanyTheme();
     }
   }, []);
 
-  // ---------------------------------------------------------
-  // 5. 회원사 및 구성원 인증 헬퍼 함수
-  // ---------------------------------------------------------
-  const findAgencyHelper = async (idOrEmail, pwd) => {
-    if ((idOrEmail === 'madmin' || idOrEmail === 'sadmin') && pwd === 'gdtop7818@@') {
-      const ALL_PERMS = ['매입전표', '매입원장', '발주', '매출전표', '매출전표내역', '매출원장', '수주', '계좌관리', '입출금보고서', '금전출납부', '경비출금', '매출보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '재고이동', '재고보고서', '특별단가관리', '데이터 전체 저장/불러오기', '거래처 엑셀파일로 저장/불러오기', '품목 엑셀파일로 저장/불러오기', '매출처원장 저장/불러오기', '매입처원장 저장/불러오기', '일정'];
-      const masterUser = { 
-        id: idOrEmail === 'madmin' ? 0 : -1, 
-        userId: idOrEmail, 
-        name: idOrEmail === 'madmin' ? '최고관리자' : '마스터관리자', 
-        jobTitle: 'System Master', 
-        role: 'super_admin', 
-        permissions: ALL_PERMS 
-      };
-      setCurrentUser(masterUser);
-      setIsLoggedIn(true);
-      return { isMaster: true };
-    }
+  const [expenses, setExpenses] = useState(() => JSON.parse(localStorage.getItem('expenses')) || []);
+  const [agencyCategories, setAgencyCategories] = useState(['본사', '직영점', '대리점']);
 
+  const [staffZones, setStaffZones] = useState(() => {
     try {
-      let company = null;
-      const q = query(collection(db, 'companies'), where('email', '==', idOrEmail));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        company = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-      } else {
-        const docRef = doc(db, 'companies', idOrEmail);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) company = { id: docSnap.id, ...docSnap.data() };
-      }
-
-      if (company && company.password === pwd) {
-        return company;
-      }
-      return null;
-    } catch (err) {
-      console.error("Agency login error:", err);
-      return null;
+      const saved = localStorage.getItem('staffZones');
+      return saved ? JSON.parse(saved) : ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    } catch {
+      return ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
     }
-  };
+  });
 
-  const loginHelper = async (uid, pwd, companyId) => {
-    if ((uid === 'madmin' || uid === 'sadmin') && pwd === 'gdtop7818@@') {
-      const ALL_PERMS = ['매입전표', '매입원장', '발주', '매출전표', '매출전표내역', '매출원장', '수주', '계좌관리', '입출금보고서', '금전출납부', '경비출금', '매출보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '재고이동', '재고보고서', '특별단가관리', '데이터 전체 저장/불러오기', '거래처 엑셀파일로 저장/불러오기', '품목 엑셀파일로 저장/불러오기', '매출처원장 저장/불러오기', '매입처원장 저장/불러오기', '일정'];
-      const masterUser = { id: 0, userId: uid, name: '최고관리자', jobTitle: 'System Admin', role: 'super_admin', permissions: ALL_PERMS };
-      setCurrentUser(masterUser);
-      return true;
-    }
-
-    if (!companyId) return false;
-
+  const [staffJobTitles, setStaffJobTitles] = useState(() => {
     try {
-      let u = null;
-      const compositeId = `${companyId}_${uid}`;
-      
-      const staffDoc = await getDoc(doc(db, 'companies', companyId, 'staffList', compositeId));
-      if (staffDoc.exists()) {
-        const data = staffDoc.data();
-        if (data.password === pwd) u = data;
-      }
-      
-      if (!u) {
-        const staffRef = collection(db, 'companies', companyId, 'staffList');
-        const q2 = query(staffRef, where('userId', '==', uid));
-        const snap2 = await getDocs(q2);
-        if (!snap2.empty) {
-          const data = snap2.docs[0].data();
-          if (data.password === pwd) u = data;
+      const saved = localStorage.getItem('staffJobTitles');
+      return saved ? JSON.parse(saved) : ['대표', '이사', '부장', '차장', '과장', '대리', '사원', '주임', '팀장', '실장', '본부장', '고문', '자문'];
+    } catch {
+      return ['대표', '이사', '부장', '차장', '과장', '대리', '사원', '주임', '팀장', '실장', '본부장', '고문', '자문'];
+    }
+  });
+
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'agencyCategories'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.categories && data.categories.length > 0) {
+          setAgencyCategories(data.categories);
         }
       }
+    });
+    return () => unsub();
+  }, []);
 
-      if (u) {
-        setCurrentUser(u);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("User login error:", err);
-      return false;
-    }
-  };
+  // Handle Dark Mode
+  React.useEffect(() => {
+    // Apply Primary Color from Company Settings or Default
+    const primary = companySettings?.theme?.primaryColor || systemSettings.theme?.primaryColor || '#3b82f6';
+    document.documentElement.style.setProperty('--primary', primary);
+    document.documentElement.style.setProperty('--primary-hover', primary + 'dd');
 
-  const handleAgencySubmit = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    if (!agencyInput || !agencyPassword) {
-      setAuthError('회원사 아이디와 비밀번호를 모두 입력해 주세요.');
-      return;
-    }
-    
-    setIsLoading(true);
-    const agency = await findAgencyHelper(agencyInput, agencyPassword);
-    
-    if (agency) {
-      if (agency.isMaster) {
-        setIsLoading(false);
-        return;
-      }
-      setSelectedAgency(agency);
-      setStep(2);
-      if (autoSave) {
-        localStorage.setItem('autoSaveLogin', 'true');
-        localStorage.setItem('savedAgencyInput', agencyInput);
-        localStorage.setItem('savedAgencyPw', agencyPassword);
-        localStorage.setItem('savedAgency', JSON.stringify(agency));
-      }
+    if (systemSettings.display?.darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
-      setAuthError('회원사 정보를 찾을 수 없거나 비밀번호가 틀렸습니다.');
+      document.documentElement.removeAttribute('data-theme');
     }
-    setIsLoading(false);
-  };
+  }, [systemSettings.display?.darkMode, companySettings, systemSettings.theme]);
 
-  const handleUserSubmit = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    if (!email || !password) {
-      setAuthError('이메일과 비밀번호를 모두 입력해 주세요.');
-      return;
+  React.useEffect(() => {
+    if (currentUser && currentUser.userId && currentUser.role !== 'super_admin') {
+      const currentStaff = staffList.find(s => s.userId === currentUser.userId);
+      if (currentStaff) {
+        const hasDiff = currentStaff.allowAllEditDelete !== currentUser.allowAllEditDelete ||
+                        currentStaff.allowSpecialPriceSave !== currentUser.allowSpecialPriceSave ||
+                        JSON.stringify(currentStaff.permissions) !== JSON.stringify(currentUser.permissions) ||
+                        currentStaff.name !== currentUser.name ||
+                        currentStaff.role !== currentUser.role;
+        if (hasDiff) {
+          const updatedUser = { ...currentUser, ...currentStaff };
+          setCurrentUser(updatedUser);
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        }
+      }
     }
-    
-    setIsLoading(true);
-    
-    if (autoSave) {
-      localStorage.setItem('savedLoginId', email);
-      localStorage.setItem('savedLoginPw', password);
-      localStorage.setItem('autoSaveLogin', 'true');
-      localStorage.setItem('autoLogin', autoLogin ? 'true' : 'false');
-      localStorage.setItem('savedAgencyInput', agencyInput);
-      localStorage.setItem('savedAgencyPw', agencyPassword);
-      localStorage.setItem('savedAgency', JSON.stringify(selectedAgency));
-    } else {
-      localStorage.removeItem('savedLoginId');
-      localStorage.removeItem('savedLoginPw');
-      localStorage.removeItem('autoLogin');
-      localStorage.removeItem('savedAgencyInput');
-      localStorage.removeItem('savedAgencyPw');
-      localStorage.removeItem('savedAgency');
-      localStorage.setItem('autoSaveLogin', 'false');
-    }
-
-    const success = await loginHelper(email, password, selectedAgency?.id);
-    if (success) {
-      setIsLoggedIn(true);
-    } else {
-      setAuthError('아이디 또는 비밀번호가 틀렸습니다.');
-    }
-    setIsLoading(false);
-  };
-
-  const handleBackToStep1 = () => {
-    setStep(1);
-    setAuthError('');
-  };
+  }, [staffList, currentUser]);
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setPassword('');
     setCurrentUser(null);
-    setStep(1);
-    setCurrentView('dashboard');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('autoLogin');
+    window.location.reload();
   };
 
-  // ---------------------------------------------------------
-  // 6. Firestore 실시간 리스너 바인딩
-  // ---------------------------------------------------------
-  useEffect(() => {
-    if (!isLoggedIn || !selectedAgency?.id) return;
-    const companyId = selectedAgency.id;
+  // Firebase Real-time Sync with Data Isolation
+  React.useEffect(() => {
+    if (!currentUser || currentView === 'login' || currentView === 'super_admin') return;
 
     const unsubscribes = [];
+    const companyId = currentUser.companyId || 'default';
 
-    // Products
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'products'), (snap) => {
-      setProducts(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
+    // 1. Sync Company Settings (Logo, Theme, License)
+    const companyUnsub = onSnapshot(doc(db, 'companies', companyId), (snapshot) => {
+      if (snapshot.exists()) {
+        setCompanySettings(snapshot.data());
+      }
+    });
+    unsubscribes.push(companyUnsub);
+    
+    // Sync collections with companyId filter
+    const collectionsToSync = [
+      { name: 'staffList', setter: setStaffList },
+      { name: 'schedules', setter: setSchedules },
+      { name: 'products', setter: setProducts },
+      { name: 'categories', setter: setCategories },
+      { name: 'partners', setter: setPartners },
+      { name: 'accounts', setter: setAccounts },
+      { name: 'purchaseInvoices', setter: setPurchaseInvoices },
+      { name: 'purchaseOrders', setter: setPurchaseOrders },
+      { name: 'salesInvoices', setter: setSalesInvoices },
+      { name: 'salesOrders', setter: setSalesOrders },
+      { name: 'warehouses', setter: setWarehouses },
+      { name: 'expenses', setter: setExpenses },
+      { name: 'inventoryAdjustments', setter: setInventoryAdjustments },
+      { name: 'inventoryTransferHistory', setter: setInventoryTransferHistory },
+      { name: 'specialPrices', setter: setSpecialPrices }
+    ];
 
-    // Categories
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'categories'), (snap) => {
-      setCategories(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
+    collectionsToSync.forEach(col => {
+      // New structure: companies/{companyId}/{collectionName}
+      const q = collection(db, 'companies', companyId, col.name);
+      const unsub = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+        col.setter(data);
+        localStorage.setItem(col.name, JSON.stringify(data));
+        localStorage.setItem(`fb_synced_${col.name}_${companyId}`, 'true');
+        setSyncedCollections(prev => ({ ...prev, [col.name]: true }));
+      });
+      unsubscribes.push(unsub);
+    });
 
-    // Warehouses
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'warehouses'), (snap) => {
-      setWarehouses(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
+    // Sync single docs within company sub-collection or specific document
+    const singleDocs = [
+      { name: 'systemSettings', setter: setSystemSettings },
+      { name: 'inventory', setter: setInventory },
+      { name: 'physicalInventory', setter: setPhysicalInventory },
+      { name: 'licenseData', setter: setLicenseData },
+      { name: 'dashboardConfig', setter: setDashboardConfig },
+      { name: 'favoriteMenus', setter: setFavoriteMenus },
+      { name: 'staffZones', setter: setStaffZones },
+      { name: 'staffJobTitles', setter: setStaffJobTitles }
+    ];
 
-    // Partners
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'partners'), (snap) => {
-      setPartners(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
+    singleDocs.forEach(sd => {
+      // New structure: companies/{companyId}/settings/{docName}
+      const unsub = onSnapshot(doc(db, 'companies', companyId, 'settings', sd.name), (snapshot) => {
+        if (snapshot.metadata.hasPendingWrites) return; // 로컬 쓰기가 대기 중일 때는 리스너 덮어쓰기를 스킵하여 Race Condition 방어
+        
+        if (snapshot.exists()) {
+          const dataVal = snapshot.data().value;
+          sd.setter(dataVal);
 
-    // Special Prices
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'specialPrices'), (snap) => {
-      setSpecialPrices(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
 
-    // Inventory
-    unsubscribes.push(onSnapshot(doc(db, 'companies', companyId, 'settings', 'inventory'), (snap) => {
-      if (snap.exists()) setInventory(snap.data().value || {});
-    }));
-
-    // Sales Orders
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'salesOrders'), (snap) => {
-      setSalesOrders(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Sales Invoices
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'salesInvoices'), (snap) => {
-      setSalesInvoices(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Purchase Invoices
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'purchaseInvoices'), (snap) => {
-      setPurchaseInvoices(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Accounts
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'accounts'), (snap) => {
-      setAccounts(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Staff List
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'staffList'), (snap) => {
-      setStaffList(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Schedules
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'schedules'), (snap) => {
-      setSchedules(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Agent Chats
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'agentChats'), (snap) => {
-      setAgentChats(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })));
-    }));
-
-    // Dev Commands
-    unsubscribes.push(onSnapshot(collection(db, 'companies', companyId, 'devCommands'), (snap) => {
-      setDevCommands(snap.docs.map(doc => ({ ...doc.data(), _docId: doc.id })).sort((a, b) => b.createdAt?.localeCompare(a.createdAt) || 0));
-    }));
+        }
+      });
+      unsubscribes.push(unsub);
+    });
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [isLoggedIn, selectedAgency]);
+  }, [currentUser, currentView]);
 
-  const companyId = selectedAgency?.id || 'DMK';
-
-  // ---------------------------------------------------------
-  // 7. 대시보드 화면
-  // ---------------------------------------------------------
-  const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
-  const [scheduleTitle, setScheduleTitle] = useState('');
-  const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split('T')[0]);
-  const [scheduleContent, setScheduleContent] = useState('');
-  const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
-
-  const handleAddSchedule = async (e) => {
-    e.preventDefault();
-    if (!scheduleTitle.trim()) return;
-    setIsSubmittingSchedule(true);
-    try {
-      const sId = `SCH-${Date.now()}`;
-      const newSchedule = {
-        id: sId,
-        title: scheduleTitle.trim(),
-        date: scheduleDate,
-        content: scheduleContent.trim(),
-        type: '일반',
-        companyId
-      };
-      await setDoc(doc(db, 'companies', companyId, 'schedules', sId), newSchedule);
-      alert('새 일정이 등록되었습니다.');
-      setScheduleTitle('');
-      setScheduleContent('');
-      setShowAddScheduleModal(false);
-    } catch (err) {
-      console.error(err);
-      alert('일정 추가 에러');
-    } finally {
-      setIsSubmittingSchedule(false);
-    }
-  };
-
-  const handleSlotClick = (idx) => {
-    setSelectedSlotIndex(idx);
-    setIsGridSettingsOpen(true);
-  };
-
-  const assignMenuToSlot = (menuId) => {
-    const nextConfig = [...gridConfig];
-    nextConfig[selectedSlotIndex] = menuId;
-    saveGridConfig(nextConfig);
-    setIsGridSettingsOpen(false);
-  };
-
-  const handleGridMenuClick = (menuId) => {
-    if (menuId === 'none') return;
-    if (menuId === 'logout') {
-      handleLogout();
-      return;
-    }
-    setCurrentView(menuId);
-  };
-
-  const renderDashboard = () => {
-    // Generate exactly 10 slots (5 columns * 2 rows), filtering by user permissions
-    const favs = Array.isArray(favorites) ? favorites : [];
-    const gridSlots = Array.from({ length: 10 }, (_, i) => {
-      const favId = favs[i];
-      if (favId && hasMenuPermission(favId)) return favId;
-      return 'none';
-    });
-
-    return (
-      <div className="space-y-3 animate-fadeIn pb-8">
-        {/* 1. 즐겨찾기 메뉴판 (5x2 Flat Launcher) */}
-        <div className="grid grid-cols-5 gap-y-2.5 gap-x-1 -mx-3 px-1 pt-1 pb-1">
-          {gridSlots.map((menuId, idx) => {
-            const opt = MENU_OPTIONS.find(o => o.id === menuId) || MENU_OPTIONS[15];
-            const IconComponent = opt.icon;
-            return (
-              <div key={idx} className="relative flex flex-col items-center group">
-                <button 
-                  onClick={() => {
-                    if (menuId === 'none') {
-                      setIsMenuOpen(true);
-                      showToast("메뉴 서랍의 별표(★)를 눌러 즐겨찾기를 등록해 주세요!");
-                    } else {
-                      handleGridMenuClick(menuId);
-                    }
-                  }}
-                  className="w-full flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-95"
-                >
-                  {opt.id === 'none' ? (
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-550 border border-dashed border-slate-800 bg-slate-900/10 hover:border-slate-700 hover:text-slate-400 transition-all">
-                      <Plus size={24} />
-                    </div>
-                  ) : (
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-1.5 transition-all shadow-md ${opt.color}`}>
-                      <IconComponent size={24} />
-                    </div>
-                  )}
-                  <span className="text-[10px] text-slate-300 font-bold mt-1 text-center leading-tight truncate w-full px-0.5">
-                    {opt.id === 'none' ? '즐겨찾기' : opt.label}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 8. 기초자료등록 - 직원관리 화면
-  // ---------------------------------------------------------
-  const [newStaffName, setNewStaffName] = useState('');
-  const [newStaffId, setNewStaffId] = useState('');
-  const [newStaffPw, setNewStaffPw] = useState('');
-  const [newStaffTitle, setNewStaffTitle] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('staff');
-  const [isSubmittingStaff, setIsSubmittingStaff] = useState(false);
-  const [showStaffForm, setShowStaffForm] = useState(false);
-
-  const handleSubmitStaff = async (e) => {
-    e.preventDefault();
-    if (!newStaffName || !newStaffId || !newStaffPw) {
-      alert('필수 사원 정보를 채워주세요.');
-      return;
-    }
-
-    setIsSubmittingStaff(true);
-    try {
-      const compositeId = `${companyId}_${newStaffId.trim()}`;
-      const newStaffDoc = {
-        id: compositeId,
-        userId: newStaffId.trim(),
-        name: newStaffName,
-        password: newStaffPw,
-        jobTitle: newStaffTitle || '사원',
-        role: newStaffRole,
-        permissions: ['매입전표', '매출전표', '수주', '재고이동', '일정'],
-        companyId
-      };
-
-      await setDoc(doc(db, 'companies', companyId, 'staffList', compositeId), newStaffDoc);
-      alert('새로운 사원이 성공적으로 등록되었습니다.');
-      setNewStaffName('');
-      setNewStaffId('');
-      setNewStaffPw('');
-      setNewStaffTitle('');
-      setShowStaffForm(false);
-    } catch (err) {
-      console.error(err);
-      alert('사원 등록 에러');
-    } finally {
-      setIsSubmittingStaff(false);
-    }
-  };
-
-  const renderStaffMgmt = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <div className="flex justify-between items-center">
-          <h3 className="text-white text-lg font-black">사원(직원) 관리</h3>
-          <button 
-            onClick={() => setShowStaffForm(!showStaffForm)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 shadow-md shadow-blue-500/10"
-          >
-            {showStaffForm ? '사원 목록' : '+ 신규 사원 추가'}
-          </button>
-        </div>
-
-        {showStaffForm ? (
-          <form onSubmit={handleSubmitStaff} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-            <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><UserPlus size={14}/> 신규 직원 사원 등록</div>
-            <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">사원 이름</span>
-                  <input type="text" placeholder="홍길동" value={newStaffName} onChange={e => setNewStaffName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">직책 / 부서</span>
-                  <input type="text" placeholder="예: 대리" value={newStaffTitle} onChange={e => setNewStaffTitle(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">사원 로그인 ID</span>
-                  <input type="text" placeholder="login_id" value={newStaffId} onChange={e => setNewStaffId(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold">비밀번호</span>
-                  <input type="password" placeholder="비밀번호" value={newStaffPw} onChange={e => setNewStaffPw(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold">권한 역할 구분</span>
-                <select value={newStaffRole} onChange={e => setNewStaffRole(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                  <option value="staff">일반 사원 (정직원)</option>
-                  <option value="driver">물류 배송 사원 (기사)</option>
-                  <option value="manager">관리자 (매니저)</option>
-                </select>
-              </div>
-            </div>
-            <button type="submit" disabled={isSubmittingStaff} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs">
-              {isSubmittingStaff ? '사원 추가 처리 중...' : '사원 등록 완료'}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-2">
-            {staffList.map(staff => (
-              <div key={staff.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-sm">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold text-sm">{staff.name}</span>
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-bold">{staff.jobTitle}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500">ID: {staff.userId}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  staff.role === 'super_admin' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : staff.role === 'manager' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-850 text-slate-400'
-                }`}>{staff.role}</span>
-              </div>
-            ))}
-            {staffList.length === 0 && (
-              <div className="text-center py-12 text-slate-500 text-xs">등록된 사원이 없습니다.</div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 8-2. 기초자료등록 - 창고관리 화면
-  // ---------------------------------------------------------
-  const [newWhName, setNewWhName] = useState('');
-  const [newWhColor, setNewWhColor] = useState('#3b82f6');
-  const [isSubmittingWh, setIsSubmittingWh] = useState(false);
-
-  const colorsPalette = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-
-  const handleSubmitWarehouse = async (e) => {
-    e.preventDefault();
-    if (!newWhName.trim()) return;
-
-    setIsSubmittingWh(true);
-    try {
-      const whId = `WH-${Date.now()}`;
-      const newWhDoc = {
-        id: whId,
-        name: newWhName.trim(),
-        color: newWhColor,
-        companyId
-      };
-      await setDoc(doc(db, 'companies', companyId, 'warehouses', whId), newWhDoc);
-      alert('신규 창고가 정상 등록되었습니다.');
-      setNewWhName('');
-    } catch (err) {
-      console.error(err);
-      alert('창고 등록 에러');
-    } finally {
-      setIsSubmittingWh(false);
-    }
-  };
-
-  const renderWarehouseMgmt = () => {
-    return (
-      <div className="space-y-6 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">창고 등록 및 현황</h3>
-
-        <form onSubmit={handleSubmitWarehouse} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-          <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Building2 size={14}/> 신규 물류 창고 등록</div>
-          
-          <div className="space-y-1.5">
-            <span className="text-[10px] text-slate-550 font-bold block">창고 명칭</span>
-            <input type="text" placeholder="예: 부산 2창고" value={newWhName} onChange={e => setNewWhName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-[10px] text-slate-550 font-bold block">창고 대표 색상 (맵 식별용)</span>
-            <div className="flex gap-2">
-              {colorsPalette.map(color => (
-                <button 
-                  key={color}
-                  type="button" 
-                  onClick={() => setNewWhColor(color)}
-                  className={`w-7 h-7 rounded-full transition-all border-2 ${
-                    newWhColor === color ? 'border-white scale-110' : 'border-transparent'
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button type="submit" disabled={isSubmittingWh} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md">
-            {isSubmittingWh ? '저장 중...' : '창고 추가'}
-          </button>
-        </form>
-
-        <div className="space-y-2">
-          {warehouses.map(wh => (
-            <div key={wh.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
-              <span className="text-white font-bold text-sm flex items-center gap-2.5">
-                <span className="w-3.5 h-3.5 rounded-full shadow-inner" style={{ backgroundColor: wh.color || '#3b82f6' }} />
-                {wh.name}
-              </span>
-              <span className="text-slate-505 text-[10px] font-bold uppercase">{wh.id}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 8-3. 기초자료등록 - 거래처등록/관리 화면
-  // ---------------------------------------------------------
-  const [partnerSearch, setPartnerSearch] = useState('');
-  const [showPartnerForm, setShowPartnerForm] = useState(false);
-  const [newPartnerName, setNewPartnerName] = useState('');
-  const [newPartnerType, setNewPartnerType] = useState('매출처');
-  const [newPartnerPhone, setNewPartnerPhone] = useState('');
-  const [newPartnerAddress, setNewPartnerAddress] = useState('');
-  const [newPartnerReceivables, setNewPartnerReceivables] = useState('0');
-  const [isSubmittingPartner, setIsSubmittingPartner] = useState(false);
-  const [expandedPartnerId, setExpandedPartnerId] = useState(null);
-
-  const filteredPartnersList = useMemo(() => {
-    return partners.filter(p => {
-      return !partnerSearch || matchesInitialSound(p.name, partnerSearch) || matchesInitialSound(p.phone || '', partnerSearch);
-    });
-  }, [partners, partnerSearch]);
-
-  const handleSubmitPartner = async (e) => {
-    e.preventDefault();
-    if (!newPartnerName.trim()) return;
-
-    setIsSubmittingPartner(true);
-    try {
-      const partId = `PART-${Date.now()}`;
-      const newPartDoc = {
-        id: partId,
-        name: newPartnerName.trim(),
-        type: newPartnerType,
-        phone: newPartnerPhone.trim(),
-        address: newPartnerAddress.trim(),
-        receivables: Number(newPartnerReceivables) || 0,
-        companyId
-      };
-
-      await setDoc(doc(db, 'companies', companyId, 'partners', partId), newPartDoc);
-      alert('신규 거래처가 성공적으로 등록되었습니다.');
-      setNewPartnerName('');
-      setNewPartnerPhone('');
-      setNewPartnerAddress('');
-      setNewPartnerReceivables('0');
-      setShowPartnerForm(false);
-    } catch (err) {
-      console.error(err);
-      alert('거래처 등록 실패');
-    } finally {
-      setIsSubmittingPartner(false);
-    }
-  };
-
-  const renderPartnerMgmt = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <div className="flex justify-between items-center">
-          <h3 className="text-white text-lg font-black">거래처 등록/관리</h3>
-          <button 
-            onClick={() => setShowPartnerForm(!showPartnerForm)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 shadow-md shadow-blue-500/10"
-          >
-            {showPartnerForm ? '거래처 목록' : '+ 신규 거래처 추가'}
-          </button>
-        </div>
-
-        {showPartnerForm ? (
-          <form onSubmit={handleSubmitPartner} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-            <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Users size={14}/> 신규 비즈니스 거래처 등록</div>
-            
-            <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">거래처명</span>
-                  <input type="text" placeholder="주식회사 동명" value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">거래처 종류</span>
-                  <select value={newPartnerType} onChange={e => setNewPartnerType(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="매출처">매출처 (수주처)</option>
-                    <option value="매입처">매입처 (공급처)</option>
-                    <option value="공통">공통 거래처</option>
-                    <option value="혼합">혼합 거래처</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">대표 연락처</span>
-                  <input type="tel" placeholder="010-1234-5678" value={newPartnerPhone} onChange={e => setNewPartnerPhone(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">초기 미수금 잔액</span>
-                  <input type="number" value={newPartnerReceivables} onChange={e => setNewPartnerReceivables(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-550 font-bold">주소지 (배송지)</span>
-                <input type="text" placeholder="상세 배송 주소를 입력하세요" value={newPartnerAddress} onChange={e => setNewPartnerAddress(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-              </div>
-            </div>
-
-            <button type="submit" disabled={isSubmittingPartner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md">
-              {isSubmittingPartner ? '거래처 등록 중...' : '거래처 등록 완료'}
-            </button>
-          </form>
-        ) : (
-          <>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="거래처명, 초성 또는 전화번호 검색" 
-                value={partnerSearch}
-                onChange={e => setPartnerSearch(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 w-full text-xs text-white focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              {filteredPartnersList.map(p => {
-                const isExpanded = expandedPartnerId === p.id;
-                return (
-                  <div 
-                    key={p.id}
-                    onClick={() => setExpandedPartnerId(isExpanded ? null : p.id)}
-                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-3 space-y-2 cursor-pointer"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2.5">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          p.type === '매출처' ? 'bg-emerald-500/10 text-emerald-450' : p.type === '매입처' ? 'bg-red-500/10 text-red-450' : 'bg-slate-850 text-slate-400'
-                        }`}>{p.type}</span>
-                        <h4 className="text-white font-bold text-sm">{p.name}</h4>
-                      </div>
-                      <span className="text-white text-xs font-extrabold">{Number(p.receivables || 0).toLocaleString()}원</span>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-slate-850 space-y-2 text-xs text-slate-400 animate-fadeIn">
-                        <div className="flex items-center gap-1.5"><Phone size={12}/> 전화: {p.phone || '연락처 미등록'}</div>
-                        <div className="flex items-center gap-1.5"><MapPin size={12}/> 주소: {p.address || '주소 미등록'}</div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {filteredPartnersList.length === 0 && (
-                <div className="text-center py-12 text-slate-500 text-xs">해당 거래처가 존재하지 않습니다.</div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 8-4. 기초자료등록 - 품목등록/관리 화면
-  // ---------------------------------------------------------
-  const [productSearch, setProductSearch] = useState('');
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [newProdName, setNewProdName] = useState('');
-  const [newProdSpec, setNewProdSpec] = useState('');
-  const [newProdLargeCat, setNewProdLargeCat] = useState('');
-  const [newProdSalesPrice, setNewProdSalesPrice] = useState('');
-  const [newProdPurchasePrice, setNewProdPurchasePrice] = useState('');
-  const [newProdSafetyStock, setNewProdSafetyStock] = useState('100');
-  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
-  const [expandedProdId, setExpandedProdId] = useState(null);
-
-  const filteredProductsList = useMemo(() => {
-    return products.filter(p => {
-      return !productSearch || matchesInitialSound(p.name, productSearch) || matchesInitialSound(p.barcode || '', productSearch);
-    });
-  }, [products, productSearch]);
-
-  const handleSubmitProduct = async (e) => {
-    e.preventDefault();
-    if (!newProdName.trim() || !newProdLargeCat) {
-      alert('품목명과 대분류를 정확히 기입해주세요.');
-      return;
-    }
-
-    setIsSubmittingProduct(true);
-    try {
-      const prodId = `PROD-${Date.now()}`;
-      const newProdDoc = {
-        id: prodId,
-        name: newProdName.trim(),
-        spec: newProdSpec.trim(),
-        categoryLarge: newProdLargeCat,
-        salesPrice: Number(newProdSalesPrice) || 0,
-        purchasePrice: Number(newProdPurchasePrice) || 0,
-        optimalStock: Number(newProdSafetyStock) || 0,
-        initialStock: 0,
-        companyId
-      };
-
-      await setDoc(doc(db, 'companies', companyId, 'products', prodId), newProdDoc);
-      alert('신규 물류 품목이 성공적으로 등록되었습니다.');
-      setNewProdName('');
-      setNewProdSpec('');
-      setNewProdLargeCat('');
-      setNewProdSalesPrice('');
-      setNewProdPurchasePrice('');
-      setNewProdSafetyStock('100');
-      setShowProductForm(false);
-    } catch (err) {
-      console.error(err);
-      alert('품목 추가 실패');
-    } finally {
-      setIsSubmittingProduct(false);
-    }
-  };
-
-  const renderProductMgmt = () => {
-    const catsLarge = Array.from(new Set(categories.filter(c => c.level === 1 || !c.parentId).map(c => c.name)));
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <div className="flex justify-between items-center">
-          <h3 className="text-white text-lg font-black">품목 등록/관리</h3>
-          <button 
-            onClick={() => setShowProductForm(!showProductForm)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 shadow-md shadow-blue-500/10"
-          >
-            {showProductForm ? '품목 목록' : '+ 신규 품목 추가'}
-          </button>
-        </div>
-
-        {showProductForm ? (
-          <form onSubmit={handleSubmitProduct} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-            <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Package size={14}/> 신규 물류/생산 품목 등록</div>
-            
-            <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">품목명</span>
-                  <input type="text" placeholder="예: 통밀가루 10kg" value={newProdName} onChange={e => setNewProdName(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">규격 (Spec)</span>
-                  <input type="text" placeholder="예: 10kg/포대" value={newProdSpec} onChange={e => setNewProdSpec(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">대분류 카테고리</span>
-                  <select value={newProdLargeCat} onChange={e => setNewProdLargeCat(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
-                    <option value="">-- 분류 선택 --</option>
-                    {catsLarge.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">안전재고 (안전재고 기준)</span>
-                  <input type="number" value={newProdSafetyStock} onChange={e => setNewProdSafetyStock(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">매입단가 (원)</span>
-                  <input type="number" placeholder="공급가" value={newProdPurchasePrice} onChange={e => setNewProdPurchasePrice(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-505 font-bold">표준매출단가 (원)</span>
-                  <input type="number" placeholder="소비자가" value={newProdSalesPrice} onChange={e => setNewProdSalesPrice(e.target.value)} className="bg-white border border-slate-300 rounded-lg p-2.5 w-full text-xs text-black font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" disabled={isSubmittingProduct} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md">
-              {isSubmittingProduct ? '품목 추가 중...' : '품목 등록 완료'}
-            </button>
-          </form>
-        ) : (
-          <>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="품목명, 초성 또는 바코드 검색" 
-                value={productSearch}
-                onChange={e => setProductSearch(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 w-full text-xs text-white focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              {filteredProductsList.map(p => {
-                const isExpanded = expandedProdId === p.id;
-                return (
-                  <div 
-                    key={p.id}
-                    onClick={() => setExpandedProdId(isExpanded ? null : p.id)}
-                    className="bg-slate-900 border border-slate-800/80 rounded-xl p-3 space-y-2 cursor-pointer"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-slate-505 text-[10px] font-bold uppercase">{p.categoryLarge}</span>
-                        <h4 className="text-white font-bold text-sm mt-0.5">{p.name}</h4>
-                      </div>
-                      <span className="text-white text-xs font-bold">{p.spec}</span>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-slate-850 space-y-2 text-xs text-slate-400 animate-fadeIn">
-                        <div className="flex justify-between">
-                          <span>매출 표준 단가:</span>
-                          <span className="text-white font-bold">{Number(p.salesPrice || 0).toLocaleString()}원</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>매입 공급 단가:</span>
-                          <span className="text-white font-bold">{Number(p.purchasePrice || 0).toLocaleString()}원</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>안전(안전재고) 수준:</span>
-                          <span className="text-white font-bold">{Number(p.optimalStock || 0).toLocaleString()}개</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {filteredProductsList.length === 0 && (
-                <div className="text-center py-12 text-slate-500 text-xs">일치하는 품목이 없습니다.</div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 12. 매입/발주 관리 - 매입전표 등록 화면
-  // ---------------------------------------------------------
-  const [purchasePartner, setPurchasePartner] = useState('');
-  const [purchaseItems, setPurchaseItems] = useState([{ productName: '', qty: 1, price: 0 }]);
-  const [purchaseWarehouse, setPurchaseWarehouse] = useState('');
-  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
-
-  const purchaseItemsEndRef = useRef(null);
-
-  // 매입 등록 품목 리스트 추가 시 자동 하단 스크롤
-  useEffect(() => {
-    if (currentView === 'purchase_invoice') {
-      const timer = setTimeout(() => {
-        purchaseItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [purchaseItems.length, currentView]);
-
-  const activeSuppliers = useMemo(() => {
-    return partners.filter(p => p.type === '매입처' || p.type === '공통');
-  }, [partners]);
-
-  const handleAddPurchaseItem = () => {
-    setPurchaseItems([...purchaseItems, { productName: '', qty: 1, price: 0 }]);
-  };
-
-  const handleRemovePurchaseItem = (idx) => {
-    setPurchaseItems(purchaseItems.filter((_, i) => i !== idx));
-  };
-
-  const handlePurchaseItemChange = (idx, field, value) => {
-    const updated = [...purchaseItems];
-    updated[idx][field] = value;
+  React.useEffect(() => {
+    const CLEANUP_VER = '20260509_v2';
+    const isCleaned = localStorage.getItem('system_cleaned_ver');
     
-    if (field === 'productName') {
-      const prod = products.find(p => p.name === value);
-      if (prod) {
-        updated[idx].price = prod.purchasePrice || 0;
-      }
-    }
-    setPurchaseItems(updated);
-  };
-
-  const purchaseTotalAmount = useMemo(() => {
-    return purchaseItems.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || 0)), 0);
-  }, [purchaseItems]);
-
-  const handleSubmitPurchaseInvoice = async (e) => {
-    e.preventDefault();
-    if (!purchasePartner || !purchaseWarehouse) {
-      alert('공급처와 입고창고를 지정해 주세요.');
-      return;
-    }
-    if (purchaseItems.some(i => !i.productName || i.qty <= 0)) {
-      alert('정확한 품목명과 수량을 채워주세요.');
-      return;
-    }
-
-    setIsSubmittingPurchase(true);
-    try {
-      const invoiceId = `PI-${Date.now()}`;
+    if (isCleaned !== CLEANUP_VER) {
+      // Filter out unwanted schedule types from existing data
+      const currentTypes = JSON.parse(localStorage.getItem('scheduleTypes')) || [];
+      const unwanted = ['기타', '지시사항', 'TestType', '011', 'to'];
+      const filteredTypes = currentTypes.filter(t => !unwanted.includes(t));
       
-      const newInvoice = {
-        id: invoiceId,
-        date: new Date().toISOString().split('T')[0],
-        partner: purchasePartner,
-        warehouse: purchaseWarehouse,
-        totalAmount: purchaseTotalAmount,
-        receivedAmount: 0,
-        items: purchaseItems.map(item => ({
-          name: item.productName,
-          qty: item.qty,
-          price: item.price
-        })),
-        createdAt: new Date().toISOString(),
-        companyId
-      };
-
-      await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', invoiceId), newInvoice);
-
-      const nextInv = { ...inventory };
-      if (!nextInv[purchaseWarehouse]) nextInv[purchaseWarehouse] = {};
-      purchaseItems.forEach(item => {
-        nextInv[purchaseWarehouse][item.productName] = (Number(nextInv[purchaseWarehouse][item.productName]) || 0) + Number(item.qty);
-      });
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-
-      setPurchaseSuccess(true);
-      setPurchasePartner('');
-      setPurchaseWarehouse('');
-      setPurchaseItems([{ productName: '', qty: 1, price: 0 }]);
-      setTimeout(() => setPurchaseSuccess(false), 3000);
-    } catch (err) {
-      console.error(err);
-      alert('매입전표 저장 중 실패했습니다.');
-    } finally {
-      setIsSubmittingPurchase(false);
+      if (filteredTypes.length === 0) filteredTypes.push('일반');
+      localStorage.setItem('scheduleTypes', JSON.stringify(filteredTypes));
+      
+      // Clear any other suspected remnants but keep core data
+      // For a truly clean state before "Fishing Portal", we can clear specific keys
+      localStorage.removeItem('fishing_portal_data'); 
+      localStorage.removeItem('catch_reports');
+      
+      localStorage.setItem('system_cleaned_ver', CLEANUP_VER);
+      window.location.reload();
     }
+  }, []);
+
+  const ALL_PERMS = {
+    '재고이동': true, '직원관리': true, '창고관리': true, '거래처등록': true, '거래처관리': true,
+    '품목등록': true, '품목관리': true, '계좌관리': true, '특별단가관리': true, '일정': true,
+    '매입전표': true, '매입원장': true, '발주': true,
+    '매출전표': true, '매출원장': true, '수주': true,
+    '입출금보고서': true, '매출보고서': true, '재고보고서': true, '전표수정/삭제 보고서': true,
+    '금전출납부': true, '경비출금': true, '직원 실적 보고서': true,
+    '데이터 전체 저장/불러오기': true, '엑셀파일로 거래처저장/불러오기': true,
+    '엑셀파일로 품목저장/불러오기': true, '매출처원장 저장/불러오기': true,
+    '매입처원장 저장/불러오기': true, '구글스프레드시트 연동': true,
+    viewAllInventoryMovements: true
   };
 
-  const renderPurchaseInvoiceNew = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">신규 매입 전표</h3>
 
-        {purchaseSuccess && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 size={16} /> 매입전표와 입고재고가 성공적으로 등록되었습니다.
-          </div>
-        )}
 
-        <form onSubmit={handleSubmitPurchaseInvoice} className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-slate-400 text-xs font-bold">공급처 (매입처) 선택</label>
-              <SearchableSelect
-                value={purchasePartner}
-                onChange={setPurchasePartner}
-                options={activeSuppliers.map(p => ({ value: p.name, label: p.name }))}
-                placeholder="-- 거래처 선택 --"
-                emptyMessage="검색된 거래처가 없습니다."
-              />
-            </div>
+  // 1. Initialize all states with localStorage
 
-            <div className="space-y-1.5">
-              <label className="text-slate-400 text-xs font-bold">입고 창고 선택</label>
-              <select 
-                value={purchaseWarehouse}
-                onChange={e => setPurchaseWarehouse(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              >
-                <option value="">-- 입고창고 선택 --</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력 (수량 약칭)</label>
-              <span className="text-[9px] text-slate-500 font-bold">예: 10 특칠 5 황압</span>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 min-w-0">
-                <input
-                  type="text"
-                  placeholder="수량 약칭 수량 약칭 입력 (엔터로 추가)..."
-                  value={purchaseBatchText}
-                  onChange={e => handlePurchaseBatchTextChange(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleApplyPurchaseBatch();
-                    }
-                  }}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-black focus:outline-none focus:border-blue-500 font-bold"
-                />
-                {purchaseSuggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-slate-300 rounded-lg mt-1 animate-fadeIn">
-                    {purchaseSuggestions.map((prod, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPurchaseSuggestion(prod)}
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-black px-2 py-1 rounded-lg font-bold flex items-center gap-1 active:scale-95 transition-all"
-                      >
-                        {prod.abbreviation ? (
-                          <span className="text-blue-600 font-extrabold">[{prod.abbreviation}]</span>
-                        ) : null}
-                        <span>{prod.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={handleApplyPurchaseBatch}
-                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-blue-500/10 self-start"
-              >
-                추가
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
-            <label className="text-slate-400 text-xs font-bold block mb-1">매입 품목 목록</label>
-            {purchaseItems.map((item, idx) => (
-              <div key={idx} className="flex flex-col gap-2 bg-slate-955 border border-slate-800 p-3 rounded-lg relative">
-                <SearchableSelect
-                  value={item.productName}
-                  onChange={val => handlePurchaseItemChange(idx, 'productName', val)}
-                  options={products.map(p => ({
-                    value: p.name,
-                    label: p.abbreviation ? `[${p.abbreviation}] ${p.name} (${p.spec})` : `${p.name} (${p.spec})`
-                  }))}
-                  placeholder="-- 품목 선택 --"
-                  emptyMessage="검색된 품목이 없습니다."
-                />
-
-                <div className="flex gap-2">
-                  <div className="flex-1 space-y-1">
-                    <span className="text-[10px] text-slate-505">매입단가</span>
-                    <input 
-                      type="number"
-                      value={item.price}
-                      onChange={e => handlePurchaseItemChange(idx, 'price', parseInt(e.target.value) || 0)}
-                      className="bg-slate-900 border border-slate-850 rounded-md p-1.5 w-full text-xs text-white font-bold"
-                    />
-                  </div>
-                  <div className="w-20 space-y-1">
-                    <span className="text-[10px] text-slate-505">수량</span>
-                    <input 
-                      type="number"
-                      min="1"
-                      value={item.qty}
-                      onChange={e => handlePurchaseItemChange(idx, 'qty', parseInt(e.target.value) || 0)}
-                      className="bg-slate-900 border border-slate-800 rounded-md p-1.5 w-full text-center text-xs text-white font-bold"
-                    />
-                  </div>
-                </div>
-
-                {purchaseItems.length > 1 && (
-                  <button 
-                    type="button" 
-                    onClick={() => handleRemovePurchaseItem(idx)}
-                    className="absolute right-2 top-2 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] rounded hover:bg-red-500/20"
-                  >
-                    삭제
-                  </button>
-                )}
-              </div>
-            ))}
-            <button 
-              type="button" 
-              onClick={handleAddPurchaseItem}
-              className="text-blue-500 text-xs font-bold hover:underline flex items-center gap-1 pt-1"
-            >
-              + 매입 품목 추가
-            </button>
-            <div ref={purchaseItemsEndRef} />
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
-            <span className="text-slate-550 text-xs font-bold">합계 예상금액 (총 {orderItems.filter(i => i.productName).length}건)</span>
-            <span className="text-white text-base font-black">{purchaseTotalAmount.toLocaleString()}원</span>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmittingPurchase}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-blue-500/10"
-          >
-            {isSubmittingPurchase ? '저장 중...' : '매입전표 등록 완료'}
-          </button>
-        </form>
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 12-2. 매입/발주 관리 - 매입전표 관리 내역 화면
-  // ---------------------------------------------------------
-  const renderPurchaseLedger = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">매입전표 내역</h3>
-        
-        {purchaseInvoices.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-            등록된 매입전표 내역이 존재하지 않습니다.
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {purchaseInvoices.map(inv => {
-              const unpaid = (Number(inv.totalAmount) || 0) - (Number(inv.receivedAmount) || 0);
-              const isPaid = unpaid <= 0;
-              return (
-                <div key={inv.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-                  <div className="flex justify-between items-center text-[10px] text-slate-500">
-                    <span>{inv.id} | {inv.date}</span>
-                    <span className={`px-2 py-0.5 rounded font-bold ${
-                      isPaid ? 'bg-emerald-500/10 text-emerald-450' : 'bg-red-500/10 text-red-450'
-                    }`}>
-                      {isPaid ? '지급완료' : '미지급'}
-                    </span>
-                  </div>
-                  <h4 className="text-white font-bold text-sm">{inv.partner}</h4>
-                  <div className="flex justify-between items-center text-xs text-slate-400 pt-1 border-t border-slate-850">
-                    <span>창고: {inv.warehouse}</span>
-                    <span className="text-white font-extrabold">{Number(inv.totalAmount).toLocaleString()}원</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 13. 입출금 관리 - 계좌관리 화면
-  // ---------------------------------------------------------
-  const [accountName, setAccountName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountBalance, setAccountBalance] = useState('');
-  const [isSubmittingAccount, setIsSubmittingAccount] = useState(false);
-
-  const handleAddAccount = async (e) => {
-    e.preventDefault();
-    if (!accountName || !accountNumber || !accountBalance) {
-      alert('모든 항목을 입력하세요.');
-      return;
-    }
-
-    setIsSubmittingAccount(true);
-    try {
-      const accId = `ACC-${Date.now()}`;
-      const newAcc = {
-        id: accId,
-        name: accountName,
-        number: accountNumber,
-        balance: Number(accountBalance) || 0,
-        companyId
-      };
-      await setDoc(doc(db, 'companies', companyId, 'accounts', accId), newAcc);
-      setAccountName('');
-      setAccountNumber('');
-      setAccountBalance('');
-      alert('신규 은행계좌가 등록되었습니다.');
-    } catch (err) {
-      console.error(err);
-      alert('계좌 등록 에러');
-    } finally {
-      setIsSubmittingAccount(false);
-    }
-  };
-
-  const renderAccountMgmt = () => {
-    return (
-      <div className="space-y-6 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">실시간 은행 계좌 관리</h3>
-
-        <form onSubmit={handleAddAccount} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
-          <div className="text-slate-400 text-xs font-bold border-b border-slate-800 pb-2 flex items-center gap-1.5"><Landmark size={14} /> 신규 계좌 등록</div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <input 
-              type="text" 
-              placeholder="은행/계좌명 (예: 국민은행)" 
-              value={accountName}
-              onChange={e => setAccountName(e.target.value)}
-              className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none"
-            />
-            <input 
-              type="text" 
-              placeholder="계좌번호" 
-              value={accountNumber}
-              onChange={e => setAccountNumber(e.target.value)}
-              className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none"
-            />
-          </div>
-
-          <input 
-            type="number" 
-            placeholder="초기 잔액 입력" 
-            value={accountBalance}
-            onChange={e => setAccountBalance(e.target.value)}
-            className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-          />
-
-          <button 
-            type="submit" 
-            disabled={isSubmittingAccount}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs"
-          >
-            {isSubmittingAccount ? '저장 중...' : '계좌 등록'}
-          </button>
-        </form>
-
-        <div className="space-y-2">
-          {accounts.map(acc => (
-            <div key={acc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
-              <div className="space-y-1">
-                <span className="text-white font-bold text-sm">{acc.name}</span>
-                <p className="text-[10px] text-slate-500">{acc.number}</p>
-              </div>
-              <span className="text-white text-base font-black">{Number(acc.balance).toLocaleString()}원</span>
-            </div>
-          ))}
-          {accounts.length === 0 && (
-            <div className="text-center py-12 text-slate-500 text-xs">등록된 계좌가 없습니다.</div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 14. 재고조회 & 창고 간 이동 화면
-  // ---------------------------------------------------------
-  const [stockSearch, setStockSearch] = useState('');
-  const [selectedLargeCat, setSelectedLargeCat] = useState('전체');
-  const [expandedProduct, setExpandedProduct] = useState(null);
-
-  const [tfFrom, setTfFrom] = useState('');
-  const [tfTo, setTfTo] = useState('');
-  const [tfProduct, setTfProduct] = useState('');
-  const [tfQty, setTfQty] = useState('');
-  const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
-  const [transferSuccess, setTransferSuccess] = useState(false);
-
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchesCat = selectedLargeCat === '전체' || p.categoryLarge === selectedLargeCat;
-      const matchesSearch = !stockSearch || matchesInitialSound(p.name, stockSearch) || matchesInitialSound(p.barcode || '', stockSearch);
-      return matchesCat && matchesSearch;
+  const [schedules, setSchedules] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('schedules')) || [];
+    // Aggressively remove stuck April 22nd schedules at initialization
+    return saved.filter(s => {
+      if (!s.date) return true;
+      const d = new Date(s.date);
+      const isApril22nd = d.getFullYear() === 2026 && d.getMonth() === 3 && d.getDate() === 22;
+      const dateStr = String(s.date || '');
+      const isApril22ndStr = dateStr.includes('22') && (dateStr.includes('04') || dateStr.includes('4월'));
+      return !(isApril22nd || isApril22ndStr);
     });
-  }, [products, stockSearch, selectedLargeCat]);
+  });
+  const [products, setProducts] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('products'));
+    return (saved && saved.length > 0) ? saved : [];
+  });
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('categories')) || []);
+  const [partners, setPartners] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('partners'));
+    return (saved && saved.length > 0) ? saved : [];
+  });
+  const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('accounts')) || []);
+  
+  const [purchaseInvoices, setPurchaseInvoices] = useState(() => JSON.parse(localStorage.getItem('purchaseInvoices')) || []);
+  const [purchaseOrders, setPurchaseOrders] = useState(() => JSON.parse(localStorage.getItem('purchaseOrders')) || []);
+  const [salesInvoices, setSalesInvoices] = useState(() => JSON.parse(localStorage.getItem('salesInvoices')) || []);
+  const [salesOrders, setSalesOrders] = useState(() => JSON.parse(localStorage.getItem('salesOrders')) || []);
+  const [warehouses, setWarehouses] = useState(() => JSON.parse(localStorage.getItem('warehouses')) || []);
+  const [inventory, setInventory] = useState(() => JSON.parse(localStorage.getItem('inventory')) || {});
+  const [physicalInventory, setPhysicalInventory] = useState(() => JSON.parse(localStorage.getItem('physicalInventory')) || {});
+  
+  const [inventoryAdjustments, setInventoryAdjustments] = useState(() => JSON.parse(localStorage.getItem('inventoryAdjustments')) || []);
+  const [inventoryTransferHistory, setInventoryTransferHistory] = useState(() => JSON.parse(localStorage.getItem('inventoryTransferHistory')) || []);
+  const [specialPrices, setSpecialPrices] = useState(() => JSON.parse(localStorage.getItem('specialPrices')) || []);
 
-  const largeCatList = useMemo(() => {
-    const list = new Set(categories.filter(c => c.level === 1 || !c.parentId).map(c => c.name));
-    return ['전체', ...Array.from(list)];
-  }, [categories]);
-
-  const handleExecuteTransfer = async (e) => {
-    e.preventDefault();
-    if (!tfFrom || !tfTo || !tfProduct || !tfQty) {
-      alert('모든 입력 항목을 완성해 주세요.');
+  // 유령 재고 이동 내업 자동 정리 클린업 (주문서/전표가 삭제되었으나 이동 내역만 유령으로 남은 경우 일괄 제거)
+  React.useEffect(() => {
+    if (
+      !currentUser ||
+      inventoryTransferHistory.length === 0 ||
+      !syncedCollections['salesOrders'] ||
+      !syncedCollections['salesInvoices'] ||
+      !syncedCollections['purchaseInvoices'] ||
+      !syncedCollections['inventoryTransferHistory']
+    ) {
       return;
     }
-    if (tfFrom === tfTo) {
-      alert('출고창고와 입고창고는 달라야 합니다.');
-      return;
-    }
-    const qty = parseInt(tfQty) || 0;
-    if (qty <= 0) {
-      alert('수량은 0보다 커야 합니다.');
-      return;
-    }
 
-    setIsSubmittingTransfer(true);
-    try {
-      const nextInv = { ...inventory };
-      if (!nextInv[tfFrom]) nextInv[tfFrom] = {};
-      if (!nextInv[tfTo]) nextInv[tfTo] = {};
-      
-      nextInv[tfFrom] = { ...nextInv[tfFrom], [tfProduct]: (Number(nextInv[tfFrom][tfProduct]) || 0) - qty };
-      nextInv[tfTo] = { ...nextInv[tfTo], [tfProduct]: (Number(nextInv[tfTo][tfProduct]) || 0) + qty };
-      
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+    const cleanupOrphanedTransfers = async () => {
+      try {
+        const companyId = currentUser?.companyId || 'default';
+        const toDelete = [];
 
-      const prod = products.find(p => p.name === tfProduct);
-      const historyId = Date.now() + Math.random();
-      const newEntry = {
-        id: historyId,
-        date: new Date().toISOString().split('T')[0],
-        from: tfFrom,
-        to: tfTo,
-        item: tfProduct,
-        spec: prod?.spec || '',
-        qty,
-        processedAt: new Date().toLocaleTimeString(),
-        operator: currentUser?.name || '모바일',
-        memo: '수동이동',
-        companyId
-      };
+        for (const h of inventoryTransferHistory) {
+          // 1. 자동 상차(자동이동)인 경우
+          if (h.memo === '상차(자동이동)') {
+            // 주문서 ID가 매칭되는 주문서가 있는지 검사 (있다면 보존)
+            if (h.salesOrderId) {
+              const hasOrder = salesOrders.some(o => String(o.id) === String(h.salesOrderId));
+              if (!hasOrder) {
+                toDelete.push(h);
+              }
+              continue;
+            }
+            // 전표 ID가 매칭되는 전표가 있는지 검사 (있다면 보존)
+            if (h.salesInvoiceId) {
+              const hasInvoice = salesInvoices.some(si => String(si.id) === String(h.salesInvoiceId));
+              if (!hasInvoice) {
+                toDelete.push(h);
+              }
+              continue;
+            }
 
-      await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
-      
-      setTransferSuccess(true);
-      setTfProduct('');
-      setTfQty('');
-      setTimeout(() => setTransferSuccess(false), 3000);
-    } catch (err) {
-      console.error(err);
-      alert('재고이동 처리 도중 실패했습니다.');
-    } finally {
-      setIsSubmittingTransfer(false);
-    }
-  };
-
-  const renderInventoryLookup = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input 
-            type="text" 
-            placeholder="품목명, 초성 또는 바코드 검색" 
-            value={stockSearch}
-            onChange={e => setStockSearch(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 w-full text-xs text-white focus:outline-none focus:border-blue-500 transition-all"
-          />
-        </div>
-
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {largeCatList.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedLargeCat(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
-                selectedLargeCat === cat 
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10' 
-                  : 'bg-slate-900 text-slate-400 border-slate-800/80 hover:text-slate-300'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-2">
-          {filteredProducts.map(p => {
-            const baseStock = p.initialStock || 0;
-            const totalStock = baseStock + Object.values(inventory).reduce((sum, whStocks) => sum + (whStocks[p.name] || 0), 0);
-            const isLow = totalStock < (p.optimalStock || 0);
-            const isExpanded = expandedProduct === p.name;
-
-            return (
-              <div 
-                key={p.id}
-                onClick={() => setExpandedProduct(isExpanded ? null : p.name)}
-                className={`bg-slate-900 border rounded-xl p-3 cursor-pointer transition-all ${
-                  isExpanded ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-800/80'
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{p.categoryLarge}</span>
-                    <h4 className="text-white font-bold text-sm mt-0.5">{p.name}</h4>
-                    <p className="text-slate-400 text-xs mt-0.5">{p.spec || '규격 없음'}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                      isLow ? 'bg-red-500/10 text-red-505 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-505 border border-emerald-500/20'
-                    }`}>
-                      {isLow ? '재고부족' : '적정'}
-                    </span>
-                    <div className="text-white text-base font-extrabold mt-1">
-                      {totalStock.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="mt-4 pt-3 border-t border-slate-850 space-y-2.5 animate-fadeIn">
-                    <span className="text-slate-400 text-[11px] font-bold flex items-center gap-1"><Info size={12}/> 창고별 실시간 재고</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {warehouses.map(w => {
-                        const whStock = inventory[w.name]?.[p.name] || 0;
-                        return (
-                          <div key={w.id} className="bg-slate-950 rounded-lg p-2.5 flex justify-between items-center border border-slate-850">
-                            <span className="text-slate-355 text-xs flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: w.color || '#3b82f6' }}></span>
-                              {w.name}
-                            </span>
-                            <span className="text-white text-xs font-bold">{whStock.toLocaleString()}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+            // ID 연계가 없는 구버전 기록에 대한 하이브리드 필터링
+            const hasMatchingOrder = salesOrders.some(o => 
+              o.date === h.date &&
+              o.outWarehouse === h.from &&
+              o.inWarehouse === h.to &&
+              (o.items || []).some(i => i.name === h.item && Number(i.qty) === Number(h.qty))
             );
-          })}
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-12 text-slate-500 text-xs">일치하는 재고 품목이 없습니다.</div>
-          )}
-        </div>
-      </div>
-    );
-  };
+            const hasMatchingInvoice = salesInvoices.some(si => 
+              si.date === h.date &&
+              (si.items || []).some(i => i.name === h.item && Number(i.qty) === Number(h.qty))
+            );
 
-  const renderInventoryTransfer = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">창고 간 재고 이동</h3>
-        <form onSubmit={handleExecuteTransfer} className="space-y-4 max-w-md mx-auto">
-          {transferSuccess && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-bounce">
-              <CheckCircle2 size={16} /> 재고가 정상적으로 이동 완료되었습니다.
-            </div>
-          )}
+            if (!hasMatchingOrder && !hasMatchingInvoice) {
+              toDelete.push(h);
+            }
+          }
+          // 2. 매출 출고인 경우
+          else if (h.memo && h.memo.startsWith('[매출]')) {
+            if (h.salesInvoiceId) {
+              const hasInvoice = salesInvoices.some(si => String(si.id) === String(h.salesInvoiceId));
+              if (!hasInvoice) {
+                toDelete.push(h);
+              }
+              continue;
+            }
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-            <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs font-bold">출고 창고 (보내는 곳)</label>
-              <select 
-                value={tfFrom} 
-                onChange={e => setTfFrom(e.target.value)}
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              >
-                <option value="">-- 출고창고 선택 --</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
-            </div>
+            // 구버전 하이브리드
+            const hasMatchingInvoice = salesInvoices.some(si => 
+              si.date === h.date &&
+              `[매출] ${si.partner}` === h.memo &&
+              (si.items || []).some(i => i.name === h.item && Number(i.qty) === Number(h.qty))
+            );
+            if (!hasMatchingInvoice) {
+              toDelete.push(h);
+            }
+          }
+          // 3. 매입 입고인 경우
+          else if (h.memo && h.memo.startsWith('[매입]')) {
+            if (h.purchaseInvoiceId) {
+              const hasInvoice = purchaseInvoices.some(pi => String(pi.id) === String(h.purchaseInvoiceId));
+              if (!hasInvoice) {
+                toDelete.push(h);
+              }
+              continue;
+            }
 
-            <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs font-bold">입고 창고 (받는 곳)</label>
-              <select 
-                value={tfTo} 
-                onChange={e => setTfTo(e.target.value)}
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              >
-                <option value="">-- 입고창고 선택 --</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4 shadow-md">
-            <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs font-bold">이동 품목</label>
-              <select 
-                value={tfProduct} 
-                onChange={e => setTfProduct(e.target.value)}
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              >
-                <option value="">-- 품목 선택 --</option>
-                {products.map(p => {
-                  const avail = tfFrom ? (inventory[tfFrom]?.[p.name] || 0) : 0;
-                  return (
-                    <option key={p.id} value={p.name}>{p.name} (현재고: {avail.toLocaleString()})</option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs font-bold">이동 수량</label>
-              <input 
-                type="number" 
-                min="1" 
-                placeholder="이동 수량을 입력하세요." 
-                value={tfQty}
-                onChange={e => setTfQty(e.target.value)}
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmittingTransfer}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-blue-500/10"
-          >
-            {isSubmittingTransfer ? '처리 중...' : '재고 이동 실행'}
-          </button>
-        </form>
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 15. 매출/수주 관리 - 간편수주 등록 화면
-  // ---------------------------------------------------------
-  const [selectedPartner, setSelectedPartner] = useState('');
-  const [orderDate, setOrderDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [orderItems, setOrderItems] = useState([{ productName: '', qty: 1 }]);
-  const [orderRemarks, setOrderRemarks] = useState('');
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
-  const [showOrderItemsModal, setShowOrderItemsModal] = useState(false);
-
-  const salesItemsEndRef = useRef(null);
-
-  // 수주 등록 품목 리스트 추가 시 자동 하단 스크롤
-  useEffect(() => {
-    if (currentView === 'sales_order_new') {
-      const timer = setTimeout(() => {
-        salesItemsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [orderItems.length, currentView]);
-
-  const activePartners = useMemo(() => {
-    return partners.filter(p => p.type === '매출처' || p.type === '공통');
-  }, [partners]);
-
-  const handleAddOrderItem = () => {
-    setOrderItems([...orderItems, { productName: '', qty: 1 }]);
-  };
-
-  const handleRemoveOrderItem = (idx) => {
-    setOrderItems(orderItems.filter((_, i) => i !== idx));
-  };
-
-  const handleOrderItemChange = (idx, field, value) => {
-    const updated = [...orderItems];
-    updated[idx][field] = value;
-    setOrderItems(updated);
-  };
-
-  const getProductPriceForPartner = (prodName, partnerName) => {
-    const prod = products.find(p => p.name === prodName);
-    if (!prod) return 0;
-    
-    const sp = specialPrices.find(s => 
-      s.partnerName === partnerName && 
-      String(s.productId) === String(prod.id)
-    );
-    if (sp) return sp.specialPrice;
-    return prod.salesPriceSingle || prod.salesPrice || 0;
-  };
-
-  const orderTotalAmount = useMemo(() => {
-    return orderItems.reduce((sum, item) => {
-      const price = getProductPriceForPartner(item.productName, selectedPartner);
-      return sum + (price * (item.qty || 0));
-    }, 0);
-  }, [orderItems, selectedPartner, products, specialPrices]);
-
-  const handleSubmitOrder = async (e) => {
-    e.preventDefault();
-    if (!selectedPartner) {
-      alert('거래처를 지정해야 합니다.');
-      return;
-    }
-    if (orderItems.some(i => !i.productName || i.qty <= 0)) {
-      alert('품목과 정확한 수량을 지정해 주세요.');
-      return;
-    }
-
-    setIsSubmittingOrder(true);
-    try {
-      const itemsText = orderItems.map(i => `${i.productName} ${i.qty}`).join('\n');
-      const orderId = `SO-${Date.now()}`;
-      
-      const structuredItems = orderItems.map(item => {
-        const prod = products.find(p => p.name === item.productName);
-        return {
-          name: item.productName,
-          qty: item.qty,
-          price: getProductPriceForPartner(item.productName, selectedPartner),
-          loaded: false,
-          spec: prod?.spec || ''
-        };
-      });
-
-      const newOrder = {
-        id: orderId,
-        date: orderDate,
-        partner: selectedPartner,
-        itemsText,
-        items: structuredItems,
-        totalPrice: orderTotalAmount,
-        status: '대기',
-        operator: currentUser?.name || '모바일',
-        outWarehouse: warehouses[0]?.name || '본사창고',
-        inWarehouse: '차량창고',
-        createdAt: new Date().toISOString(),
-        remarks: orderRemarks,
-        companyId
-      };
-      
-      await setDoc(doc(db, 'companies', companyId, 'salesOrders', orderId), newOrder);
-      setOrderSuccess(true);
-      setOrderItems([{ productName: '', qty: 1 }]);
-      setSelectedPartner('');
-      setOrderDate(new Date().toISOString().split('T')[0]);
-      setOrderRemarks('');
-      setTimeout(() => setOrderSuccess(false), 3000);
-    } catch (err) {
-      console.error(err);
-      alert('수주 주문 생성 도중 에러가 발생했습니다.');
-    } finally {
-      setIsSubmittingOrder(false);
-    }
-  };
-
-  const parseBatchInput = (text) => {
-    // 숫자가 한글 약칭과 띄어쓰기 없이 붙어있는 경우 강제로 공백을 삽입 (예: 10특칠 -> 10 특칠, 황압5 -> 황압 5)
-    const cleanedText = text.replace(/(\d+)([^\d\s]+)/g, '$1 $2').replace(/([^\d\s]+)(\d+)/g, '$1 $2');
-    const tokens = cleanedText.trim().split(/\s+/);
-    const items = [];
-    let currentQty = null;
-    let currentAbbrev = null;
-
-    for (let i = 0; i < tokens.length; i++) {
-      const token = tokens[i];
-      if (!token) continue;
-
-      // 수량 단위가 임의로 붙어있는 경우 제거 (예: '10개' -> '10')
-      const cleanNumToken = token.replace(/개|번|포|통|박스|개입/g, '');
-      const num = parseInt(cleanNumToken, 10);
-      if (!isNaN(num) && /^\d+$/.test(cleanNumToken)) {
-        currentQty = num;
-      } else {
-        currentAbbrev = token;
-      }
-
-      if (currentQty !== null && currentAbbrev !== null) {
-        const abbrev = currentAbbrev;
-        const qty = currentQty;
-        
-        const match = products.find(p => {
-          if (p.abbreviation && p.abbreviation === abbrev) return true;
-          if (p.name.includes(`(${abbrev})`)) return true;
-          if (p.name.includes(abbrev)) return true;
-          if (p.name === abbrev) return true;
-          if (matchesInitialSound(p.name, abbrev)) return true;
-          return false;
-        });
-
-        if (match) {
-          items.push({
-            productName: match.name,
-            qty: qty
-          });
-        } else {
-          showToast(`품목 '${abbrev}'을(를) 찾을 수 없습니다.`, 'info');
+            // 구버전 하이브리드
+            const hasMatchingInvoice = purchaseInvoices.some(pi => 
+              pi.date === h.date &&
+              `[매입] ${pi.partner}` === h.memo &&
+              (pi.items || []).some(i => i.name === h.item && Number(i.qty) === Number(h.qty))
+            );
+            if (!hasMatchingInvoice) {
+              toDelete.push(h);
+            }
+          }
         }
 
-        currentQty = null;
-        currentAbbrev = null;
+        if (toDelete.length > 0) {
+          console.log(`[Cleanup] Found ${toDelete.length} orphaned inventory transfers. Deleting from DB...`, toDelete);
+          for (const h of toDelete) {
+            try {
+              await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(h.id)));
+            } catch (err) {
+              console.error(`Failed to delete orphaned transfer ${h.id}:`, err);
+            }
+          }
+          // 로컬 상태 동기화
+          setInventoryTransferHistory(prev => prev.filter(h => !toDelete.some(td => String(td.id) === String(h.id))));
+        }
+      } catch (err) {
+        console.error('Error during orphaned transfers cleanup:', err);
       }
+    };
+
+    const timer = setTimeout(() => {
+      cleanupOrphanedTransfers();
+    }, 2000); // 2초 뒤에 데이터 로드 충분히 완료된 시점 실행
+
+    return () => clearTimeout(timer);
+  }, [salesOrders, salesInvoices, purchaseInvoices, inventoryTransferHistory, currentUser, syncedCollections]);
+
+  // 자가 치유(Self-Healing): 누락되거나 잘못 삭제된 재고이동 이력 자동 복구
+  React.useEffect(() => {
+    if (
+      !currentUser ||
+      !syncedCollections['salesOrders'] ||
+      !syncedCollections['salesInvoices'] ||
+      !syncedCollections['purchaseInvoices'] ||
+      !syncedCollections['inventoryTransferHistory']
+    ) {
+      return;
     }
-    return items;
-  };
 
-  const renderSalesOrderNew = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <div className="flex justify-between items-center gap-2">
-          <h3 className="text-white text-lg font-black shrink-0">신규 간편 수주</h3>
-          <input
-            type="date"
-            value={orderDate}
-            onChange={e => setOrderDate(e.target.value)}
-            className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-black focus:outline-none focus:border-blue-500 w-32 font-black text-center shadow-sm"
-          />
-        </div>
+    const repairHistory = async () => {
+      try {
+        const companyId = currentUser.companyId || 'default';
+        const mainWH = warehouses.find(w => w.isMain)?.name || 
+                       warehouses.find(w => w.name.includes('메인'))?.name || 
+                       warehouses.find(w => w.name.includes('main'))?.name || 
+                       warehouses[0]?.name || 
+                       '메인창고';
+        
+        let writeCount = 0;
+        
+        // 1. 매출전표 복구
+        for (const inv of salesInvoices) {
+          const invoiceId = String(inv.id);
+          const hasSaleEntry = inventoryTransferHistory.some(h => String(h.salesInvoiceId) === invoiceId && h.to === '매출출고');
+          if (!hasSaleEntry && inv.items) {
+            for (const item of inv.items) {
+              const historyId = Date.now() + Math.random();
+              const saleEntry = {
+                id: historyId,
+                date: inv.date,
+                from: inv.warehouse,
+                to: '매출출고',
+                item: item.name,
+                spec: item.spec || '-',
+                qty: Number(item.qty),
+                processedAt: '12:00:00',
+                operator: inv.creator || '시스템',
+                memo: `[매출] ${inv.partner}`,
+                salesInvoiceId: invoiceId,
+                companyId
+              };
+              await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), saleEntry);
+              writeCount++;
+            }
+          }
+          
+          // 매출전표 자동이동(상차) 복구
+          if (inv.warehouse !== mainWH && inv.items) {
+            const hasAutoEntry = inventoryTransferHistory.some(h => String(h.salesInvoiceId) === invoiceId && h.from === mainWH && h.to === inv.warehouse);
+            if (!hasAutoEntry) {
+              for (const item of inv.items) {
+                const historyId = Date.now() + Math.random();
+                const autoEntry = {
+                  id: historyId,
+                  date: inv.date,
+                  from: mainWH,
+                  to: inv.warehouse,
+                  item: item.name,
+                  spec: item.spec || '-',
+                  qty: Number(item.qty),
+                  processedAt: '12:00:00',
+                  operator: inv.creator || '시스템',
+                  memo: '상차(자동이동)',
+                  salesInvoiceId: invoiceId,
+                  companyId
+                };
+                await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), autoEntry);
+                writeCount++;
+              }
+            }
+          }
+        }
 
-        {orderSuccess && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-500 text-xs font-bold flex items-center gap-2 animate-pulse">
-            <CheckCircle2 size={16} /> 신규 수주가 성공적으로 등록되었습니다.
-          </div>
-        )}
+        // 2. 매입전표 복구
+        for (const inv of purchaseInvoices) {
+          const invoiceId = String(inv.id);
+          const hasPurchaseEntry = inventoryTransferHistory.some(h => String(h.purchaseInvoiceId) === invoiceId);
+          if (!hasPurchaseEntry && inv.items) {
+            for (const item of inv.items) {
+              const historyId = Date.now() + Math.random();
+              const purchaseEntry = {
+                id: historyId,
+                date: inv.date,
+                from: '매입입고',
+                to: inv.warehouse,
+                item: item.name,
+                spec: item.spec || '-',
+                qty: Number(item.qty),
+                processedAt: '12:00:00',
+                operator: inv.creator || '시스템',
+                memo: `[매입] ${inv.partner}`,
+                purchaseInvoiceId: invoiceId,
+                companyId
+              };
+              await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), purchaseEntry);
+              writeCount++;
+            }
+          }
+        }
 
-        <form onSubmit={handleSubmitOrder} className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-            <label className="text-slate-400 text-xs font-bold shrink-0 w-12 text-left">매출처</label>
-            <div className="flex-1 min-w-0">
-              <SearchableSelect
-                value={selectedPartner}
-                onChange={setSelectedPartner}
-                options={activePartners.map(p => ({ value: p.name, label: p.name }))}
-                placeholder="-- 거래처 선택 --"
-                emptyMessage="검색된 거래처가 없습니다."
-              />
-            </div>
-          </div>
+        // 3. 주문서(상차) 복구
+        for (const order of salesOrders) {
+          const orderId = String(order.id);
+          if (order.items) {
+            for (const item of order.items) {
+              if (item.loaded) {
+                const hasOrderEntry = inventoryTransferHistory.some(h => 
+                  String(h.salesOrderId) === orderId && 
+                  h.item === item.name && 
+                  h.from === order.outWarehouse &&
+                  h.to === order.inWarehouse
+                );
+                if (!hasOrderEntry) {
+                  const historyId = Date.now() + Math.random();
+                  const orderEntry = {
+                    id: historyId,
+                    date: order.date,
+                    from: order.outWarehouse,
+                    to: order.inWarehouse,
+                    item: item.name,
+                    spec: item.spec || '-',
+                    qty: Number(item.qty),
+                    processedAt: '12:00:00',
+                    operator: order.manager || '시스템',
+                    memo: '상차(자동이동)',
+                    salesOrderId: orderId,
+                    companyId
+                  };
+                  await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), orderEntry);
+                  writeCount++;
+                }
+              }
+            }
+          }
+        }
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2.5">
-            <div className="flex justify-between items-center">
-              <label className="text-slate-400 text-xs font-bold">간편 일괄 입력</label>
-              <span className="text-[10px] text-slate-500 font-bold">예: 특칠10 황압5 (또는 10 특칠)</span>
-            </div>
-            <div className="flex gap-2.5">
-              <div className="flex-1 min-w-0">
-                <input
-                  type="text"
-                  placeholder="수량 약칭 수량 약칭 입력..."
-                  value={salesBatchText}
-                  onChange={e => handleSalesBatchTextChange(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleApplySalesBatch();
-                    }
-                  }}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-black focus:outline-none focus:border-blue-500 font-bold shadow-inner"
-                />
-                {salesSuggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-slate-300 rounded-xl mt-1.5 animate-fadeIn">
-                    {salesSuggestions.map((prod, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectSalesSuggestion(prod)}
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-black px-2 py-1 rounded-lg font-bold flex items-center gap-1 active:scale-95 transition-all"
-                      >
-                        {prod.abbreviation ? (
-                          <span className="text-blue-600 font-extrabold">[{prod.abbreviation}]</span>
-                        ) : null}
-                        <span>{prod.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={handleApplySalesBatch}
-                className="bg-blue-650 hover:bg-blue-700 text-white text-xs font-bold px-4 py-3 rounded-xl transition-all shadow-md shadow-blue-500/10 shrink-0 self-start"
-              >
-                추가
-              </button>
-            </div>
-          </div>
+        if (writeCount > 0) {
+          console.log(`[Repair] Successfully restored ${writeCount} missing inventory transfer entries.`);
+        }
+      } catch (err) {
+        console.error('Error during inventory history repair:', err);
+      }
+    };
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="text-slate-550 text-xs font-bold">합계 예상금액</span>
-              <span className="text-white text-base font-black">{orderTotalAmount.toLocaleString()}원</span>
-            </div>
-            <div>
-              <label className="text-slate-400 text-xs font-bold block mb-1">수주 특이사항</label>
-              <textarea 
-                value={orderRemarks}
-                onChange={e => setOrderRemarks(e.target.value)}
-                placeholder="지시사항이나 배송요청 등을 남겨주세요."
-                rows="2"
-                className="bg-slate-955 border border-slate-800 rounded-lg p-2.5 w-full text-xs text-white focus:outline-none"
-              />
-            </div>
-          </div>
+    // 3초의 여유를 두고 순차적으로 실행
+    const timer = setTimeout(() => {
+      repairHistory();
+    }, 3000);
 
-          <button
-            type="submit"
-            disabled={isSubmittingOrder}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-md shadow-blue-500/10"
-          >
-            {isSubmittingOrder ? '저장 중...' : '간편 수주 완료'}
-          </button>
-        </form>
-      </div>
-    );
-  };
+    return () => clearTimeout(timer);
+  }, [currentUser, syncedCollections, salesInvoices, purchaseInvoices, salesOrders, inventoryTransferHistory, warehouses]);
 
-  // ---------------------------------------------------------
-  // 16. 매출/수주 관리 - 수주 목록 및 납품 상차 화면
-  // ---------------------------------------------------------
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
-
-  const handleUpdateOrderStatus = async (orderId, nextStatus) => {
+  const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null) => {
     try {
-      await setDoc(doc(db, 'companies', companyId, 'salesOrders', orderId), {
-        status: nextStatus
-      }, { merge: true });
-    } catch (err) {
-      console.error(err);
-      alert('상태 업데이트 실패');
-    }
-  };
-
-  const handleToggleItemLoad = async (order, item, itemIdx) => {
-    const fromWh = order.outWarehouse || '본사창고';
-    const toWh = order.inWarehouse || '차량창고';
-    
-    const currentItems = order.items || [];
-    if (currentItems.length === 0) return;
-
-    const updatedItems = [...currentItems];
-    const isNowLoaded = !updatedItems[itemIdx].loaded;
-    updatedItems[itemIdx] = { ...updatedItems[itemIdx], loaded: isNowLoaded };
-
-    try {
-      const nextInv = { ...inventory };
-      if (!nextInv[fromWh]) nextInv[fromWh] = {};
-      if (!nextInv[toWh]) nextInv[toWh] = {};
+      const companyId = currentUser?.companyId || 'default';
+      const getLocalDateStr = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
       
-      const qty = Number(item.qty) || 0;
-      if (isNowLoaded) {
-        nextInv[fromWh] = { ...nextInv[fromWh], [item.name]: (Number(nextInv[fromWh][item.name]) || 0) - qty };
-        nextInv[toWh] = { ...nextInv[toWh], [item.name]: (Number(nextInv[toWh][item.name]) || 0) + qty };
-      } else {
-        nextInv[fromWh] = { ...nextInv[fromWh], [item.name]: (Number(nextInv[fromWh][item.name]) || 0) + qty };
-        nextInv[toWh] = { ...nextInv[toWh], [item.name]: (Number(nextInv[toWh][item.name]) || 0) - qty };
-      }
-
+      // 1. Update Inventory State
+      const nextInv = { ...inventory };
+      if (!nextInv[from]) nextInv[from] = { ...inventory[from] || {} };
+      if (!nextInv[to]) nextInv[to] = { ...inventory[to] || {} };
+      
+      nextInv[from] = { ...nextInv[from], [productName]: (nextInv[from][productName] || 0) - Number(qty) };
+      nextInv[to] = { ...nextInv[to], [productName]: (nextInv[to][productName] || 0) + Number(qty) };
+      
       await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
 
-      const prod = products.find(p => p.name === item.name);
+      // 2. Add to Transfer History
+      const product = products.find(p => p.name === productName);
       const historyId = Date.now() + Math.random();
       const newEntry = {
         id: historyId,
-        date: order.date || new Date().toISOString().split('T')[0],
-        from: isNowLoaded ? fromWh : toWh,
-        to: isNowLoaded ? toWh : fromWh,
-        item: item.name,
-        spec: prod?.spec || '',
-        qty,
+        date: customDate || getLocalDateStr(),
+        from,
+        to,
+        item: productName,
+        spec: product?.spec || '',
+        qty: Number(qty),
         processedAt: new Date().toLocaleTimeString(),
-        operator: currentUser?.name || '모바일',
-        memo: isNowLoaded ? '상차(자동이동)' : '상차취소(자동이동)',
-        salesOrderId: String(order.id),
+        operator: currentUser?.name || '시스템',
+        memo: isAuto ? '상차(자동이동)' : '수동이동',
+        salesOrderId: relatedOrderId ? String(relatedOrderId) : null,
         companyId
       };
       await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
-
-      await setDoc(doc(db, 'companies', companyId, 'salesOrders', order.id), {
-        items: updatedItems
-      }, { merge: true });
-
-    } catch (err) {
-      console.error(err);
-      alert('상차 처리 도중 에러가 발생했습니다.');
-    }
+    } catch (err) { console.error(err); }
   };
 
-  const renderSalesOrderList = () => {
-    return (
-      <div className="space-y-4 animate-fadeIn pb-12">
-        <h3 className="text-white text-lg font-black">수주 목록 및 상차 관리</h3>
-        
-        {salesOrders.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-            접수된 수주가 존재하지 않습니다.
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {salesOrders.map(order => {
-              const isExpanded = expandedOrderId === order.id;
-              const itemsList = order.items || [];
-              const loadedCount = itemsList.filter(i => i.loaded).length;
-              const allLoaded = itemsList.length > 0 && loadedCount === itemsList.length;
-
-              return (
-                <div 
-                  key={order.id}
-                  className={`bg-slate-900 border rounded-xl overflow-hidden transition-all ${
-                    isExpanded ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-800/80'
-                  }`}
-                >
-                  <div 
-                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                    className="p-4 cursor-pointer hover:bg-slate-800/40 flex justify-between items-center"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{order.id}</span>
-                        <span className="text-[10px] text-slate-550">{order.date}</span>
-                      </div>
-                      <h4 className="text-white font-bold text-sm">{order.partner}</h4>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                        <span>합계: {Number(order.totalPrice || 0).toLocaleString()}원</span>
-                        <span>|</span>
-                        <span className="text-blue-400 font-bold">상차 ({loadedCount}/{itemsList.length})</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        order.status === '완료' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-                      }`}>{order.status || '대기'}</span>
-                      {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="border-t border-slate-850 bg-slate-950 p-4 space-y-4 animate-fadeIn">
-                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 flex justify-between items-center text-[10px] text-slate-400">
-                        <span>출고지: {order.outWarehouse || '본사창고'}</span>
-                        <span>➔</span>
-                        <span>입고지: {order.inWarehouse || '차량창고'}</span>
-                      </div>
-
-                      <div className="space-y-2">
-                        {itemsList.map((item, idx) => {
-                          const whStock = inventory[order.outWarehouse || '본사창고']?.[item.name] || 0;
-                          return (
-                            <div key={idx} className="bg-slate-900 border border-slate-850 rounded-lg p-3 flex justify-between items-center">
-                              <div>
-                                <span className="text-white font-bold text-xs">{item.name}</span>
-                                <div className="text-[10px] text-slate-500 mt-0.5">창고재고: {whStock.toLocaleString()}개</div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-blue-400 mr-1">{item.qty}개</span>
-                                <button
-                                  type="button" 
-                                  onClick={() => handleToggleItemLoad(order, item, idx)}
-                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
-                                    item.loaded 
-                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' 
-                                      : 'bg-blue-600 text-white border-blue-600'
-                                  }`}
-                                >
-                                  {item.loaded ? '상차완료' : '상차하기'}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex gap-2 pt-2 border-t border-slate-850">
-                        {order.status !== '승인' && (
-                          <button 
-                            onClick={() => handleUpdateOrderStatus(order.id, '승인')}
-                            className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-350 font-bold py-2 rounded-xl text-xs border border-slate-700"
-                          >
-                            주문 승인
-                          </button>
-                        )}
-                        <button 
-                          disabled={!allLoaded}
-                          onClick={() => handleUpdateOrderStatus(order.id, '완료')}
-                          className={`flex-1 font-bold py-2 rounded-xl text-xs transition-all ${
-                            allLoaded ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-650 cursor-not-allowed'
-                          }`}
-                        >
-                          전체 납품 완료
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------------------------------------------------
-  // 17. 매출/수주 관리 - 매출전표내역 및 수금 현황 화면
-  // ---------------------------------------------------------
-  const [expandedInvoiceId, setExpandedInvoiceId] = useState(null);
-  const [depositAmount, setDepositAmount] = useState('');
-  const [depositType, setDepositType] = useState('account');
-  const [isSubmittingDeposit, setIsSubmittingDeposit] = useState(false);
-
-  const handleRegisterDeposit = async (e, invoice) => {
-    e.preventDefault();
-    const amt = Number(depositAmount) || 0;
-    if (amt <= 0) {
-      alert('정확한 입금액을 입력하세요.');
-      return;
-    }
-
-    const unpaid = (Number(invoice.totalAmount) || 0) - (Number(invoice.receivedAmount) || 0) - (Number(invoice.discount) || 0);
-    if (amt > unpaid) {
-      alert(`입금액은 남은 미수금(${unpaid.toLocaleString()}원)보다 작거나 같아야 합니다.`);
-      return;
-    }
-
-    setIsSubmittingDeposit(true);
+  const onDeleteMoveStock = async (historyId) => {
     try {
-      const nextReceived = (Number(invoice.receivedAmount) || 0) + amt;
-      const nextPayments = {
-        cash: Number(invoice.payments?.cash) || 0,
-        card: Number(invoice.payments?.card) || 0,
-        account: Number(invoice.payments?.account) || 0,
-        bill: Number(invoice.payments?.bill) || 0,
-      };
+      const companyId = currentUser?.companyId || 'default';
+      const record = inventoryTransferHistory.find(h => String(h.id) === String(historyId));
+      if (!record) return;
 
-      if (depositType === 'cash') nextPayments.cash += amt;
-      else if (depositType === 'card') nextPayments.card += amt;
-      else if (depositType === 'account') nextPayments.account += amt;
+      const { from, to, item, qty, memo, date } = record;
+      const nextInv = { ...inventory };
 
-      await setDoc(doc(db, 'companies', companyId, 'salesInvoices', invoice.id), {
-        receivedAmount: nextReceived,
-        payments: nextPayments
-      }, { merge: true });
-
-      const pDoc = partners.find(p => p.name === invoice.partner);
-      if (pDoc) {
-        const nextReceivables = Math.max(0, (Number(pDoc.receivables) || 0) - amt);
-        await setDoc(doc(db, 'companies', companyId, 'partners', pDoc.id), {
-          receivables: nextReceivables
-        }, { merge: true });
+      // 1. 역방향 재고 복구
+      if (to === '매출출고') {
+        if (!nextInv[from]) nextInv[from] = {};
+        nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
+      } else {
+        if (!nextInv[from]) nextInv[from] = {};
+        if (!nextInv[to]) nextInv[to] = {};
+        nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
+        nextInv[to][item] = (nextInv[to][item] || 0) - Number(qty);
       }
 
-      alert('수금 처리가 성공적으로 등록되었습니다.');
-      setDepositAmount('');
-      setExpandedInvoiceId(null);
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      // 2. 주문서 상차 기록인 경우 주문서(salesOrders)의 loaded 상태를 false로 자동 취소(동기화)
+      if (memo === '상차(자동이동)') {
+        const targetOrder = salesOrders.find(o => 
+          o.date === date &&
+          o.outWarehouse === from &&
+          o.inWarehouse === to &&
+          (o.items || []).some(i => i.name === item && Number(i.qty) === Number(qty) && i.loaded)
+        );
+
+        if (targetOrder) {
+          const updatedItems = targetOrder.items.map(i => {
+            if (i.name === item && Number(i.qty) === Number(qty) && i.loaded) {
+              return { ...i, loaded: false };
+            }
+            return i;
+          });
+          await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(targetOrder.id)), { items: updatedItems }, { merge: true });
+        }
+      }
+
+      // 3. Firestore에서 해당 이동 내역 삭제
+      await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)));
     } catch (err) {
-      console.error(err);
-      alert('수금 처리 도중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmittingDeposit(false);
+      console.error('Error deleting move stock:', err);
     }
   };
 
-  // ---------------------------------------------------------
-  // 18. 스마트지원 - AI 비서 명령창 화면
-  // ---------------------------------------------------------
-  const [chatInput, setChatInput] = useState('');
-  const chatEndRef = useRef(null);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [agentChats]);
-
-  const handleSendChat = async (e) => {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text) return;
-
-    setChatInput('');
-    const messageId = `msg_u_${Date.now()}`;
-
+  const onUpdateInventoryTransfer = async (id, updatedEntry) => {
     try {
-      await setDoc(doc(db, 'companies', companyId, 'agentChats', messageId), {
-        id: messageId,
-        timestamp: new Date().toISOString(),
-        sender: "User",
-        senderName: "사용자",
-        text,
-        status: "pending"
-      });
+      const companyId = currentUser?.companyId || 'default';
+      const record = inventoryTransferHistory.find(h => String(h.id) === String(id));
+      if (!record) return;
+
+      const nextInv = { ...inventory };
+
+      // 1. Revert old stock changes
+      if (record.to === '매출출고') {
+        if (!nextInv[record.from]) nextInv[record.from] = {};
+        nextInv[record.from][record.item] = (nextInv[record.from][record.item] || 0) + Number(record.qty);
+      } else {
+        if (!nextInv[record.from]) nextInv[record.from] = {};
+        if (!nextInv[record.to]) nextInv[record.to] = {};
+        nextInv[record.from][record.item] = (nextInv[record.from][record.item] || 0) + Number(record.qty);
+        nextInv[record.to][record.item] = (nextInv[record.to][record.item] || 0) - Number(record.qty);
+      }
+
+      // 2. Apply new stock changes
+      if (updatedEntry.to === '매출출고') {
+        if (!nextInv[updatedEntry.from]) nextInv[updatedEntry.from] = {};
+        nextInv[updatedEntry.from][updatedEntry.item] = (nextInv[updatedEntry.from][updatedEntry.item] || 0) - Number(updatedEntry.qty);
+      } else {
+        if (!nextInv[updatedEntry.from]) nextInv[updatedEntry.from] = {};
+        if (!nextInv[updatedEntry.to]) nextInv[updatedEntry.to] = {};
+        nextInv[updatedEntry.from][updatedEntry.item] = (nextInv[updatedEntry.from][updatedEntry.item] || 0) - Number(updatedEntry.qty);
+        nextInv[updatedEntry.to][updatedEntry.item] = (nextInv[updatedEntry.to][updatedEntry.item] || 0) + Number(updatedEntry.qty);
+      }
+
+      // 3. Save to Firestore
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      // 4. Update the history entry
+      const cleanEntry = {
+        ...updatedEntry,
+        qty: Number(updatedEntry.qty)
+      };
+      await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(id)), cleanEntry);
+
+      showToast('재고 이동 내역이 수정되었습니다.', 'success');
     } catch (err) {
       console.error(err);
-      alert('메시지 전송 실패');
+      showToast('재고 이동 내역 수정에 실패했습니다.', 'error');
     }
   };
 
-  const renderAgentChat = () => {
-    const sortedChats = [...agentChats].sort((a, b) => a.timestamp?.localeCompare(b.timestamp) || 0);
+  const onDeleteAllTransfers = async () => {
+    if (!window.confirm('정말로 모든 재고 이동 내역을 삭제하시겠습니까? (재고 수량은 복구되지 않습니다)')) return;
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
+      for (const h of inventoryTransferHistory) {
+        batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(h.id)));
+      }
+      await batch.commit();
+      setInventoryTransferHistory([]);
+      showToast('모든 이동 내역이 삭제되었습니다.', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('삭제 중 오류가 발생했습니다.', 'error');
+    }
+  };
+
+  const onRevertAutoMoveStock = async (from, to, productName, qty, relatedOrderId = null) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+
+      const nextInv = { ...inventory };
+      if (!nextInv[from]) nextInv[from] = {};
+      if (!nextInv[to]) nextInv[to] = {};
+
+      nextInv[from][productName] = (nextInv[from][productName] || 0) + Number(qty);
+      nextInv[to][productName] = (nextInv[to][productName] || 0) - Number(qty);
+
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      const match = [...inventoryTransferHistory]
+        .reverse()
+        .find(h => 
+          h.from === from && 
+          h.to === to && 
+          h.item === productName && 
+          Number(h.qty) === Number(qty) && 
+          h.memo === '상차(자동이동)' &&
+          (relatedOrderId ? String(h.salesOrderId) === String(relatedOrderId) : true)
+        );
+
+      if (match) {
+        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+      }
+    } catch (err) {
+      console.error('Error in onRevertAutoMoveStock:', err);
+    }
+  };
+
+  const handleDeleteSalesInvoice = async (id) => {
+    const targetInv = salesInvoices.find(si => String(si.id) === String(id));
+    if (!checkWritePermission(targetInv?.creator)) {
+      alert('수정/삭제 권한이 없습니다 (본인이 작성한 매출전표만 삭제 가능).');
+      return;
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const nextInv = { ...inventory };
+      
+      if (targetInv) {
+        const targetWH = targetInv.warehouse;
+        const mainWH = warehouses.find(w => w.isMain)?.name || 
+                       warehouses.find(w => w.name.includes('메인'))?.name || 
+                       warehouses.find(w => w.name.includes('main'))?.name || 
+                       warehouses[0]?.name || 
+                       '메인창고';
+
+        // 전표 ID에 매칭되는 모든 재고이동 이력 일괄 삭제 (salesInvoiceId 매칭 우선)
+        const idMatches = inventoryTransferHistory.filter(h => String(h.salesInvoiceId) === String(id));
+        for (const match of idMatches) {
+          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        }
+        
+        if (nextInv[targetWH]) {
+          const whInv = { ...nextInv[targetWH] };
+          
+          for (const item of targetInv.items) {
+            whInv[item.name] = (whInv[item.name] || 0) + item.qty;
+            
+            if (targetWH !== mainWH) {
+              const hasAlreadyDeleted = idMatches.some(m => String(m.item) === String(item.name) && String(m.from) === String(mainWH) && String(m.to) === String(targetWH));
+              if (!hasAlreadyDeleted) {
+                const match = [...inventoryTransferHistory]
+                  .reverse()
+                  .find(h => 
+                    h.date === targetInv.date &&
+                    h.from === mainWH &&
+                    h.to === targetWH &&
+                    h.item === item.name &&
+                    h.memo === '상차(자동이동)'
+                  );
+                  
+                if (match) {
+                  await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+                  
+                  if (!nextInv[mainWH]) nextInv[mainWH] = {};
+                  nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) + (Number(match.qty) || 0);
+                  whInv[item.name] = (whInv[item.name] || 0) - (Number(match.qty) || 0);
+                }
+              }
+            }
+
+            // 매출출고 이력 삭제 (유령 거래내역 방지)
+            const hasAlreadyDeletedSale = idMatches.some(m => String(m.item) === String(item.name) && String(m.to) === '매출출고');
+            if (!hasAlreadyDeletedSale) {
+              const saleMatch = [...inventoryTransferHistory]
+                .reverse()
+                .find(h => 
+                  h.date === targetInv.date &&
+                  h.from === targetWH &&
+                  h.to === '매출출고' &&
+                  h.item === item.name &&
+                  h.memo === `[매출] ${targetInv.partner}`
+                );
+              if (saleMatch) {
+                await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(saleMatch.id)));
+              }
+            }
+          }
+          nextInv[targetWH] = whInv;
+          await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+          setInventory(nextInv);
+        }
+      }
+      
+      await deleteDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
+      alert('매출전표가 삭제되었으며 실시간 재고에 복구되었습니다.');
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteSalesOrder = async (id) => {
+    const targetOrder = salesOrders.find(so => String(so.id) === String(id));
+    if (!checkWritePermission(targetOrder?.creator)) {
+      alert('수정/삭제 권한이 없습니다 (본인이 작성한 수주서만 삭제 가능).');
+      return;
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const nextInv = { ...inventory };
+
+      if (targetOrder) {
+        const fromWH = targetOrder.outWarehouse;
+        const toWH = targetOrder.inWarehouse;
+
+        // 1. 주문서에 연계된 모든 재고 이동 내역 일괄 삭제 (salesOrderId 매칭 우선)
+        const idMatches = inventoryTransferHistory.filter(h => String(h.salesOrderId) === String(id));
+        for (const match of idMatches) {
+          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        }
+
+        for (const item of (targetOrder.items || [])) {
+          if (item.loaded) {
+            if (nextInv[toWH]) {
+              nextInv[toWH][item.name] = (nextInv[toWH][item.name] || 0) - Number(item.qty);
+            }
+            if (!nextInv[fromWH]) nextInv[fromWH] = {};
+            nextInv[fromWH][item.name] = (nextInv[fromWH][item.name] || 0) + Number(item.qty);
+
+            // ID 매칭으로 지워지지 않은 구버전 데이터 백업 삭제
+            const hasAlreadyDeleted = idMatches.some(m => String(m.item) === String(item.name) && Number(m.qty) === Number(item.qty));
+            if (!hasAlreadyDeleted) {
+              const match = [...inventoryTransferHistory]
+                .reverse()
+                .find(h => 
+                  h.date === targetOrder.date &&
+                  h.from === fromWH &&
+                  h.to === toWH &&
+                  h.item === item.name &&
+                  h.memo === '상차(자동이동)'
+                );
+
+              if (match) {
+                await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+              }
+            }
+          }
+        }
+
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+        setInventory(nextInv);
+      }
+
+      await deleteDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)));
+      alert('수주서가 삭제되었으며 상차 완료된 재고는 실시간으로 원상 복구되었습니다.');
+    } catch (err) {
+      console.error('Error deleting sales order:', err);
+    }
+  };
+
+  const handleDeletePurchaseInvoice = async (id) => {
+    const targetInv = purchaseInvoices.find(pi => String(pi.id) === String(id));
+    if (!checkWritePermission(targetInv?.creator)) {
+      alert('수정/삭제 권한이 없습니다 (본인이 작성한 매입전표만 삭제 가능).');
+      return;
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const nextInv = { ...inventory };
+
+      if (targetInv) {
+        const targetWH = targetInv.warehouse;
+
+        // 전표 ID에 매칭되는 모든 재고이동 이력 일괄 삭제 (purchaseInvoiceId 매칭 우선)
+        const idMatches = inventoryTransferHistory.filter(h => String(h.purchaseInvoiceId) === String(id));
+        for (const match of idMatches) {
+          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        }
+
+        if (nextInv[targetWH]) {
+          const whInv = { ...nextInv[targetWH] };
+
+          for (const item of (targetInv.items || [])) {
+            whInv[item.name] = (whInv[item.name] || 0) - Number(item.qty);
+
+            const hasAlreadyDeleted = idMatches.some(m => String(m.item) === String(item.name) && String(m.from) === '매입입고');
+            if (!hasAlreadyDeleted) {
+              const match = [...inventoryTransferHistory]
+                .reverse()
+                .find(h => 
+                  h.date === targetInv.date &&
+                  h.from === '매입입고' &&
+                  h.to === targetWH &&
+                  h.item === item.name &&
+                  h.memo === `[매입] ${targetInv.partner}`
+                );
+
+              if (match) {
+                await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+              }
+            }
+          }
+
+          nextInv[targetWH] = whInv;
+          await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+          setInventory(nextInv);
+        }
+      }
+
+      await deleteDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)));
+      alert('매입전표가 삭제되었으며 실시간 창고 재고 및 매입 이력이 실시간으로 복구되었습니다.');
+    } catch (err) {
+      console.error('Error deleting purchase invoice:', err);
+    }
+  };
+
+  const handleSavePurchaseInvoice = async (invData, isSilent = false) => {
+    if (invData.id) {
+      const targetInv = purchaseInvoices.find(pi => String(pi.id) === String(invData.id));
+      if (!checkWritePermission(targetInv?.creator)) {
+        alert('수정/삭제 권한이 없습니다 (본인이 작성한 매입전표만 수정 가능).');
+        return null;
+      }
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const id = invData.id || Date.now();
+      const now = new Date();
+      const nextInv = { ...inventory };
+
+      const existingInv = editingPurchaseInvoice || purchaseInvoices.find(pi => String(pi.id) === String(id));
+      if (existingInv) {
+        const oldWH = existingInv.warehouse;
+        if (nextInv[oldWH]) {
+          const whInv = { ...nextInv[oldWH] };
+          (existingInv.items || []).forEach(item => { 
+            whInv[item.name] = (whInv[item.name] || 0) - Number(item.qty); 
+          });
+          nextInv[oldWH] = whInv;
+        }
+
+        // Clean up previous history entries for this purchaseInvoice to avoid duplicates on update
+        const idMatches = inventoryTransferHistory.filter(h => String(h.purchaseInvoiceId) === String(id));
+        for (const match of idMatches) {
+          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        }
+      }
+
+      const targetWH = invData.warehouse;
+      if (!nextInv[targetWH]) nextInv[targetWH] = {};
+      const whInv = { ...nextInv[targetWH] };
+      const processedTime = now.toLocaleTimeString('ko-KR', { hour12: false });
+      
+      const newHistoryEntries = [];
+      for (const item of invData.items) {
+        whInv[item.name] = (whInv[item.name] || 0) + Number(item.qty);
+        const historyId = Date.now() + Math.random();
+        const purchaseEntry = {
+          id: historyId,
+          date: invData.date,
+          from: '매입입고',
+          to: targetWH,
+          item: item.name,
+          spec: item.spec || '-',
+          qty: Number(item.qty),
+          processedAt: processedTime,
+          operator: currentUser?.name || '시스템',
+          memo: `[매입] ${invData.partner}`,
+          purchaseInvoiceId: String(id),
+          companyId
+        };
+        await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), purchaseEntry);
+        newHistoryEntries.push(purchaseEntry);
+      }
+      nextInv[targetWH] = whInv;
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      // Update state for history entries
+      setInventoryTransferHistory(prev => {
+        const filtered = prev.filter(h => String(h.purchaseInvoiceId) !== String(id));
+        return [...filtered, ...newHistoryEntries];
+      });
+
+      const finalData = { 
+        ...invData, 
+        id: Number(id), 
+        companyId, 
+        updatedAt: now.toISOString(), 
+        createdAt: invData.createdAt || now.toISOString(),
+        creator: invData.creator || currentUser?.name || '시스템'
+      };
+      await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)), finalData);
+      
+      if (isSilent) {
+        setEditingPurchaseInvoice(finalData);
+      } else {
+        setIsPurchaseInvoiceOpen(false);
+        setEditingPurchaseInvoice(null);
+        alert('매입전표가 발행되었습니다.');
+      }
+      return finalData;
+    } catch (err) { 
+      console.error(err); 
+      return null;
+    }
+  };
+
+  const handleSaveSalesInvoice = async (invData, isSilent = false) => {
+    if (invData.id) {
+      const targetInv = salesInvoices.find(si => String(si.id) === String(invData.id));
+      if (!checkWritePermission(targetInv?.creator)) {
+        alert('수정/삭제 권한이 없습니다 (본인이 작성한 매출전표만 수정 가능).');
+        return null;
+      }
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const id = invData.id || Date.now();
+      const now = new Date();
+      const nextInv = { ...inventory };
+      
+      const oldInv = editingInvoice || salesInvoices.find(si => String(si.id) === String(id));
+      if (oldInv) {
+        const oldWH = oldInv.warehouse;
+        const mainWH = warehouses.find(w => w.isMain)?.name || 
+                       warehouses.find(w => w.name.includes('메인'))?.name || 
+                       warehouses.find(w => w.name.includes('main'))?.name || 
+                       warehouses[0]?.name || 
+                       '메인창고';
+        
+        if (nextInv[oldWH]) {
+          const whInv = { ...nextInv[oldWH] };
+          
+          for (const item of oldInv.items) {
+            whInv[item.name] = (whInv[item.name] || 0) + item.qty;
+            
+            if (oldWH !== mainWH) {
+              const match = [...inventoryTransferHistory]
+                .reverse()
+                .find(h => 
+                  h.date === oldInv.date &&
+                  h.from === mainWH &&
+                  h.to === oldWH &&
+                  h.item === item.name &&
+                  h.memo === '상차(자동이동)'
+                );
+                
+              if (match) {
+                await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+                setInventoryTransferHistory(prev => prev.filter(h => String(h.id) !== String(match.id)));
+                if (!nextInv[mainWH]) nextInv[mainWH] = {};
+                nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) + (Number(match.qty) || 0);
+                whInv[item.name] = (whInv[item.name] || 0) - (Number(match.qty) || 0);
+              }
+            }
+
+            // 수정/재발행 시 유령 거래내역 중복 방지를 위한 기존 매출 출고 이력 정리
+            const saleMatch = [...inventoryTransferHistory]
+              .reverse()
+              .find(h => 
+                h.date === oldInv.date &&
+                h.from === oldWH &&
+                h.to === '매출출고' &&
+                h.item === item.name &&
+                h.memo === `[매출] ${oldInv.partner}`
+              );
+            if (saleMatch) {
+              await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(saleMatch.id)));
+              setInventoryTransferHistory(prev => prev.filter(h => String(h.id) !== String(saleMatch.id)));
+            }
+          }
+          nextInv[oldWH] = whInv;
+        }
+      }
+      
+      const targetWH = invData.warehouse;
+      if (!nextInv[targetWH]) nextInv[targetWH] = {};
+      const whInv = { ...nextInv[targetWH] };
+      const processedTime = now.toLocaleTimeString('ko-KR', { hour12: false });
+      
+      const mainWH = warehouses.find(w => w.isMain)?.name || 
+                     warehouses.find(w => w.name.includes('메인'))?.name || 
+                     warehouses.find(w => w.name.includes('main'))?.name || 
+                     warehouses[0]?.name || 
+                     '메인창고';
+
+      const newHistoryEntries = [];
+
+      for (const item of invData.items) {
+        whInv[item.name] = (whInv[item.name] || 0) - item.qty;
+        
+        // ─── 상차(자동이동) 처리: 메인창고에 재고가 있는 양까지만 자동이동 ───
+        if (targetWH !== mainWH) {
+          const product = products.find(p => p.name === item.name);
+          const initialStock = product ? (Number(product.initialStock) || 0) : 0;
+          const mainWHChanges = nextInv[mainWH]?.[item.name] || 0;
+          const mainWHStock = initialStock + mainWHChanges;
+          
+          const transferQty = Math.max(0, Math.min(item.qty, mainWHStock));
+          
+          if (transferQty > 0) {
+            if (!nextInv[mainWH]) nextInv[mainWH] = {};
+            nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) - transferQty;
+            whInv[item.name] = (whInv[item.name] || 0) + transferQty;
+            
+            const autoTransferId = Date.now() + Math.random();
+            const autoEntry = {
+              id: autoTransferId,
+              date: invData.date,
+              from: mainWH,
+              to: targetWH,
+              item: item.name,
+              spec: item.spec || '-',
+              qty: transferQty,
+              processedAt: processedTime,
+              operator: currentUser?.name || '시스템',
+              memo: '상차(자동이동)',
+              salesInvoiceId: String(id),
+              companyId
+            };
+            await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(autoTransferId)), autoEntry);
+            newHistoryEntries.push(autoEntry);
+          }
+        }
+        
+        // [매출] 출고 이력 추가
+        const historyId = Date.now() + Math.random();
+        const saleEntry = {
+          id: historyId,
+          date: invData.date,
+          from: targetWH,
+          to: '매출출고',
+          item: item.name,
+          spec: item.spec || '-',
+          qty: item.qty,
+          processedAt: processedTime,
+          operator: currentUser?.name || '시스템',
+          memo: `[매출] ${invData.partner}`,
+          salesInvoiceId: String(id),
+          companyId
+        };
+        await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), saleEntry);
+        newHistoryEntries.push(saleEntry);
+      }
+      nextInv[targetWH] = whInv;
+      
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      // Update state for new history entries
+      setInventoryTransferHistory(prev => {
+        const filtered = prev.filter(h => String(h.salesInvoiceId) !== String(id));
+        return [...filtered, ...newHistoryEntries];
+      });
+      
+      const finalData = { 
+        ...invData, 
+        id: Number(id), 
+        companyId, 
+        updatedAt: now.toISOString(),
+        creator: invData.creator || currentUser?.name || '시스템'
+      };
+      await setDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)), finalData);
+      
+      if (isSilent) {
+        setEditingInvoice(finalData);
+      } else {
+        setIsSalesInvoiceOpen(false);
+        setEditingInvoice(null);
+        alert('매출전표가 발행되었으며 실시간 재고에 출고 반영되었습니다.');
+      }
+      return finalData;
+    } catch (err) { 
+      console.error(err); 
+      return null;
+    }
+  };
+
+  const handleSaveAdjustment = async (adjData) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      
+      // 1. Update Inventory
+      const nextInv = { ...inventory };
+      const wh = adjData.warehouse;
+      const prod = adjData.productName;
+      if (!nextInv[wh]) nextInv[wh] = {};
+      nextInv[wh] = { ...nextInv[wh], [prod]: (nextInv[wh][prod] || 0) - adjData.qty };
+      
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      setInventory(nextInv);
+
+      // 2. Add to Adjustments List
+      const adjId = Date.now();
+      await setDoc(doc(db, 'companies', companyId, 'inventoryAdjustments', String(adjId)), { ...adjData, id: adjId, companyId });
+
+      // 3. Process as Expense
+      const product = products.find(p => p.id === adjData.productId);
+      const unitPrice = product?.purchasePrice || 0;
+      const totalAmount = unitPrice * adjData.qty;
+
+      if (totalAmount > 0) {
+        const expId = Date.now() + 1;
+        const newExpense = {
+          id: expId,
+          date: adjData.date,
+          category: '기타비용',
+          description: `[재고손실] ${adjData.productName} ${adjData.qty}개 (${adjData.reason}) - ${adjData.description}`,
+          amount: totalAmount,
+          method: '기타',
+          author: adjData.author,
+          isAutoGenerated: true,
+          companyId
+        };
+        await setDoc(doc(db, 'companies', companyId, 'expenses', String(expId)), newExpense);
+      }
+
+      alert(`재고 손실 조정이 완료되었습니다.\n창고: ${adjData.warehouse}\n품목: ${adjData.productName}\n차감수량: ${adjData.qty}개\n사유: ${adjData.reason}`);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSaveStocktakeAdjustments = async ({ warehouse, date, adjustments, operator }) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
+      
+      const nextInv = { ...inventory };
+      if (!nextInv[warehouse]) nextInv[warehouse] = {};
+
+      const newHistoryEntries = [];
+      const newAdjustmentEntries = [];
+      const newExpenses = [];
+
+      for (let i = 0; i < adjustments.length; i++) {
+        const adj = adjustments[i];
+        const productName = adj.productName;
+        const bookStock = adj.bookStock;
+        const physicalStock = adj.physicalStock;
+        const qty = adj.qty;
+        const type = adj.type;
+        const reason = adj.reason;
+        const description = adj.description;
+
+        const product = products.find(p => p.name === productName);
+        const initialStock = product?.initialStock || 0;
+        nextInv[warehouse][productName] = physicalStock - initialStock;
+
+        const historyId = Date.now() + i + Math.random();
+        const historyEntry = {
+          id: historyId,
+          date,
+          from: type === 'loss' ? warehouse : '재고조정(실사기입)',
+          to: type === 'loss' ? '재고조정(실사손실)' : warehouse,
+          item: productName,
+          spec: adj.spec || '-',
+          qty,
+          processedAt: new Date().toLocaleTimeString(),
+          operator,
+          memo: `[실사조정] 장부 ${bookStock} -> 실사 ${physicalStock} (${reason})`,
+          description: description,
+          companyId
+        };
+        batch.set(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), historyEntry);
+        newHistoryEntries.push(historyEntry);
+
+        const adjId = Date.now() + i + Math.random();
+        const adjEntry = {
+          id: adjId,
+          date,
+          warehouse,
+          productId: adj.productId,
+          productName,
+          qty,
+          reason,
+          description: `[실사조정] 장부 ${bookStock} -> 실사 ${physicalStock} - ${description}`,
+          author: operator,
+          type,
+          companyId
+        };
+        batch.set(doc(db, 'companies', companyId, 'inventoryAdjustments', String(adjId)), adjEntry);
+        newAdjustmentEntries.push(adjEntry);
+
+        if (type === 'loss') {
+          const product = products.find(p => p.id === adj.productId);
+          const unitPrice = product?.purchasePrice || 0;
+          const totalAmount = unitPrice * qty;
+          if (totalAmount > 0) {
+            const expId = Date.now() + i + 1 + Math.random();
+            const newExpense = {
+              id: expId,
+              date,
+              category: '기타비용',
+              description: `[재고손실] ${productName} ${qty}개 (${reason}) - 실사조정`,
+              amount: totalAmount,
+              method: '기타',
+              author: operator,
+              isAutoGenerated: true,
+              companyId
+            };
+            batch.set(doc(db, 'companies', companyId, 'expenses', String(expId)), newExpense);
+            newExpenses.push(newExpense);
+          }
+        }
+      }
+
+      batch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      
+      const countSummaryId = Date.now() + Math.random();
+      const countSummary = {
+        id: countSummaryId,
+        date,
+        warehouse,
+        operator,
+        adjustmentsCount: adjustments.length,
+        itemsAdjusted: adjustments.map(a => ({
+          productName: a.productName,
+          bookStock: a.bookStock,
+          physicalStock: a.physicalStock,
+          diff: a.physicalStock - a.bookStock,
+          reason: a.reason
+        })),
+        companyId
+      };
+      batch.set(doc(db, 'companies', companyId, 'inventoryCounts', String(countSummaryId)), countSummary);
+
+      // Clear adjusted items from physicalInventory
+      const nextPhysical = { ...physicalInventory };
+      if (nextPhysical[warehouse]) {
+        adjustments.forEach(adj => {
+          delete nextPhysical[warehouse][adj.productName];
+        });
+      }
+      batch.set(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: nextPhysical });
+
+      await batch.commit();
+
+      setInventory(nextInv);
+      setPhysicalInventory(nextPhysical);
+      setInventoryTransferHistory(prev => [...prev, ...newHistoryEntries]);
+      if (newAdjustmentEntries.length > 0) {
+        setInventoryAdjustments(prev => [...prev, ...newAdjustmentEntries]);
+      }
+      if (newExpenses.length > 0) {
+        setExpenses(prev => [...prev, ...newExpenses]);
+      }
+    } catch (err) {
+      console.error('Error saving stocktake adjustments:', err);
+      alert('재고 조정 반영 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
+  const handleUpdatePhysicalCount = async (warehouse, productName, value) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const nextPhysical = { ...physicalInventory };
+      if (!nextPhysical[warehouse]) nextPhysical[warehouse] = {};
+      
+      if (value === undefined) {
+        delete nextPhysical[warehouse][productName];
+      } else {
+        nextPhysical[warehouse][productName] = value;
+      }
+
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: nextPhysical });
+      setPhysicalInventory(nextPhysical);
+    } catch (err) {
+      console.error('Error updating physical count:', err);
+    }
+  };
+
+  const openMismatchFromOrder = (warehouse, product) => {
+    setMismatchInitialWarehouse(warehouse);
+    setMismatchInitialSearchTerm(product);
+    setIsInventoryMismatchOpen(true);
+  };
+
+  // 2. Effects for persistence
+  React.useEffect(() => {
+    if (localStorage.getItem('savedLoginId') === 'windpino') {
+      localStorage.removeItem('savedLoginId');
+      localStorage.removeItem('savedLoginPw');
+    }
+  }, []);
+
+  React.useEffect(() => {
+    console.log('Categories State Updated:', categories);
+  }, [categories]);
+
+  React.useEffect(() => {
+    try {
+      // We still keep localStorage as a fallback/cache
+      localStorage.setItem('staffList', JSON.stringify(staffList));
+      localStorage.setItem('schedules', JSON.stringify(schedules));
+      localStorage.setItem('products', JSON.stringify(products));
+      localStorage.setItem('categories', JSON.stringify(categories));
+      localStorage.setItem('partners', JSON.stringify(partners));
+      localStorage.setItem('accounts', JSON.stringify(accounts));
+      localStorage.setItem('purchaseInvoices', JSON.stringify(purchaseInvoices));
+      localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
+      localStorage.setItem('warehouses', JSON.stringify(warehouses));
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      localStorage.setItem('licenseData', JSON.stringify(licenseData));
+      localStorage.setItem('dashboardConfig', JSON.stringify(dashboardConfig));
+      localStorage.setItem('scheduleTypes', JSON.stringify(scheduleTypes));
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      localStorage.setItem('physicalInventory', JSON.stringify(physicalInventory));
+      localStorage.setItem('inventoryAdjustments', JSON.stringify(inventoryAdjustments));
+      localStorage.setItem('inventoryTransferHistory', JSON.stringify(inventoryTransferHistory));
+      localStorage.setItem('staffZones', JSON.stringify(staffZones));
+      localStorage.setItem('staffJobTitles', JSON.stringify(staffJobTitles));
+      
+      // Save single docs to Firebase (Throttle this in production!)
+      const settingsToSync = { systemSettings, licenseData, dashboardConfig, favoriteMenus, staffZones, staffJobTitles };
+      if (currentUser && currentUser.companyId) {
+        const companyId = currentUser.companyId;
+        Object.entries(settingsToSync).forEach(([name, value]) => {
+          setDoc(doc(db, 'companies', companyId, 'settings', name), { value }).catch(e => console.warn("Firebase settings sync failed:", e));
+        });
+      }
+
+    } catch (e) {
+      console.warn('Storage sync failed:', e);
+    }
+  }, [staffList, schedules, products, categories, partners, accounts, purchaseInvoices, purchaseOrders, warehouses, currentUser, systemSettings, expenses, licenseData, dashboardConfig, scheduleTypes, inventory, physicalInventory, inventoryAdjustments, favoriteMenus, staffZones, staffJobTitles]);
+
+  // Handle toggling menu favorites from window modals
+  React.useEffect(() => {
+    const handleToggleFavorite = (e) => {
+      const menuId = e.detail;
+      setFavoriteMenus(prev => {
+        let next;
+        const activeFavs = prev.filter(Boolean);
+        
+        if (prev.includes(menuId)) {
+          // 이미 즐겨찾기에 등록된 경우 제거 (null로 대체하여 슬롯 구조 유지)
+          next = prev.map(id => id === menuId ? null : id);
+          showToast('즐겨찾기 메뉴에서 삭제되었습니다.', 'info');
+        } else {
+          // 즐겨찾기에 등록되지 않은 경우 추가
+          if (activeFavs.length >= 7) {
+            alert('자주 찾는 메뉴는 최대 7개까지만 등록할 수 있습니다.');
+            return prev;
+          }
+          
+          // 빈 슬롯(null)이 있으면 그 자리를 채우고, 없으면 맨 뒤에 추가
+          const nullIdx = prev.indexOf(null);
+          if (nullIdx !== -1) {
+            next = [...prev];
+            next[nullIdx] = menuId;
+          } else {
+            next = [...prev, menuId];
+          }
+          showToast('즐겨찾기 메뉴에 추가되었습니다.', 'success');
+        }
+        
+        // 로컬스토리지 저장
+        localStorage.setItem('favoriteMenus', JSON.stringify(next));
+        
+        // 파이어베이스 저장 (Firestore 동기화)
+        if (currentUser?.companyId) {
+          setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: next })
+            .catch(err => console.warn('Firebase favorite sync failed:', err));
+        } else {
+          setDoc(doc(db, 'settings', 'favoriteMenus'), { value: next })
+            .catch(err => console.warn('Firebase favorite sync failed:', err));
+        }
+
+        // WindowModal 컴포넌트들에게 업데이트 이벤트 전파
+        window.dispatchEvent(new CustomEvent('favoritesUpdated', { detail: next }));
+        
+        return next;
+      });
+    };
+
+    window.addEventListener('toggleFavorite', handleToggleFavorite);
+    return () => window.removeEventListener('toggleFavorite', handleToggleFavorite);
+  }, [currentUser]);
+
+  // Handle Paste (Ctrl+V) for schedules
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (!copiedSchedule) return;
+        
+        // Prevent pasting if user is typing in an input or textarea
+        const activeElement = document.activeElement;
+        const isInput = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable;
+        if (isInput) return;
+
+        // Fix: Use local date instead of UTC to avoid timezone issues
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const newDateStr = `${year}-${month}-${day}`;
+        
+        // Calculate duration to maintain it when pasting
+        const start = new Date(copiedSchedule.startDate || copiedSchedule.date);
+        const end = new Date(copiedSchedule.endDate || copiedSchedule.startDate || copiedSchedule.date);
+        const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const pasteEndDate = new Date(selectedDate);
+        pasteEndDate.setDate(selectedDate.getDate() + (diffDays > 0 ? diffDays : 0));
+        
+        const endYear = pasteEndDate.getFullYear();
+        const endMonth = String(pasteEndDate.getMonth() + 1).padStart(2, '0');
+        const endDay = String(pasteEndDate.getDate()).padStart(2, '0');
+        const endDateStr = `${endYear}-${endMonth}-${endDay}`;
+
+        const pastedSchedule = {
+          ...copiedSchedule,
+          id: Date.now(),
+          date: newDateStr,
+          startDate: newDateStr,
+          endDate: endDateStr,
+          author: currentUser?.name || '알 수 없음',
+          viewers: [] // Reset viewers for the new copy
+        };
+
+        setSchedules(prev => [...prev, pastedSchedule]);
+        alert(`복사한 일정이 ${newDateStr} 날짜로 붙여넣기 되었습니다.`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [copiedSchedule, selectedDate, currentUser, schedules, favoriteMenus]);
+
+  const handleOpenScheduleDetail = async (schedule) => {
+    if (!schedule) return;
+    
+    setSelectedScheduleForDetail(schedule);
+    setIsScheduleDetailOpen(true);
+    
+    if (currentUser && currentUser.name) {
+      const currentViewers = schedule.viewers || [];
+      if (!currentViewers.includes(currentUser.name)) {
+        const updatedViewers = [...currentViewers, currentUser.name];
+        const updatedSchedule = { ...schedule, viewers: updatedViewers };
+        
+        setSchedules(prev => prev.map(s => String(s.id) === String(schedule.id) ? updatedSchedule : s));
+        setSelectedScheduleForDetail(updatedSchedule);
+        
+        try {
+          const companyId = currentUser?.companyId || 'default';
+          const docRef = doc(db, 'companies', companyId, 'schedules', String(schedule.id));
+          await setDoc(docRef, { viewers: updatedViewers }, { merge: true });
+          console.log(`Auto read confirmation synced for schedule ${schedule.id} and user ${currentUser.name}`);
+        } catch (err) {
+          console.error("Firestore Auto Read Confirmation Sync Error:", err);
+        }
+      }
+    }
+  };
+
+  // Drag and Drop Handlers
+  const [draggedWidgetId, setDraggedWidgetId] = useState(null);
+
+  const handleDragStart = (e, widgetId) => {
+    setDraggedWidgetId(widgetId);
+    e.dataTransfer.setData('widgetId', widgetId);
+    e.currentTarget.classList.add('dragging');
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.classList.remove('dragging');
+    setDraggedWidgetId(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e, targetWidgetId) => {
+    e.preventDefault();
+    if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
+
+    const newWidgets = [...dashboardConfig.widgets];
+    const draggedIndex = newWidgets.indexOf(draggedWidgetId);
+    const targetIndex = newWidgets.indexOf(targetWidgetId);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // Swap the widgets
+      newWidgets[draggedIndex] = targetWidgetId;
+      newWidgets[targetIndex] = draggedWidgetId;
+      setDashboardConfig({ ...dashboardConfig, widgets: newWidgets });
+    }
+  };
+
+  const renderWidget = (widgetId, spanClass = 'grid-span-2') => {
+    if (!widgetId) return <div className={`dashboard-widget empty-slot ${spanClass}`}></div>;
+
+    if (widgetId?.toLowerCase() === 'schedule') {
+      return (
+        <div 
+          key="schedule-widget" 
+          className={`dashboard-widget ${draggedWidgetId === 'Schedule' ? 'dragging' : ''} ${spanClass} ${!isDashboardLocked ? 'editable-mode' : ''}`}
+          style={{ height: '290px', minHeight: '290px', maxHeight: '290px', overflow: 'hidden' }}
+          draggable={!isDashboardLocked}
+          onDragStart={(e) => handleDragStart(e, 'Schedule')}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 'Schedule')}
+        >
+          <ScheduleSidebar 
+            selectedDate={selectedDate} 
+            schedules={schedules} 
+            setSchedules={setSchedules} 
+            currentUser={currentUser} 
+            scheduleTypes={scheduleTypes}
+            hiddenScheduleTypes={hiddenScheduleTypes}
+            onAdd={() => setIsScheduleRegistrationOpen(true)}
+            isDashboardLocked={isDashboardLocked}
+            onOpenScheduleDetail={handleOpenScheduleDetail}
+            onCopy={(s) => {
+              setCopiedSchedule(s);
+              alert('일정이 복사되었습니다. 달력에서 날짜 선택 후 Ctrl+V를 누르면 붙여넣기 됩니다.');
+            }}
+            onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
+            onDelete={async (id) => {
+              console.log("onDelete triggered. Target ID:", id, "Type:", typeof id);
+              
+              // bypass window.confirm as it might be blocked by the browser
+              // 1. Update local state immediately with robust ID comparison
+              setSchedules(prev => {
+                const filtered = prev.filter(s => String(s.id) !== String(id));
+                console.log(`Filtering complete. Previous: ${prev.length}, Current: ${filtered.length}`);
+                return filtered;
+              });
+              
+              // 2. Delete from Firestore
+              try {
+                const companyId = currentUser?.companyId || 'default';
+                const docRef = doc(db, 'companies', companyId, 'schedules', String(id));
+                console.log(`Attempting Firestore delete for path: companies/${companyId}/schedules/${id}`);
+                await deleteDoc(docRef);
+                showToast('일정이 삭제되었습니다.', 'success');
+              } catch (err) {
+                console.error("Firestore Delete Error:", err);
+                alert('삭제 중 오류가 발생했습니다. (네트워크 상태 확인 필요)');
+              }
+            }}
+          />
+        </div>
+      );
+    }
 
     return (
-      <div className="flex flex-col h-[calc(100vh-140px)] animate-fadeIn">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 space-y-2 flex-shrink-0">
-          <h4 className="text-white text-xs font-bold flex items-center gap-1.5"><Sparkles size={14} className="text-blue-500"/> AI 모바일 명령 단축키</h4>
-          <p className="text-[10px] text-slate-400">데이터 조회를 위해 단축키를 입력창에 적어 전송해 보세요.</p>
-          <div className="grid grid-cols-3 gap-2 text-[10px] text-center font-bold text-blue-400">
-            <div className="bg-slate-955 p-2 rounded-lg border border-slate-850">!매출</div>
-            <div className="bg-slate-955 p-2 rounded-lg border border-slate-850">!재고</div>
-            <div className="bg-slate-955 p-2 rounded-lg border border-slate-850">!미수금</div>
-          </div>
+      <div 
+        key={widgetId} 
+        className={`dashboard-widget summary-widget ${draggedWidgetId === widgetId ? 'dragging' : ''} ${spanClass} ${!isDashboardLocked ? 'editable-mode' : ''}`}
+        style={{ height: '290px', minHeight: '290px', maxHeight: '290px', overflow: 'hidden' }}
+        draggable={!isDashboardLocked}
+        onDragStart={(e) => handleDragStart(e, widgetId)}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleDrop(e, widgetId)}
+      >
+        <div className="widget-header" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          cursor: isDashboardLocked ? 'default' : 'grab' 
+        }}>
+          {widgetId === 'Inventory' && <Package size={20} color="#3b82f6" />}
+          {widgetId === 'Sales' && <TrendingUp size={20} color="#10b981" />}
+          {widgetId === 'Purchase' && <ShoppingCart size={20} color="#f59e0b" />}
+          {widgetId === 'Partners' && <Users size={20} color="#8b5cf6" />}
+          {widgetId === 'Warehouses' && <Home size={20} color="#ec4899" />}
+          {widgetId === 'OrderReport' && <ShoppingCart size={20} color="#3b82f6" />}
+          {widgetId === 'CashReport' && <BarChart2 size={20} color="#10b981" />}
+          {widgetId === 'Favorites' && <Star size={20} color="#f59e0b" fill="#f59e0b" />}
+          <h3 style={{ flex: 1 }}>{
+            widgetId === 'Inventory' ? '재고 현황' :
+            widgetId === 'Sales' ? '매출 현황' :
+            widgetId === 'Purchase' ? '매입 현황' :
+            widgetId === 'Partners' ? '거래처 현황' :
+            widgetId === 'Warehouses' ? '최근 처리 현황' : 
+            widgetId === 'OrderReport' ? '수주 보고' :
+            widgetId === 'CashReport' ? '입출금 보고' :
+            widgetId === 'Favorites' ? '자주 찾는 메뉴' : widgetId
+          }</h3>
+          
+          {/* 자세히 보기 버튼 이동 */}
+          {['Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses', 'OrderReport', 'CashReport', 'Favorites'].includes(widgetId) && (
+            <button 
+              className="widget-header-more-btn" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (widgetId === 'Inventory') setIsInventoryReportOpen(true);
+                if (widgetId === 'Sales') setIsSalesReportOpen(true);
+                if (widgetId === 'Purchase') setIsPurchaseLedgerOpen(true);
+                if (widgetId === 'Partners') setIsPartnerManagerOpen(true);
+                if (widgetId === 'Warehouses') setIsRecentActivityModalOpen(true);
+                if (widgetId === 'OrderReport') setIsOrderReportOpen(true);
+                if (widgetId === 'CashReport') openCashReport('결산');
+                if (widgetId === 'Favorites') setIsFavoriteSettingsOpen(true);
+              }}
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                color: '#3b82f6',
+                background: '#eff6ff',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+              onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
+            >
+              자세히 보기
+            </button>
+          )}
+
+          {widgetId === 'Favorites' && (
+            <button 
+              className="btn-icon-only" 
+              onClick={(e) => { e.stopPropagation(); setIsFavoriteSettingsOpen(true); }}
+              style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', } }
+            >
+              <SettingsIcon size={16} />
+            </button>
+          )}
         </div>
+        <div className="widget-content">
+          {widgetId === 'Favorites' && (
+            <div className="favorites-grid-wrapper" style={{ padding: '4px 0' }}>
+              <div className="favorites-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(5, 1fr)', 
+                gap: '8px',
+                rowGap: '12px'
+              }}>
+                {Array.from({ length: 10 }).map((_, idx) => {
+                  const menuId = favoriteMenus[idx];
+                  const menu = [
+                    { id: 'staff', name: '직원 관리', icon: <Users size={20} />, action: () => setIsStaffManagerOpen(true) },
+                    { id: 'warehouse', name: '창고 관리', icon: <Home size={20} />, action: () => setIsWarehouseManagerOpen(true) },
+                    { id: 'partner', name: '거래처 관리', icon: <UserPlus size={20} />, action: () => setIsPartnerManagerOpen(true) },
+                    { id: 'product', name: '품목 관리', icon: <Package size={20} />, action: () => setIsProductManagerOpen(true) },
+                    { id: 'account', name: '계좌 관리', icon: <CreditCard size={20} />, action: () => setIsAccountManagerOpen(true) },
+                    { id: 'schedule', name: '일정 추가', icon: <CalendarIcon size={20} />, action: () => setIsScheduleRegistrationOpen(true) },
+                    { id: 'purchase_invoice', name: '매입 전표', icon: <FileInput size={20} />, action: () => setIsPurchaseInvoiceOpen(true) },
+                    { id: 'purchase_ledger', name: '매입 관리', icon: <FileText size={20} />, action: () => setIsPurchaseLedgerOpen(true) },
+                    { id: 'purchase_order', name: '발주 등록', icon: <Send size={20} />, action: () => setIsPurchaseOrderOpen(true) },
+                    { id: 'sales_invoice', name: '매출 전표', icon: <FileOutput size={20} />, action: () => setIsSalesInvoiceOpen(true) },
+                    { id: 'sales_invoice_list', name: '매출전표내역', icon: <List size={20} />, action: () => setIsSalesInvoiceListOpen(true) },
+                    { id: 'sales_ledger', name: '매출 원장', icon: <List size={20} />, action: () => setIsSalesLedgerOpen(true) },
+                    { id: 'sales_order', name: '수주 추가', icon: <ShoppingCart size={20} />, action: () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }, highlight: true },
+                    { id: 'cash_report_1', name: '결산 보고', icon: <BarChart2 size={20} />, action: () => openCashReport('결산') },
+                    { id: 'cash_report_2', name: '입출금 현황', icon: <TrendingUp size={20} />, action: () => openCashReport('일자별') },
+                    { id: 'sales_report', name: '매출 보고', icon: <BarChart2 size={20} />, action: () => setIsSalesReportOpen(true) },
+                    { id: 'inventory_report_1', name: '일자별 재고현황(창고별이동현황)', icon: <Box size={20} />, action: () => openInventoryReport('일자별') },
+                    { id: 'inventory_report_2', name: '최종 재고 현황(창고별 최종재고현황)', icon: <Box size={20} />, action: () => openInventoryReport('최종') },
+                    { id: 'receivables', name: '미수금 보고', icon: <DollarSign size={20} />, action: () => setIsReceivablesReportOpen(true) },
+                    { id: 'edit_delete', name: '수정삭제 보고', icon: <FileSearch size={20} />, action: () => setIsEditDeleteReportOpen(true) },
+                    { id: 'staff_perf', name: '직원 실적', icon: <TrendingUp size={20} />, action: () => setIsStaffPerformanceReportOpen(true) },
+                    { id: 'tax_report', name: '부가세 보고', icon: <Percent size={20} />, action: () => setIsTaxReportOpen(true) },
+                    { id: 'expense', name: '경비 등록', icon: <DollarSign size={20} />, action: () => setIsExpenseRegistrationOpen(true) },
+                    { id: 'data_manager', name: '데이터 관리', icon: <Database size={20} />, action: () => setIsDataManagerOpen(true) },
+                    { id: 'settings', name: '환경 설정', icon: <SettingsIcon size={20} />, action: () => setIsSettingsOpen(true) },
+                  ].find(m => m.id === menuId);
 
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-none">
-          {sortedChats.map((chat, idx) => {
-            const isMe = chat.sender === "User";
-            const time = chat.timestamp 
-              ? new Date(chat.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-              : '';
+                  if (!menu) return (
+                    <div key={idx} className="favorite-item empty" style={{ 
+                      height: '64px', 
+                      border: '1px dashed #e2e8f0', 
+                      backgroundColor: '#fcfcfc',
+                      borderRadius: '8px'
+                    }}></div>
+                  );
 
+                  return (
+                    <button 
+                      key={idx} 
+                      className="favorite-item-v2" 
+                      style={{ 
+                        height: '64px', 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        background: menu.highlight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : '#f8fafc',
+                        border: menu.highlight ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }} 
+                      onClick={menu.action}
+                    >
+                      <div className="menu-icon" style={{ color: menu.highlight ? '#1d4ed8' : '#64748b' }}>
+                        {menu.icon}
+                      </div>
+                      <span className="menu-label" style={{ 
+                        fontSize: '0.7rem', 
+                        fontWeight: '600',
+                        color: menu.highlight ? '#1d4ed8' : '#475569',
+                        textAlign: 'center',
+                        lineHeight: '1.1'
+                      }}>
+                        {menu.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {widgetId === 'Inventory' && (() => {
+            let discrepancyCount = 0;
+            warehouses.forEach(w => {
+              products.forEach(p => {
+                const bookStock = (p.initialStock || 0) + (inventory[w.name]?.[p.name] || 0);
+                const physStock = physicalInventory[w.name]?.[p.name];
+                if (physStock !== undefined && physStock !== bookStock) {
+                  discrepancyCount++;
+                }
+              });
+            });
+            
             return (
-              <div key={idx} className={`flex gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                {!isMe && (
-                  <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-blue-400 text-[10px]">AI</div>
-                )}
-                <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                  <span className="text-[9px] text-slate-500 font-bold mb-0.5">{chat.senderName || 'AI 비서'}</span>
-                  <div className={`rounded-2xl px-3.5 py-2.5 text-xs max-w-[240px] md:max-w-md shadow-sm leading-relaxed ${
-                    isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
-                  }`}>
-                    {chat.text.split('\n').map((line, i) => (
-                      <span key={i} className="block">{line}</span>
-                    ))}
-                  </div>
-                  <span className="text-[8px] text-slate-655 mt-1 font-bold">{time}</span>
+              <div className="summary-stat" onClick={() => setIsInventoryMismatchOpen(true)} style={{ cursor: 'pointer' }}>
+                <div className="stat-item">
+                  <span className="stat-label">총 품목 수</span>
+                  <span className="stat-value">{products.length}개</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">카테고리</span>
+                  <span className="stat-value">{categories.length}개</span>
+                </div>
+                <div className="stat-item" style={{ 
+                  backgroundColor: discrepancyCount > 0 ? '#fef2f2' : 'transparent', 
+                  borderRadius: '6px', 
+                  padding: '2px 6px',
+                  border: discrepancyCount > 0 ? '1px solid #fee2e2' : 'none'
+                }}>
+                  <span className="stat-label" style={{ color: discrepancyCount > 0 ? '#dc2626' : '#64748b', fontWeight: discrepancyCount > 0 ? 700 : 500 }}>재고 불일치</span>
+                  <span className="stat-value" style={{ color: discrepancyCount > 0 ? '#dc2626' : '#475569', fontWeight: discrepancyCount > 0 ? 800 : 600 }}>{discrepancyCount}건</span>
                 </div>
               </div>
             );
-          })}
-          <div ref={chatEndRef} />
-        </div>
+          })()}
+          {widgetId === 'Sales' && (() => {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            
+            // 1. 수주받은 전체 매출 금액
+            const totalOrderAmount = salesOrders
+              .filter(o => o.date === dateStr)
+              .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+            
+            // 2. 수주받은 주문 건수
+            const totalOrderCount = salesOrders
+              .filter(o => o.date === dateStr)
+              .length;
+            
+            // 3. 매출전표 발행완료 건수
+            const completedOrderCount = salesOrders
+              .filter(o => o.date === dateStr && o.status === '완료')
+              .length;
 
-        <form onSubmit={handleSendChat} className="mt-4 flex gap-2 flex-shrink-0">
-          <input 
-            type="text" 
-            placeholder="비서에게 내릴 명령을 적어주세요..." 
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-          />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10">
-            <Send size={16}/>
-          </button>
-        </form>
+            // 최대치 계산 (동적 스케일링)
+            const dailyAmountSums = {};
+            const dailyOrderCounts = {};
+            
+            salesOrders.forEach(o => {
+              dailyAmountSums[o.date] = (dailyAmountSums[o.date] || 0) + (Number(o.totalPrice) || 0);
+              dailyOrderCounts[o.date] = (dailyOrderCounts[o.date] || 0) + 1;
+            });
+
+            const maxAmountLimit = Math.max(...Object.values(dailyAmountSums), 1000000);
+            const maxCountLimit = Math.max(...Object.values(dailyOrderCounts), 5);
+
+            // 퍼센트율 계산
+            const amountPercent = Math.min((totalOrderAmount / maxAmountLimit) * 100, 100);
+            const countPercent = Math.min((totalOrderCount / maxCountLimit) * 100, 100);
+            const completePercent = Math.min((completedOrderCount / maxCountLimit) * 100, 100);
+
+            // 금액 축약 포맷팅
+            const formatAmount = (num) => {
+              if (num >= 100000000) return `${(num / 100000000).toFixed(1)}억`;
+              if (num >= 10000) return `${(num / 10000).toFixed(0)}만`;
+              return `${num.toLocaleString()}`;
+            };
+
+            return (
+              <div className="sales-chart-widget" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', padding: '4px 0' }}>
+                {/* 차트 영역 */}
+                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '110px', padding: '10px 0 4px', borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
+                  
+                  {/* Bar 1: 수주 금액 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }} title={`전체 수주금액: ${totalOrderAmount.toLocaleString()}원`}>
+                    <div style={{ width: '24px', height: '80px', backgroundColor: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: `${amountPercent}%`, background: 'linear-gradient(to top, #3b82f6, #6366f1)', borderRadius: '12px', transition: 'height 0.5s ease-out' }} />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#3b82f6' }}>{formatAmount(totalOrderAmount)}원</span>
+                  </div>
+
+                  {/* Bar 2: 주문 건수 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }} title={`수주 주문건수: ${totalOrderCount}건`}>
+                    <div style={{ width: '24px', height: '80px', backgroundColor: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: `${countPercent}%`, background: 'linear-gradient(to top, #10b981, #059669)', borderRadius: '12px', transition: 'height 0.5s ease-out' }} />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981' }}>{totalOrderCount}건</span>
+                  </div>
+
+                  {/* Bar 3: 완료 건수 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }} title={`전표 발행완료: ${completedOrderCount}건`}>
+                    <div style={{ width: '24px', height: '80px', backgroundColor: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: `${completePercent}%`, background: 'linear-gradient(to top, #f59e0b, #d97706)', borderRadius: '12px', transition: 'height 0.5s ease-out' }} />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b' }}>{completedOrderCount}건</span>
+                  </div>
+
+                </div>
+
+                {/* 라벨 설명 행 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>수주금액</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>주문건수</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>완료건수</div>
+                </div>
+
+                {/* 하단 액션 버튼 */}
+                <button 
+                  className="btn-primary" 
+                  style={{ width: '100%', justifyContent: 'center', gap: '8px', padding: '8px', fontSize: '0.8rem' }} 
+                  onClick={() => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }}
+                >
+                  <ShoppingCart size={14} /> 수주 등록
+                </button>
+              </div>
+            );
+          })()}
+          {widgetId === 'Purchase' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">선택일 매입</span>
+                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.totalAmount || 0), 0).toLocaleString()}원</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">진행 중 발주</span>
+                <span className="stat-value">{purchaseOrders.filter(o => o.status === '진행중').length}건</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'Partners' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">총 거래처</span>
+                <span className="stat-value">{partners.length}개</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'Warehouses' && (() => {
+            const canViewRecentActivity = currentUser?.role === 'super_admin' || 
+              currentUser?.role === 'admin' || 
+              currentUser?.userId === 'admin' || 
+              currentUser?.permissions?.['최근 처리 현황'] === true || 
+              currentUser?.viewRecentActivity === true;
+
+            if (!canViewRecentActivity) {
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '140px', color: '#94a3b8', fontSize: '0.85rem', gap: '8px', textAlign: 'center', padding: '10px' }}>
+                  <AlertTriangle size={22} color="#f59e0b" />
+                  <span>직원 관리 메뉴의 권한 설정에서<br/><strong style={{ color: '#eab308' }}>'최근 처리 현황'</strong> 권한 허용이 필요합니다.</span>
+                </div>
+              );
+            }
+
+            // Gather Activity Items
+            const activities = [];
+
+            salesInvoices.forEach(inv => {
+              activities.push({
+                id: `sales-inv-${inv.id}`,
+                category: '전표등록',
+                subCategory: '매출전표',
+                title: `매출전표 등록 (${inv.partner || '미지정'})`,
+                detail: `${(inv.totalAmount || 0).toLocaleString()}원`,
+                user: inv.manager || inv.creator || '시스템',
+                date: inv.date || new Date().toISOString().split('T')[0],
+                timestamp: inv.createdAt || inv.id || new Date(inv.date || Date.now()).getTime(),
+                type: '등록',
+                badgeBg: '#eff6ff',
+                badgeColor: '#2563eb',
+                action: () => setIsSalesInvoiceListOpen(true)
+              });
+            });
+
+            purchaseInvoices.forEach(inv => {
+              activities.push({
+                id: `purch-inv-${inv.id}`,
+                category: '전표등록',
+                subCategory: '매입전표',
+                title: `매입전표 등록 (${inv.partner || '미지정'})`,
+                detail: `${(inv.totalAmount || 0).toLocaleString()}원`,
+                user: inv.manager || inv.creator || '시스템',
+                date: inv.date || new Date().toISOString().split('T')[0],
+                timestamp: inv.createdAt || inv.id || new Date(inv.date || Date.now()).getTime(),
+                type: '등록',
+                badgeBg: '#eff6ff',
+                badgeColor: '#2563eb',
+                action: () => setIsPurchaseLedgerOpen(true)
+              });
+            });
+
+            salesOrders.forEach(ord => {
+              activities.push({
+                id: `order-${ord.id}`,
+                category: '전표등록',
+                subCategory: '수주',
+                title: `수주 등록 (${ord.partner || '미지정'})`,
+                detail: `${(ord.totalPrice || 0).toLocaleString()}원`,
+                user: ord.manager || '시스템',
+                date: ord.date || new Date().toISOString().split('T')[0],
+                timestamp: ord.createdAt || ord.id || new Date(ord.date || Date.now()).getTime(),
+                type: '등록',
+                badgeBg: '#f0fdf4',
+                badgeColor: '#16a34a',
+                action: () => setIsOrderListOpen(true)
+              });
+            });
+
+            purchaseOrders.forEach(po => {
+              activities.push({
+                id: `po-${po.id}`,
+                category: '전표등록',
+                subCategory: '발주',
+                title: `발주 등록 (${po.partner || '미지정'})`,
+                detail: `${(po.totalAmount || 0).toLocaleString()}원`,
+                user: po.manager || '시스템',
+                date: po.date || new Date().toISOString().split('T')[0],
+                timestamp: po.createdAt || po.id || new Date(po.date || Date.now()).getTime(),
+                type: '등록',
+                badgeBg: '#f0fdf4',
+                badgeColor: '#16a34a',
+                action: () => setIsPurchaseLedgerOpen(true)
+              });
+            });
+
+            inventoryMovements.forEach(mov => {
+              activities.push({
+                id: `mov-${mov.id}`,
+                category: '이동',
+                subCategory: '재고이동',
+                title: `재고이동 (${mov.fromWarehouse || '출발'}➔${mov.toWarehouse || '도착'})`,
+                detail: `${mov.items?.[0]?.name || '품목'}`,
+                user: mov.creator || '시스템',
+                date: mov.date || new Date().toISOString().split('T')[0],
+                timestamp: mov.createdAt || mov.id || new Date(mov.date || Date.now()).getTime(),
+                type: '이동',
+                badgeBg: '#fdf4ff',
+                badgeColor: '#c026d3',
+                action: () => setIsInventoryMovementManagerOpen(true)
+              });
+            });
+
+            inventoryAdjustments.forEach(adj => {
+              activities.push({
+                id: `adj-${adj.id}`,
+                category: '변경',
+                subCategory: '재고조정',
+                title: `재고조정 (${adj.productName || '품목'})`,
+                detail: `${adj.qty > 0 ? '+' + adj.qty : adj.qty}개`,
+                user: adj.creator || '시스템',
+                date: adj.date || new Date().toISOString().split('T')[0],
+                timestamp: adj.createdAt || adj.id || new Date(adj.date || Date.now()).getTime(),
+                type: '수정',
+                badgeBg: '#fff7ed',
+                badgeColor: '#ea580c',
+                action: () => setIsInventoryAdjustmentOpen && setIsInventoryAdjustmentOpen(true)
+              });
+            });
+
+            // Sort most recent first
+            const sortedActivities = activities.sort((a, b) => {
+              if (b.date !== a.date) return b.date.localeCompare(a.date);
+              return Number(b.timestamp) - Number(a.timestamp);
+            });
+
+            const filteredInWidget = sortedActivities.filter(act => {
+              if (recentActivityWidgetCategory === '전표등록') return act.category === '전표등록' || act.type === '등록';
+              if (recentActivityWidgetCategory === '변경') return act.category === '변경' || act.type === '수정' || act.type === '변경';
+              if (recentActivityWidgetCategory === '이동') return act.category === '이동' || act.type === '이동';
+              if (recentActivityWidgetCategory === '삭제') return act.category === '삭제' || act.type === '삭제';
+              return true; // '전체'
+            }).slice(0, 5);
+
+            const widgetCategories = ['전체', '전표등록', '변경', '이동', '삭제'];
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                {/* Category Buttons Filter */}
+                <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                  {widgetCategories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={(e) => { e.stopPropagation(); setRecentActivityWidgetCategory(cat); }}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        backgroundColor: recentActivityWidgetCategory === cat ? '#3b82f6' : '#f1f5f9',
+                        color: recentActivityWidgetCategory === cat ? '#ffffff' : '#64748b',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* List Items */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '155px', overflowY: 'auto' }}>
+                  {filteredInWidget.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                      해당 카테고리의 최근 처리 내역이 없습니다.
+                    </div>
+                  ) : (
+                    filteredInWidget.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={item.action}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          transition: 'background-color 0.15s'
+                        }}
+                        className="widget-hover-row"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                          <span style={{
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            backgroundColor: item.badgeBg,
+                            color: item.badgeColor,
+                            flexShrink: 0
+                          }}>
+                            {item.type}
+                          </span>
+                          <span style={{ fontWeight: 700, color: '#1e293b', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{item.user}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.68rem' }}>{item.date.substring(5)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          {widgetId === 'OrderReport' && (() => {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
+            const canViewAllOrders = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
+            
+            const selectedDateOrders = salesOrders.filter(o => {
+              const isDate = o.date === dateStr;
+              if (!isDate) return false;
+              return canViewAllOrders || o.manager === currentUser?.name;
+            });
+            
+            const managerStats = {};
+            selectedDateOrders.forEach(order => {
+              const managerName = order.manager || '미지정';
+              let qtySum = 0;
+              if (order.items && Array.isArray(order.items)) {
+                qtySum = order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+              } else if (order.itemsText) {
+                const tokens = order.itemsText.trim().split(/[\s\n]+/);
+                tokens.forEach(token => {
+                  const match = token.match(/^(.+?)(\d+)$/);
+                  if (match) qtySum += parseInt(match[2], 10) || 0;
+                });
+              }
+              
+              if (!managerStats[managerName]) {
+                managerStats[managerName] = {
+                  manager: managerName,
+                  warehouse: staffList.find(s => s.name === managerName)?.warehouse || '미지정',
+                  totalQty: 0,
+                  orderCount: 0
+                };
+              }
+              managerStats[managerName].totalQty += qtySum;
+              managerStats[managerName].orderCount += 1;
+            });
+            
+            const statsList = Object.values(managerStats);
+            
+            if (statsList.length === 0) {
+              return (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                  선택한 날짜에 등록된 수주가 없습니다.
+                </div>
+              );
+            }
+            
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(226, 232, 240, 0.1)', color: '#475569', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 8px', fontWeight: 600 }}>담당자 (창고)</th>
+                      <th style={{ padding: '6px 8px', fontWeight: 600, textAlign: 'right' }}>수주수량 (건수)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statsList.map((stat, idx) => (
+                      <tr 
+                        key={idx} 
+                        onClick={() => {
+                          setOrderListSelectedStaff(stat.manager);
+                          setIsOrderListOpen(true);
+                        }}
+                        style={{ 
+                          borderBottom: '1px solid rgba(226, 232, 240, 0.05)', 
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        className="widget-hover-row"
+                      >
+                        <td style={{ padding: '8px', color: '#334155', fontWeight: 500 }}>
+                          {stat.manager} <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '4px' }}>({stat.warehouse})</span>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: '#2563eb', fontWeight: 700 }}>
+                          {stat.totalQty.toLocaleString()}개 <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '4px' }}>({stat.orderCount}건)</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+          {widgetId === 'CashReport' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">선택일 매출합계</span>
+                <span className="stat-value">{salesInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">선택일 매입합계</span>
+                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'CashBook' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">입금 합계</span>
+                <span className="stat-value">0원</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">출금 합계</span>
+                <span className="stat-value">0원</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'Expense' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">당월 경비 합계</span>
+                <span className="stat-value">{expenses.filter(e => e.date.startsWith(selectedDate.toISOString().split('T')[0].substring(0, 7))).reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()}원</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'Receivables' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">미수금 총액</span>
+                <span className="stat-value">{partners.reduce((acc, p) => acc + (p.receivables || 0), 0).toLocaleString()}원</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'InventoryAdjustment' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">최근 조정 건수</span>
+                <span className="stat-value">0건</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'TaxReport' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">예상 납부 세액</span>
+                <span className="stat-value">0원</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'Settings' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">회사명</span>
+                <span className="stat-value">{systemSettings.companyName}</span>
+              </div>
+            </div>
+          )}
+          {widgetId === 'License' && (
+            <div className="summary-stat">
+              <div className="stat-item">
+                <span className="stat-label">사용 기한</span>
+                <span className="stat-value">{licenseData.expiryDate}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
-  // ---------------------------------------------------------
-  // 19. 로그인 화면 렌더링
-  // ---------------------------------------------------------
-  if (!isLoggedIn) {
-    const baseFontSize = `${loginFontSize}px`;
-    const labelFontSize = `${Math.max(10, loginFontSize - 2)}px`;
-    const titleFontSize = `${loginFontSize + 2}px`;
-    const subTitleFontSize = `${loginFontSize}px`;
-
+  if (currentView === 'homepage') {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex flex-col justify-center items-center p-3 text-white">
-        <div className="w-full max-w-sm bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl">
-          
-          {/* Font Size Adjuster Buttons */}
-          <div className="flex justify-between items-center px-4 pt-3 pb-1.5 bg-slate-900 border-b border-slate-850">
-            <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Font Options</span>
-            <div className="flex items-center gap-1.5">
-              <button 
-                type="button"
-                onClick={() => setLoginFontSize(Math.max(10, loginFontSize - 1))}
-                className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs transition-all"
-                title="글자 작게"
-              >
-                -
-              </button>
-              <span className="text-[10px] text-slate-300 font-extrabold w-4 text-center">{loginFontSize}px</span>
-              <button 
-                type="button"
-                onClick={() => setLoginFontSize(Math.min(24, loginFontSize + 1))}
-                className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs transition-all"
-                title="글자 크게"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="px-4 py-3 flex flex-col items-center text-center relative overflow-hidden" style={{
-            background: step === 1 
-              ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' 
-              : 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
-            transition: 'all 0.5s ease'
-          }}>
-            <div className="w-9 h-9 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-1.5">
-              {step === 1 ? <Building2 size={18} color="#ffffff" strokeWidth={1.5} /> : <Users size={18} color="#ffffff" strokeWidth={1.5} />}
-            </div>
-            <h1 className="text-white font-black tracking-tight leading-none" style={{ fontSize: titleFontSize }}>Link X Mobile</h1>
-            <h2 className="text-white/80 font-bold mt-1 tracking-wider uppercase" style={{ fontSize: labelFontSize }}>
-              {step === 1 ? '회원사(사업장) 인증' : '구성원 로그인'}
-            </h2>
-            <p className="text-white/60 mt-1 font-medium" style={{ fontSize: labelFontSize }}>
-              {step === 1 
-                ? '비즈니스 파트너 인증 단계' 
-                : selectedAgency?.name || '시스템'}
-            </p>
-          </div>
-
-          <div className="p-4 space-y-3">
-            {authError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl py-2 px-3 text-red-500 font-semibold flex items-start gap-2 animate-fadeIn" style={{ fontSize: labelFontSize }}>
-                <AlertCircle size={13} className="mt-0.5 flex-shrink-0" />
-                <span>{authError}</span>
-              </div>
-            )}
-
-            {step === 1 ? (
-              <form onSubmit={handleAgencySubmit} className="space-y-3">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="bg-indigo-650 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 01</span>
-                  <h3 className="text-white font-bold" style={{ fontSize: subTitleFontSize }}>회원사 식별</h3>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>회원사 식별 아이디</label>
-                  <div className="relative">
-                    <Package size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-550 z-10" />
-                    <input 
-                      type="text" 
-                      value={agencyInput}
-                      onChange={e => { setAgencyInput(e.target.value); if (authError) setAuthError(''); }}
-                      placeholder="회원사 아이디 또는 이메일"
-                      className="bg-white border border-slate-300 rounded-xl pl-8 pr-4 py-2 w-full text-black font-bold placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-                      style={{ fontSize: baseFontSize }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>회원사 비밀번호</label>
-                  <div className="relative">
-                    <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-555 z-10" />
-                    <input 
-                      type={showAgencyPassword ? "text" : "password"}
-                      value={agencyPassword}
-                      onChange={e => { setAgencyPassword(e.target.value); if (authError) setAuthError(''); }}
-                      placeholder="회원사 비밀번호를 입력하세요"
-                      className="bg-white border border-slate-300 rounded-xl pl-8 pr-9 py-2 w-full text-black font-bold placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-                      style={{ fontSize: baseFontSize }}
-                      required
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowAgencyPassword(!showAgencyPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 z-10"
-                    >
-                      {showAgencyPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
-                    <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all \${
-                      autoSave ? 'bg-indigo-600 border-indigo-650' : 'bg-slate-800 border-slate-700'
-                    }`}>
-                      {autoSave && <Check size={8} color="#fff" strokeWidth={4} />}
-                    </div>
-                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
-                    if (!autoSave) setAutoSave(true);
-                    setAutoLogin(!autoLogin);
-                  }}>
-                    <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all \${
-                      autoLogin ? 'bg-indigo-600 border-indigo-655' : 'bg-slate-800 border-slate-700'
-                    }`}>
-                      {autoLogin && <Check size={8} color="#fff" strokeWidth={4} />}
-                    </div>
-                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/10 mt-1"
-                  style={{ fontSize: baseFontSize }}
-                >
-                  {isLoading ? '인증 중...' : '다음 단계'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleUserSubmit} className="space-y-3 animate-fadeIn">
-                <div className="flex justify-between items-center bg-slate-955 border border-slate-800 py-1.5 px-2.5 rounded-xl text-[10px]">
-                  <span className="text-slate-400 font-bold" style={{ fontSize: labelFontSize }}>인증 회사</span>
-                  <span className="text-sky-450 font-extrabold" style={{ fontSize: labelFontSize }}>{selectedAgency?.name}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="bg-sky-600 text-white px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase">STEP 02</span>
-                  <h3 className="text-white font-bold" style={{ fontSize: subTitleFontSize }}>사용자 로그인</h3>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>사용자 ID</label>
-                  <div className="relative">
-                    <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
-                    <input 
-                      type="text" 
-                      value={email}
-                      onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
-                      placeholder="아이디 또는 이메일 입력"
-                      className="bg-white border border-slate-300 rounded-xl pl-8 pr-4 py-2 w-full text-black font-bold placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-inner"
-                      style={{ fontSize: baseFontSize }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>비밀번호</label>
-                  <div className="relative">
-                    <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-550 z-10" />
-                    <input 
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={e => { setPassword(e.target.value); if (authError) setAuthError(''); }}
-                      placeholder="사용자 비밀번호를 입력하세요"
-                      className="bg-white border border-slate-300 rounded-xl pl-8 pr-9 py-2 w-full text-black font-bold placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-inner"
-                      style={{ fontSize: baseFontSize }}
-                      required
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-550 hover:text-slate-700 z-10"
-                    >
-                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setAutoSave(!autoSave)}>
-                    <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all \${
-                      autoSave ? 'bg-sky-600 border-sky-650' : 'bg-slate-800 border-slate-700'
-                    }`}>
-                      {autoSave && <Check size={8} color="#fff" strokeWidth={4} />}
-                    </div>
-                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>아이디 저장</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => {
-                    if (!autoSave) setAutoSave(true);
-                    setAutoLogin(!autoLogin);
-                  }}>
-                    <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all \${
-                      autoLogin ? 'bg-sky-600 border-sky-655' : 'bg-slate-800 border-slate-700'
-                    }`}>
-                      {autoLogin && <Check size={8} color="#fff" strokeWidth={4} />}
-                    </div>
-                    <span className="text-slate-300 font-bold" style={{ fontSize: labelFontSize }}>자동 로그인</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2.5 mt-1">
-                  <button
-                    type="button"
-                    onClick={handleBackToStep1}
-                    className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 transition-all"
-                    style={{ fontSize: baseFontSize }}
-                  >
-                    이전 단계
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-lg shadow-sky-500/10"
-                    style={{ fontSize: baseFontSize }}
-                  >
-                    {isLoading ? '로그인 중...' : '시스템 접속'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
+      <HomepageApp 
+        onLoginClick={() => setCurrentView('login')} 
+      />
     );
   }
-  // ---------------------------------------------------------
-  // 20. 메인 ERP 레이아웃 렌더링
-  // ---------------------------------------------------------
-  const handleSubmitDevCmd = async (e) => {
-    e.preventDefault();
-    const text = devCommandInput.trim();
-    if (!text) return;
-    setIsSubmittingDevCmd(true);
-    try {
-      const cmdId = `cmd_${Date.now()}`;
-      const newCmd = {
-        id: cmdId,
-        command: text,
-        status: 'pending',
-        createdAt: new Date().toLocaleString(),
-        log: '',
-        companyId
-      };
-      await setDoc(doc(db, 'companies', companyId, 'devCommands', cmdId), newCmd);
-      setDevCommandInput('');
-      alert('개발 명령이 전송되었습니다. 에이전트가 즉시 코드 수정을 수행합니다.');
-    } catch (err) {
-      console.error(err);
-      alert('명령 전송 에러');
-    } finally {
-      setIsSubmittingDevCmd(false);
-    }
-  };
 
-  const renderDevConsole = () => {
+  if (currentView === 'login') {
     return (
-      <div className="space-y-6 animate-fadeIn pb-12">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h3 className="text-white text-sm font-black flex items-center gap-1.5">
-              <Cpu size={16} className="text-violet-500 animate-pulse" />
-              개발모드 콘솔 (에이전트 실시간 지시)
-            </h3>
-            <span className="text-[10px] text-violet-400 font-extrabold bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/25">
-              관리자 전용
-            </span>
-          </div>
+      <Login 
+        onBackToHome={() => setCurrentView('homepage')}
+        prefilledAgencyId={prefilledAgencyId}
+        onFindAgency={async (idOrEmail, pwd) => {
+          // 0. Master Check (Login directly from Stage 1)
+          if ((idOrEmail === 'madmin' || idOrEmail === 'sadmin') && pwd === 'gdtop7818@@') {
+            const masterUser = { 
+              id: idOrEmail === 'madmin' ? 0 : -1, 
+              userId: idOrEmail, 
+              name: idOrEmail === 'madmin' ? '최고관리자' : '마스터관리자', 
+              jobTitle: 'System Master', 
+              role: 'super_admin', 
+              permissions: ALL_PERMS 
+            };
+            setCurrentUser(masterUser);
+            setCurrentView('super_admin');
+            setSelectedDate(new Date());
+            localStorage.setItem('currentUser', JSON.stringify(masterUser));
+            return { isMaster: true };
+          }
 
-          <form onSubmit={handleSubmitDevCmd} className="space-y-3">
-            <label className="text-slate-400 text-xs font-bold block">코드 수정 및 기능 구현 명령</label>
-            <textarea 
-              value={devCommandInput}
-              onChange={e => setDevCommandInput(e.target.value)}
-              placeholder="예: 일정 리스트 각 일정 우측에 빨간색 '삭제' 버튼을 달아주고, 누르면 파이어베이스에서 일정이 삭제되게 해줘."
-              rows="3"
-              className="bg-white border border-slate-300 rounded-xl p-3 w-full text-xs text-black font-bold placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-inner"
-              required
-            />
-            <button 
-              type="submit" 
-              disabled={isSubmittingDevCmd}
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-xs transition-all flex justify-center items-center gap-2 shadow-lg shadow-violet-500/15"
-            >
-              <Send size={14}/> 명령 전송 (즉시 코드 반영 실행)
-            </button>
-          </form>
-        </div>
+          try {
+            let company = null;
+            const q = query(collection(db, 'companies'), where('email', '==', idOrEmail));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+              company = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+            } else {
+              const docRef = doc(db, 'companies', idOrEmail);
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) company = { id: docSnap.id, ...docSnap.data() };
+            }
 
-        <div className="space-y-3">
-          <span className="text-slate-500 text-xs font-bold block uppercase tracking-wider">이전 개발 명령 히스토리</span>
-          <div className="space-y-2.5 font-sans">
-            {devCommands.map(cmd => (
-              <div key={cmd.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-                <div className="flex justify-between items-center text-[10px] text-slate-505">
-                  <span>{cmd.createdAt}</span>
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
-                    cmd.status === 'success' ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
-                    cmd.status === 'failed' ? 'bg-red-500/10 text-red-450 border-red-500/20' :
-                    cmd.status === 'running' ? 'bg-blue-500/10 text-blue-450 border-blue-500/20 animate-pulse' :
-                    'bg-slate-850 text-slate-400'
-                  }`}>
-                    {cmd.status === 'success' ? '성공' :
-                     cmd.status === 'failed' ? '실패' :
-                     cmd.status === 'running' ? '반영중' : '대기중'}
-                  </span>
-                </div>
-                <p className="text-white text-xs font-bold">{cmd.command}</p>
-                {cmd.log && (
-                  <pre className="bg-slate-955 p-2.5 rounded-lg border border-slate-850 text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono">
-                    {cmd.log}
-                  </pre>
-                )}
-              </div>
-            ))}
-            {devCommands.length === 0 && (
-              <div className="text-center py-12 text-slate-600 text-xs bg-slate-900 border border-slate-800 rounded-2xl">전송된 개발 명령이 없습니다.</div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const handleSendAgentCmd = async (e) => {
-    e.preventDefault();
-    const text = agentChatInput.trim();
-    if (!text) return;
-    setChatInput('');
-    setAgentChatInput('');
-    try {
-      const cmdId = `cmd_${Date.now()}`;
-      const newCmd = {
-        id: cmdId,
-        command: text,
-        status: 'pending',
-        createdAt: new Date().toLocaleString(),
-        log: '',
-        progress: '',
-        companyId
-      };
-      await setDoc(doc(db, 'companies', companyId, 'devCommands', cmdId), newCmd);
-    } catch (err) {
-      console.error(err);
-      alert('명령 전송 실패');
-    }
-  };
-
-  const renderAgentControlDrawer = () => {
-    if (!isAgentChatOpen) return null;
-
-    const chatFeed = [...devCommands].sort((a, b) => a.createdAt?.localeCompare(b.createdAt) || 0);
-
-    return (
-      <div className="fixed inset-0 z-[9999] flex justify-end items-end p-0 md:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-        <div className="absolute inset-0" onClick={() => setIsAgentChatOpen(false)} />
-        
-        <div className="relative w-full md:max-w-md h-[85vh] bg-[#0c101b] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden animate-slideUp font-sans">
+            if (company && company.password === pwd) {
+              return company;
+            }
+            return null;
+          } catch (err) {
+            console.error("Agency login error:", err);
+            return null;
+          }
+        }}
+        onLogin={async (uid, pwd, companyId) => { 
+          // Clear prefilled ID after login attempt
+          setPrefilledAgencyId('');
           
-          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#070a13]/60">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-violet-650/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
-                <Cpu size={16} className="animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-white text-xs font-black leading-tight">Antigravity 통제 콘솔</h3>
-                <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                  실시간 코드 에이전트 연동 중
-                </span>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsAgentChatOpen(false)}
-              className="p-1 text-slate-400 hover:text-white transition-all"
-            >
-              <X size={18} />
-            </button>
-          </div>
+          // Master check
+          if ((uid === 'madmin' || uid === 'sadmin') && pwd === 'gdtop7818@@') {
+            const masterUser = { id: 0, userId: uid, name: '최고관리자', jobTitle: 'System Admin', role: 'super_admin', permissions: ALL_PERMS };
+            setCurrentUser(masterUser);
+            setCurrentView('super_admin');
+            setSelectedDate(new Date());
+            return true;
+          }
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none bg-[#090c15]">
-            <div className="flex gap-2.5 justify-start">
-              <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-violet-400 text-[10px]">AI</div>
-              <div className="flex flex-col items-start">
-                <span className="text-[9px] text-slate-500 font-bold mb-0.5">Antigravity</span>
-                <div className="rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs bg-slate-900 border border-slate-800 text-slate-200 leading-relaxed max-w-[85%]">
-                  안녕하세요 대표님! 링커엑스 모바일 에이전트 통제 콘솔입니다. 수정하고 싶으신 UI 디자인, 버그 수정, 새 기능 추가 지시사항을 말씀해 주세요.
-                </div>
-              </div>
-            </div>
+          if (!companyId) return false;
 
-            {chatFeed.map((cmd, idx) => (
-              <div key={cmd.id || idx} className="space-y-4">
-                <div className="flex gap-2.5 justify-end">
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] text-slate-500 font-bold mb-0.5">대표님</span>
-                    <div className="rounded-2xl rounded-tr-none px-3.5 py-2.5 text-xs bg-violet-600 text-white shadow-sm leading-relaxed max-w-[85%]">
-                      {cmd.command}
-                    </div>
-                    <span className="text-[8px] text-slate-650 mt-1 font-bold">{cmd.createdAt?.split(' ')[1] || ''}</span>
-                  </div>
-                </div>
+          try {
+            // 1. Staff Check
+            let u = null;
+            const compositeId = `${companyId}_${uid}`;
+            
+            // Direct ID lookup (Fast & Reliable for same IDs across agencies)
+            const staffDoc = await getDoc(doc(db, 'companies', companyId, 'staffList', compositeId));
+            if (staffDoc.exists()) {
+              const data = staffDoc.data();
+              if (data.password === pwd) u = data;
+            }
+            
+            // Try userId match if direct ID lookup fails
+            if (!u) {
+              const staffRef = collection(db, 'companies', companyId, 'staffList');
+              const q2 = query(staffRef, where('userId', '==', uid));
+              const snap2 = await getDocs(q2);
+              if (!snap2.empty) {
+                const data = snap2.docs[0].data();
+                if (data.password === pwd) u = data;
+              }
+            }
 
-                <div className="flex gap-2.5 justify-start animate-fadeIn">
-                  <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-violet-400 text-[10px]">AI</div>
-                  <div className="flex flex-col items-start w-[85%]">
-                    <span className="text-[9px] text-slate-500 font-bold mb-0.5">Antigravity</span>
-                    
-                    <div className={`rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs leading-relaxed w-full border ${
-                      cmd.status === 'success' ? 'bg-slate-900/60 border-slate-800 text-slate-200' :
-                      cmd.status === 'failed' ? 'bg-red-950/20 border-red-900/30 text-red-200' :
-                      'bg-slate-900 border-slate-800 text-slate-200'
-                    }`}>
-                      {cmd.status === 'pending' && (
-                        <div className="flex items-center gap-2 text-slate-400 font-medium">
-                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          <span>지시사항을 확인하고 깨어나는 중...</span>
-                        </div>
-                      )}
-                      {cmd.status === 'running' && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-violet-400 font-bold">
-                            <span className="w-2 h-2 bg-violet-500 rounded-full animate-ping" />
-                            <span>작업 분석 및 실시간 코딩 중...</span>
-                          </div>
-                          {cmd.progress && (
-                            <pre className="bg-slate-955 p-2.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
-                              {cmd.progress}
-                            </pre>
-                          )}
-                        </div>
-                      )}
-                      {cmd.status === 'success' && (
-                        <div className="space-y-2">
-                          <div className="text-emerald-400 font-bold flex items-center gap-1.5">
-                            <CheckCircle2 size={14} />
-                            <span>코드 수정 및 배포 완료!</span>
-                          </div>
-                          {cmd.log && (
-                            <details className="cursor-pointer group">
-                              <summary className="text-[10px] text-slate-400 hover:text-slate-200 font-bold list-none flex items-center gap-1">
-                                <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
-                                빌드 및 배포 로그 보기
-                              </summary>
-                              <pre className="mt-2 bg-slate-955 p-2.5 rounded-xl border border-slate-800 text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
-                                {cmd.log}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                      )}
-                      {cmd.status === 'failed' && (
-                        <div className="space-y-2">
-                          <div className="text-red-400 font-bold flex items-center gap-1.5">
-                            <AlertCircle size={14} />
-                            <span>코드 반영 중 오류 발생</span>
-                          </div>
-                          {cmd.log && (
-                            <pre className="bg-slate-955 p-2.5 rounded-xl border border-red-955/40 text-[9px] text-red-300 overflow-x-auto whitespace-pre-wrap font-mono max-h-36">
-                              {cmd.log}
-                            </pre>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div ref={agentChatEndRef} />
-          </div>
-
-          <form onSubmit={handleSendAgentCmd} className="p-4 border-t border-slate-800 bg-[#070a13]/60 flex gap-2 flex-shrink-0 items-end">
-            <textarea 
-              placeholder="수정할 내용이나 지시사항 입력..." 
-              value={agentChatInput}
-              onChange={e => setAgentChatInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendAgentCmd(e);
+            if (u) { 
+              const today = new Date();
+              const expiry = new Date(licenseData.expiryDate);
+              
+              if (today > expiry) {
+                if (licenseData.isLockedOnExpiry) {
+                  alert('라이선스가 만료되어 로그인이 차단되었습니다. 관리자에게 문의하세요.');
+                  return false;
+                } else {
+                  setShowLicenseAlert(true);
                 }
-              }}
-              className="flex-1 bg-white border border-slate-350 rounded-xl px-3.5 py-2.5 text-xs text-black font-bold placeholder-slate-400 focus:outline-none focus:border-violet-500 shadow-inner resize-none h-12 leading-relaxed"
-              rows={2}
-              required
-            />
-            <button 
-              type="submit" 
-              className="bg-violet-600 hover:bg-violet-750 text-white font-bold p-3 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/10 h-12 w-12"
-            >
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
-      </div>
+              }
+
+              setCurrentUser(u); 
+              if (u.role === 'super_admin') setCurrentView('super_admin');
+              else setCurrentView('dashboard');
+              
+              setSelectedDate(new Date());
+              return true; 
+            } 
+
+            // 2. Partner check
+            let p = null;
+            let loggedInHidePrice = false;
+            
+            // Direct lookup in company sub-collection
+            const partnerDoc = await getDoc(doc(db, 'companies', companyId, 'partners', compositeId));
+            if (partnerDoc.exists()) {
+              const data = partnerDoc.data();
+              const match1 = (data.loginId && data.loginId === uid && data.password === pwd);
+              const match2 = (data.loginId2 && data.loginId2 === uid && data.password2 === pwd);
+              const match3 = (data.loginId3 && data.loginId3 === uid && data.password3 === pwd);
+              const matchEmail = (data.email && data.email === uid && data.password === pwd);
+              if (match1 || match2 || match3 || matchEmail) {
+                p = data;
+                if (match1) loggedInHidePrice = data.hidePrice1 || false;
+                else if (match2) loggedInHidePrice = data.hidePrice2 || false;
+                else if (match3) loggedInHidePrice = data.hidePrice3 || false;
+                else if (matchEmail) loggedInHidePrice = data.hidePrice1 || false;
+              }
+            }
+
+            // Fallback: Company partners collection scan for multi-account login support if direct lookup fails/doesn't match
+            if (!p) {
+              const partnerRef = collection(db, 'companies', companyId, 'partners');
+              const partnerSnap = await getDocs(partnerRef);
+              for (const partnerDoc of partnerSnap.docs) {
+                const data = partnerDoc.data();
+                const match1 = (data.loginId && data.loginId === uid && data.password === pwd);
+                const match2 = (data.loginId2 && data.loginId2 === uid && data.password2 === pwd);
+                const match3 = (data.loginId3 && data.loginId3 === uid && data.password3 === pwd);
+                const matchEmail = (data.email && data.email === uid && data.password === pwd);
+                
+                if (match1 || match2 || match3 || matchEmail) {
+                  p = data;
+                  if (match1) loggedInHidePrice = data.hidePrice1 || false;
+                  else if (match2) loggedInHidePrice = data.hidePrice2 || false;
+                  else if (match3) loggedInHidePrice = data.hidePrice3 || false;
+                  else if (matchEmail) loggedInHidePrice = data.hidePrice1 || false;
+                  break;
+                }
+              }
+            }
+
+            if (p) {
+              const partnerUser = { 
+                ...p, 
+                role: 'partner', 
+                name: p.name, 
+                companyId: p.companyId || companyId,
+                hidePrice: loggedInHidePrice
+              };
+              setCurrentUser(partnerUser);
+              
+              // Check if the agency itself is new and needs setup
+              const compDoc = await getDoc(doc(db, 'companies', partnerUser.companyId));
+              const compData = compDoc.exists() ? compDoc.data() : null;
+              if (compData && compData.status === 'pending_setup') {
+                setCurrentView('onboarding');
+                return true;
+              }
+
+              setCurrentView('shopping');
+              return true;
+            }
+
+          } catch (err) {
+            console.error("Login error:", err);
+          }
+
+          return false; 
+        }} 
+        onNavigateToSignup={() => setCurrentView('agency_signup')} 
+        onNavigateToUserSignup={(agency) => {
+          setSelectedAgencyForSignup(agency);
+          setCurrentView('user_signup');
+        }}
+      />
     );
+  }
+
+  if (currentView === 'agency_signup') {
+    return (
+      <AgencySignup 
+        agencyCategories={agencyCategories}
+        onNavigateToLogin={(id) => {
+          if (id) setPrefilledAgencyId(id);
+          setCurrentView('login');
+        }}
+        onSignup={async (userData) => {
+          const companyId = userData.id;
+          await setDoc(doc(db, 'companies', companyId), {
+            id: companyId,
+            name: userData.name,
+            email: userData.email,
+            password: userData.password,
+            category: userData.category || '',
+            status: 'pending_setup',
+            createdAt: new Date().toISOString()
+          });
+          
+          const newPartner = {
+            id: Date.now(),
+            loginId: userData.email,
+            password: userData.password,
+            name: userData.name,
+            email: userData.email,
+            companyId: companyId,
+            type: '매출처',
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          };
+          // Save to agency sub-collection
+          await setDoc(doc(db, 'companies', companyId, 'partners', String(newPartner.id)), newPartner);
+          setPartners(prev => [...prev, newPartner]);
+
+          alert('회원사 가입이 완료되었습니다! 방금 가입한 정보로 로그인해 주세요.');
+          return true;
+        }}
+      />
+    );
+  }
+
+  if (currentView === 'onboarding') {
+    return (
+      <Onboarding 
+        currentUser={currentUser}
+        onComplete={async (data) => {
+          try {
+            const companyId = currentUser.companyId;
+            // 1. Update company info
+            await updateDoc(doc(db, 'companies', companyId), {
+              ...data.company,
+              status: 'active',
+              updatedAt: new Date().toISOString()
+            });
+
+            // 2. Register initial admin staff
+            const compositeId = `${companyId}_${data.staff.userId}`;
+            const newStaff = {
+              ...data.staff,
+              id: Date.now(),
+              companyId: companyId,
+              createdAt: new Date().toISOString()
+            };
+            
+            await setDoc(doc(db, 'companies', companyId, 'staffList', compositeId), newStaff);
+
+            // 3. Update current user to the newly created staff user
+            const updatedUser = { ...newStaff, role: 'admin' };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+            setCurrentView('dashboard');
+          } catch (err) { 
+            console.error("Onboarding completion error:", err);
+            alert('설정 저장 중 오류가 발생했습니다.'); 
+          }
+        }}
+
+      />
+    );
+  }
+
+  if (currentView === 'super_admin') {
+    return (
+      <SuperAdmin 
+        onClose={() => setCurrentView('login')} 
+        onEnterCompany={(id) => {
+          // setCompanyId(id); // Ensure this state exists or skip
+          setCurrentUser(prev => ({ ...prev, companyId: id }));
+          setCurrentView('dashboard');
+        }}
+      />
+    );
+  }
+
+  if (currentView === 'user_signup') {
+    return (
+      <UserSignup 
+        agency={selectedAgencyForSignup}
+        warehouses={warehouses}
+        onNavigateToLogin={() => setCurrentView('login')}
+        onSignup={async (data) => {
+          try {
+            const compositeId = `${data.companyId}_${data.loginId}`;
+            if (data.regType === 'staff') {
+              const newStaff = {
+                id: Date.now(),
+                userId: data.loginId,
+                password: data.password,
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                jobTitle: data.jobTitle,
+                role: 'admin', 
+                permissions: ALL_PERMS,
+                companyId: data.companyId,
+                createdAt: data.createdAt
+              };
+              await setDoc(doc(db, 'companies', data.companyId, 'staffList', compositeId), newStaff);
+              alert('직원 등록이 완료되었습니다! 관리자 아이디로 로그인해 주세요.');
+            } else {
+              const newPartner = {
+                id: Date.now(),
+                loginId: data.loginId,
+                password: data.password,
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                ceo: data.ceo,
+                businessNo: data.businessNo,
+                type: data.type,
+                companyId: data.companyId,
+                status: 'pending',
+                createdAt: data.createdAt
+              };
+              await setDoc(doc(db, 'companies', data.companyId, 'partners', compositeId), newPartner);
+              alert('거래처 가입 신청이 완료되었습니다! 관리자 승인 후 이용 가능합니다.');
+            }
+            setCurrentView('login');
+          } catch (err) {
+            console.error("User signup error:", err);
+            alert('등록 중 오류가 발생했습니다.');
+          }
+        }}
+      />
+    );
+  }
+
+  const handleMallOrder = (items) => {
+    // Find existing pending order for this partner today
+    const today = new Date().toISOString().split('T')[0];
+    const existingOrder = salesOrders.find(o => 
+      o.partner === currentUser.name && 
+      o.date === today && 
+      o.status === '주문대기'
+    );
+
+    const newItems = items.map(item => ({
+      name: item.product.name,
+      qty: item.qty,
+      loaded: false
+    }));
+
+    if (existingOrder) {
+      // Merge items into existing order
+      const mergedItems = [...(existingOrder.items || []), ...newItems];
+      const newItemsText = mergedItems.map(i => `${i.name}${i.qty}`).join(' ');
+      const additionalAmount = items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0);
+      
+      setSalesOrders(prev => prev.map(o => 
+        o.id === existingOrder.id 
+          ? { ...o, items: mergedItems, itemsText: newItemsText, totalAmount: o.totalAmount + additionalAmount } 
+          : o
+      ));
+      alert('기존 수주서에 품목이 추가되었습니다.');
+      showToast(`${currentUser.name} 거래처의 수주가 추가되었습니다!`, 'success');
+    } else {
+      // Create new order
+      const newOrder = {
+        id: Date.now(),
+        date: today,
+        partner: currentUser.name,
+        manager: currentUser.manager && currentUser.manager !== '-' ? currentUser.manager : '알 수 없음',
+        outWarehouse: warehouses.find(w => w.isMain)?.name || 
+                      warehouses.find(w => w.name.includes('메인'))?.name || 
+                      warehouses.find(w => w.name.includes('main'))?.name || 
+                      warehouses[0]?.name || 
+                      '메인창고', 
+        inWarehouse: currentUser.warehouse && currentUser.warehouse !== '-' ? currentUser.warehouse : '동명',
+        items: newItems,
+        itemsText: newItems.map(i => `${i.name}${i.qty}`).join(' '),
+        status: '주문대기',
+        totalAmount: items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0),
+        memo: '거래처 직접 수주 (MALL)',
+        companyId: currentUser.companyId || 'default'
+      };
+      
+      const companyId = currentUser.companyId || 'default';
+      setDoc(doc(db, 'companies', companyId, 'salesOrders', String(newOrder.id)), newOrder);
+      alert('수주가 정상적으로 접수되었습니다.');
+      showToast(`${currentUser.name} 거래처의 신규 수주가 도착했습니다!`, 'success');
+    }
   };
 
-  const navigateToView = (viewName) => {
-    setCurrentView(viewName);
-    setIsMenuOpen(false);
+  if (currentView === 'shopping') {
+    return (
+      <PartnerShoppingMall 
+        products={products}
+        categories={categories}
+        systemSettings={systemSettings}
+        salesOrders={salesOrders}
+        currentUser={currentUser || { name: '미로그인', role: 'partner' }}
+        onLogout={() => {
+          if (currentUser && currentUser.role !== 'partner') {
+            setCurrentView('dashboard');
+          } else {
+            handleLogout();
+          }
+        }}
+        onOrder={handleMallOrder}
+        onUpdateOrder={(id, data) => setSalesOrders(prev => prev.map(o => o.id === id ? { ...o, ...data } : o))}
+        onDeleteOrder={(id) => setSalesOrders(prev => prev.filter(o => o.id !== id))}
+        companyName={companySettings?.name || currentUser?.companyName || systemSettings.company?.name || '회원사'}
+      />
+    );
+  }
+
+  if (currentView === 'signup') {
+    return <Signup 
+      onNavigateToLogin={() => setCurrentView('login')} 
+      staffList={staffList} 
+      onSignup={async (nd) => {
+        setPartners(prev => [...prev, { ...nd, id: Date.now() }]);
+        alert('가입이 완료되었습니다. 로그인해주세요.');
+        setCurrentView('login');
+      }} 
+    />;
+  }
+
+  if (currentView === 'shopping') {
+    return (
+      <PartnerShoppingMall 
+        products={products}
+        categories={categories}
+        systemSettings={systemSettings}
+        salesOrders={salesOrders}
+        currentUser={currentUser || { name: '미로그인', role: 'partner' }}
+        onLogout={() => {
+          if (currentUser && currentUser.role !== 'partner') {
+            setCurrentView('dashboard');
+          } else {
+            setCurrentUser(null);
+            setCurrentView('login');
+          }
+        }}
+        onOrder={handleMallOrder}
+        onUpdateOrder={(id, data) => setSalesOrders(prev => prev.map(o => o.id === id ? { ...o, ...data } : o))}
+        onDeleteOrder={(id) => setSalesOrders(prev => prev.filter(o => o.id !== id))}
+        companyName={companySettings?.name || currentUser?.companyName || systemSettings.company?.name || '회원사'}
+      />
+    );
+  }
+
+  if (currentView === 'super_admin') {
+    return <SuperAdmin onClose={() => setCurrentView('login')} />;
+  }
+
+  const getAgentContext = () => {
+    return {
+      currentView,
+      selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
+      currentUser: currentUser ? { name: currentUser.name, role: currentUser.role } : null,
+      stats: {
+        warehouseCount: warehouses?.length || 0,
+        staffCount: staffList?.length || 0,
+        partnerCount: partners?.length || 0,
+        productCount: products?.length || 0,
+        categoryCount: categories?.length || 0,
+        salesOrderCount: salesOrders?.length || 0,
+        salesInvoiceCount: salesInvoices?.length || 0,
+        purchaseOrderCount: purchaseOrders?.length || 0,
+        purchaseInvoiceCount: purchaseInvoices?.length || 0,
+        inventoryTransferCount: inventoryTransferHistory?.length || 0
+      }
+    };
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col font-sans select-none relative">
-      {runtimeError && (
-        <div className="bg-red-950/95 border-b border-red-500 text-red-200 p-4 text-[10px] font-mono whitespace-pre-wrap relative z-[100000] shadow-2xl">
-          <div className="font-extrabold text-xs mb-1 flex justify-between items-center">
-            <span>⚠️ Runtime Error Captured</span>
-            <button 
-              onClick={() => {
-                localStorage.removeItem('last_runtime_error');
-                setRuntimeError(null);
-                window.location.reload();
+    <div className="app-container">
+        <Header 
+          currentUser={currentUser} 
+          companyLogo={companySettings?.theme?.logoUrl}
+          companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
+          onLogout={handleLogout} 
+        onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
+        onOpenStaffManager={() => setIsStaffManagerOpen(true)}
+        onOpenInventoryTransfer={openInventoryTransfer}
+        onOpenInventoryMovementManager={() => setIsInventoryMovementManagerOpen(true)}
+        onOpenPartnerManager={() => setIsPartnerManagerOpen(true)}
+        onOpenProductManager={() => setIsProductManagerOpen(true)}
+        onOpenAccountManager={() => setIsAccountManagerOpen(true)}
+        onOpenScheduleList={() => setIsScheduleListOpen(true)}
+        onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
+        onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
+        onOpenPurchaseOrder={() => setIsPurchaseOrderOpen(true)}
+        onOpenSalesInvoice={openSalesInvoice}
+        onOpenSalesInvoiceList={openSalesInvoiceList}
+        onOpenSalesLedger={openSalesLedger}
+        onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
+        onOpenOrderList={() => setIsOrderListOpen(true)}
+        onOpenCashReport={openCashReport}
+        onOpenSalesReport={() => setIsSalesReportOpen(true)}
+        onOpenOrderReport={() => setIsOrderReportOpen(true)}
+        onOpenInventoryReport={openInventoryReport}
+        onOpenReceivablesReport={() => setIsReceivablesReportOpen(true)}
+        onOpenEditDeleteReport={() => setIsEditDeleteReportOpen(true)}
+        onOpenCashBook={() => setIsCashBookOpen(true)}
+        onOpenExpenseRegistration={() => setIsExpenseRegistrationOpen(true)}
+        onOpenStaffPerformanceReport={() => setIsStaffPerformanceReportOpen(true)}
+        onOpenDataManager={() => setIsDataManagerOpen(true)}
+        onOpenPartnerExcel={() => setIsPartnerExcelOpen(true)}
+        onOpenProductExcel={() => setIsProductExcelOpen(true)}
+        onOpenPurchaseLedgerExcel={() => setIsPurchaseLedgerExcelOpen(true)}
+        onOpenSalesLedgerExcel={() => setIsSalesLedgerExcelOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenLicense={() => setIsLicenseOpen(true)}
+        onOpenInventoryAdjustment={() => setIsInventoryAdjustmentOpen(true)}
+        onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
+        onOpenTaxReport={() => setIsTaxReportOpen(true)}
+        onOpenPartnerMall={() => setCurrentView('shopping')}
+        onOpenPlatformManager={() => setCurrentView('super_admin')}
+        onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
+      />
+      <div className="main-content">
+        <div className="dashboard-grid-layout" style={{ 
+          gridTemplateRows: `${calendarHeight}px auto auto`,
+          height: isResizeLocked ? 'calc(100vh - 80px)' : 'auto'
+        }}>
+          <div className="calendar-area" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 달력 위 자주 찾는 메뉴 (즐겨찾기) 영역 */}
+            <FavoriteMenuBar
+              favoriteMenus={favoriteMenus}
+              currentUser={currentUser}
+              db={db}
+              setFavoriteMenus={setFavoriteMenus}
+              showToast={showToast}
+              SYSTEM_NOTICES={SYSTEM_NOTICES}
+              currentNoticeIdx={currentNoticeIdx}
+              noticeFade={noticeFade}
+              setSelectedSystemNotice={setSelectedSystemNotice}
+              setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
+              onMenuAction={(menuId) => {
+                const actions = {
+                  staff:                      () => setIsStaffManagerOpen(true),
+                  warehouse:                  () => setIsWarehouseManagerOpen(true),
+                  partner:                    () => setIsPartnerManagerOpen(true),
+                  product:                    () => setIsProductManagerOpen(true),
+                  inventory_transfer:         () => openInventoryTransfer(),
+                  inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
+                  inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
+                  inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
+                  inventory_report_1:         () => openInventoryReport('일자별'),
+                  inventory_report_2:         () => openInventoryReport('최종'),
+                  inventory_report_3:         () => openInventoryReport('partner'),
+                  purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
+                  purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
+                  purchase_order:             () => setIsPurchaseOrderOpen(true),
+                  sales_invoice:              () => setIsSalesInvoiceOpen(true),
+                  sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
+                  sales_ledger:               () => setIsSalesLedgerOpen(true),
+                  sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
+                  order_list:                 () => setIsOrderListOpen(true),
+                  account:                    () => setIsAccountManagerOpen(true),
+                  cash_report_1:              () => openCashReport('결산'),
+                  cash_report_2:              () => openCashReport('일자별'),
+                  cash_report_3:              () => openCashReport('계좌별'),
+                  cash_book:                  () => setIsCashBookOpen(true),
+                  expense:                    () => setIsExpenseRegistrationOpen(true),
+                  sales_report:               () => setIsSalesReportOpen(true),
+                  order_report:               () => setIsOrderReportOpen(true),
+                  edit_delete:                () => setIsEditDeleteReportOpen(true),
+                  staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
+                  receivables:                () => setIsReceivablesReportOpen(true),
+                  partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
+                  tax_report:                 () => setIsTaxReportOpen(true),
+                  schedule:                   () => setIsScheduleRegistrationOpen(true),
+                  data_manager:               () => setIsDataManagerOpen(true),
+                  partner_excel:              () => setIsPartnerExcelOpen(true),
+                  product_excel:              () => setIsProductExcelOpen(true),
+                  sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
+                  purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
+                  settings:                   () => setIsSettingsOpen(true),
+                  license:                    () => setIsLicenseOpen(true),
+                };
+                if (actions[menuId]) actions[menuId]();
               }}
-              className="bg-red-800 hover:bg-red-700 px-2 py-0.5 text-white font-bold rounded"
-            >
-              Clear & Retry
-            </button>
+            />
+
+            <Calendar 
+              selectedDate={selectedDate} 
+              onDateSelect={setSelectedDate} 
+              onLogout={handleLogout} 
+              onAddSchedule={() => setIsScheduleRegistrationOpen(true)} 
+              onAddOrder={() => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }}
+              onOpenDashboardSettings={() => setIsDashboardSettingsOpen(true)}
+              isDashboardLocked={isDashboardLocked}
+              onToggleDashboardLock={() => setIsDashboardLocked(!isDashboardLocked)}
+              schedules={schedules} 
+              salesOrders={salesOrders}
+              salesInvoices={salesInvoices}
+              purchaseOrders={purchaseOrders}
+              purchaseInvoices={purchaseInvoices}
+              inventoryTransferHistory={inventoryTransferHistory}
+              staffList={staffList}
+              currentUser={currentUser}
+              scheduleTypes={scheduleTypes}
+              hiddenScheduleTypes={hiddenScheduleTypes}
+              onToggleScheduleType={(typeName) => {
+                setHiddenScheduleTypes(prev => {
+                  const next = prev.includes(typeName)
+                    ? prev.filter(t => t !== typeName)
+                    : [...prev, typeName];
+                  localStorage.setItem('hiddenScheduleTypes', JSON.stringify(next));
+                  return next;
+                });
+              }}
+              onSetHiddenScheduleTypes={(val) => {
+                setHiddenScheduleTypes(val);
+                localStorage.setItem('hiddenScheduleTypes', JSON.stringify(val));
+              }}
+              onOpenTypeManagement={() => setIsTypeManagementOpen(true)}
+              onOpenSalesInvoiceListForDate={(date) => {
+                setSelectedDate(date);
+                setIsSalesInvoiceListOpen(true);
+              }}
+              onOpenOrderListForDate={(date) => {
+                setSelectedDate(date);
+                setIsOrderListOpen(true);
+              }}
+              onOpenPurchaseLedgerForDate={(date) => {
+                setSelectedDate(date);
+                setIsPurchaseLedgerOpen(true);
+              }}
+              onOpenInventoryTransferForDate={(date) => {
+                setSelectedDate(date);
+                openInventoryTransfer(date);
+              }}
+              onOpenScheduleDetail={handleOpenScheduleDetail}
+            />
           </div>
-          {runtimeError}
-        </div>
-      )}
-      
-      {/* Slide-out Menu Drawer Backdrop */}
-      {isMenuOpen && (
-        <div 
-          onClick={() => setIsMenuOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-all animate-fadeIn"
-          style={{ zIndex: 9998 }}
-        />
-      )}
 
-
-      {/* Slide-out Menu Drawer Container */}
-      <div 
-        className={`fixed top-0 bottom-0 left-0 w-4/5 max-w-[280px] bg-[#0c101b] border-r border-slate-800/50 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out transform ${
-          isMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{ zIndex: 9999 }}
-      >
-        <div className="overflow-y-auto flex-1">
-          {/* Drawer Header */}
-          <div className="p-5 border-b border-slate-800/50 flex justify-between items-center bg-[#070a13]/40">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white font-black text-xs">X</div>
-              <span className="font-extrabold text-xs tracking-tight">LinkerX 전체메뉴</span>
-            </div>
-            <button onClick={() => setIsMenuOpen(false)} className="text-slate-400 hover:text-white transition-all">
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Drawer Menu List */}
-          <div className="p-4 space-y-3.5">
-            <button 
-              onClick={() => navigateToView('dashboard')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10' : 'text-slate-300 hover:bg-slate-900/60 hover:text-white'
-              }`}
-            >
-              <Sliders size={16} />
-              <span>대시보드 홈</span>
-            </button>
-
-            {menuStructure.map((cat) => {
-              // Filter sub-items by user permissions
-              const permittedItems = cat.items.filter(item => hasMenuPermission(item.id));
-              if (permittedItems.length === 0) return null;
-              const IconComponent = 
-                cat.icon === 'Sliders' ? Sliders :
-                cat.icon === 'ArrowDownLeft' ? ArrowDownLeft :
-                cat.icon === 'ArrowUpRight' ? ArrowUpRight :
-                cat.icon === 'DollarSign' ? DollarSign :
-                cat.icon === 'Package' ? Package :
-                cat.icon === 'BarChart2' ? BarChart2 :
-                cat.icon === 'Sparkles' ? Sparkles :
-                cat.icon === 'Database' ? Database :
-                cat.icon === 'Settings' ? Settings : Sliders;
-
-              const isExpanded = activeMenuDropdown === cat.id;
-
-              return (
-                <div key={cat.id} className="space-y-1">
-                  <button 
-                    onClick={() => setActiveMenuDropdown(isExpanded ? null : cat.id)}
-                    className="w-full flex justify-between items-center px-3 py-2 text-slate-350 hover:text-white font-bold text-xs"
+          <div className="right-side-grid" style={{ gridRow: `span 3` }}>
+            {(() => {
+              const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
+              const maxWidgets = 6;
+              const displayWidgets = activeWidgets.slice(0, maxWidgets);
+              
+              return displayWidgets.map((widgetId) => {
+                return (
+                  <div 
+                    key={widgetId} 
+                    className="grid-item" 
+                    style={{ 
+                      gridRow: 'span 1',
+                      height: '100%',
+                      minHeight: '290px',
+                      maxHeight: '290px',
+                      overflow: 'hidden'
+                    }}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <IconComponent size={16} className="text-blue-400" />
-                      {cat.title}
-                    </span>
-                    <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isExpanded && (
-                    <div className="pl-6 space-y-1.5 mt-1 border-l border-slate-800/30 ml-5 py-1">
-                      {permittedItems.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center w-full py-1">
-                          <button 
-                            onClick={() => handleMenuClick(item)}
-                            className={`flex-1 text-left text-[11px] font-bold block transition-all ${
-                              item.implemented 
-                                ? currentView === item.id 
-                                  ? 'text-blue-450 font-extrabold'
-                                  : 'text-slate-400 hover:text-white' 
-                                : 'text-slate-505 hover:text-slate-400 cursor-pointer'
-                            }`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {item.title}
-                              {!item.implemented && (
-                                <span className="text-[7.5px] px-1 py-0.2 bg-slate-850/60 text-slate-500 border border-slate-800/30 rounded scale-90 origin-left">PC 전용</span>
-                              )}
-                            </span>
-                          </button>
-                          {item.implemented && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                              className="p-1 text-slate-500 hover:text-yellow-450 transition-all"
-                            >
-                              <Star size={12} className={(Array.isArray(favorites) && favorites.includes(item.id)) ? "text-yellow-500 fill-yellow-500" : "text-slate-700"} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    {renderWidget(widgetId, '')}
+                  </div>
+                );
+              });
+            })()}
           </div>
-        </div>
-        
-        {/* Drawer Bottom Info */}
-        <div className="p-4 border-t border-slate-800/50 bg-[#070a13]/40 flex flex-col gap-1.5 text-[10px] text-slate-500">
-          <div className="flex items-center gap-1.5 text-slate-400 font-bold">
-            <User size={12} />
-            <span>{currentUser?.name || '구성원'} ({currentUser?.jobTitle || '사원'})</span>
-          </div>
-          <p>회원사 ID: {companyId}</p>
         </div>
       </div>
 
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-md border-b border-slate-900/60 px-3 py-2.5 flex justify-between items-center flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsMenuOpen(true)}
-            className="p-2 -ml-2 text-slate-400 hover:text-white transition-all focus:outline-none"
-          >
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-md shadow-blue-500/10">X</div>
-            <span className="font-extrabold text-sm tracking-tight">LinkerX Mobile</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-            {companyId}
-          </span>
-          {(currentUser?.role === 'super_admin' || currentUser?.userId === 'sadmin' || currentUser?.userId === 'madmin' || currentUser?.role === 'admin' || currentUser?.role === 'master') && (
-            <button 
-              onClick={() => {
-                if (currentView === 'dev_console') {
-                  setCurrentView('dashboard');
-                } else {
-                  setCurrentView('dev_console');
-                }
-              }}
-              className={`p-1.5 rounded border transition-all ${
-                currentView === 'dev_console' 
-                  ? 'bg-violet-650 text-white border-violet-500 shadow-md shadow-violet-500/10' 
-                  : 'bg-slate-900 text-slate-400 hover:text-violet-400 border-slate-800'
-              }`}
-              title="개발모드 콘솔"
-            >
-              <Cpu size={12} className={currentView === 'dev_console' ? 'animate-pulse' : ''} />
-            </button>
-          )}
-          <button 
-            onClick={() => {
-              setIsMenuOpen(true);
-              showToast("메뉴 서랍의 별표(★)를 클릭하여 즐겨찾기 단축키를 설정할 수 있습니다.");
-            }}
-            className="p-1.5 bg-slate-900 hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 rounded border border-slate-800 transition-all mr-1.5"
-            title="즐겨찾기 설정"
-          >
-            <Settings size={12} />
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="p-1.5 bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded border border-slate-800 transition-all"
-            title="로그아웃"
-          >
-            <LogOut size={12} />
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 px-3 pt-0 pb-4 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))]">
-        {currentView === 'dashboard' && renderDashboard()}
-        
-        {/* Master Data Module */}
-        {currentView === 'staff_mgmt' && renderStaffMgmt()}
-        {currentView === 'warehouse_mgmt' && renderWarehouseMgmt()}
-        {currentView === 'partner_mgmt' && renderPartnerMgmt()}
-        {currentView === 'product_mgmt' && renderProductMgmt()}
-
-        {/* Purchase Module */}
-        {currentView === 'purchase_invoice' && renderPurchaseInvoiceNew()}
-        {currentView === 'purchase_ledger' && renderPurchaseLedger()}
-        
-        {/* Sales/Order Module */}
-        {currentView === 'sales_invoice_list' && renderSalesInvoiceList()}
-        {currentView === 'sales_order_new' && renderSalesOrderNew()}
-        {currentView === 'sales_order_list' && renderSalesOrderList()}
-        
-        {/* Cash Module */}
-        {currentView === 'account_mgmt' && renderAccountMgmt()}
-
-        {/* Inventory Module */}
-        {currentView === 'inventory_lookup' && renderInventoryLookup()}
-        {currentView === 'inventory_transfer' && renderInventoryTransfer()}
-
-        {/* Smart Support / Chatbot */}
-        {currentView === 'agent_chat' && renderAgentChat()}
+      {/* Modals */}
+      {isInventoryMovementManagerOpen && (
+        <InventoryMovementManager 
+          onClose={() => setIsInventoryMovementManagerOpen(false)} 
+          historyData={inventoryTransferHistory}
+          warehouses={warehouses}
+          products={products}
+          onUpdateTransfer={onUpdateInventoryTransfer}
+          onDeleteTransfer={onDeleteMoveStock}
+          onDeleteAllTransfers={onDeleteAllTransfers}
+        />
+      )}
+      {isWarehouseManagerOpen && <WarehouseManagement onClose={() => setIsWarehouseManagerOpen(false)} warehouses={warehouses} setWarehouses={setWarehouses} currentUser={currentUser} staffList={staffList} />}
+      {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} />}
+      {isInventoryTransferOpen && <InventoryTransfer 
+        onClose={() => { setIsInventoryTransferOpen(false); setInventoryTransferInitialDate(null); }} 
+        currentUser={currentUser} 
+        warehouses={warehouses} 
+        products={products}
+        inventory={inventory}
+        onMoveStock={onMoveStock}
+        onDeleteMoveStock={onDeleteMoveStock}
+        historyData={inventoryTransferHistory}
+        setHistoryData={setInventoryTransferHistory}
+        salesOrders={salesOrders}
+        salesInvoices={salesInvoices}
+        onOpenSalesInvoice={openSalesInvoice}
+        onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
+        purchaseInvoices={purchaseInvoices}
+        onOpenPurchaseInvoice={openPurchaseInvoice}
+        initialDate={inventoryTransferInitialDate}
+      />}
+      {isPartnerManagerOpen && (
+        <PartnerManagement 
+          onClose={() => setIsPartnerManagerOpen(false)} 
+          staffList={staffList} 
+          partners={partners} 
+          setPartners={setPartners} 
+          onOrder={(p) => setOrderingPartner(p)} 
+          warehouses={warehouses} 
+          onOpenBulk={() => setIsPartnerBulkOpen(true)} 
+          currentUser={currentUser}
+          accounts={accounts}
+        />
+      )}
+      {isProductManagerOpen && <ProductManagement onClose={() => setIsProductManagerOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} onOpenBulk={() => setIsProductBulkOpen(true)} currentUser={currentUser} />}
+      {isPartnerSpecialPriceManagerOpen && (
+        <PartnerSpecialPriceManager 
+          onClose={() => setIsPartnerSpecialPriceManagerOpen(false)} 
+          partners={partners} 
+          products={products} 
+          specialPrices={specialPrices} 
+          currentUser={currentUser}
+        />
+      )}
+      {isAccountManagerOpen && <AccountManagement onClose={() => setIsAccountManagerOpen(false)} accounts={accounts} setAccounts={setAccounts} currentUser={currentUser} />}
+      {isScheduleDetailOpen && (
+        <ScheduleDetailModal 
+          schedule={selectedScheduleForDetail} 
+          onClose={() => { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); }} 
+          currentUser={currentUser} 
+          scheduleTypes={scheduleTypes}
+          onUpdateSchedule={(updatedSched) => {
+            setSchedules(prev => prev.map(s => String(s.id) === String(updatedSched.id) ? updatedSched : s));
+            setSelectedScheduleForDetail(updatedSched);
+          }}
+          onDeleteSchedule={async (id) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+              setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
+              setIsScheduleDetailOpen(false);
+              setSelectedScheduleForDetail(null);
+              showToast('일정이 삭제되었습니다.', 'success');
+            } catch (err) {
+              console.error("Delete schedule error:", err);
+              alert('삭제 중 오류가 발생했습니다.');
+            }
+          }}
+        />
+      )}
       
-        {/* Developer Console Module */}
-        {currentView === 'dev_console' && renderDevConsole()}
-      </main>
+      {isScheduleListOpen && (
+        <ScheduleList 
+          onClose={() => setIsScheduleListOpen(false)} 
+          schedules={schedules} 
+          setSchedules={setSchedules} 
+          currentUser={currentUser} 
+          scheduleTypes={scheduleTypes}
+          onAddSchedule={() => { setIsScheduleListOpen(false); setIsScheduleRegistrationOpen(true); }} 
+          onCopy={(s) => {
+            setCopiedSchedule(s);
+            alert('일정이 복사되었습니다. 달력에서 날짜 선택 후 Ctrl+V를 누르면 붙여넣기 됩니다.');
+          }}
+          onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
+          onDelete={async (id) => {
+            if (window.confirm('일정을 삭제하시겠습니까?')) {
+              try {
+                const companyId = currentUser?.companyId || 'default';
+                await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+                showToast('일정이 삭제되었습니다.', 'success');
+              } catch (err) {
+                console.error("Delete schedule error:", err);
+                alert('삭제 중 오류가 발생했습니다.');
+              }
+            }
+          }}
+        />
+      )}
+      {isTypeManagementOpen && (
+        <ScheduleTypeManagement
+          onClose={() => setIsTypeManagementOpen(false)}
+          scheduleTypes={scheduleTypes}
+          onUpdateTypes={setScheduleTypes}
+          currentUser={currentUser}
+        />
+      )}
+      {isScheduleRegistrationOpen && (
+        <ScheduleRegistration 
+          selectedDate={selectedDate} 
+          onClose={() => { setIsScheduleRegistrationOpen(false); setEditingSchedule(null); setIsManagingTypesOnOpen(false); }} 
+          initialData={editingSchedule}
+          initialIsManagingTypes={isManagingTypesOnOpen}
+          scheduleTypes={scheduleTypes}
+          onUpdateTypes={setScheduleTypes}
+          currentUser={currentUser}
+          onOpenTypeManagement={() => setIsTypeManagementOpen(true)}
+          onSave={async (sd) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              const docId = sd.id ? String(sd.id) : String(Date.now());
+              const finalData = {
+                ...sd,
+                id: sd.id || Number(docId),
+                author: sd.author || currentUser?.name || '알 수 없음',
+                viewers: sd.viewers || [],
+                companyId,
+                updatedAt: new Date().toISOString()
+              };
+              delete finalData.date;
+              await setDoc(doc(db, 'companies', companyId, 'schedules', docId), finalData);
+              setEditingSchedule(null);
+              setIsScheduleRegistrationOpen(false);
+              setIsManagingTypesOnOpen(false);
+            } catch (err) {
+              console.error("Save schedule error:", err);
+              alert('저장 중 오류가 발생했습니다.');
+            }
+          }} 
+        />
+      )}
+      
+      {isPurchaseInvoiceOpen && <PurchaseInvoice 
+        themeColor={systemSettings.display?.purchaseThemeColor || '#3b82f6'}
+        onClose={() => { setIsPurchaseInvoiceOpen(false); setEditingPurchaseInvoice(null); }} 
+        selectedDate={selectedDate}
+        products={products} 
+        partners={partners} 
+        staffList={staffList} 
+        purchaseInvoices={purchaseInvoices}
+        editingInvoice={editingPurchaseInvoice}
+        onOpenLedger={() => setIsPurchaseLedgerOpen(true)}
+        onDeleteInvoice={handleDeletePurchaseInvoice}
+        warehouses={warehouses}
+        onSave={handleSavePurchaseInvoice} 
+      />}
 
-      {/* Bottom Shortcuts Quick Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-45 bg-[#0b0f19]/90 backdrop-blur-lg border-t border-slate-900/80 px-2 py-2 flex justify-around items-center pb-[calc(8px+env(safe-area-inset-bottom))] shadow-xl">
-        <button 
-          onClick={() => setCurrentView('dashboard')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'dashboard' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <Sliders size={22} />
-          <span className="text-[9px] font-bold">홈</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('sales_order_new')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'sales_order_new' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <ShoppingCart size={22} />
-          <span className="text-[9px] font-bold">수주</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('inventory_lookup')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'inventory_lookup' || currentView === 'inventory_transfer' ? 'text-blue-500' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <Package size={22} />
-          <span className="text-[9px] font-bold">재고</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('agent_chat')} 
-          className={`flex flex-col items-center gap-1 transition-all ${
-            currentView === 'agent_chat' ? 'text-blue-500 font-extrabold' : 'text-slate-500 hover:text-slate-400'
-          }`}
-        >
-          <MessageSquare size={22} />
-          <span className="text-[9px] font-bold">비서</span>
-        </button>
-        <button 
-          onClick={() => setIsMenuOpen(true)} 
-          className="flex flex-col items-center gap-1 transition-all text-slate-500 hover:text-slate-400"
-        >
-          <Menu size={22} />
-          <span className="text-[9px] font-bold">메뉴</span>
-        </button>
+      {isPurchaseLedgerOpen && <PurchaseLedger 
+        onClose={() => setIsPurchaseLedgerOpen(false)} 
+        purchaseInvoices={purchaseInvoices} 
+        products={products} 
+        partners={partners}
+        currentUser={currentUser}
+        onOpenInvoice={(inv) => openPurchaseInvoice(inv)} 
+        onUpdateInvoice={async (inv) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(inv.id)), inv);
+          } catch (err) { console.error(err); }
+        }}
+        zIndex={4000} 
+      />}
+      {isPurchaseOrderOpen && <PurchaseOrder 
+        onClose={() => setIsPurchaseOrderOpen(false)} 
+        partners={partners} 
+        products={products} 
+        purchaseOrders={purchaseOrders} 
+        currentUser={currentUser}
+        staffList={staffList}
+        warehouses={warehouses}
+        themeColor={systemSettings.display?.purchaseThemeColor || '#cbd5e1'}
+        onTransferToInvoice={(invData) => { setIsPurchaseOrderOpen(false); openPurchaseInvoice(invData); }}
+        onSave={async (od) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            const id = od.id || Date.now();
+            await setDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)), { ...od, id: Number(id), companyId });
+          } catch (err) { console.error(err); }
+        }} 
+      />}
+      
+      {isSalesLedgerOpen && <SalesLedger
+        onClose={() => setIsSalesLedgerOpen(false)}
+        salesInvoices={salesInvoices}
+        products={products}
+        partners={partners}
+        onOpenInvoice={(inv) => openSalesInvoice(inv)}
+        currentUser={currentUser}
+        zIndex={activeSalesModal === 'ledger' ? 5000 : 4000}
+        onUpdateInvoice={async (updatedInv) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            await setDoc(doc(db, 'companies', companyId, 'salesInvoices', String(updatedInv.id)), updatedInv, { merge: true });
+          } catch (err) { console.error(err); }
+        }}
+      />}
 
-      {/* Toast Alert Notification */}
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-[320px] bg-slate-900/95 border border-slate-800/80 text-white rounded-2xl px-4 py-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-md animate-slideDown">
-          <Info size={18} className="text-blue-400 flex-shrink-0" />
-          <div className="text-[11px] font-bold leading-relaxed whitespace-pre-line text-slate-200">
-            {toast.message}
-          </div>
-        </div>
+      {isSalesInvoiceListOpen && <SalesInvoiceList
+        onClose={() => setIsSalesInvoiceListOpen(false)}
+        salesInvoices={salesInvoices}
+        products={products}
+        onOpenInvoice={(inv) => openSalesInvoice(inv)}
+        zIndex={activeSalesModal === 'invoice_list' ? 5500 : 4000}
+        staffList={staffList}
+      />}
+
+      {isSalesInvoiceOpen && <SalesInvoice
+        themeColor={systemSettings.display?.salesThemeColor || '#3b82f6'}
+        zIndex={activeSalesModal === 'invoice' ? 6000 : 3000}
+        onClose={() => { setIsSalesInvoiceOpen(false); setEditingInvoice(null); }}
+        selectedDate={selectedDate}
+        products={products}
+        partners={partners}
+        specialPrices={specialPrices}
+        staffList={staffList}
+        currentUser={currentUser}
+        warehouses={warehouses}
+        salesInvoices={salesInvoices}
+        editingInvoice={editingInvoice}
+        onOpenLedger={openSalesLedger}
+        onDeleteInvoice={handleDeleteSalesInvoice}
+        onPrintTaxInvoice={(invoice, isTaxFree) => setPrintingTaxInvoice({ invoice, isTaxFree })}
+        onSave={handleSaveSalesInvoice}
+        inventory={inventory}
+        warnNoStock={systemSettings.salesInvoice?.warnNoStock !== false}
+        saveMode={systemSettings.salesInvoice?.saveMode || 'auto'}
+      />}
+
+      {isSalesOrderOpen && <SalesOrder 
+        themeColor={systemSettings.display?.orderThemeColor || '#3b82f6'}
+        onClose={() => setIsSalesOrderOpen(false)} 
+        partners={partners} 
+        products={products} 
+        salesOrders={salesOrders} 
+        onSave={async (od) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            const id = od.id || Date.now();
+            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), { ...od, id: Number(id), companyId });
+            setEditingOrder(null);
+          } catch (err) { console.error(err); }
+        }} 
+        onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); openSalesInvoice(invData); }}
+        onOpenOrderList={() => { setIsOrderListOpen(true); }}
+        currentUser={currentUser} 
+        staffList={staffList} 
+        warehouses={warehouses} 
+        selectedDate={selectedDate} 
+        editingOrder={editingOrder}
+      />}
+
+      {orderingPartner && (
+        <SalesOrder 
+          onClose={() => setOrderingPartner(null)} 
+          partners={partners} 
+          products={products} 
+          salesOrders={salesOrders}
+          currentUser={currentUser}
+          staffList={staffList}
+          initialPartner={orderingPartner}
+          warehouses={warehouses}
+          selectedDate={selectedDate}
+          onSave={async (od) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              const id = od.id || Date.now();
+              await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), { ...od, id: Number(id), companyId });
+              setEditingOrder(null);
+              setOrderingPartner(null);
+            } catch (err) { console.error(err); }
+          }}
+          onTransferToInvoice={(invData) => { setOrderingPartner(null); openSalesInvoice(invData); }}
+          onOpenOrderList={() => { setOrderingPartner(null); setIsOrderListOpen(true); }}
+        />
       )}
 
-      </nav>
+      {isOrderListOpen && <OrderList 
+        onClose={() => { setIsOrderListOpen(false); setOrderListSelectedStaff('all'); }} 
+        salesOrders={salesOrders} 
+        products={products}
+        selectedDate={selectedDate} 
+        staffList={staffList} 
+        currentUser={currentUser}
+        initialSelectedStaff={orderListSelectedStaff}
+        onEditOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
+        onDeleteOrder={handleDeleteSalesOrder}
+        onTransferToInvoice={(invData) => { openSalesInvoice(invData); }}
+        onOpenInventoryMismatch={openMismatchFromOrder}
+        onUpdateOrder={async (id, updates) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), updates, { merge: true });
+          } catch (err) { console.error(err); }
+        }}
+        inventory={inventory}
+        onMoveStock={onMoveStock}
+        onRevertAutoMoveStock={onRevertAutoMoveStock}
+      />}
+      
+      {isCashReportOpen && <CashReport onClose={() => setIsCashReportOpen(false)} purchaseInvoices={purchaseInvoices} salesInvoices={salesInvoices} staffList={staffList} defaultTab={cashReportTab} />}
+      {isSalesReportOpen && <SalesReport onClose={() => setIsSalesReportOpen(false)} salesInvoices={salesInvoices} salesOrders={salesOrders} products={products} />}
+       {isOrderReportOpen && <OrderReport 
+        onClose={() => setIsOrderReportOpen(false)} 
+        salesOrders={salesOrders} 
+        staffList={staffList} 
+        onEditOrder={(order) => {
+          setEditingOrder(order);
+          setIsSalesOrderOpen(true);
+          setIsOrderReportOpen(false);
+        }}
+      />}
+      {isInventoryReportOpen && <InventoryReport 
+        onClose={() => setIsInventoryReportOpen(false)} 
+        products={products} 
+        categories={categories}
+        setCategories={setCategories}
+        currentUser={currentUser}
+        warehouses={warehouses}
+        inventory={inventory}
+        historyData={inventoryTransferHistory}
+        partners={partners}
+        purchaseInvoices={purchaseInvoices}
+        salesInvoices={salesInvoices}
+        salesOrders={salesOrders}
+        onOpenSalesInvoice={openSalesInvoice}
+        onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
+        onOpenPurchaseInvoice={openPurchaseInvoice}
+        onOpenInventoryTransfer={openInventoryTransfer}
+        defaultTab={inventoryReportTab} 
+      />}
+      {isReceivablesReportOpen && <ReceivablesReport onClose={() => setIsReceivablesReportOpen(false)} partners={partners} salesInvoices={salesInvoices} setPartners={setPartners} staffList={staffList} />}
+      {isEditDeleteReportOpen && <EditDeleteReport onClose={() => setIsEditDeleteReportOpen(false)} />}
+      {isCashBookOpen && <CashBook onClose={() => setIsCashBookOpen(false)} />}
+      {isExpenseRegistrationOpen && (
+        <ExpenseRegistration 
+          onClose={() => setIsExpenseRegistrationOpen(false)} 
+          staffList={staffList} 
+          expenses={expenses}
+          onSave={async (newExp) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              const id = Date.now();
+              await setDoc(doc(db, 'companies', companyId, 'expenses', String(id)), { ...newExp, id, companyId });
+            } catch (err) { console.error(err); }
+          }}
+        />
+      )}
+      {isStaffPerformanceReportOpen && <StaffPerformanceReport onClose={() => setIsStaffPerformanceReportOpen(false)} staffList={staffList} salesInvoices={salesInvoices} />}
+      {isDataManagerOpen && (
+        <DataManager 
+          onClose={() => setIsDataManagerOpen(false)} 
+          onSaveAll={() => {
+            const data = { 
+              staffList, 
+              schedules, 
+              scheduleTypes: typeof scheduleTypes !== 'undefined' ? scheduleTypes : [],
+              products, 
+              categories, 
+              partners, 
+              accounts, 
+              purchaseInvoices, 
+              purchaseOrders, 
+              salesInvoices, 
+              salesOrders, 
+              warehouses, 
+              inventory, 
+              inventoryAdjustments, 
+              inventoryTransferHistory,
+              expenses: typeof expenses !== 'undefined' ? expenses : [],
+              specialPrices,
+              systemSettings,
+              favoriteMenus,
+              staffZones: typeof staffZones !== 'undefined' ? staffZones : [],
+              staffJobTitles: typeof staffJobTitles !== 'undefined' ? staffJobTitles : []
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+          }}
+          onRestoreAll={async (data) => {
+            if (window.confirm('모든 현재 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
+              try {
+                const companyId = currentUser?.companyId || 'default';
+                const batch = writeBatch(db);
+                
+                // Helper to add set operations to batch
+                const addToBatch = (collectionName, items) => {
+                  if (!Array.isArray(items)) return;
+                  items.forEach(item => {
+                    let docId = String(item.id || item._docId || Date.now() + Math.random());
+                    if (collectionName === 'staffList' && item.userId) {
+                      docId = `${companyId}_${item.userId}`;
+                    } else if (collectionName === 'partners' && item.loginId) {
+                      docId = `${companyId}_${item.loginId}`;
+                    }
+                    const cleanItem = { ...item };
+                    delete cleanItem._docId; // clean up internal field
+                    batch.set(doc(db, 'companies', companyId, collectionName, docId), {
+                      ...cleanItem,
+                      companyId
+                    });
+                  });
+                };
+
+                if (data.staffList) addToBatch('staffList', data.staffList);
+                if (data.schedules) addToBatch('schedules', data.schedules);
+                if (data.scheduleTypes) addToBatch('scheduleTypes', data.scheduleTypes);
+                if (data.products) addToBatch('products', data.products);
+                if (data.categories) addToBatch('categories', data.categories);
+                if (data.partners) addToBatch('partners', data.partners);
+                if (data.accounts) addToBatch('accounts', data.accounts);
+                if (data.purchaseInvoices) addToBatch('purchaseInvoices', data.purchaseInvoices);
+                if (data.purchaseOrders) addToBatch('purchaseOrders', data.purchaseOrders);
+                if (data.salesInvoices) addToBatch('salesInvoices', data.salesInvoices);
+                if (data.salesOrders) addToBatch('salesOrders', data.salesOrders);
+                if (data.warehouses) addToBatch('warehouses', data.warehouses);
+                if (data.inventoryAdjustments) addToBatch('inventoryAdjustments', data.inventoryAdjustments);
+                if (data.inventoryTransferHistory) addToBatch('inventoryTransferHistory', data.inventoryTransferHistory);
+                if (data.expenses) addToBatch('expenses', data.expenses);
+                if (data.specialPrices) addToBatch('specialPrices', data.specialPrices);
+                if (data.staffZones) addToBatch('staffZones', data.staffZones);
+                if (data.staffJobTitles) addToBatch('staffJobTitles', data.staffJobTitles);
+                
+                // For single docs, write directly
+                if (data.inventory) {
+                  const val = data.inventory.value || data.inventory;
+                  await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: val, companyId });
+                  await setDoc(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: val, companyId });
+                }
+                if (data.systemSettings) {
+                  const val = data.systemSettings.value || data.systemSettings;
+                  await setDoc(doc(db, 'companies', companyId, 'settings', 'systemSettings'), { value: val, companyId });
+                }
+                if (data.favoriteMenus) {
+                  const val = data.favoriteMenus.value || data.favoriteMenus;
+                  await setDoc(doc(db, 'companies', companyId, 'settings', 'favoriteMenus'), { value: val, companyId });
+                }
+                
+                await batch.commit();
+
+                // Local states will be updated by the active onSnapshot real-time listener automatically
+                alert('데이터를 성공적으로 불러왔습니다!');
+                setIsDataManagerOpen(false);
+              } catch (err) {
+                console.error('Restore all error:', err);
+                alert('데이터 복구 중 오류가 발생했습니다: ' + err.message);
+              }
+            }
+          }}
+          onDeleteAll={async () => {
+            if (window.confirm('정말로 모든 데이터를 영구히 삭제하시겠습니까?\n이 작업은 데이터베이스와 로컬 스토리지 상의 모든 정보를 지우며 결코 되돌릴 수 없습니다.')) {
+              try {
+                const companyId = currentUser?.companyId || 'default';
+                
+                // 1. Clear database collections (비동기 병렬 처리)
+                const collectionsToDelete = [
+                  'staffList', 'schedules', 'scheduleTypes', 'products', 'categories', 
+                  'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders', 
+                  'salesInvoices', 'salesOrders', 'warehouses', 'inventoryTransferHistory', 
+                  'expenses', 'specialPrices', 'staffZones', 'staffJobTitles'
+                ];
+                
+                console.log(`[Delete All] Clearing ${collectionsToDelete.length} collections for company: ${companyId}`);
+                
+                for (const colName of collectionsToDelete) {
+                  const colRef = collection(db, 'companies', companyId, colName);
+                  const snap = await getDocs(colRef);
+                  if (snap.size > 0) {
+                    await Promise.all(snap.docs.map(doc => deleteDoc(doc.ref)));
+                  }
+                }
+                
+                // 2. Clear settings single documents
+                const settingsDocs = ['inventory', 'systemSettings', 'favoriteMenus', 'dashboardConfig'];
+                for (const docName of settingsDocs) {
+                  await deleteDoc(doc(db, 'companies', companyId, 'settings', docName));
+                  await deleteDoc(doc(db, 'companies', companyId, 'systemSettings', docName)); // 구버전 경로 백업 삭제
+                }
+                
+                // 3. Clear localStorage completely (보안 데이터 제외)
+                const license = localStorage.getItem('licenseData');
+                const user = localStorage.getItem('currentUser');
+                
+                localStorage.clear();
+                
+                if (license) localStorage.setItem('licenseData', license);
+                if (user) localStorage.setItem('currentUser', user);
+
+                alert('데이터베이스 및 로컬 스토리지 상의 모든 정보가 성공적으로 영구 삭제되었습니다. 시스템을 초기 상태로 재부팅합니다.');
+                window.location.reload();
+              } catch (err) {
+                console.error('Delete all error:', err);
+                alert('데이터 초기화 중 오류가 발생했습니다: ' + err.message);
+              }
+            }
+          }}
+        />
+      )}
+      {isPartnerBulkOpen && (
+        <BulkEditor 
+          type="partner"
+          data={partners}
+          onClose={() => setIsPartnerBulkOpen(false)}
+          onSave={async (updatedData) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              const batch = writeBatch(db);
+              updatedData.forEach(partnerData => {
+                const docId = partnerData.loginId ? `${companyId}_${partnerData.loginId}` : 
+                              partnerData.email ? `${companyId}_${partnerData.email}` : 
+                              String(partnerData.id || Date.now() + Math.random());
+                const finalData = {
+                  ...partnerData,
+                  companyId,
+                  manager: partnerData.manager || '-',
+                  updatedAt: new Date().toISOString()
+                };
+                batch.set(doc(db, 'companies', companyId, 'partners', docId), finalData);
+              });
+              await batch.commit();
+
+              setPartners(updatedData);
+
+              // Sync new managers with StaffList
+              if (setStaffList && staffList) {
+                const currentStaffNames = new Set(staffList.map(s => s.name));
+                const newManagers = [...new Set(updatedData.map(p => p.manager))].filter(name => name && name !== '-' && !currentStaffNames.has(name));
+                
+                if (newManagers.length > 0) {
+                  const newStaffEntries = newManagers.map(name => ({
+                    id: Date.now() + Math.random(),
+                    name,
+                    jobTitle: '자동등록담당자',
+                    phone: '',
+                    email: '',
+                    memo: '거래처 일괄 편집을 통해 자동 등록됨'
+                  }));
+                  
+                  const staffBatch = writeBatch(db);
+                  newStaffEntries.forEach(staff => {
+                    const staffCompositeId = `${companyId}_${staff.name}`;
+                    staffBatch.set(doc(db, 'companies', companyId, 'staffList', staffCompositeId), {
+                      ...staff,
+                      companyId
+                    });
+                  });
+                  await staffBatch.commit();
+                  setStaffList(prev => [...prev, ...newStaffEntries]);
+                }
+              }
+
+              alert('✅ 거래처 일괄 편집 사항이 파이어베이스에 성공적으로 저장되었습니다.');
+              setIsPartnerBulkOpen(false);
+            } catch (err) {
+              console.error('Bulk save partners error:', err);
+              alert('거래처 일괄 편집 저장 중 오류가 발생했습니다: ' + err.message);
+            }
+          }}
+          staffList={staffList}
+          warehouses={warehouses}
+        />
+      )}
+      {isProductBulkOpen && (
+        <BulkEditor 
+          type="product"
+          data={products}
+          onClose={() => setIsProductBulkOpen(false)}
+          onSave={async (updatedData) => {
+            try {
+              const companyId = currentUser?.companyId || 'default';
+              const batch = writeBatch(db);
+              updatedData.forEach(productData => {
+                const productId = String(productData.id || Date.now() + Math.random());
+                const finalData = {
+                  ...productData,
+                  companyId,
+                  updatedAt: new Date().toISOString()
+                };
+                batch.set(doc(db, 'companies', companyId, 'products', productId), finalData);
+              });
+              await batch.commit();
+
+              setProducts(updatedData);
+
+              // Sync new categories with master list
+              if (setCategories && categories) {
+                const currentCatNames = new Set(categories.map(c => c.name));
+                const newCats = [...new Set(updatedData.map(p => p.category))].filter(name => name && !currentCatNames.has(name));
+                
+                if (newCats.length > 0) {
+                  const newCatEntries = newCats.map(name => ({
+                    id: Date.now() + Math.random(),
+                    name,
+                    memo: '품목 일괄 편집을 통해 자동 등록됨'
+                  }));
+                  
+                  const catBatch = writeBatch(db);
+                  newCatEntries.forEach(cat => {
+                    const catId = String(cat.id);
+                    catBatch.set(doc(db, 'companies', companyId, 'categories', catId), {
+                      ...cat,
+                      companyId
+                    });
+                  });
+                  await catBatch.commit();
+                  setCategories(prev => [...prev, ...newCatEntries]);
+                }
+              }
+
+              alert('✅ 품목 일괄 편집 사항이 파이어베이스에 성공적으로 저장되었습니다.');
+              setIsProductBulkOpen(false);
+            } catch (err) {
+              console.error('Bulk save products error:', err);
+              alert('품목 일괄 편집 저장 중 오류가 발생했습니다: ' + err.message);
+            }
+          }}
+          categories={categories}
+        />
+      )}
+      {isPartnerExcelOpen && <PartnerExcelManager onClose={() => setIsPartnerExcelOpen(false)} partners={partners} setPartners={setPartners} staffList={staffList} setStaffList={setStaffList} currentUser={currentUser} />}
+      {isProductExcelOpen && <ProductExcelManager onClose={() => setIsProductExcelOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} currentUser={currentUser} />}
+      {isPurchaseLedgerExcelOpen && <PurchaseLedgerExcelManager onClose={() => setIsPurchaseLedgerExcelOpen(false)} purchaseInvoices={purchaseInvoices} setPurchaseInvoices={setPurchaseInvoices} />}
+      {isSalesLedgerExcelOpen && <SalesLedgerExcelManager onClose={() => setIsSalesLedgerExcelOpen(false)} salesInvoices={salesInvoices} setSalesInvoices={setSalesInvoices} />}
+      {isSettingsOpen && (
+        <SettingsManager 
+          onClose={() => setIsSettingsOpen(false)} 
+          currentUser={currentUser} 
+          settings={systemSettings}
+          companySettings={companySettings}
+          onSaveBranding={(newBranding) => {
+            if (currentUser?.companyId) {
+              updateDoc(doc(db, 'companies', currentUser.companyId), { theme: newBranding });
+            }
+          }}
+          onSaveCompanyInfo={(info) => {
+            if (currentUser?.companyId) {
+              updateDoc(doc(db, 'companies', currentUser.companyId), info);
+            }
+          }}
+          onSave={(newSettings) => {
+            setSystemSettings(newSettings);
+            if (currentUser?.companyId) {
+              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'systemSettings'), { value: newSettings });
+            }
+            setIsSettingsOpen(false);
+          }}
+        />
+      )}
+      {isLicenseOpen && (
+        <LicenseManager 
+          onClose={() => setIsLicenseOpen(false)} 
+          currentUser={currentUser} 
+          licenseData={licenseData} 
+          onUpdateLicense={setLicenseData} 
+        />
+      )}
+      {isDashboardSettingsOpen && (
+        <DashboardSettingsModal 
+          config={dashboardConfig}
+          onClose={() => setIsDashboardSettingsOpen(false)}
+          onSave={(newWidgets) => {
+            setDashboardConfig({ ...dashboardConfig, widgets: newWidgets });
+            setIsDashboardSettingsOpen(false);
+            alert('변경사항이 적용 되었습니다.');
+          }}
+        />
+      )}
+      {isFavoriteSettingsOpen && (
+        <FavoriteSettingsModal 
+          currentMenus={favoriteMenus}
+          onClose={() => setIsFavoriteSettingsOpen(false)}
+          onSave={(newMenus) => {
+            setFavoriteMenus(newMenus);
+            // 로컬스토리지 저장
+            localStorage.setItem('favoriteMenus', JSON.stringify(newMenus));
+            // Firebase 저장
+            if (currentUser?.companyId) {
+              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: newMenus })
+                .catch(err => console.warn('Firebase favorite sync failed:', err));
+            }
+            setIsFavoriteSettingsOpen(false);
+            showToast('자주 찾는 메뉴가 저장되었습니다.', 'success');
+          }}
+        />
+      )}
+      {selectedSystemNotice && (
+        <WindowModal 
+          title="시스템 공지사항 상세 안내" 
+          onClose={() => setSelectedSystemNotice(null)}
+          width="600px"
+          height="450px"
+        >
+          <div style={{ padding: '20px' }}>
+            <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
+                작성일자: {selectedSystemNotice.date}
+              </div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                {selectedSystemNotice.title}
+              </h2>
+            </div>
+            <div style={{ 
+              fontSize: '0.9rem', 
+              color: '#334155', 
+              lineHeight: '1.6', 
+              whiteSpace: 'pre-line',
+              backgroundColor: '#f8fafc',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #f1f5f9',
+              maxHeight: '260px',
+              overflowY: 'auto'
+            }}>
+              {selectedSystemNotice.content}
+            </div>
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn-primary" onClick={() => setSelectedSystemNotice(null)}>확인</button>
+            </div>
+          </div>
+        </WindowModal>
+      )}
+      {isInventoryAdjustmentOpen && (
+        <InventoryAdjustment 
+          onClose={() => setIsInventoryAdjustmentOpen(false)}
+          products={products}
+          partners={partners}
+          warehouses={warehouses}
+          currentUser={currentUser}
+          onSave={handleSaveAdjustment}
+        />
+      )}
+      {isInventoryMismatchOpen && (
+        <InventoryMismatch 
+          onClose={() => {
+            setIsInventoryMismatchOpen(false);
+            setMismatchInitialWarehouse('');
+            setMismatchInitialSearchTerm('');
+          }}
+          products={products}
+          categories={categories}
+          warehouses={warehouses}
+          inventory={inventory}
+          currentUser={currentUser}
+          onSaveAdjustments={handleSaveStocktakeAdjustments}
+          initialWarehouse={mismatchInitialWarehouse}
+          initialSearchTerm={mismatchInitialSearchTerm}
+          physicalInventory={physicalInventory}
+          onUpdatePhysicalCount={handleUpdatePhysicalCount}
+        />
+      )}
+      {isTaxReportOpen && (
+        <TaxReport 
+          onClose={() => setIsTaxReportOpen(false)}
+          salesInvoices={salesInvoices}
+          purchaseInvoices={purchaseInvoices}
+          expenses={expenses}
+        />
+      )}
+      {printingTaxInvoice && (
+        <TaxInvoiceDocument 
+          invoice={printingTaxInvoice.invoice}
+          isTaxFree={printingTaxInvoice.isTaxFree}
+          supplier={{
+            bizNum: systemSettings.bizNumber,
+            name: systemSettings.companyName,
+            owner: systemSettings.representative,
+            address: systemSettings.address,
+            type: systemSettings.businessType,
+            item: systemSettings.businessCategory
+          }}
+          recipient={(() => {
+            const p = partners.find(p => p.name === printingTaxInvoice.invoice.partner) || {};
+            return {
+              ...p,
+              bizNum: p.businessNo,
+              owner: p.ceo
+            };
+          })()}
+          onClose={() => setPrintingTaxInvoice(null)}
+        />
+      )}
+      {toast.message && (
+        <div className={`global-toast ${toast.type}`} style={{
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: toast.type === 'error' ? 'rgba(239, 68, 68, 0.95)' : toast.type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(30, 41, 59, 0.95)',
+          color: 'white', padding: '16px 32px', borderRadius: '50px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+          zIndex: 20000, display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700,
+          fontSize: '1rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)',
+          animation: 'toast-in-top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}>
+          {toast.type === 'success' ? <CheckCircle2 size={24} /> : <Info size={24} />}
+          {toast.message}
+        </div>
+      )}
+      {isRecentActivityModalOpen && (
+        <RecentActivityModal 
+          onClose={() => setIsRecentActivityModalOpen(false)}
+          salesInvoices={salesInvoices}
+          purchaseInvoices={purchaseInvoices}
+          salesOrders={salesOrders}
+          purchaseOrders={purchaseOrders}
+          inventoryMovements={inventoryMovements}
+          inventoryAdjustments={inventoryAdjustments}
+          activityLogs={[]}
+        />
+      )}
+      <ChatAssistant context={getAgentContext()} />
+      <PwaInstallPrompt />
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────
+// FavoriteMenuBar – 달력 위 자주 찾는 메뉴 바
+// ─────────────────────────────────────────────────────────
+function FavoriteMenuBar({
+  favoriteMenus, currentUser, db, setFavoriteMenus, showToast,
+  SYSTEM_NOTICES, currentNoticeIdx, noticeFade, setSelectedSystemNotice,
+  setIsFavoriteSettingsOpen, onMenuAction
+}) {
+  const [selectingSlot, setSelectingSlot] = useState(null); // 현재 선택 중인 슬롯 인덱스
+  const [searchTerm, setSearchTerm] = useState('');
+  const popupRef = React.useRef(null);
+
+  // 팝업 바깥 클릭 시 닫기
+  React.useEffect(() => {
+    if (selectingSlot === null) return;
+    const handleClick = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setSelectingSlot(null);
+        setSearchTerm('');
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [selectingSlot]);
+
+  // Firebase + localStorage에 저장하는 함수
+  const saveFavorites = (newMenus) => {
+    setFavoriteMenus(newMenus);
+    localStorage.setItem('favoriteMenus', JSON.stringify(newMenus));
+    if (currentUser?.companyId) {
+      setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: newMenus })
+        .catch(err => console.warn('Firebase favorite sync failed:', err));
+    }
+  };
+
+  // 슬롯에 메뉴 배정
+  const assignMenuToSlot = (slotIdx, menuId) => {
+    const next = [...favoriteMenus];
+    // 7칸 보장
+    while (next.length < 7) next.push(null);
+    next[slotIdx] = menuId || null;
+    saveFavorites(next);
+    setSelectingSlot(null);
+    setSearchTerm('');
+    if (menuId) showToast('자주 찾는 메뉴에 추가되었습니다.', 'success');
+  };
+
+  // 슬롯 제거
+  const removeSlot = (slotIdx) => {
+    const next = [...favoriteMenus];
+    while (next.length < 7) next.push(null);
+    next[slotIdx] = null;
+    saveFavorites(next);
+    showToast('메뉴가 제거되었습니다.', 'info');
+  };
+
+  const filteredMenus = searchTerm
+    ? ALL_FAVORITE_MENUS.filter(m =>
+        m.name.includes(searchTerm) || m.category.includes(searchTerm)
+      )
+    : ALL_FAVORITE_MENUS;
+
+  return (
+    <div className="calendar-favorites-section" style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '14px 16px',
+      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '4px',
+      position: 'relative'
+    }}>
+      {/* 헤더 행 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <Star size={16} color="#f59e0b" fill="#f59e0b" />
+          <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴</h4>
+        </div>
+
+        {/* 롤오버 공지사항 */}
+        <div
+          onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
+          style={{
+            flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center',
+            backgroundColor: '#f1f5f9', borderRadius: '20px', padding: '4px 14px',
+            cursor: 'pointer', height: '26px', transition: 'all 0.2s',
+            opacity: noticeFade ? 1 : 0, transform: noticeFade ? 'none' : 'translateY(-2px)'
+          }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+        >
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap' }}>NOTICE</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {SYSTEM_NOTICES[currentNoticeIdx]?.title}
+          </span>
+        </div>
+
+        <button
+          onClick={e => { e.stopPropagation(); setIsFavoriteSettingsOpen(true); }}
+          style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          title="전체 설정"
+        >
+          <SettingsIcon size={15} />
+        </button>
+      </div>
+
+      {/* 7칸 메뉴 그리드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+        {Array.from({ length: 7 }).map((_, idx) => {
+          const menuId = (favoriteMenus || [])[idx] || null;
+          const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
+          const isSelecting = selectingSlot === idx;
+
+          if (!menuInfo) {
+            // 빈 슬롯
+            return (
+              <div key={idx} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
+                  style={{
+                    width: '100%', height: '70px', border: '2px dashed #cbd5e1',
+                    backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
+                    borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
+                    borderRadius: '10px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '4px',
+                    cursor: 'pointer', transition: 'all 0.18s'
+                  }}
+                  onMouseEnter={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#93c5fd'; } }}
+                  onMouseLeave={e => { if (!isSelecting) { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; } }}
+                  title="클릭하여 메뉴 추가"
+                >
+                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>메뉴 추가</span>
+                </button>
+
+                {/* 인라인 선택 팝업 */}
+                {isSelecting && (
+                  <div ref={popupRef} style={{
+                    position: 'absolute', top: '78px', left: idx >= 4 ? 'auto' : '0',
+                    right: idx >= 4 ? '0' : 'auto',
+                    width: '260px', backgroundColor: 'white',
+                    borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                    border: '1px solid #e2e8f0', zIndex: 9999, overflow: 'hidden'
+                  }}>
+                    <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                        슬롯 {idx + 1} 메뉴 선택
+                      </div>
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="메뉴 검색..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          width: '100%', padding: '6px 10px', borderRadius: '6px',
+                          border: '1px solid #e2e8f0', fontSize: '0.8rem',
+                          outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '6px 0' }}>
+                      {searchTerm ? (
+                        filteredMenus.length === 0 ? (
+                          <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>검색 결과 없음</div>
+                        ) : filteredMenus.map(opt => (
+                          <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
+                            style={{
+                              width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                              padding: '8px 14px', border: 'none', background: 'none',
+                              cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <span style={{ fontSize: '1rem' }}>{opt.emoji}</span>
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{opt.category}</div>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        FAV_CATEGORIES.map(cat => {
+                          const catMenus = ALL_FAVORITE_MENUS.filter(m => m.category === cat);
+                          return (
+                            <div key={cat}>
+                              <div style={{ padding: '6px 14px 2px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {cat}
+                              </div>
+                              {catMenus.map(opt => (
+                                <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
+                                  style={{
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                                    padding: '7px 14px', border: 'none', background: 'none',
+                                    cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  <span style={{ fontSize: '0.95rem', minWidth: '20px', textAlign: 'center' }}>{opt.emoji}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
+                                  {(favoriteMenus || []).includes(opt.id) && (
+                                    <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '2px 6px', borderRadius: '10px' }}>등록됨</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // 메뉴가 있는 슬롯
+          return (
+            <div key={idx} style={{ position: 'relative' }}
+              onMouseEnter={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '1')}
+              onMouseLeave={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '0')}
+            >
+              <button
+                onClick={() => { onMenuAction(menuId); }}
+                style={{
+                  width: '100%', height: '70px', border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc', borderRadius: '10px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'center', gap: '5px', cursor: 'pointer', transition: 'all 0.18s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#eff6ff';
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                title={`${menuInfo.name} 열기`}
+              >
+                <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.2 }}>
+                  {menuInfo.name}
+                </span>
+              </button>
+              {/* X 버튼 – 호버 시 표시 */}
+              <button
+                className="slot-remove-btn"
+                onClick={e => { e.stopPropagation(); removeSlot(idx); }}
+                style={{
+                  position: 'absolute', top: '-6px', right: '-6px',
+                  width: '18px', height: '18px', borderRadius: '50%',
+                  backgroundColor: '#ef4444', border: '2px solid white',
+                  color: 'white', fontSize: '10px', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
+                  padding: 0, lineHeight: 1
+                }}
+                title="제거"
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Sub-component for Favorite Settings Modal
+function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
+  const [tempMenus, setTempMenus] = useState(() => {
+    const base = (currentMenus || []).slice(0, 7);
+    return [...base, ...Array(7 - base.length).fill(null)];
+  });
+
+  const updateSlot = (index, value) => {
+    const next = [...tempMenus];
+    next[index] = value;
+    setTempMenus(next);
+  };
+
+  const getWidgetInfo = (id) => {
+    switch(id) {
+      case 'Schedule': return { name: '업무 일정/메모', icon: <ClipboardList size={18} color="#3b82f6" /> };
+      case 'Inventory': return { name: '재고 현황', icon: <Package size={18} color="#10b981" /> };
+      case 'Sales': return { name: '매출 현황', icon: <TrendingUp size={18} color="#3b82f6" /> };
+      case 'Purchase': return { name: '매입 현황', icon: <ShoppingCart size={18} color="#ef4444" /> };
+      case 'Partners': return { name: '거래처 현황', icon: <Users size={18} color="#8b5cf6" /> };
+      case 'Warehouses': return { name: '최근 처리 현황', icon: <History size={18} color="#f59e0b" /> };
+      case 'OrderReport': return { name: '수주 보고', icon: <ShoppingCart size={18} color="#06b6d4" /> };
+      case 'CashReport': return { name: '입출금 보고', icon: <BarChart2 size={18} color="#ec4899" /> };
+      case 'CashBook': return { name: '금전출납부', icon: <CreditCard size={18} color="#10b981" /> };
+      case 'Expense': return { name: '경비출금', icon: <DollarSign size={18} color="#f43f5e" /> };
+      case 'Receivables': return { name: '미수금관리', icon: <DollarSign size={18} color="#3b82f6" /> };
+      case 'InventoryAdjustment': return { name: '재고조정', icon: <AlertTriangle size={18} color="#ef4444" /> };
+      case 'TaxReport': return { name: '세금신고 지원', icon: <FileText size={18} color="#6366f1" /> };
+      case 'Settings': return { name: '환경설정', icon: <SettingsIcon size={18} color="#64748b" /> };
+      case 'License': return { name: '정품등록', icon: <Star size={18} color="#f59e0b" /> };
+      case 'Favorites': return { name: '자주 찾는 메뉴', icon: <Star size={18} color="#f59e0b" /> };
+      default: return { name: '위젯', icon: <Box size={18} /> };
+    }
+  };
+
+  return (
+    <WindowModal title="자주 찾는 메뉴 설정 (7칸)" onClose={onClose}>
+      <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 7개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        
+        <div className="settings-grid" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', 
+          gap: '12px',
+          maxHeight: '400px',
+          overflowY: 'auto',
+          padding: '4px'
+        }}>
+          {tempMenus.map((currentId, idx) => (
+            <div key={idx} className="slot-config" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>슬롯 {idx + 1}</span>
+              <select 
+                value={currentId || ''} 
+                onChange={(e) => updateSlot(idx, e.target.value || null)}
+                style={{ 
+                  padding: '6px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="">없음</option>
+                {['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'].map(cat => (
+                  <optgroup key={cat} label={cat}>
+                    {ALL_FAVORITE_MENUS.filter(o => o.category === cat).map(opt => (
+                      <option key={opt.id} value={opt.id}>{opt.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        <div className="modal-footer" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+          <button className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={onClose}>취소</button>
+          <button className="btn-primary" style={{ flex: 2, justifyContent: 'center' }} onClick={() => onSave(tempMenus)}>설정 저장하기</button>
+        </div>
+      </div>
+    </WindowModal>
+  );
+}
+
+// Sub-component for Dashboard Settings Modal to manage local state
+function DashboardSettingsModal({ config, onClose, onSave }) {
+  const [tempWidgets, setTempWidgets] = useState(config.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites'));
+
+  const toggleWidget = (id) => {
+    if (tempWidgets.includes(id)) {
+      setTempWidgets(tempWidgets.filter(w => w !== id));
+    } else {
+      if (tempWidgets.length >= 6) {
+        alert('최대 6개의 메뉴만 선택할 수 있습니다.');
+        return;
+      }
+      setTempWidgets([...tempWidgets, id]);
+    }
+  };
+
+  return (
+    <WindowModal title="대시보드 위젯 설정" onClose={onClose}>
+      <div className="dashboard-settings-modal" style={{ border: 'none', boxShadow: 'none', width: '100%' }}>
+        <div className="modal-body">
+          <p className="settings-hint">대시보드에 표시할 메뉴를 선택하세요. (최대 6개)</p>
+          <div className="widget-options" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)', 
+            gap: '10px',
+            marginTop: '16px'
+          }}>
+            {[
+              { id: 'Schedule', name: '업무 일정/메모', icon: <ClipboardList size={18} /> },
+              { id: 'Inventory', name: '재고 현황', icon: <Package size={18} /> },
+              { id: 'Sales', name: '매출 현황', icon: <TrendingUp size={18} /> },
+              { id: 'Purchase', name: '매입 현황', icon: <ShoppingCart size={18} /> },
+              { id: 'Partners', name: '거래처 현황', icon: <Users size={18} /> },
+              { id: 'Warehouses', name: '최근 처리 현황', icon: <History size={18} /> },
+              { id: 'OrderReport', name: '수주 보고', icon: <ShoppingCart size={18} /> },
+              { id: 'CashReport', name: '입출금 보고', icon: <BarChart2 size={18} /> },
+              { id: 'CashBook', name: '금전출납부', icon: <CreditCard size={18} /> },
+              { id: 'Expense', name: '경비출금', icon: <DollarSign size={18} /> },
+              { id: 'Receivables', name: '미수금관리', icon: <DollarSign size={18} /> },
+              { id: 'InventoryAdjustment', name: '재고조정', icon: <AlertTriangle size={18} /> },
+              { id: 'TaxReport', name: '세금신고 지원', icon: <FileText size={18} /> },
+              { id: 'Settings', name: '환경설정', icon: <SettingsIcon size={18} /> },
+              { id: 'License', name: '정품등록', icon: <Star size={18} /> }
+            ].map(opt => (
+              <label key={opt.id} className={`widget-option-label ${tempWidgets.includes(opt.id) ? 'active' : ''}`} style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                backgroundColor: tempWidgets.includes(opt.id) ? '#eff6ff' : 'white',
+                borderColor: tempWidgets.includes(opt.id) ? '#3b82f6' : '#e2e8f0'
+              }}>
+                <input 
+                  type="checkbox" 
+                  checked={tempWidgets.includes(opt.id)}
+                  onChange={() => toggleWidget(opt.id)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: tempWidgets.includes(opt.id) ? '#1e40af' : '#475569' }}>
+                  {opt.icon}
+                  <span style={{ fontSize: '0.85rem', fontWeight: tempWidgets.includes(opt.id) ? '600' : '500' }}>{opt.name}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="modal-footer" style={{ marginTop: '24px' }}>
+          <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => onSave(tempWidgets)}>저장 및 적용하기</button>
+        </div>
+      </div>
+    </WindowModal>
+  );
+}
+
+export default App;
