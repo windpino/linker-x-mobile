@@ -319,24 +319,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     });
   };
 
-
-
-  const parsedTotalQty = parsedItems.reduce((sum, item) => sum + item.qty, 0);
-  const parsedTotalPrice = parsedItems.reduce((sum, item) => sum + item.total, 0);
-
-  const todayOrderCount = salesOrders.filter(o => o.date === orderData.date).length;
-
   return (
     <WindowModal title={editingOrder ? (isMobileView ? "수주 수정" : "간편수주 수정") : (isMobileView ? "수주 등록" : "간편수주 등록")} onClose={onClose} width="1200px" contentPadding="0">
-      <div className="so-wrapper">
-        <div className="so-header">
-          <div className="so-title">
-            <ShoppingCart size={isMobileView ? 20 : 24} />
-            {isMobileView 
-              ? "" 
-              : `${editingOrder ? "간편수주 수정" : "간편수주 등록"} (매출관리)`
-            }
-            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <div className="so-wrapper" style={{ maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* 상단 헤더: 왼쪽(날짜선택), 오른쪽(새 수주 | 수주 목록 버튼) */}
+        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', gap: '8px' }}>
+          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShoppingCart size={isMobileView ? 18 : 22} />
+            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
               <input 
                 type="date"
                 value={orderData.date}
@@ -350,22 +340,21 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   border: 'none',
                   background: 'transparent',
                   outline: 'none',
-                  fontSize: isMobileView ? '0.78rem' : '0.85rem',
-                  color: '#475569',
-                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: '#1e293b',
+                  fontWeight: 800,
                   cursor: 'pointer',
                   padding: 0,
-                  fontFamily: 'inherit',
-                  width: isMobileView ? '105px' : '120px'
+                  fontFamily: 'inherit'
                 }}
               />
               {orderData.partner && (partnerDayOrders.length > 0 || orderData.itemsText) && (
-                <span className="so-nav-controls">
+                <span className="so-nav-controls" style={{ fontSize: '0.75rem' }}>
                   <button 
                     disabled={currentIndex <= 0}
                     onClick={(e) => { e.stopPropagation(); const prev = partnerDayOrders[currentIndex - 1]; setOrderData({...prev}); setCurrentIndex(currentIndex - 1); }}
                   >◀</button>
-                  <span>{currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1} / {Math.max(partnerDayOrders.length, currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1)}장</span>
+                  <span>{currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1} / {Math.max(partnerDayOrders.length, currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1)}</span>
                   <button 
                     disabled={currentIndex === -1 || currentIndex >= partnerDayOrders.length - 1}
                     onClick={(e) => { e.stopPropagation(); const nxt = partnerDayOrders[currentIndex + 1]; setOrderData({...nxt}); setCurrentIndex(currentIndex + 1); }}
@@ -374,15 +363,16 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               )}
             </span>
           </div>
-          <div className="so-header-actions">
-            <button className="so-btn-outline" onClick={() => {
+
+          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button className="so-btn-outline" style={{ padding: '5px 10px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={() => {
               setOrderData({
                 id: Date.now(),
                 date: (() => {
                   const d = selectedDate || new Date();
                   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 })(),
-                partner: orderData.partner, // 유지
+                partner: orderData.partner,
                 outWarehouse: mainWH,
                 inWarehouse: staffWH,
                 manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
@@ -390,10 +380,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 memo: ''
               });
             }}>
-              <RefreshCw size={14} /> 새수주
+              <RefreshCw size={13} /> 새 수주
             </button>
-            <button className="so-btn-outline" onClick={onOpenOrderList}>
-              <List size={14} /> 목록
+            <button className="so-btn-outline" style={{ padding: '5px 10px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
+              <List size={13} /> 목록
             </button>
           </div>
         </div>
@@ -410,7 +400,6 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               className={`so-mobile-tab-btn ${activeMobileTab === 'preview' ? 'active' : ''}`}
               onClick={() => {
                 setActiveMobileTab('preview');
-                // Auto focus blur to hide keyboard
                 if (document.activeElement) document.activeElement.blur();
               }}
             >
@@ -419,31 +408,31 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
           </div>
         )}
 
-        <div className="so-body">
+        <div className="so-body" style={{ overflowY: 'auto', flex: 1, padding: '10px' }}>
           {/* Left Pane: Data Entry */}
           {(!isMobileView || activeMobileTab === 'input') && (
             <div className="so-pane-left">
-              <div className="so-card">
+              <div className="so-card" style={{ marginBottom: '10px' }}>
                 <h3 className="so-card-title" 
                     onClick={() => isMobileView && setIsBasicInfoCollapsed(!isBasicInfoCollapsed)}
-                    style={{ cursor: isMobileView ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', width: '100%', userSelect: 'none' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Info size={16}/> 기본 정보</span>
+                    style={{ cursor: isMobileView ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', width: '100%', userSelect: 'none', marginBottom: '8px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}><Info size={15}/> 기본 정보</span>
                   {isMobileView && (
-                    <span style={{ fontSize: '0.78rem', color: themeColor, fontWeight: 800 }}>
+                    <span style={{ fontSize: '0.75rem', color: themeColor, fontWeight: 800 }}>
                       {isBasicInfoCollapsed ? "▼ 상세설정 펼치기" : "▲ 접기"}
                     </span>
                   )}
                 </h3>
                 
                 {(!isMobileView || !isBasicInfoCollapsed) && (
-                  <div className="so-grid-2" style={{ marginBottom: '12px', animation: 'so-fade-in 0.2s' }}>
+                  <div className="so-grid-2" style={{ marginBottom: '10px', animation: 'so-fade-in 0.2s' }}>
                     <div className="form-group">
-                      <label>수주일자</label>
-                      <input type="date" value={orderData.date} onChange={(e) => setOrderData({...orderData, date: e.target.value})} />
+                      <label style={{ fontSize: '0.78rem' }}>수주일자</label>
+                      <input type="date" value={orderData.date} onChange={(e) => setOrderData({...orderData, date: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }} />
                     </div>
                     <div className="form-group">
-                      <label>담당자</label>
-                      <select value={orderData.manager} onChange={(e) => setOrderData({...orderData, manager: e.target.value})}>
+                      <label style={{ fontSize: '0.78rem' }}>담당자</label>
+                      <select value={orderData.manager} onChange={(e) => setOrderData({...orderData, manager: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
                         <option value="알 수 없음">선택안함</option>
                         {staffList.map(s => (
                           <option key={s.id} value={s.name}>{s.name}</option>
@@ -451,16 +440,16 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>출고 창고</label>
-                      <select value={orderData.outWarehouse} onChange={(e) => setOrderData({...orderData, outWarehouse: e.target.value})}>
+                      <label style={{ fontSize: '0.78rem' }}>출고 창고</label>
+                      <select value={orderData.outWarehouse} onChange={(e) => setOrderData({...orderData, outWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
                         {warehouses.map(wh => (
                           <option key={wh.id} value={wh.name}>{wh.name}</option>
                         ))}
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>입고 창고</label>
-                      <select value={orderData.inWarehouse} onChange={(e) => setOrderData({...orderData, inWarehouse: e.target.value})}>
+                      <label style={{ fontSize: '0.78rem' }}>입고 창고</label>
+                      <select value={orderData.inWarehouse} onChange={(e) => setOrderData({...orderData, inWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
                         {warehouses.map(wh => (
                           <option key={wh.id} value={wh.name}>{wh.name}</option>
                         ))}
@@ -469,34 +458,38 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   </div>
                 )}
                 
-                <div className="form-group">
-                  <label>거래처명</label>
-                  <PartnerSearchInput 
-                    partners={partners} 
-                    value={orderData.partner} 
-                    onChange={(val) => setOrderData({...orderData, partner: val})} 
-                    onSelect={(partner) => {
-                      setOrderData(prev => ({
-                        ...prev,
-                        partner: partner.name,
-                        inWarehouse: staffWH
-                      }));
-                      setTimeout(() => {
-                        if (itemInputRef.current) itemInputRef.current.focus();
-                      }, 0);
-                    }}
-                    typeFilter="매출처"
-                    autoFocus={true}
-                  />
+                {/* 거래처명 (한 라인 레이아웃: 거래처명 라벨 오른쪽 입력창 정렬) */}
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 0 }}>
+                  <label style={{ margin: 0, flexShrink: 0, width: '60px', fontSize: '0.8rem', fontWeight: 700 }}>거래처명</label>
+                  <div style={{ flex: 1 }}>
+                    <PartnerSearchInput 
+                      partners={partners} 
+                      value={orderData.partner} 
+                      onChange={(val) => setOrderData({...orderData, partner: val})} 
+                      onSelect={(partner) => {
+                        setOrderData(prev => ({
+                          ...prev,
+                          partner: partner.name,
+                          inWarehouse: staffWH
+                        }));
+                        setTimeout(() => {
+                          if (itemInputRef.current) itemInputRef.current.focus();
+                        }, 0);
+                      }}
+                      typeFilter="매출처"
+                      autoFocus={true}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="so-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h3 className="so-card-title" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <span><Package size={16}/> 수주 품목 빠른 입력</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#94a3b8' }}>예: 사과10 배5</span>
+              {/* 품목 빠른 입력 창 (스크롤 방지 및 피팅) */}
+              <div className="so-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '10px' }}>
+                <h3 className="so-card-title" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.85rem' }}><Package size={15}/> 수주 품목 빠른 입력</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#94a3b8' }}>예: 사과10 배5</span>
                 </h3>
-                <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }} ref={searchRef}>
+                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} ref={searchRef}>
                   <textarea
                     ref={itemInputRef}
                     placeholder="품목 약칭과 수량을 입력하세요."
@@ -516,6 +509,17 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     }}
                     onKeyUp={(e) => updateCaretPosition(e.target)}
                     onClick={(e) => updateCaretPosition(e.target)}
+                    style={{
+                      height: '140px',
+                      minHeight: '120px',
+                      maxHeight: '180px',
+                      fontSize: '0.85rem',
+                      lineHeight: '1.4',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      resize: 'none'
+                    }}
                     onKeyDown={(e) => {
                       updateCaretPosition(e.target);
                       if (isItemSearchOpen && filteredProducts.length > 0) {
