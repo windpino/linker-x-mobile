@@ -339,6 +339,147 @@ function App() {
   };
   const [printingTaxInvoice, setPrintingTaxInvoice] = useState(null); // { invoice, isTaxFree }
   const [orderingPartner, setOrderingPartner] = useState(null);
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
+
+  // 뒤로가기용 열린 모달 개수 카운트 헬퍼
+  const getOpenModalsCount = () => {
+    let count = 0;
+    if (isMobileMenuOpen) count++;
+    if (isCalendarModalOpen) count++;
+    if (isWidgetModalOpen) count++;
+    if (isInventoryMovementManagerOpen) count++;
+    if (isWarehouseManagerOpen) count++;
+    if (isStaffManagerOpen) count++;
+    if (isInventoryTransferOpen) count++;
+    if (isPartnerManagerOpen) count++;
+    if (isProductManagerOpen) count++;
+    if (isPartnerSpecialPriceManagerOpen) count++;
+    if (isAccountManagerOpen) count++;
+    if (isScheduleDetailOpen) count++;
+    if (isScheduleListOpen) count++;
+    if (isTypeManagementOpen) count++;
+    if (isScheduleRegistrationOpen) count++;
+    if (isPurchaseInvoiceOpen) count++;
+    if (isPurchaseLedgerOpen) count++;
+    if (isPurchaseOrderOpen) count++;
+    if (isSalesInvoiceOpen) count++;
+    if (isSalesLedgerOpen) count++;
+    if (isSalesInvoiceListOpen) count++;
+    if (isSalesOrderOpen) count++;
+    if (orderingPartner) count++;
+    if (isOrderListOpen) count++;
+    if (isCashReportOpen) count++;
+    if (isSalesReportOpen) count++;
+    if (isOrderReportOpen) count++;
+    if (isInventoryReportOpen) count++;
+    if (isReceivablesReportOpen) count++;
+    if (isEditDeleteReportOpen) count++;
+    if (isCashBookOpen) count++;
+    if (isExpenseRegistrationOpen) count++;
+    if (isStaffPerformanceReportOpen) count++;
+    if (isDataManagerOpen) count++;
+    if (isPartnerBulkOpen) count++;
+    if (isProductBulkOpen) count++;
+    if (isPartnerExcelOpen) count++;
+    if (isProductExcelOpen) count++;
+    if (isPurchaseLedgerExcelOpen) count++;
+    if (isSalesLedgerExcelOpen) count++;
+    if (isSettingsOpen) count++;
+    if (isLicenseOpen) count++;
+    if (isDashboardSettingsOpen) count++;
+    if (isFavoriteSettingsOpen) count++;
+    if (selectedSystemNotice) count++;
+    if (isInventoryAdjustmentOpen) count++;
+    if (isInventoryMismatchOpen) count++;
+    if (isTaxReportOpen) count++;
+    if (printingTaxInvoice) count++;
+    if (isRecentActivityModalOpen) count++;
+    return count;
+  };
+
+  // 가장 최신 모달 닫기
+  const closeTopModal = () => {
+    if (isMobileMenuOpen) { setIsMobileMenuOpen(false); return; }
+    if (isCalendarModalOpen) { setIsCalendarModalOpen(false); return; }
+    if (isWidgetModalOpen) { setIsWidgetModalOpen(false); return; }
+    if (isScheduleDetailOpen) { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); return; }
+    if (isScheduleRegistrationOpen) { setIsScheduleRegistrationOpen(false); return; }
+    if (isScheduleListOpen) { setIsScheduleListOpen(false); return; }
+    if (isSalesInvoiceOpen) { setIsSalesInvoiceOpen(false); return; }
+    if (isSalesInvoiceListOpen) { setIsSalesInvoiceListOpen(false); return; }
+    if (isSalesLedgerOpen) { setIsSalesLedgerOpen(false); return; }
+    if (isSalesOrderOpen) { setIsSalesOrderOpen(false); return; }
+    if (isOrderListOpen) { setIsOrderListOpen(false); return; }
+    if (isPurchaseInvoiceOpen) { setIsPurchaseInvoiceOpen(false); return; }
+    if (isPurchaseLedgerOpen) { setIsPurchaseLedgerOpen(false); return; }
+    if (isPurchaseOrderOpen) { setIsPurchaseOrderOpen(false); return; }
+    if (isInventoryTransferOpen) { setIsInventoryTransferOpen(false); return; }
+    if (isInventoryMovementManagerOpen) { setIsInventoryMovementManagerOpen(false); return; }
+    if (isPartnerManagerOpen) { setIsPartnerManagerOpen(false); return; }
+    if (isProductManagerOpen) { setIsProductManagerOpen(false); return; }
+    if (isWarehouseManagerOpen) { setIsWarehouseManagerOpen(false); return; }
+    if (isStaffManagerOpen) { setIsStaffManagerOpen(false); return; }
+    if (isAccountManagerOpen) { setIsAccountManagerOpen(false); return; }
+    if (isCashReportOpen) { setIsCashReportOpen(false); return; }
+    if (isSalesReportOpen) { setIsSalesReportOpen(false); return; }
+    if (isOrderReportOpen) { setIsOrderReportOpen(false); return; }
+    if (isInventoryReportOpen) { setIsInventoryReportOpen(false); return; }
+    if (isReceivablesReportOpen) { setIsReceivablesReportOpen(false); return; }
+    if (isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return; }
+    if (isCashBookOpen) { setIsCashBookOpen(false); return; }
+    if (isExpenseRegistrationOpen) { setIsExpenseRegistrationOpen(false); return; }
+    if (isStaffPerformanceReportOpen) { setIsStaffPerformanceReportOpen(false); return; }
+    if (isDataManagerOpen) { setIsDataManagerOpen(false); return; }
+    if (isPartnerBulkOpen) { setIsPartnerBulkOpen(false); return; }
+    if (isProductBulkOpen) { setIsProductBulkOpen(false); return; }
+    if (isPartnerExcelOpen) { setIsPartnerExcelOpen(false); return; }
+    if (isProductExcelOpen) { setIsProductExcelOpen(false); return; }
+    if (isPurchaseLedgerExcelOpen) { setIsPurchaseLedgerExcelOpen(false); return; }
+    if (isSalesLedgerExcelOpen) { setIsSalesLedgerExcelOpen(false); return; }
+    if (isSettingsOpen) { setIsSettingsOpen(false); return; }
+    if (isLicenseOpen) { setIsLicenseOpen(false); return; }
+    if (isDashboardSettingsOpen) { setIsDashboardSettingsOpen(false); return; }
+    if (isFavoriteSettingsOpen) { setIsFavoriteSettingsOpen(false); return; }
+    if (selectedSystemNotice) { setSelectedSystemNotice(null); return; }
+    if (isInventoryAdjustmentOpen) { setIsInventoryAdjustmentOpen(false); return; }
+    if (isInventoryMismatchOpen) { setIsInventoryMismatchOpen(false); return; }
+    if (isTaxReportOpen) { setIsTaxReportOpen(false); return; }
+    if (printingTaxInvoice) { setPrintingTaxInvoice(null); return; }
+    if (isRecentActivityModalOpen) { setIsRecentActivityModalOpen(false); return; }
+    if (orderingPartner) { setOrderingPartner(null); return; }
+  };
+
+  // 모바일 뒤로가기(popstate) 이벤트 수신
+  React.useEffect(() => {
+    window.history.pushState({ page: 'main' }, '', window.location.href);
+
+    const handlePopState = (e) => {
+      const openCount = getOpenModalsCount();
+      if (openCount > 0) {
+        closeTopModal();
+        window.history.pushState({ page: 'main' }, '', window.location.href);
+      } else {
+        setShowExitConfirmModal(true);
+        window.history.pushState({ page: 'main' }, '', window.location.href);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [
+    isMobileMenuOpen, isCalendarModalOpen, isWidgetModalOpen, isInventoryMovementManagerOpen,
+    isWarehouseManagerOpen, isStaffManagerOpen, isInventoryTransferOpen, isPartnerManagerOpen,
+    isProductManagerOpen, isPartnerSpecialPriceManagerOpen, isAccountManagerOpen, isScheduleDetailOpen,
+    isScheduleListOpen, isTypeManagementOpen, isScheduleRegistrationOpen, isPurchaseInvoiceOpen,
+    isPurchaseLedgerOpen, isPurchaseOrderOpen, isSalesInvoiceOpen, isSalesLedgerOpen,
+    isSalesInvoiceListOpen, isSalesOrderOpen, orderingPartner, isOrderListOpen, isCashReportOpen,
+    isSalesReportOpen, isOrderReportOpen, isInventoryReportOpen, isReceivablesReportOpen,
+    isEditDeleteReportOpen, isCashBookOpen, isExpenseRegistrationOpen, isStaffPerformanceReportOpen,
+    isDataManagerOpen, isPartnerBulkOpen, isProductBulkOpen, isPartnerExcelOpen, isProductExcelOpen,
+    isPurchaseLedgerExcelOpen, isSalesLedgerExcelOpen, isSettingsOpen, isLicenseOpen,
+    isDashboardSettingsOpen, isFavoriteSettingsOpen, selectedSystemNotice, isInventoryAdjustmentOpen,
+    isInventoryMismatchOpen, isTaxReportOpen, printingTaxInvoice, isRecentActivityModalOpen
+  ]);
 
   // System notice data and states for rollover announcement
   const SYSTEM_NOTICES = [
@@ -4275,6 +4416,50 @@ function App() {
           inventoryAdjustments={inventoryAdjustments}
           activityLogs={[]}
         />
+      )}
+      {showExitConfirmModal && (
+        <WindowModal title="앱 종료 안내" onClose={() => setShowExitConfirmModal(false)}>
+          <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📱</div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', color: '#1e293b', fontWeight: 800 }}>
+              앱을 종료하시겠습니까?
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5 }}>
+              '예'를 누르시면 애플리케이션 접속이 종료됩니다.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => {
+                  setShowExitConfirmModal(false);
+                  showToast('애플리케이션 접속이 종료되었습니다.', 'info');
+                  try {
+                    window.close();
+                  } catch (e) {}
+                  setTimeout(() => {
+                    window.location.href = "about:blank";
+                  }, 300);
+                }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: 'none',
+                  backgroundColor: '#ef4444', color: 'white', fontWeight: 800,
+                  fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                예 (종료)
+              </button>
+              <button 
+                onClick={() => setShowExitConfirmModal(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc', color: '#334155', fontWeight: 800,
+                  fontSize: '0.95rem', cursor: 'pointer'
+                }}
+              >
+                아니요 (취소)
+              </button>
+            </div>
+          </div>
+        </WindowModal>
       )}
       <ChatAssistant context={getAgentContext()} />
       <PwaInstallPrompt />
