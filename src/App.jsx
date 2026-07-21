@@ -4503,8 +4503,8 @@ function FavoriteMenuBar({
   // 슬롯에 메뉴 배정
   const assignMenuToSlot = (slotIdx, menuId) => {
     const next = [...favoriteMenus];
-    // 10칸 보장
-    while (next.length < 10) next.push(null);
+    // 8칸 보장
+    while (next.length < 8) next.push(null);
     next[slotIdx] = menuId || null;
     saveFavorites(next);
     setSelectingSlot(null);
@@ -4515,7 +4515,7 @@ function FavoriteMenuBar({
   // 슬롯 제거
   const removeSlot = (slotIdx) => {
     const next = [...favoriteMenus];
-    while (next.length < 10) next.push(null);
+    while (next.length < 8) next.push(null);
     next[slotIdx] = null;
     saveFavorites(next);
     showToast('메뉴가 제거되었습니다.', 'info');
@@ -4540,8 +4540,8 @@ function FavoriteMenuBar({
       {/* 헤더 행 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-          <Star size={15} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>자주 찾는 메뉴 (10개)</h4>
+          <Star size={16} color="#f59e0b" fill="#f59e0b" />
+          <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>자주 찾는 메뉴 (8개)</h4>
         </div>
 
         {/* 롤오버 공지사항 */}
@@ -4569,9 +4569,9 @@ function FavoriteMenuBar({
         </button>
       </div>
 
-      {/* 10칸 메뉴 그리드 (1열당 5개 x 2행 = 총 10개) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-        {Array.from({ length: 10 }).map((_, idx) => {
+      {/* 8칸 메뉴 그리드 (1열당 4개 x 2행 = 총 8개) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        {Array.from({ length: 8 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
           const isSelecting = selectingSlot === idx;
@@ -4583,24 +4583,24 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '58px', border: '1.5px dashed #cbd5e1',
+                    width: '100%', height: '62px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
                     borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: '8px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '2px',
+                    borderRadius: '10px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '3px',
                     cursor: 'pointer', transition: 'all 0.18s'
                   }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={14} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.62rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
+                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
                 {isSelecting && (
                   <div ref={popupRef} style={{
-                    position: 'absolute', top: '64px', left: (idx % 5) >= 3 ? 'auto' : '0',
-                    right: (idx % 5) >= 3 ? '0' : 'auto',
+                    position: 'absolute', top: '68px', left: (idx % 4) >= 2 ? 'auto' : '0',
+                    right: (idx % 4) >= 2 ? '0' : 'auto',
                     width: '240px', backgroundColor: 'white',
                     borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
                     border: '1px solid #e2e8f0', zIndex: 9999, overflow: 'hidden'
@@ -4685,15 +4685,15 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '58px', border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc', borderRadius: '8px',
+                  width: '100%', height: '62px', border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc', borderRadius: '10px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.18s'
+                  justifyContent: 'center', gap: '3px', cursor: 'pointer', transition: 'all 0.18s'
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
                   {menuInfo.name}
                 </span>
               </button>
@@ -4722,11 +4722,11 @@ function FavoriteMenuBar({
   );
 }
 
-// Sub-component for Favorite Settings Modal (10개)
+// Sub-component for Favorite Settings Modal (8개)
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   const [tempMenus, setTempMenus] = useState(() => {
-    const base = (currentMenus || []).slice(0, 10);
-    return [...base, ...Array(10 - base.length).fill(null)];
+    const base = (currentMenus || []).slice(0, 8);
+    return [...base, ...Array(8 - base.length).fill(null)];
   });
 
   const updateSlot = (index, value) => {
@@ -4758,9 +4758,9 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   };
 
   return (
-    <WindowModal title="자주 찾는 메뉴 설정 (총 10개)" onClose={onClose}>
+    <WindowModal title="자주 찾는 메뉴 설정 (총 8개)" onClose={onClose}>
       <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
-        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 10개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 8개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
         
         <div className="settings-grid" style={{ 
           display: 'grid', 
