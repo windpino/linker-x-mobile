@@ -343,110 +343,114 @@ function App() {
 
   // 뒤로가기용 열린 모달 개수 카운트 헬퍼
   const getOpenModalsCount = () => {
-    let count = 0;
-    if (isMobileMenuOpen) count++;
-    if (isCalendarModalOpen) count++;
-    if (isWidgetModalOpen) count++;
-    if (isInventoryMovementManagerOpen) count++;
-    if (isWarehouseManagerOpen) count++;
-    if (isStaffManagerOpen) count++;
-    if (isInventoryTransferOpen) count++;
-    if (isPartnerManagerOpen) count++;
-    if (isProductManagerOpen) count++;
-    if (isPartnerSpecialPriceManagerOpen) count++;
-    if (isAccountManagerOpen) count++;
-    if (isScheduleDetailOpen) count++;
-    if (isScheduleListOpen) count++;
-    if (isTypeManagementOpen) count++;
-    if (isScheduleRegistrationOpen) count++;
-    if (isPurchaseInvoiceOpen) count++;
-    if (isPurchaseLedgerOpen) count++;
-    if (isPurchaseOrderOpen) count++;
-    if (isSalesInvoiceOpen) count++;
-    if (isSalesLedgerOpen) count++;
-    if (isSalesInvoiceListOpen) count++;
-    if (isSalesOrderOpen) count++;
-    if (orderingPartner) count++;
-    if (isOrderListOpen) count++;
-    if (isCashReportOpen) count++;
-    if (isSalesReportOpen) count++;
-    if (isOrderReportOpen) count++;
-    if (isInventoryReportOpen) count++;
-    if (isReceivablesReportOpen) count++;
-    if (isEditDeleteReportOpen) count++;
-    if (isCashBookOpen) count++;
-    if (isExpenseRegistrationOpen) count++;
-    if (isStaffPerformanceReportOpen) count++;
-    if (isDataManagerOpen) count++;
-    if (isPartnerBulkOpen) count++;
-    if (isProductBulkOpen) count++;
-    if (isPartnerExcelOpen) count++;
-    if (isProductExcelOpen) count++;
-    if (isPurchaseLedgerExcelOpen) count++;
-    if (isSalesLedgerExcelOpen) count++;
-    if (isSettingsOpen) count++;
-    if (isLicenseOpen) count++;
-    if (isDashboardSettingsOpen) count++;
-    if (isFavoriteSettingsOpen) count++;
-    if (selectedSystemNotice) count++;
-    if (isInventoryAdjustmentOpen) count++;
-    if (isInventoryMismatchOpen) count++;
-    if (isTaxReportOpen) count++;
-    if (printingTaxInvoice) count++;
-    if (isRecentActivityModalOpen) count++;
-    return count;
+    try {
+      let count = 0;
+      if (typeof isMobileMenuOpen !== 'undefined' && isMobileMenuOpen) count++;
+      if (typeof isCalendarModalOpen !== 'undefined' && isCalendarModalOpen) count++;
+      if (typeof isInventoryMovementManagerOpen !== 'undefined' && isInventoryMovementManagerOpen) count++;
+      if (typeof isWarehouseManagerOpen !== 'undefined' && isWarehouseManagerOpen) count++;
+      if (typeof isStaffManagerOpen !== 'undefined' && isStaffManagerOpen) count++;
+      if (typeof isInventoryTransferOpen !== 'undefined' && isInventoryTransferOpen) count++;
+      if (typeof isPartnerManagerOpen !== 'undefined' && isPartnerManagerOpen) count++;
+      if (typeof isProductManagerOpen !== 'undefined' && isProductManagerOpen) count++;
+      if (typeof isPartnerSpecialPriceManagerOpen !== 'undefined' && isPartnerSpecialPriceManagerOpen) count++;
+      if (typeof isAccountManagerOpen !== 'undefined' && isAccountManagerOpen) count++;
+      if (typeof isScheduleDetailOpen !== 'undefined' && isScheduleDetailOpen) count++;
+      if (typeof isScheduleListOpen !== 'undefined' && isScheduleListOpen) count++;
+      if (typeof isTypeManagementOpen !== 'undefined' && isTypeManagementOpen) count++;
+      if (typeof isScheduleRegistrationOpen !== 'undefined' && isScheduleRegistrationOpen) count++;
+      if (typeof isPurchaseInvoiceOpen !== 'undefined' && isPurchaseInvoiceOpen) count++;
+      if (typeof isPurchaseLedgerOpen !== 'undefined' && isPurchaseLedgerOpen) count++;
+      if (typeof isPurchaseOrderOpen !== 'undefined' && isPurchaseOrderOpen) count++;
+      if (typeof isSalesInvoiceOpen !== 'undefined' && isSalesInvoiceOpen) count++;
+      if (typeof isSalesLedgerOpen !== 'undefined' && isSalesLedgerOpen) count++;
+      if (typeof isSalesInvoiceListOpen !== 'undefined' && isSalesInvoiceListOpen) count++;
+      if (typeof isSalesOrderOpen !== 'undefined' && isSalesOrderOpen) count++;
+      if (typeof orderingPartner !== 'undefined' && orderingPartner) count++;
+      if (typeof isOrderListOpen !== 'undefined' && isOrderListOpen) count++;
+      if (typeof isCashReportOpen !== 'undefined' && isCashReportOpen) count++;
+      if (typeof isSalesReportOpen !== 'undefined' && isSalesReportOpen) count++;
+      if (typeof isOrderReportOpen !== 'undefined' && isOrderReportOpen) count++;
+      if (typeof isInventoryReportOpen !== 'undefined' && isInventoryReportOpen) count++;
+      if (typeof isReceivablesReportOpen !== 'undefined' && isReceivablesReportOpen) count++;
+      if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) count++;
+      if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) count++;
+      if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) count++;
+      if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) count++;
+      if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) count++;
+      if (typeof isPartnerBulkOpen !== 'undefined' && isPartnerBulkOpen) count++;
+      if (typeof isProductBulkOpen !== 'undefined' && isProductBulkOpen) count++;
+      if (typeof isPartnerExcelOpen !== 'undefined' && isPartnerExcelOpen) count++;
+      if (typeof isProductExcelOpen !== 'undefined' && isProductExcelOpen) count++;
+      if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) count++;
+      if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) count++;
+      if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) count++;
+      if (typeof isLicenseOpen !== 'undefined' && isLicenseOpen) count++;
+      if (typeof isDashboardSettingsOpen !== 'undefined' && isDashboardSettingsOpen) count++;
+      if (typeof isFavoriteSettingsOpen !== 'undefined' && isFavoriteSettingsOpen) count++;
+      if (typeof selectedSystemNotice !== 'undefined' && selectedSystemNotice) count++;
+      if (typeof isInventoryAdjustmentOpen !== 'undefined' && isInventoryAdjustmentOpen) count++;
+      if (typeof isInventoryMismatchOpen !== 'undefined' && isInventoryMismatchOpen) count++;
+      if (typeof isTaxReportOpen !== 'undefined' && isTaxReportOpen) count++;
+      if (typeof printingTaxInvoice !== 'undefined' && printingTaxInvoice) count++;
+      if (typeof isRecentActivityModalOpen !== 'undefined' && isRecentActivityModalOpen) count++;
+      return count;
+    } catch (e) {
+      return 0;
+    }
   };
 
   // 가장 최신 모달 닫기
   const closeTopModal = () => {
-    if (isMobileMenuOpen) { setIsMobileMenuOpen(false); return; }
-    if (isCalendarModalOpen) { setIsCalendarModalOpen(false); return; }
-    if (isWidgetModalOpen) { setIsWidgetModalOpen(false); return; }
-    if (isScheduleDetailOpen) { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); return; }
-    if (isScheduleRegistrationOpen) { setIsScheduleRegistrationOpen(false); return; }
-    if (isScheduleListOpen) { setIsScheduleListOpen(false); return; }
-    if (isSalesInvoiceOpen) { setIsSalesInvoiceOpen(false); return; }
-    if (isSalesInvoiceListOpen) { setIsSalesInvoiceListOpen(false); return; }
-    if (isSalesLedgerOpen) { setIsSalesLedgerOpen(false); return; }
-    if (isSalesOrderOpen) { setIsSalesOrderOpen(false); return; }
-    if (isOrderListOpen) { setIsOrderListOpen(false); return; }
-    if (isPurchaseInvoiceOpen) { setIsPurchaseInvoiceOpen(false); return; }
-    if (isPurchaseLedgerOpen) { setIsPurchaseLedgerOpen(false); return; }
-    if (isPurchaseOrderOpen) { setIsPurchaseOrderOpen(false); return; }
-    if (isInventoryTransferOpen) { setIsInventoryTransferOpen(false); return; }
-    if (isInventoryMovementManagerOpen) { setIsInventoryMovementManagerOpen(false); return; }
-    if (isPartnerManagerOpen) { setIsPartnerManagerOpen(false); return; }
-    if (isProductManagerOpen) { setIsProductManagerOpen(false); return; }
-    if (isWarehouseManagerOpen) { setIsWarehouseManagerOpen(false); return; }
-    if (isStaffManagerOpen) { setIsStaffManagerOpen(false); return; }
-    if (isAccountManagerOpen) { setIsAccountManagerOpen(false); return; }
-    if (isCashReportOpen) { setIsCashReportOpen(false); return; }
-    if (isSalesReportOpen) { setIsSalesReportOpen(false); return; }
-    if (isOrderReportOpen) { setIsOrderReportOpen(false); return; }
-    if (isInventoryReportOpen) { setIsInventoryReportOpen(false); return; }
-    if (isReceivablesReportOpen) { setIsReceivablesReportOpen(false); return; }
-    if (isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return; }
-    if (isCashBookOpen) { setIsCashBookOpen(false); return; }
-    if (isExpenseRegistrationOpen) { setIsExpenseRegistrationOpen(false); return; }
-    if (isStaffPerformanceReportOpen) { setIsStaffPerformanceReportOpen(false); return; }
-    if (isDataManagerOpen) { setIsDataManagerOpen(false); return; }
-    if (isPartnerBulkOpen) { setIsPartnerBulkOpen(false); return; }
-    if (isProductBulkOpen) { setIsProductBulkOpen(false); return; }
-    if (isPartnerExcelOpen) { setIsPartnerExcelOpen(false); return; }
-    if (isProductExcelOpen) { setIsProductExcelOpen(false); return; }
-    if (isPurchaseLedgerExcelOpen) { setIsPurchaseLedgerExcelOpen(false); return; }
-    if (isSalesLedgerExcelOpen) { setIsSalesLedgerExcelOpen(false); return; }
-    if (isSettingsOpen) { setIsSettingsOpen(false); return; }
-    if (isLicenseOpen) { setIsLicenseOpen(false); return; }
-    if (isDashboardSettingsOpen) { setIsDashboardSettingsOpen(false); return; }
-    if (isFavoriteSettingsOpen) { setIsFavoriteSettingsOpen(false); return; }
-    if (selectedSystemNotice) { setSelectedSystemNotice(null); return; }
-    if (isInventoryAdjustmentOpen) { setIsInventoryAdjustmentOpen(false); return; }
-    if (isInventoryMismatchOpen) { setIsInventoryMismatchOpen(false); return; }
-    if (isTaxReportOpen) { setIsTaxReportOpen(false); return; }
-    if (printingTaxInvoice) { setPrintingTaxInvoice(null); return; }
-    if (isRecentActivityModalOpen) { setIsRecentActivityModalOpen(false); return; }
-    if (orderingPartner) { setOrderingPartner(null); return; }
+    try {
+      if (typeof isMobileMenuOpen !== 'undefined' && isMobileMenuOpen) { setIsMobileMenuOpen(false); return; }
+      if (typeof isCalendarModalOpen !== 'undefined' && isCalendarModalOpen) { setIsCalendarModalOpen(false); return; }
+      if (typeof isScheduleDetailOpen !== 'undefined' && isScheduleDetailOpen) { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); return; }
+      if (typeof isScheduleRegistrationOpen !== 'undefined' && isScheduleRegistrationOpen) { setIsScheduleRegistrationOpen(false); return; }
+      if (typeof isScheduleListOpen !== 'undefined' && isScheduleListOpen) { setIsScheduleListOpen(false); return; }
+      if (typeof isSalesInvoiceOpen !== 'undefined' && isSalesInvoiceOpen) { setIsSalesInvoiceOpen(false); return; }
+      if (typeof isSalesInvoiceListOpen !== 'undefined' && isSalesInvoiceListOpen) { setIsSalesInvoiceListOpen(false); return; }
+      if (typeof isSalesLedgerOpen !== 'undefined' && isSalesLedgerOpen) { setIsSalesLedgerOpen(false); return; }
+      if (typeof isSalesOrderOpen !== 'undefined' && isSalesOrderOpen) { setIsSalesOrderOpen(false); return; }
+      if (typeof isOrderListOpen !== 'undefined' && isOrderListOpen) { setIsOrderListOpen(false); return; }
+      if (typeof isPurchaseInvoiceOpen !== 'undefined' && isPurchaseInvoiceOpen) { setIsPurchaseInvoiceOpen(false); return; }
+      if (typeof isPurchaseLedgerOpen !== 'undefined' && isPurchaseLedgerOpen) { setIsPurchaseLedgerOpen(false); return; }
+      if (typeof isPurchaseOrderOpen !== 'undefined' && isPurchaseOrderOpen) { setIsPurchaseOrderOpen(false); return; }
+      if (typeof isInventoryTransferOpen !== 'undefined' && isInventoryTransferOpen) { setIsInventoryTransferOpen(false); return; }
+      if (typeof isInventoryMovementManagerOpen !== 'undefined' && isInventoryMovementManagerOpen) { setIsInventoryMovementManagerOpen(false); return; }
+      if (typeof isPartnerManagerOpen !== 'undefined' && isPartnerManagerOpen) { setIsPartnerManagerOpen(false); return; }
+      if (typeof isProductManagerOpen !== 'undefined' && isProductManagerOpen) { setIsProductManagerOpen(false); return; }
+      if (typeof isWarehouseManagerOpen !== 'undefined' && isWarehouseManagerOpen) { setIsWarehouseManagerOpen(false); return; }
+      if (typeof isStaffManagerOpen !== 'undefined' && isStaffManagerOpen) { setIsStaffManagerOpen(false); return; }
+      if (typeof isAccountManagerOpen !== 'undefined' && isAccountManagerOpen) { setIsAccountManagerOpen(false); return; }
+      if (typeof isCashReportOpen !== 'undefined' && isCashReportOpen) { setIsCashReportOpen(false); return; }
+      if (typeof isSalesReportOpen !== 'undefined' && isSalesReportOpen) { setIsSalesReportOpen(false); return; }
+      if (typeof isOrderReportOpen !== 'undefined' && isOrderReportOpen) { setIsOrderReportOpen(false); return; }
+      if (typeof isInventoryReportOpen !== 'undefined' && isInventoryReportOpen) { setIsInventoryReportOpen(false); return; }
+      if (typeof isReceivablesReportOpen !== 'undefined' && isReceivablesReportOpen) { setIsReceivablesReportOpen(false); return; }
+      if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return; }
+      if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) { setIsCashBookOpen(false); return; }
+      if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) { setIsExpenseRegistrationOpen(false); return; }
+      if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) { setIsStaffPerformanceReportOpen(false); return; }
+      if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) { setIsDataManagerOpen(false); return; }
+      if (typeof isPartnerBulkOpen !== 'undefined' && isPartnerBulkOpen) { setIsPartnerBulkOpen(false); return; }
+      if (typeof isProductBulkOpen !== 'undefined' && isProductBulkOpen) { setIsProductBulkOpen(false); return; }
+      if (typeof isPartnerExcelOpen !== 'undefined' && isPartnerExcelOpen) { setIsPartnerExcelOpen(false); return; }
+      if (typeof isProductExcelOpen !== 'undefined' && isProductExcelOpen) { setIsProductExcelOpen(false); return; }
+      if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) { setIsPurchaseLedgerExcelOpen(false); return; }
+      if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) { setIsSalesLedgerExcelOpen(false); return; }
+      if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) { setIsSettingsOpen(false); return; }
+      if (typeof isLicenseOpen !== 'undefined' && isLicenseOpen) { setIsLicenseOpen(false); return; }
+      if (typeof isDashboardSettingsOpen !== 'undefined' && isDashboardSettingsOpen) { setIsDashboardSettingsOpen(false); return; }
+      if (typeof isFavoriteSettingsOpen !== 'undefined' && isFavoriteSettingsOpen) { setIsFavoriteSettingsOpen(false); return; }
+      if (typeof selectedSystemNotice !== 'undefined' && selectedSystemNotice) { setSelectedSystemNotice(null); return; }
+      if (typeof isInventoryAdjustmentOpen !== 'undefined' && isInventoryAdjustmentOpen) { setIsInventoryAdjustmentOpen(false); return; }
+      if (typeof isInventoryMismatchOpen !== 'undefined' && isInventoryMismatchOpen) { setIsInventoryMismatchOpen(false); return; }
+      if (typeof isTaxReportOpen !== 'undefined' && isTaxReportOpen) { setIsTaxReportOpen(false); return; }
+      if (typeof printingTaxInvoice !== 'undefined' && printingTaxInvoice) { setPrintingTaxInvoice(null); return; }
+      if (typeof isRecentActivityModalOpen !== 'undefined' && isRecentActivityModalOpen) { setIsRecentActivityModalOpen(false); return; }
+      if (typeof orderingPartner !== 'undefined' && orderingPartner) { setOrderingPartner(null); return; }
+    } catch (e) {}
   };
 
   // 모바일 뒤로가기(popstate) 이벤트 수신
