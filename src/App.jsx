@@ -3391,7 +3391,7 @@ function App() {
       {/* 달력 모달 창 (상단 헤더의 달력 아이콘 클릭 시 노출) */}
       {isCalendarModalOpen && (
         <WindowModal title="전체 달력 (스케줄러)" onClose={() => setIsCalendarModalOpen(false)}>
-          <div style={{ padding: '8px', maxHeight: '85vh', overflowY: 'auto' }}>
+          <div style={{ padding: '4px', overflow: 'hidden', height: '100%' }}>
             <Calendar 
               selectedDate={selectedDate} 
               onDateSelect={setSelectedDate} 

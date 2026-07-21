@@ -452,12 +452,13 @@
 
 .day-name {
   text-align: center;
-  padding: 12px 0;
-  font-weight: 600;
-  font-size: 0.85rem;
+  padding: 6px 0;
+  font-weight: 700;
+  font-size: 0.75rem;
   color: var(--text-muted);
   border-right: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
+  background-color: #f8fafc;
 }
 
 .day-name.sunday {
@@ -465,14 +466,32 @@
 }
 
 .calendar-day {
-  min-height: 120px;
-  padding: 8px;
+  min-height: 52px;
+  max-height: 80px;
+  padding: 4px;
   border-right: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s;
   position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  .calendar-day {
+    min-height: 48px !important;
+    padding: 2px !important;
+  }
+  .day-name {
+    padding: 4px 0 !important;
+    font-size: 0.7rem !important;
+  }
 }
 
 .calendar-day:hover {
@@ -480,7 +499,7 @@
 }
 
 .calendar-day.empty {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(248, 250, 252, 0.5);
   cursor: default;
 }
 
