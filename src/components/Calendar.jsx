@@ -92,7 +92,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
     }
   };
   return (
-    <div className="calendar-container" style={{ width: '100%', padding: '4px' }}>
+    <div className="calendar-container" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: '4px', boxSizing: 'border-box' }}>
       {/* 달력 상단 조작부 (모바일 컴팩트 2행 레이아웃) */}
       <div className="calendar-header" style={{
         display: 'flex',

@@ -442,12 +442,24 @@
   background: var(--primary-hover);
 }
 
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .calendar-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: auto repeat(6, 1fr);
   gap: 0;
   border-top: 1px solid var(--border-color);
   border-left: 1px solid var(--border-color);
+  height: 100%;
+  min-height: 0;
 }
 
 .day-name {
@@ -459,6 +471,9 @@
   border-right: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
   background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .day-name.sunday {
@@ -466,8 +481,8 @@
 }
 
 .calendar-day {
-  min-height: 52px;
-  max-height: 80px;
+  height: 100%;
+  min-height: 0;
   padding: 4px;
   border-right: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
@@ -477,6 +492,8 @@
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
@@ -485,8 +502,7 @@
     overflow: hidden !important;
   }
   .calendar-day {
-    min-height: 48px !important;
-    padding: 2px !important;
+    padding: 3px !important;
   }
   .day-name {
     padding: 4px 0 !important;
