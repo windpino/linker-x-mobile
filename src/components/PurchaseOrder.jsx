@@ -8,7 +8,7 @@ import './PurchaseInvoice.css';
 
 const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, purchaseOrders = [], currentUser, staffList = [], warehouses = [], themeColor: propThemeColor }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobileView = true;
 
   const defaultWH = warehouses.find(w => w.isMain)?.name || 
                     warehouses.find(w => w.name.includes('메인'))?.name || 

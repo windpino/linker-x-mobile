@@ -14,7 +14,7 @@ const InventoryReport = ({
   setCategories, currentUser
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobile = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobile = true;
 
   const getNormalizedTab = (tab) => {
     if (tab === '일자별' || tab === 'daily' || tab === '일자별 재고현황(창고별이동현황)') return 'daily';

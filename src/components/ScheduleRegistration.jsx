@@ -13,7 +13,7 @@ const roundToNext5Min = (date) => {
 
 const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = null, scheduleTypes = [], onUpdateTypes, currentUser, onOpenTypeManagement }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobileView = true;
 
   const getInitialTimes = () => {
     if (initialData) {

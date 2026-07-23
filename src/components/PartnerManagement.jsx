@@ -11,7 +11,7 @@ import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import './Partner.css';
 
 const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners, onOrder, warehouses = [], onOpenBulk, currentUser, isBulkOpen, accounts = [] }) => {
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768;
+  const isMobileView = true;
   const [colWidths, setColWidths] = useState({
     sequence: 60,
     type: 100,

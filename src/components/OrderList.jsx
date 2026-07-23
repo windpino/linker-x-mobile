@@ -21,7 +21,7 @@ const OrderList = ({
   onOpenInventoryMismatch
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobileView = true;
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const canSelectOtherStaff = isAdmin || currentUser?.viewOtherWarehouseOrders === true;

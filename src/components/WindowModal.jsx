@@ -65,9 +65,8 @@ const getMenuIdFromTitle = (title) => {
 };
 
 const WindowModal = ({ title, onClose, children, width, height, zIndex, contentPadding, noScroll, className, style, headerExtra }) => {
-  // Detect mobile view from localStorage, window width, or URL
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobileView = true;
 
   // Load saved size and state from localStorage based on title
   const [savedData, setSavedData] = useState(() => {

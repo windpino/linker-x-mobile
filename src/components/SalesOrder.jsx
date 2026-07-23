@@ -8,7 +8,7 @@ import './SalesManagementCommon.css';
 
 const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, salesOrders = [], currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = localStorage.getItem('isMobileView') === 'true' || window.innerWidth <= 768 || isSim;
+  const isMobileView = true;
 
   const mainWH = warehouses.find(w => w.isMain)?.name || 
                  warehouses.find(w => w.name.includes('메인'))?.name || 
