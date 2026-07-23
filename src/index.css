@@ -75,15 +75,29 @@ body {
 }
 
 #root {
-  width: 100%;
-  max-width: 430px; /* Galaxy S21 / iPhone Max 모바일 규격 최적화 */
-  height: 100vh;
-  height: calc(var(--vh, 1vh) * 100);
-  height: 100dvh;
+  width: 390px;
+  height: 820px;
   background-color: var(--bg-light);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+  border: 10px solid #1e293b;
+  border-radius: 32px;
   overflow: hidden;
   position: relative;
+  box-sizing: content-box; /* 베젤 크기 포함하여 규격 유지 */
+}
+
+/* 실제 모바일 접속 시에는 베젤을 없애고 100% 전체화면으로 가득 채움 */
+@media (max-width: 480px), (max-height: 830px) {
+  #root {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+  }
 }
 
 
