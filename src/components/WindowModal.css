@@ -1,9 +1,9 @@
 .window-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background-color: transparent; /* Removed dark background for multi-tasking */
   pointer-events: none; /* Allow clicks to pass through overlay */
   display: flex;
@@ -18,9 +18,9 @@
 
 .window-container {
   pointer-events: auto; /* Catch clicks on the window itself */
-  width: 1400px;
-  max-width: 95vw;
-  max-height: 85vh;
+  width: 100%;
+  max-width: 95%;
+  max-height: 90%;
   background-color: #ffffff;
   border-radius: 12px;
   overflow: hidden;
@@ -95,7 +95,7 @@
   flex-direction: column;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 0.8cm;
+  padding: 12px;
   position: relative;
 }
 
@@ -118,8 +118,8 @@
 }
 
 .window-container.is-maximized {
-  max-width: 100vw !important;
-  max-height: 100vh !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   border-radius: 0;
   resize: none;
   border: none;
