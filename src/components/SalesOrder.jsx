@@ -228,6 +228,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     return items;
   }, [orderData.itemsText, products]);
 
+  const parsedTotalQty = parsedItems.reduce((sum, item) => sum + item.qty, 0);
+  const parsedTotalPrice = parsedItems.reduce((sum, item) => sum + item.total, 0);
+
   const handleSave = () => {
     if (!orderData.partner) {
       showToast('거래처가 입력되지 않았습니다.', 'error');
