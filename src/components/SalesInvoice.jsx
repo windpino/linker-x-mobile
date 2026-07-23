@@ -563,104 +563,380 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
   return (
     <>
-      <style>{`
-        .sales-header { background-color: ${themeColor} !important; border-top: none !important; }
-        .invoice-title svg { color: white !important; }
-        .window-modal-title { border-bottom: 2px solid ${themeColor} !important; }
-        .form-group input:focus, .form-group select:focus, .partner-input:focus { border-color: ${themeColor} !important; box-shadow: 0 0 0 3px ${themeColor}20 !important; }
+      <WindowModal title="매출등록" onClose={onClose} width="100%" zIndex={zIndex} contentPadding="0">
+        <div style={{
+          backgroundColor: '#18092b',
+          backgroundImage: 'radial-gradient(circle at center, #240c42 0%, #06020c 100%)',
+          color: '#ffffff',
+          fontFamily: '"Pretendard Variable", sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          maxHeight: '85vh',
+          overflow: 'hidden'
+        }}>
+          {/* 천년경영S 스타일 회색 상단 띠 */}
+          <div style={{
+            backgroundColor: '#a8a8a8',
+            padding: '5px 10px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            color: '#1e293b',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>천년경영S - 매출등록</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>({currentUser?.name || '담당자'})</span>
+          </div>
 
-        /* 매출전표 반응형 레이아웃 */
-        .sales-invoice-scroll-wrapper {
-          overflow-x: auto;
-          overflow-y: visible;
-          min-width: 0;
-        }
-        .sales-invoice-inner {
-          min-width: 680px;  /* 이 너비 이하로 줄어지면 가로 스크롤 활성화 */
-        }
-        /* 헤더 필드 4칸 반응형 그리드 */
-        .invoice-main-fields-responsive {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(140px, 1fr));
-          gap: 12px 20px;
-          background-color: #ffffff;
-          padding: 16px 20px;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-        }
-        /* 품목 검색 그리드 반응형 */
-        .item-search-grid-responsive {
-          display: grid;
-          grid-template-columns: minmax(160px, 3fr) minmax(70px, 1fr) minmax(90px, 1fr) 100px;
-          gap: 10px;
-          align-items: flex-end;
-        }
-        /* 요약 카드 너비 제한 */
-        .invoice-body-flex {
-          display: flex;
-          gap: 16px;
-          background-color: #ffffff;
-          align-items: flex-start;
-          padding: 20px;
-        }
-        .invoice-body-flex > .invoice-left-part {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-        }
-        .invoice-body-flex > .invoice-summary-card {
-          flex-shrink: 0;
-          width: 300px;
-          min-width: 220px;
-        }
-      `}</style>
-      <WindowModal title="매출전표" onClose={onClose} width="1100px" zIndex={zIndex} headerExtra={InvoiceDateHeader}>
-        <div className="sales-header">
-          <div className="invoice-title">
-            <FileText size={28} />
-            매출전표 등록
-            {invoiceData.partner && (
-              <span style={{ display: 'flex', alignItems: 'center', marginLeft: '12px', fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', padding: '4px 10px', borderRadius: '100px', fontWeight: 500 }}>
-                {invoiceData.items.length === 0 && partnerDayInvoices.length === 0 ? (
-                  '해당일 전표 0 / 0'
-                ) : partnerDayInvoices.length > 0 || invoiceData.items.length > 0 ? (
-                  <>
-                    <button 
-                      disabled={currentIndex <= 0}
-                      onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
-                      style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 4px', color: currentIndex <= 0 ? '#94a3b8' : '#334155' }}
-                    >◀</button>
-                    해당일 전표 {currentIndex + 1} / {Math.max(partnerDayInvoices.length, currentIndex + 1)}
-                    <button 
-                      disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
-                      onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
-                      style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 4px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155' }}
-                    >▶</button>
-                  </>
-                ) : (
-                  '신규 전표'
+          <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* 첫 번째 행: [메뉴] | 날짜선택 | 담당자/창고 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button style={{
+                backgroundColor: '#cbd5e1',
+                color: '#0f172a',
+                padding: '3px 8px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: '1px solid #94a3b8'
+              }} onClick={() => {
+                if (invoiceData.partner) {
+                  setInvoiceData({ 
+                    ...invoiceData, 
+                    id: Date.now(), 
+                    items: [], 
+                    receivedAmount: 0, 
+                    payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
+                    discount: 0, 
+                    creator: currentUser?.name || '시스템',
+                    manager: currentUser?.name || staffList[0]?.name || '',
+                    warehouse: userWH
+                  });
+                  setCurrentIndex(partnerDayInvoices.length);
+                }
+              }}>
+                메뉴
+              </button>
+
+              <input 
+                type="date"
+                value={invoiceData.date}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  if (newDate) {
+                    const updated = { ...invoiceData, date: newDate };
+                    setInvoiceData(updated);
+                  }
+                }}
+                style={{
+                  backgroundColor: '#3b0d5c',
+                  border: '1px solid #6b21a8',
+                  borderRadius: '4px',
+                  color: '#ffffff',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '3px 6px',
+                  width: '105px',
+                  outline: 'none',
+                  textAlign: 'center'
+                }}
+              />
+
+              <select 
+                value={invoiceData.warehouse}
+                onChange={(e) => setInvoiceData({...invoiceData, warehouse: e.target.value})}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#3b0d5c',
+                  border: '1px solid #6b21a8',
+                  borderRadius: '4px',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px',
+                  outline: 'none'
+                }}
+              >
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.name} style={{ backgroundColor: '#18092b', color: '#fff' }}>
+                    [{w.id || '3'}] {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 두 번째 행: 거래처 검색 & 총미수 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '4px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PartnerSearchInput 
+                  partners={partners} 
+                  value={invoiceData.partner} 
+                  onChange={(val) => setInvoiceData({...invoiceData, partner: val})} 
+                  onSelect={(partner) => {
+                    const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
+                    if (stack.length > 0) {
+                      const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
+                      setInvoiceData({ ...latestInvoice });
+                      setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
+                    } else {
+                      setInvoiceData(prev => ({ 
+                        ...prev, 
+                        id: Date.now(), 
+                        partner: partner.name, 
+                        manager: currentUser?.name || prev.manager,
+                        warehouse: userWH,
+                        items: [], 
+                        receivedAmount: 0,
+                        creator: currentUser?.name || '시스템'
+                      }));
+                      setCurrentIndex(0);
+                    }
+                    productInputRef.current?.focus();
+                  }}
+                  typeFilter="매출처"
+                  placeholder="거래처 입력"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    padding: '4px 6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    width: '100%',
+                    height: '28px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              
+              <button style={{
+                backgroundColor: '#a8a8a8',
+                border: '1px solid #787878',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '28px'
+              }}>
+                <Search size={14} color="#000000" />
+              </button>
+
+              <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '4px' }}>
+                <div style={{ fontSize: '0.62rem', color: '#ffb74d', fontWeight: 600 }}>총미수:</div>
+                <div style={{ fontSize: '0.78rem', color: '#ff9800', fontWeight: 800 }}>
+                  {(finalBalance || 0).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* 세 번째 행: [상품명 ▼] | 상품 입력 | 🔍 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <select style={{
+                backgroundColor: '#e2e8f0',
+                color: '#1e293b',
+                border: '1px solid #cbd5e1',
+                borderRadius: '4px',
+                padding: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                height: '28px',
+                outline: 'none'
+              }}>
+                <option>상품명</option>
+              </select>
+
+              <div style={{ flex: 1, position: 'relative' }} ref={productSearchRef}>
+                <input 
+                  ref={productInputRef}
+                  type="text"
+                  placeholder="상품 입력"
+                  value={searchItem}
+                  onChange={(e) => {
+                    setSearchItem(e.target.value);
+                    setSelectedProduct(null);
+                    setShowProductSuggestions(true);
+                  }}
+                  onFocus={() => searchItem && setShowProductSuggestions(true)}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    border: '2px solid #ea580c', // 주황색 오리지널 보더
+                    borderRadius: '4px',
+                    padding: '4px 6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    width: '100%',
+                    height: '28px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                
+                {showProductSuggestions && productSuggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
+                    background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '4px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)', maxHeight: '180px', overflowY: 'auto',
+                    marginTop: '2px'
+                  }}>
+                    {productSuggestions.map((p, index) => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          // Select product and automatically add 1 quantity
+                          handleSelectProduct(p);
+                          setSelectedProduct(p);
+                          setPrice(p.salesPrice || 0);
+                          setQty(1);
+                          // Auto add trigger
+                          setTimeout(() => {
+                            const itemPrice = p.salesPrice || 0;
+                            const newTotal = itemPrice;
+                            const taxVal = Math.round(newTotal / 11);
+                            const supplyVal = newTotal - taxVal;
+                            const newItem = {
+                              id: Date.now() + Math.random(),
+                              productId: p.id,
+                              name: p.name,
+                              spec: p.spec || '',
+                              qty: 1,
+                              price: itemPrice,
+                              supplyValue: supplyVal,
+                              tax: taxVal,
+                              total: newTotal
+                            };
+                            setInvoiceData(prev => ({ ...prev, items: [...prev.items, newItem] }));
+                            setSearchItem('');
+                            setShowProductSuggestions(false);
+                          }, 50);
+                        }}
+                        style={{
+                          padding: '6px 10px', cursor: 'pointer', fontSize: '0.78rem',
+                          color: '#000000', borderBottom: '1px solid #f1f5f9',
+                          display: 'flex', justifyContent: 'space-between',
+                          backgroundColor: index === productSelectedIndex ? '#f0f9ff' : 'transparent'
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{p.name}</span>
+                        <span style={{ color: '#ea580c', fontWeight: 700 }}>{(p.salesPrice || 0).toLocaleString()}원</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </span>
+              </div>
+
+              <button style={{
+                backgroundColor: '#a8a8a8',
+                border: '1px solid #787878',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '28px'
+              }}>
+                <Search size={14} color="#000000" />
+              </button>
+            </div>
+          </div>
+
+          {/* 상품 테이블 리스트 헤더 */}
+          <div style={{
+            display: 'flex',
+            backgroundColor: '#0f051c',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            padding: '4px 8px',
+            fontSize: '0.7rem',
+            color: '#a78bfa',
+            fontWeight: 800
+          }}>
+            <span style={{ width: '32px' }}>순번</span>
+            <span style={{ flex: 1 }}>상품명</span>
+            <span style={{ width: '60px', textAlign: 'right' }}>단가</span>
+            <span style={{ width: '45px', textAlign: 'right' }}>수량</span>
+            <span style={{ width: '70px', textAlign: 'right' }}>금액</span>
+          </div>
+
+          {/* 품목 스크롤 영역 (2줄 레이아웃 정밀 재현) */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            minHeight: '200px',
+            backgroundColor: 'rgba(0,0,0,0.2)'
+          }}>
+            {invoiceData.items.map((item, idx) => (
+              <div key={item.id} style={{
+                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                padding: '6px 8px',
+                fontSize: '0.78rem'
+              }}>
+                {/* 1행: 순번 상품명 */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ width: '32px', color: '#ffb74d', fontWeight: 800 }}>{idx + 1}</span>
+                  <span style={{ flex: 1, color: '#ffffff', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.name}
+                  </span>
+                  <button 
+                    onClick={() => {
+                      const updated = invoiceData.items.filter(i => i.id !== item.id);
+                      setInvoiceData({ ...invoiceData, items: updated });
+                    }}
+                    style={{ background: 'none', border: 'none', padding: '0 4px', color: '#ef4444', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {/* 2행: 단가 수량 금액 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', color: '#cbd5e1', fontSize: '0.72rem', marginTop: '2px' }}>
+                  <span style={{ width: '60px', textAlign: 'right' }}>{item.price.toLocaleString()}</span>
+                  <span style={{ width: '45px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>{item.qty.toFixed(1)}</span>
+                  <span style={{ width: '70px', textAlign: 'right', fontWeight: 800, color: '#ffffff' }}>{item.total.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {invoiceData.items.length === 0 && (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>
+                등록된 매출 품목이 없습니다.
+              </div>
             )}
           </div>
-          <div className="invoice-header-btns">
-            <button className="header-btn" onClick={() => {
-              if (invoiceData.partner) {
-                // Creating a NEW invoice in the stack for the same partner
-                // IMPORTANT: Generate a new ID so it doesn't overwrite the previous one
-                setInvoiceData({ 
-                  ...invoiceData, 
-                  id: Date.now(), 
-                  items: [], 
-                  receivedAmount: 0, 
-                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
-                  discount: 0, 
-                  creator: currentUser?.name || '시스템',
-                  manager: currentUser?.name || staffList[0]?.name || '',
-                  warehouse: userWH
-                });
-                setCurrentIndex(partnerDayInvoices.length); // New position (denominator will increase on first item add)
-              } else {
+
+          {/* 하단 요약 초록색 합계 바 */}
+          <div style={{
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            borderTop: '2px solid #047857',
+            padding: '8px 12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.8rem',
+            color: '#10b981',
+            fontWeight: 800
+          }}>
+            <span>[합계]</span>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <span>총수량: {invoiceData.items.reduce((sum, item) => sum + item.qty, 0).toFixed(1)}</span>
+              <span style={{ color: '#ffffff', fontSize: '0.9rem' }}>
+                {totalAmount.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {/* 최하단 3단 액션 버튼 그룹 */}
+          <div style={{
+            backgroundColor: '#d8d8d8',
+            padding: '6px 8px',
+            display: 'flex',
+            gap: '6px',
+            borderTop: '1.5px solid #a8a8a8'
+          }}>
+            <button 
+              onClick={() => {
                 setInvoiceData({ 
                   ...invoiceData, 
                   id: Date.now(), 
@@ -674,520 +950,78 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   warehouse: userWH
                 });
                 setCurrentIndex(-1);
-              }
-            }}>
-              <RefreshCw size={16} /> 새전표
-            </button>
-            <button 
-              className="header-btn highlight" 
-              style={{ backgroundColor: '#10b981' }}
-              onClick={openPaymentModal}
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#e6e6e6',
+                border: '2px solid #b3b3b3',
+                borderBottom: '3px solid #9c9c9c',
+                borderRadius: '4px',
+                color: '#1e293b',
+                padding: '6px 4px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                cursor: 'pointer'
+              }}
             >
-              <Wallet size={16} /> 입금
+              📄 새전표
             </button>
-            <button className="header-btn" onClick={() => onOpenLedger(invoiceData.partner, invoiceData.date)}>
-              <BookOpen size={16} /> 매출원장
+
+            <button 
+              onClick={openPaymentModal}
+              style={{
+                flex: 1,
+                backgroundColor: '#e6e6e6',
+                border: '2px solid #b3b3b3',
+                borderBottom: '3px solid #9c9c9c',
+                borderRadius: '4px',
+                color: '#1e293b',
+                padding: '6px 4px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                cursor: 'pointer'
+              }}
+            >
+              💵 입금
             </button>
-            <button className="header-btn" onClick={() => onPrintTaxInvoice(invoiceData, false)}>
-              <FileText size={16} /> 세금계산서
-            </button>
-            <button className="header-btn" onClick={() => onPrintTaxInvoice(invoiceData, true)}>
-              <FileText size={16} /> 계산서
-            </button>
-            <button className="header-btn" onClick={() => window.print()}>
-              <Printer size={16} /> 인쇄
+
+            <button 
+              onClick={() => {
+                if (invoiceData.items.length === 0) {
+                  alert('저장할 전표 품목이 없습니다.');
+                  return;
+                }
+                onSave(invoiceData, false);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#e6e6e6',
+                border: '2px solid #b3b3b3',
+                borderBottom: '3px solid #9c9c9c',
+                borderRadius: '4px',
+                color: '#1e293b',
+                padding: '6px 4px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                cursor: 'pointer'
+              }}
+            >
+              🖨️ 영수증
             </button>
           </div>
         </div>
-
-        {/* 매출전표 본문 영역 - 가로 스크롤 래퍼 */}
-        <div className="sales-invoice-scroll-wrapper">
-        <div className="sales-invoice-inner">
-        <div className="invoice-body invoice-body-flex">
-          <div className="invoice-left-part" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="invoice-main-fields-responsive">
-
-              <div className="form-group">
-                <label>거래처명</label>
-                <PartnerSearchInput 
-                  partners={partners} 
-                  value={invoiceData.partner} 
-                  onChange={(val) => {
-                    const updatedInvoice = {...invoiceData, partner: val};
-                    setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
-                      handleAutoSave(updatedInvoice);
-                    }
-                  }} 
-                  onSelect={(partner) => {
-                    const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
-                    if (stack.length > 0 && !editingInvoice) {
-                      // Explicitly find the latest invoice by ID to ensure it's the 'last' one
-                      const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
-                      setInvoiceData({ ...latestInvoice });
-                      setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
-                      handleAutoSave(latestInvoice);
-                    } else {
-                      setInvoiceData(prev => ({ 
-                        ...prev, 
-                        id: Date.now(), 
-                        partner: partner.name, 
-                        manager: currentUser?.name || prev.manager,
-                        warehouse: userWH, // 출고 창고는 로그인한 사용자의 담당 창고로 자동선택
-                        items: [], 
-                        receivedAmount: 0,
-                        creator: currentUser?.name || '시스템'
-                      }));
-                      setCurrentIndex(0);
-                    }
-                    productInputRef.current?.focus();
-                  }}
-                  typeFilter="매출처"
-                  autoFocus={true}
-                />
-              </div>
-              <div className="form-group">
-                <label>출고 창고</label>
-                <select value={invoiceData.warehouse} onChange={(e) => {
-                  const updatedInvoice = {...invoiceData, warehouse: e.target.value};
-                  setInvoiceData(updatedInvoice);
-                  if (updatedInvoice.items.length > 0) {
-                    handleAutoSave(updatedInvoice);
-                  }
-                }}>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.name}>{w.name}</option>
-                  ))}
-                  {invoiceData.warehouse && !warehouses.some(w => w.name === invoiceData.warehouse) && (
-                    <option value={invoiceData.warehouse}>{invoiceData.warehouse}</option>
-                  )}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>담당자</label>
-                <select 
-                  value={invoiceData.manager} 
-                  onChange={(e) => {
-                    const newManager = e.target.value;
-                    const updatedInvoice = {
-                      ...invoiceData,
-                      manager: newManager,
-                      creator: currentUser?.name || invoiceData.creator || '시스템'
-                    };
-                    setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
-                      handleAutoSave(updatedInvoice);
-                    }
-                  }}
-                >
-                  {staffList.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                  {invoiceData.manager && !staffList.some(s => s.name === invoiceData.manager) && (
-                    <option value={invoiceData.manager}>{invoiceData.manager}</option>
-                  )}
-                </select>
-              </div>
-            </div>
-
-            <div className="item-search-section">
-              <div className="item-search-grid-responsive">
-                <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={productSearchRef}>
-                  <label>품목 검색 <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400 }}>초성 검색 가능</span></label>
-                  <div style={{ position: 'relative' }}>
-                    <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                    <input
-                      ref={productInputRef}
-                      type="text"
-                      lang="ko"
-                      autoComplete="off"
-                      placeholder="품목명 검색 (예: ㅋㄹ)"
-                      value={searchItem}
-                      onChange={(e) => {
-                        setSearchItem(e.target.value);
-                        setSelectedProduct(null);
-                        setShowProductSuggestions(true);
-                      }}
-                      onFocus={() => searchItem && setShowProductSuggestions(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'ArrowDown') {
-                          e.preventDefault();
-                          setProductSelectedIndex(prev => (prev < productSuggestions.length - 1 ? prev + 1 : prev));
-                        } else if (e.key === 'ArrowUp') {
-                          e.preventDefault();
-                          setProductSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-                        } else if (e.key === 'Enter') {
-                          if (showProductSuggestions && productSelectedIndex >= 0 && productSelectedIndex < productSuggestions.length) {
-                            e.preventDefault();
-                            handleSelectProduct(productSuggestions[productSelectedIndex]);
-                          } else if (productSuggestions.length === 1) {
-                            handleSelectProduct(productSuggestions[0]);
-                          }
-                        } else if (e.key === 'Escape') {
-                          setShowProductSuggestions(false);
-                        }
-                      }}
-                      style={{ paddingLeft: '28px', paddingRight: searchItem ? '28px' : '8px' }}
-                    />
-                    {searchItem && (
-                      <button
-                        onClick={handleClearProduct}
-                        style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  {showProductSuggestions && productSuggestions.length > 0 && (
-                    <div 
-                      ref={productListRef}
-                      style={{
-                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
-                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto',
-                        marginTop: '4px'
-                      }}
-                    >
-                      {productSuggestions.map((p, index) => {
-                          const sq = getStockQty(p.id, invoiceData.warehouse);
-                          const badge = getStockBadge(sq);
-                          return (
-                            <div
-                              key={p.id}
-                              onMouseDown={() => handleSelectProduct(p)}
-                              onMouseEnter={() => setProductSelectedIndex(index)}
-                              style={{
-                                padding: '8px 12px', cursor: 'pointer', fontSize: '0.87rem',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                borderBottom: '1px solid #f1f5f9',
-                                backgroundColor: index === productSelectedIndex ? '#f0f9ff' : 'transparent'
-                              }}
-                            >
-                              <div>
-                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
-                                {p.spec && <span style={{ fontSize: '0.78rem', color: '#64748b', marginLeft: '6px' }}>{p.spec}</span>}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                {sq !== null && (
-                                  <span style={{
-                                    fontSize: '0.72rem', fontWeight: 700, padding: '2px 7px',
-                                    borderRadius: '10px', border: `1px solid ${badge.color}30`,
-                                    backgroundColor: badge.bg, color: badge.color,
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    재고 {sq}개
-                                  </span>
-                                )}
-                                <span style={{ fontSize: '0.78rem', color: themeColor, fontWeight: 600 }}>
-                                  {(p.salesPrice || 0).toLocaleString()}원
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                  {showProductSuggestions && searchItem.trim() && productSuggestions.length === 0 && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
-                      background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-                      padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: '4px'
-                    }}>
-                      검색 결과가 없습니다
-                    </div>
-                  )}
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>수량</label>
-                  <input 
-                    ref={qtyInputRef}
-                    type="text" 
-                    value={qty ? qty.toLocaleString() : ''} 
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setQty(val === '' ? 0 : Number(val));
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddItem();
-                    }}
-                    style={{ textAlign: 'right' }}
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>단가</label>
-                  <input 
-                    type="text" 
-                    value={price ? price.toLocaleString() : ''} 
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setPrice(val === '' ? 0 : Number(val));
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddItem();
-                    }}
-                    style={{ textAlign: 'right' }}
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
-                  <label style={{ visibility: 'hidden' }}>추가</label>
-                  <button className="btn-primary" onClick={handleAddItem} style={{ height: '38px', backgroundColor: themeColor, margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <Plus size={18} /> 추가
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 선택된 품목의 현재 창고 재고 표시 */}
-            {selectedProduct && (() => {
-              const sq = getStockQty(selectedProduct.id, invoiceData.warehouse);
-              const badge = getStockBadge(sq);
-              return (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                  padding: '8px 16px', backgroundColor: badge.bg,
-                  borderRadius: '8px', border: `1px solid ${badge.color}40`,
-                  fontSize: '0.83rem', marginTop: '-8px'
-                }}>
-                  <span style={{ fontSize: '1rem' }}>📦</span>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>선택 품목:</span>
-                  <span style={{ color: '#1e293b', fontWeight: 700 }}>{selectedProduct.name}</span>
-                  <span style={{ color: '#94a3b8' }}>|</span>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>출고 창고:</span>
-                  <span style={{ color: '#334155', fontWeight: 700 }}>{invoiceData.warehouse || '-'}</span>
-                  <span style={{ color: '#94a3b8' }}>|</span>
-                  <span style={{ color: '#64748b', fontWeight: 600 }}>현재고:</span>
-                  <span style={{ fontWeight: 800, fontSize: '1rem', color: badge.color }}>
-                    {sq !== null ? `${sq}개` : '-'}
-                  </span>
-                  {badge.label && (
-                    <span style={{
-                      backgroundColor: badge.color, color: 'white',
-                      fontSize: '0.72rem', fontWeight: 700,
-                      padding: '2px 8px', borderRadius: '10px'
-                    }}>{badge.label}</span>
-                  )}
-                </div>
-              );
-            })()}
-
-            <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
-              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: '700px' }}>
-                <colgroup>
-                  <col style={{ width: colWidths.name + 'px' }} />
-                  <col style={{ width: colWidths.spec + 'px' }} />
-                  <col style={{ width: colWidths.qty + 'px' }} />
-                  <col style={{ width: colWidths.stock + 'px' }} />
-                  <col style={{ width: colWidths.price + 'px' }} />
-                  <col style={{ width: colWidths.supply + 'px' }} />
-                  <col style={{ width: colWidths.tax + 'px' }} />
-                  <col style={{ width: colWidths.total + 'px' }} />
-                  <col style={{ width: colWidths.del + 'px' }} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    {[
-                      { key: 'name',   label: '품목명',  align: 'center', pl: undefined },
-                      { key: 'spec',   label: '규격',    align: 'center', pl: undefined },
-                      { key: 'qty',    label: '수량',    align: 'center', pl: undefined },
-                      { key: 'stock',  label: '현재고',  align: 'center', pl: undefined, color: '#3b82f6' },
-                      { key: 'price',  label: '단가',    align: 'center', pl: undefined },
-                      { key: 'supply', label: '공급가',  align: 'center', pl: undefined },
-                      { key: 'tax',    label: '세액',    align: 'center', pl: undefined },
-                      { key: 'total',  label: '합계',    align: 'center', pl: undefined },
-                    ].map(col => (
-                      <th key={col.key} style={{
-                        position: 'relative', userSelect: 'none', overflow: 'hidden',
-                        textAlign: col.align, paddingLeft: col.pl || '8px',
-                        color: col.color || undefined,
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {col.label}
-                        {/* 드래그 리사이즈 핸들 */}
-                        <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                          style={{
-                            position: 'absolute', right: 0, top: 0, bottom: 0,
-                            width: '6px', cursor: 'col-resize',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 2,
-                          }}
-                          title={`${col.label} 너비 조절`}
-                        >
-                          <span style={{
-                            display: 'block', width: '0px', height: '100%',
-                            borderLeft: resizingCol.current === col.key ? `2px dotted ${themeColor}` : '1px dotted #cbd5e1',
-                            transition: 'border-color 0.15s, border-width 0.15s',
-                          }} />
-                        </span>
-                      </th>
-                    ))}
-                    <th style={{ width: colWidths.del + 'px' }}>
-                      <button
-                        onClick={handleClearAllItems}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
-                        title="전체 품목 삭제"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceData.items.map(item => (
-                    <tr key={item.id}>
-                      <td style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: colWidths.name + 'px' }}>{item.name}</td>
-                      <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.spec}</td>
-                      <td>
-                        {item.isBox ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 700, color: themeColor }}>1박스</span>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({item.qty}개)</span>
-                          </div>
-                        ) : item.qty}
-                      </td>
-                      {/* 현재고 셀 */}
-                      <td>
-                        {(() => {
-                          const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(invoiceData.id));
-                          const baseSq = getStockQty(item.productId, invoiceData.warehouse);
-                          const sq = baseSq !== null ? (baseSq - (isAlreadySaved ? 0 : item.qty)) : null;
-                          const badge = getStockBadge(sq);
-                          return (
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 7px', borderRadius: '10px',
-                              backgroundColor: badge.bg,
-                              color: badge.color, fontWeight: 700,
-                              fontSize: '0.78rem', border: `1px solid ${badge.color}30`,
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {sq !== null ? `${sq}개` : '-'}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                       <td>
-                         <input
-                           type="text"
-                           value={item.price ? item.price.toLocaleString() : ''}
-                           onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
-                           onBlur={() => handleItemPriceBlur(item)}
-                           onKeyDown={(e) => {
-                             if (e.key === 'Enter') {
-                               e.target.blur();
-                             }
-                           }}
-                           style={{
-                             width: '100%',
-                             textAlign: 'right',
-                             padding: '4px 6px',
-                             border: '1px solid #cbd5e1',
-                             borderRadius: '6px',
-                             fontSize: '0.85rem',
-                             fontWeight: 600,
-                             backgroundColor: '#f8fafc',
-                             color: '#1e293b'
-                           }}
-                         />
-                       </td>
-                      <td>{item.supplyValue.toLocaleString()}</td>
-                      <td>{item.tax.toLocaleString()}</td>
-                      <td style={{ fontWeight: 700 }}>{item.total.toLocaleString()}</td>
-                      <td><button className="icon-btn" onClick={() => {
-                        const updatedItems = invoiceData.items.filter(i => i.id !== item.id);
-                        if (updatedItems.length === 0) {
-                          if (currentIndex >= 0 && partnerDayInvoices[currentIndex]) {
-                            onDeleteInvoice(partnerDayInvoices[currentIndex].id);
-                          }
-                          if (currentIndex > 0) {
-                            const prevIdx = currentIndex - 1;
-                            const prevInv = partnerDayInvoices[prevIdx];
-                            if (prevInv) {
-                              setInvoiceData({ ...prevInv });
-                              setCurrentIndex(prevIdx);
-                            }
-                          } else {
-                            setInvoiceData({ ...invoiceData, id: Date.now(), items: [], receivedAmount: 0, payments: { cash: 0, account: 0, card: 0, bill: 0 }, discount: 0, creator: currentUser?.name || '시스템' });
-                            setCurrentIndex(-1);
-                          }
-                        } else {
-                          const updatedInvoice = { ...invoiceData, items: updatedItems };
-                          setInvoiceData(updatedInvoice);
-                          handleAutoSave(updatedInvoice);
-                        }
-                      }}><Trash2 size={14} color="#ef4444" /></button></td>
-                    </tr>
-                  ))}
-                  {invoiceData.items.length === 0 && (
-                    <tr>
-                      <td colSpan="9" style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="total-footer">
-              <div className="total-label">총 합계 (VAT 포함)</div>
-              <div className="total-amount" style={{ color: themeColor }}>{totalAmount.toLocaleString()}원</div>
-            </div>
-          </div>
-
-          <div className="invoice-summary-card">
-            <div className="summary-title"><BookOpen size={18} color={themeColor} />결제 요약</div>
-            <div className="summary-row"><span className="label">총 합계</span><span className="value">{totalAmount.toLocaleString()}원</span></div>
-            {invoiceData.discount > 0 && (
-              <div className="summary-row"><span className="label" style={{ color: '#ef4444' }}>현장 할인</span><span className="value" style={{ color: '#ef4444' }}>-{invoiceData.discount.toLocaleString()}원</span></div>
-            )}
-            <div className="summary-row"><span className="label">입금액</span><span className="value" style={{ color: '#10b981' }}>{invoiceData.receivedAmount.toLocaleString()}원</span></div>
-            
-            {invoiceData.receivedAmount > 0 && (
-              <div className="payment-breakdown" style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '10px', marginTop: '-4px', marginBottom: '8px', borderLeft: '2px solid #e2e8f0' }}>
-                {invoiceData.payments.cash > 0 && <div>현금: {invoiceData.payments.cash.toLocaleString()}원</div>}
-                {invoiceData.payments.account > 0 && <div>계좌: {invoiceData.payments.account.toLocaleString()}원</div>}
-                {invoiceData.payments.card > 0 && <div>카드: {invoiceData.payments.card.toLocaleString()}원</div>}
-                {invoiceData.payments.bill > 0 && <div>어음: {invoiceData.payments.bill.toLocaleString()}원</div>}
-              </div>
-            )}
-
-            <div style={{ margin: '10px 0', borderTop: '1px solid #f1f5f9' }}></div>
-            <div className="summary-row"><span className="label">전 미수금</span><span className="value">{previousBalance.toLocaleString()}원</span></div>
-            <div className="summary-row"><span className="label">금회 미수금</span><span className="value">{outstandingBalance.toLocaleString()}원</span></div>
-            <div className="summary-row total" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              <span className="label">누적 미수금</span>
-              <span className="value" style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: 800 }}>{finalBalance.toLocaleString()}원</span>
-            </div>
-
-              <button 
-                className="btn-primary" 
-                style={{ 
-                  marginTop: '16px', 
-                  width: '100%', 
-                  backgroundColor: themeColor, 
-                  border: 'none', 
-                  padding: '12px', 
-                  borderRadius: '8px', 
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  color: '#fff'
-                }}
-                onClick={() => {
-                  if (invoiceData.items.length === 0) {
-                    alert('등록된 품목이 없습니다.');
-                    return;
-                  }
-                  onSave(invoiceData, false);
-                }}
-              >
-                {editingInvoice ? '전표 수정하기' : '전표 저장하기'}
-              </button>
-          </div>{/* invoice-summary-card end */}
-        </div>{/* invoice-body invoice-body-flex end */}
-        </div>{/* sales-invoice-inner end */}
-        </div>{/* sales-invoice-scroll-wrapper end */}
 
         {isPaymentModalOpen && tempPaymentState && (
           <div style={{
@@ -1303,7 +1137,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               {invoiceData.items.map(item => (
                 <tr key={item.id}>
                   <td className="item-name">{item.name}</td>
-                  <td>{item.isBox ? `1박스 (${item.qty})` : item.qty}</td>
+                  <td>{item.isBox ? ('1박스 (' + item.qty + ')') : item.qty}</td>
                   {!hideAmount && <td>{item.price.toLocaleString()}</td>}
                   {!hideAmount && <td className="item-total">{item.total.toLocaleString()}</td>}
                 </tr>
@@ -1361,87 +1195,79 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           </div>
         </div>
 
-        <style>{`
-          @media screen {
-            .print-only-container { display: none; }
-          }
-          @media print {
-            /* Hide everything by default */
-            body * { 
-              display: none !important; 
-            }
-            /* Show only the print container and its children */
-            .print-only-container, 
-            .print-only-container * { 
-              display: block !important; 
-              visibility: visible !important;
-            }
-            
-            .print-only-container {
-              position: fixed;
-              left: 0;
-              top: 0;
-              width: 100%;
-              height: 100%;
-              padding: 20px;
-              background: white;
-              z-index: 99999;
-            }
-            
-            /* Table specifics need table display, not block */
-            .print-item-table { display: table !important; width: 100% !important; border-collapse: collapse; margin-top: 20px; }
-            .print-item-table thead { display: table-header-group !important; }
-            .print-item-table tbody { display: table-row-group !important; }
-            .print-item-table tr { display: table-row !important; }
-            .print-item-table th, .print-item-table td { display: table-cell !important; padding: 12px; border: 1px solid #e2e8f0; }
-
-            .print-statement {
-              max-width: 800px;
-              margin: 0 auto;
-              font-family: 'Inter', sans-serif;
-              color: #1e293b;
-            }
-            .print-header h1 {
-              font-size: 28px;
-              font-weight: 800;
-              margin-bottom: 30px;
-              text-align: center;
-              border-bottom: 2px solid #1e293b;
-              padding-bottom: 10px;
-            }
-            .print-header-meta {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
-              margin-bottom: 30px;
-            }
-            .partner-name { font-size: 32px; font-weight: 800; }
-            .honorific { font-size: 18px; font-weight: 500; color: #64748b; }
-            .top-total-amount { text-align: right; }
-            .top-total-amount .label { display: block; font-size: 14px; color: #64748b; font-weight: 600; }
-            .top-total-amount .value { font-size: 36px; font-weight: 800; color: #2563eb; }
-            
-            .print-item-table th { background: #f8fafc !important; -webkit-print-color-adjust: exact; }
-            .print-item-table td.item-name { text-align: left; font-weight: 700; }
-            .print-item-table tfoot td { font-weight: 800; font-size: 18px; }
-
-            .print-payment-section { margin-top: 40px; border: 2px solid #e2e8f0; padding: 24px; border-radius: 12px; }
-            .print-payment-section h3 { margin-top: 0; font-size: 18px; margin-bottom: 20px; }
-            .payment-grid { display: flex; gap: 20px; margin-bottom: 24px; }
-            .payment-box { flex: 1; border: 1px solid #e2e8f0; padding: 10px; text-align: center; border-radius: 8px; }
-            .payment-box .label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
-            .payment-box .value { font-weight: 700; font-size: 16px; }
-
-            .balance-summary { border-top: 2px solid #e2e8f0; padding-top: 20px; }
-            .balance-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; }
-            .balance-row.highlight { font-size: 28px; font-weight: 800; color: #ef4444 !important; }
-            
-            .print-footer { margin-top: 50px; text-align: center; font-size: 16px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
-          }
-        `}</style>
+        <style dangerouslySetInnerHTML={{ __html: PRINT_STYLES }} />
       </div>
     </>
   );
 };
+
+const PRINT_STYLES = [
+  "@media screen {",
+  "  .print-only-container { display: none; }",
+  "}",
+  "@media print {",
+  "  body * { ",
+  "    display: none !important; ",
+  "  }",
+  "  .print-only-container, ",
+  "  .print-only-container * { ",
+  "    display: block !important; ",
+  "    visibility: visible !important;",
+  "  }",
+  "  .print-only-container {",
+  "    position: fixed;",
+  "    left: 0;",
+  "    top: 0;",
+  "    width: 100%;",
+  "    height: 100%;",
+  "    padding: 20px;",
+  "    background: white;",
+  "    z-index: 99999;",
+  "  }",
+  "  .print-item-table { display: table !important; width: 100% !important; border-collapse: collapse; margin-top: 20px; }",
+  "  .print-item-table thead { display: table-header-group !important; }",
+  "  .print-item-table tbody { display: table-row-group !important; }",
+  "  .print-item-table tr { display: table-row !important; }",
+  "  .print-item-table th, .print-item-table td { display: table-cell !important; padding: 12px; border: 1px solid #e2e8f0; }",
+  "  .print-statement {",
+  "    max-width: 800px;",
+  "    margin: 0 auto;",
+  "    font-family: 'Inter', sans-serif;",
+  "    color: #1e293b;",
+  "  }",
+  "  .print-header h1 {",
+  "    font-size: 28px;",
+  "    font-weight: 800;",
+  "    margin-bottom: 30px;",
+  "    text-align: center;",
+  "    border-bottom: 2px solid #1e293b;",
+  "    padding-bottom: 10px;",
+  "  }",
+  "  .print-header-meta {",
+  "    display: flex;",
+  "    justify-content: space-between;",
+  "    align-items: flex-end;",
+  "    margin-bottom: 30px;",
+  "  }",
+  "  .partner-name { font-size: 32px; font-weight: 800; }",
+  "  .honorific { font-size: 18px; font-weight: 500; color: #64748b; }",
+  "  .top-total-amount { text-align: right; }",
+  "  .top-total-amount .label { display: block; font-size: 14px; color: #64748b; font-weight: 600; }",
+  "  .top-total-amount .value { font-size: 36px; font-weight: 800; color: #2563eb; }",
+  "  .print-item-table th { background: #f8fafc !important; -webkit-print-color-adjust: exact; }",
+  "  .print-item-table td.item-name { text-align: left; font-weight: 700; }",
+  "  .print-item-table tfoot td { font-weight: 800; font-size: 18px; }",
+  "  .print-payment-section { margin-top: 40px; border: 2px solid #e2e8f0; padding: 24px; border-radius: 12px; }",
+  "  .print-payment-section h3 { margin-top: 0; font-size: 18px; margin-bottom: 20px; }",
+  "  .payment-grid { display: flex; gap: 20px; margin-bottom: 24px; }",
+  "  .payment-box { flex: 1; border: 1px solid #e2e8f0; padding: 10px; text-align: center; border-radius: 8px; }",
+  "  .payment-box .label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }",
+  "  .payment-box .value { font-weight: 700; font-size: 16px; }",
+  "  .balance-summary { border-top: 2px solid #e2e8f0; padding-top: 20px; }",
+  "  .balance-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; }",
+  "  .balance-row.highlight { font-size: 28px; font-weight: 800; color: #ef4444 !important; }",
+  "  .print-footer { margin-top: 50px; text-align: center; font-size: 16px; border-top: 1px solid #e2e8f0; padding-top: 20px; }",
+  "}"
+].join("\n");
 
 export default SalesInvoice;
