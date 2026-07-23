@@ -124,3 +124,29 @@
   resize: none;
   border: none;
 }
+
+/* 데스크톱 전용 모달창(매출전표 등)은 모바일 #root 뷰포트 제한을 무시하고 브라우저 전체 영역에 고정 */
+.window-overlay.desktop-only {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  pointer-events: auto !important;
+}
+
+.window-container.desktop-only {
+  position: relative !important;
+  margin: auto !important;
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 12px !important;
+  border: 1px solid #cbd5e1 !important;
+}

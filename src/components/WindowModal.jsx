@@ -64,9 +64,9 @@ const getMenuIdFromTitle = (title) => {
   return null;
 };
 
-const WindowModal = ({ title, onClose, children, width, height, zIndex, contentPadding, noScroll, className, style, headerExtra }) => {
+const WindowModal = ({ title, onClose, children, width, height, zIndex, contentPadding, noScroll, className, style, headerExtra, desktopOnly }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = true;
+  const isMobileView = desktopOnly ? false : true;
 
   // Load saved size and state from localStorage based on title
   const [savedData, setSavedData] = useState(() => {
@@ -254,21 +254,29 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
 
   const isMobileSize = isMobileView || window.innerWidth <= 480;
   // 최소화 배치 시 모바일 부모 폭(최대 430px)을 기준으로 정렬
-  const targetX = isMinimized ? -100 + (minimizedIndex * 70) : position.x;
-  const targetY = isMinimized ? 300 : position.y;
+  const targetX = isMinimized 
+    ? (desktopOnly ? -(windowSize.width / 2) + 140 + 20 + (minimizedIndex * 290) : -100 + (minimizedIndex * 70)) 
+    : position.x;
+  const targetY = isMinimized 
+    ? (desktopOnly ? (windowSize.height / 2) - 20 - 20 : 300) 
+    : position.y;
 
   return (
-    <div className={`window-overlay ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
+    <div className={`window-overlay ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
       <div 
         ref={containerRef}
         onMouseDownCapture={bringToFront}
         onTouchStartCapture={bringToFront}
-        className={`window-container ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
+        className={`window-container ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
         style={{ 
           transform: isMaximized ? 'none' : `translate(${targetX}px, ${targetY}px)`,
           transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s, height 0.3s',
-          width: isMaximized ? '100%' : (isMinimized ? '120px' : (savedData?.width || width || '100%')),
-          height: isMaximized ? '100%' : (isMinimized ? '36px' : (savedData?.height || height || '90%')),
+          width: isMaximized 
+            ? (desktopOnly ? '100vw' : '100%') 
+            : (isMinimized ? (desktopOnly ? '280px' : '120px') : (savedData?.width || width || (desktopOnly ? '1100px' : '100%'))),
+          height: isMaximized 
+            ? (desktopOnly ? '100vh' : '100%') 
+            : (isMinimized ? (desktopOnly ? '40px' : '36px') : (savedData?.height || height || (desktopOnly ? '800px' : '90%'))),
           top: isMaximized ? 0 : undefined,
           left: isMaximized ? 0 : undefined,
           borderRadius: isMaximized ? 0 : undefined,

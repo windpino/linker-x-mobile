@@ -294,7 +294,7 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
   );
 
   return (
-    <WindowModal title="매입전표" onClose={onClose} width="1100px" headerExtra={InvoiceDateHeader}>
+    <WindowModal title="매입전표" onClose={onClose} width="1100px" headerExtra={InvoiceDateHeader} desktopOnly={true}>
       <style>{`
         .invoice-header { background-color: ${themeColor} !important; border-top: none !important; }
         .invoice-title svg { color: white !important; }
