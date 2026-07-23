@@ -531,36 +531,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     setLocalState({ ...localState, payments: newPayments });
   };
 
-  const InvoiceDateHeader = (
-    <div 
-      className="titlebar-date-picker" 
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '6px', 
-        padding: '2px 8px', 
-        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-        borderRadius: '6px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-      }}
-    >
-      <span style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 800 }}>전표일자:</span>
-      <input 
-        type="date" 
-        value={invoiceData.date} 
-        onChange={(e) => {
-          const updatedInvoice = {...invoiceData, date: e.target.value};
-          setInvoiceData(updatedInvoice);
-          if (updatedInvoice.items.length > 0) {
-            handleAutoSave(updatedInvoice);
-          }
-        }} 
-        style={{ border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', outline: 'none' }}
-      />
-    </div>
-  );
-
   return (
     <>
       <style>{`
@@ -572,11 +542,15 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         /* 매출전표 반응형 레이아웃 */
         .sales-invoice-scroll-wrapper {
           overflow-x: auto;
-          overflow-y: visible;
+          overflow-y: auto;
           min-width: 0;
+          flex: 1;
         }
         .sales-invoice-inner {
           min-width: 680px;  /* 이 너비 이하로 줄어지면 가로 스크롤 활성화 */
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
         /* 헤더 필드 4칸 반응형 그리드 */
         .invoice-main-fields-responsive {
@@ -598,163 +572,104 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         /* 요약 카드 너비 제한 */
         .invoice-body-flex {
           display: flex;
-          gap: 16px;
+          gap: 12px;
           background-color: #ffffff;
           align-items: flex-start;
-          padding: 20px;
+          padding: 8px 12px 12px 12px !important;
         }
         .invoice-body-flex > .invoice-left-part {
           flex: 1;
           min-width: 0;
-          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
         .invoice-body-flex > .invoice-summary-card {
           flex-shrink: 0;
-          width: 300px;
+          width: 260px;
           min-width: 220px;
+          padding: 12px !important;
+          border: 1px solid #cbd5e1 !important;
+          background-color: #f8fafc !important;
+          border-radius: 8px !important;
+        }
+        .invoice-table-container {
+          max-height: 480px;
+          overflow-y: auto;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+        }
+        .invoice-table th, .invoice-table td {
+          padding: 6px 8px !important;
+          font-size: 0.82rem !important;
         }
       `}</style>
-      <WindowModal title="매출전표" onClose={onClose} width="1100px" zIndex={zIndex} headerExtra={InvoiceDateHeader} desktopOnly={true}>
-        <div className="sales-header">
-          <div className="invoice-title">
-            <FileText size={28} />
-            매출전표 등록
-            {invoiceData.partner && (
-              <span style={{ display: 'flex', alignItems: 'center', marginLeft: '12px', fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', padding: '4px 10px', borderRadius: '100px', fontWeight: 500 }}>
-                {invoiceData.items.length === 0 && partnerDayInvoices.length === 0 ? (
-                  '해당일 전표 0 / 0'
-                ) : partnerDayInvoices.length > 0 || invoiceData.items.length > 0 ? (
-                  <>
-                    <button 
-                      disabled={currentIndex <= 0}
-                      onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
-                      style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 4px', color: currentIndex <= 0 ? '#94a3b8' : '#334155' }}
-                    >◀</button>
-                    해당일 전표 {currentIndex + 1} / {Math.max(partnerDayInvoices.length, currentIndex + 1)}
-                    <button 
-                      disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
-                      onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
-                      style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 4px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155' }}
-                    >▶</button>
-                  </>
-                ) : (
-                  '신규 전표'
-                )}
-              </span>
-            )}
-          </div>
-          <div className="invoice-header-btns">
-            <button className="header-btn" onClick={() => {
-              if (invoiceData.partner) {
-                // Creating a NEW invoice in the stack for the same partner
-                // IMPORTANT: Generate a new ID so it doesn't overwrite the previous one
-                setInvoiceData({ 
-                  ...invoiceData, 
-                  id: Date.now(), 
-                  items: [], 
-                  receivedAmount: 0, 
-                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
-                  discount: 0, 
-                  creator: currentUser?.name || '시스템',
-                  manager: currentUser?.name || staffList[0]?.name || '',
-                  warehouse: userWH
-                });
-                setCurrentIndex(partnerDayInvoices.length); // New position (denominator will increase on first item add)
-              } else {
-                setInvoiceData({ 
-                  ...invoiceData, 
-                  id: Date.now(), 
-                  partner: '', 
-                  items: [], 
-                  receivedAmount: 0, 
-                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
-                  discount: 0, 
-                  creator: currentUser?.name || '시스템',
-                  manager: currentUser?.name || staffList[0]?.name || '',
-                  warehouse: userWH
-                });
-                setCurrentIndex(-1);
-              }
-            }}>
-              <RefreshCw size={16} /> 새전표
-            </button>
-            <button 
-              className="header-btn highlight" 
-              style={{ backgroundColor: '#10b981' }}
-              onClick={openPaymentModal}
-            >
-              <Wallet size={16} /> 입금
-            </button>
-            <button className="header-btn" onClick={() => onOpenLedger(invoiceData.partner, invoiceData.date)}>
-              <BookOpen size={16} /> 매출원장
-            </button>
-            <button className="header-btn" onClick={() => onPrintTaxInvoice(invoiceData, false)}>
-              <FileText size={16} /> 세금계산서
-            </button>
-            <button className="header-btn" onClick={() => onPrintTaxInvoice(invoiceData, true)}>
-              <FileText size={16} /> 계산서
-            </button>
-            <button className="header-btn" onClick={() => window.print()}>
-              <Printer size={16} /> 인쇄
-            </button>
-          </div>
-        </div>
-
+      <WindowModal title="매출전표" onClose={onClose} width="1100px" zIndex={zIndex} desktopOnly={true}>
         {/* 매출전표 본문 영역 - 가로 스크롤 래퍼 */}
-        <div className="sales-invoice-scroll-wrapper">
+        <div className="sales-invoice-scroll-wrapper" style={{ marginTop: '10px' }}>
         <div className="sales-invoice-inner">
-        <div className="invoice-body invoice-body-flex">
-          <div className="invoice-left-part" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="invoice-main-fields-responsive">
-
-              <div className="form-group">
-                <label>거래처명</label>
-                <PartnerSearchInput 
-                  partners={partners} 
-                  value={invoiceData.partner} 
-                  onChange={(val) => {
-                    const updatedInvoice = {...invoiceData, partner: val};
+        <div className="invoice-body invoice-body-flex" style={{ padding: '12px', gap: '12px' }}>
+          <div className="invoice-left-part" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            
+            {/* 1. 전표일자 및 출고창고, 담당자 수평 한 줄 배치 (창이름에서 내려옴) */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '16px', 
+              backgroundColor: '#f8fafc', 
+              padding: '8px 12px', 
+              borderRadius: '8px', 
+              border: '1px solid #e2e8f0',
+              marginBottom: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>전표일자</span>
+                <input 
+                  type="date" 
+                  value={invoiceData.date} 
+                  onChange={(e) => {
+                    const updatedInvoice = {...invoiceData, date: e.target.value};
                     setInvoiceData(updatedInvoice);
                     if (updatedInvoice.items.length > 0) {
                       handleAutoSave(updatedInvoice);
                     }
                   }} 
-                  onSelect={(partner) => {
-                    const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
-                    if (stack.length > 0 && !editingInvoice) {
-                      // Explicitly find the latest invoice by ID to ensure it's the 'last' one
-                      const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
-                      setInvoiceData({ ...latestInvoice });
-                      setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
-                      handleAutoSave(latestInvoice);
-                    } else {
-                      setInvoiceData(prev => ({ 
-                        ...prev, 
-                        id: Date.now(), 
-                        partner: partner.name, 
-                        manager: currentUser?.name || prev.manager,
-                        warehouse: userWH, // 출고 창고는 로그인한 사용자의 담당 창고로 자동선택
-                        items: [], 
-                        receivedAmount: 0,
-                        creator: currentUser?.name || '시스템'
-                      }));
-                      setCurrentIndex(0);
-                    }
-                    productInputRef.current?.focus();
+                  style={{ 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '4px', 
+                    padding: '3px 6px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 700, 
+                    color: '#1e293b', 
+                    cursor: 'pointer', 
+                    outline: 'none',
+                    backgroundColor: '#ffffff'
                   }}
-                  typeFilter="매출처"
-                  autoFocus={true}
                 />
               </div>
-              <div className="form-group">
-                <label>출고 창고</label>
-                <select value={invoiceData.warehouse} onChange={(e) => {
-                  const updatedInvoice = {...invoiceData, warehouse: e.target.value};
-                  setInvoiceData(updatedInvoice);
-                  if (updatedInvoice.items.length > 0) {
-                    handleAutoSave(updatedInvoice);
-                  }
-                }}>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>출고창고</span>
+                <select 
+                  value={invoiceData.warehouse} 
+                  onChange={(e) => {
+                    const updatedInvoice = {...invoiceData, warehouse: e.target.value};
+                    setInvoiceData(updatedInvoice);
+                    if (updatedInvoice.items.length > 0) {
+                      handleAutoSave(updatedInvoice);
+                    }
+                  }}
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    padding: '3px 6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    outline: 'none',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
                   {warehouses.map(w => (
                     <option key={w.id} value={w.name}>{w.name}</option>
                   ))}
@@ -763,8 +678,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   )}
                 </select>
               </div>
-              <div className="form-group">
-                <label>담당자</label>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>담당자</span>
                 <select 
                   value={invoiceData.manager} 
                   onChange={(e) => {
@@ -779,6 +695,16 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       handleAutoSave(updatedInvoice);
                     }
                   }}
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    padding: '3px 6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    outline: 'none',
+                    backgroundColor: '#ffffff'
+                  }}
                 >
                   {staffList.map(s => (
                     <option key={s.id} value={s.name}>{s.name}</option>
@@ -787,6 +713,83 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     <option value={invoiceData.manager}>{invoiceData.manager}</option>
                   )}
                 </select>
+              </div>
+
+              {invoiceData.partner && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '100px', fontWeight: 700 }}>
+                  {invoiceData.items.length === 0 && partnerDayInvoices.length === 0 ? (
+                    '해당일 전표 0 / 0'
+                  ) : partnerDayInvoices.length > 0 || invoiceData.items.length > 0 ? (
+                    <>
+                      <button 
+                        disabled={currentIndex <= 0}
+                        onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
+                        style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 4px', color: currentIndex <= 0 ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                      >◀</button>
+                      해당일 전표 {currentIndex + 1} / {Math.max(partnerDayInvoices.length, currentIndex + 1)}
+                      <button 
+                        disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
+                        onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
+                        style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 4px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                      >▶</button>
+                    </>
+                  ) : (
+                    '신규 전표'
+                  )}
+                </span>
+              )}
+            </div>
+
+            {/* 2. 거래처명 및 품목검색 최적화 콤팩트 라인 */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              backgroundColor: '#ffffff',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              marginBottom: '2px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155', width: '56px', flexShrink: 0 }}>거래처명</span>
+                <div style={{ flex: 1 }}>
+                  <PartnerSearchInput 
+                    partners={partners} 
+                    value={invoiceData.partner} 
+                    onChange={(val) => {
+                      const updatedInvoice = {...invoiceData, partner: val};
+                      setInvoiceData(updatedInvoice);
+                      if (updatedInvoice.items.length > 0) {
+                        handleAutoSave(updatedInvoice);
+                      }
+                    }} 
+                    onSelect={(partner) => {
+                      const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
+                      if (stack.length > 0 && !editingInvoice) {
+                        const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
+                        setInvoiceData({ ...latestInvoice });
+                        setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
+                        handleAutoSave(latestInvoice);
+                      } else {
+                        setInvoiceData(prev => ({ 
+                          ...prev, 
+                          id: Date.now(), 
+                          partner: partner.name, 
+                          manager: currentUser?.name || prev.manager,
+                          warehouse: userWH,
+                          items: [], 
+                          receivedAmount: 0,
+                          creator: currentUser?.name || '시스템'
+                        }));
+                        setCurrentIndex(0);
+                      }
+                      productInputRef.current?.focus();
+                    }}
+                    typeFilter="매출처"
+                    autoFocus={true}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1271,6 +1274,161 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             </div>
           </div>
         )}
+        {/* 하단 풋바 버튼 정렬: [새전표] [입금] [인쇄] [매출원장] 및 계산서 발급 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 16px',
+          borderTop: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc',
+          marginTop: 'auto',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#3b82f6', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={() => {
+              if (invoiceData.partner) {
+                setInvoiceData({ 
+                  ...invoiceData, 
+                  id: Date.now(), 
+                  items: [], 
+                  receivedAmount: 0, 
+                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
+                  discount: 0, 
+                  creator: currentUser?.name || '시스템',
+                  manager: currentUser?.name || staffList[0]?.name || '',
+                  warehouse: userWH
+                });
+                setCurrentIndex(partnerDayInvoices.length);
+              } else {
+                setInvoiceData({ 
+                  ...invoiceData, 
+                  id: Date.now(), 
+                  partner: '', 
+                  items: [], 
+                  receivedAmount: 0, 
+                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
+                  discount: 0, 
+                  creator: currentUser?.name || '시스템',
+                  manager: currentUser?.name || staffList[0]?.name || '',
+                  warehouse: userWH
+                });
+                setCurrentIndex(-1);
+              }
+            }}
+          >
+            <RefreshCw size={13} /> 새전표
+          </button>
+          
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#10b981', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={openPaymentModal}
+          >
+            <Wallet size={13} /> 입금
+          </button>
+          
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#64748b', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={() => window.print()}
+          >
+            <Printer size={13} /> 인쇄
+          </button>
+
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#475569', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={() => onOpenLedger(invoiceData.partner, invoiceData.date)}
+          >
+            <BookOpen size={13} /> 매출원장
+          </button>
+
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#f59e0b', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={() => onPrintTaxInvoice(invoiceData, false)}
+          >
+            <FileText size={13} /> 세금계산서
+          </button>
+
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#d97706', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={() => onPrintTaxInvoice(invoiceData, true)}
+          >
+            <FileText size={13} /> 계산서
+          </button>
+        </div>
       </WindowModal>
       
       {/* Hidden Print Layout */}
