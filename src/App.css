@@ -1408,4 +1408,42 @@
   }
 }
 
+/* 모바일 간편수주 헤더 및 거래처명 수평 한 줄 나란히 배치 강제 */
+.so-mobile-enforced-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 6px 8px !important;
+  gap: 2px !important;
+}
+
+.so-partner-row-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 4px 0 !important;
+  padding: 0 !important;
+}
+
+.so-partner-label-enforced {
+  display: inline-block !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  width: 62px !important;
+  text-align: left !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: #334155 !important;
+}
+
+.so-partner-input-wrapper {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
 
