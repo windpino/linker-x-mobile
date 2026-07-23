@@ -20,7 +20,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
   const themeColor = propThemeColor || '#3b82f6';
 
   const [activeMobileTab, setActiveMobileTab] = useState('input'); // 'input' or 'preview'
-  const [isBasicInfoCollapsed, setIsBasicInfoCollapsed] = useState(false);
+  const [isBasicInfoCollapsed, setIsBasicInfoCollapsed] = useState(true);
 
   const [partnerDayOrders, setPartnerDayOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -326,10 +326,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     <WindowModal title={editingOrder ? (isMobileView ? "수주 수정" : "간편수주 수정") : (isMobileView ? "수주 등록" : "간편수주 등록")} onClose={onClose} width="1200px" contentPadding="0">
       <div className="so-wrapper" style={{ maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* 상단 헤더: 왼쪽(날짜선택), 오른쪽(새 수주 | 수주 목록 버튼) */}
-        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', gap: '8px' }}>
-          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShoppingCart size={isMobileView ? 18 : 22} />
-            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', gap: '4px' }}>
+          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ShoppingCart size={isMobileView ? 16 : 20} />
+            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#f1f5f9', padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
               <input 
                 type="date"
                 value={orderData.date}
@@ -343,32 +343,35 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   border: 'none',
                   background: 'transparent',
                   outline: 'none',
-                  fontSize: '0.85rem',
+                  fontSize: '0.78rem',
                   color: '#1e293b',
                   fontWeight: 800,
                   cursor: 'pointer',
                   padding: 0,
+                  width: '90px',
                   fontFamily: 'inherit'
                 }}
               />
               {orderData.partner && (partnerDayOrders.length > 0 || orderData.itemsText) && (
-                <span className="so-nav-controls" style={{ fontSize: '0.75rem' }}>
+                <span className="so-nav-controls" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                   <button 
                     disabled={currentIndex <= 0}
                     onClick={(e) => { e.stopPropagation(); const prev = partnerDayOrders[currentIndex - 1]; setOrderData({...prev}); setCurrentIndex(currentIndex - 1); }}
+                    style={{ padding: '1px 3px' }}
                   >◀</button>
-                  <span>{currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1} / {Math.max(partnerDayOrders.length, currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1)}</span>
+                  <span>{currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1}/{Math.max(partnerDayOrders.length, currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1)}</span>
                   <button 
                     disabled={currentIndex === -1 || currentIndex >= partnerDayOrders.length - 1}
                     onClick={(e) => { e.stopPropagation(); const nxt = partnerDayOrders[currentIndex + 1]; setOrderData({...nxt}); setCurrentIndex(currentIndex + 1); }}
+                    style={{ padding: '1px 3px' }}
                   >▶</button>
                 </span>
               )}
             </span>
           </div>
 
-          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button className="so-btn-outline" style={{ padding: '5px 10px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={() => {
+          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button className="so-btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => {
               setOrderData({
                 id: Date.now(),
                 date: (() => {
@@ -383,10 +386,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 memo: ''
               });
             }}>
-              <RefreshCw size={13} /> 새 수주
+              <RefreshCw size={12} /> 새 수주
             </button>
-            <button className="so-btn-outline" style={{ padding: '5px 10px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
-              <List size={13} /> 목록
+            <button className="so-btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
+              <List size={12} /> 목록
             </button>
           </div>
         </div>
@@ -627,11 +630,11 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               </div>
 
               <div className="so-action-buttons">
-                <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
-                  <Save size={18} /> {editingOrder ? '수주 수정 저장' : '수주서 저장'}
-                </button>
                 <button className="so-btn-transfer" onClick={handleTransferToInvoice}>
                   <FileText size={18} /> 전표로 전송
+                </button>
+                <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
+                  <Save size={18} /> {editingOrder ? '수주 수정 저장' : '수주서 저장'}
                 </button>
               </div>
             </div>
@@ -646,11 +649,11 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               <span>합계: <strong style={{ color: themeColor, fontSize: '1rem' }}>{parsedTotalPrice.toLocaleString()}원</strong></span>
             </div>
             <div className="so-mobile-actions">
-              <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
-                <Save size={16} /> {editingOrder ? '수정 저장' : '저장'}
-              </button>
               <button className="so-btn-transfer" onClick={handleTransferToInvoice}>
                 <FileText size={16} /> 전표로 전송
+              </button>
+              <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
+                <Save size={16} /> {editingOrder ? '수정 저장' : '저장'}
               </button>
             </div>
           </div>
