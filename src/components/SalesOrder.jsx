@@ -326,9 +326,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     <WindowModal title={editingOrder ? (isMobileView ? "수주 수정" : "간편수주 수정") : (isMobileView ? "수주 등록" : "간편수주 등록")} onClose={onClose} width="1200px" contentPadding="0">
       <div className="so-wrapper" style={{ maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* 상단 헤더: 왼쪽(날짜선택), 오른쪽(새 수주 | 수주 목록 버튼) */}
-        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', gap: '2px' }}>
+        <div className="so-header" style={{ display: 'flex !important', flexDirection: 'row !important', flexWrap: 'nowrap !important', justifyContent: 'space-between !important', alignItems: 'center !important', padding: '6px 8px !important', gap: '2px !important' }}>
           <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <ShoppingCart size={isMobileView ? 15 : 18} style={{ color: themeColor }} />
+            <ShoppingCart size={15} style={{ color: themeColor }} />
             <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#f1f5f9', padding: '2px 4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
               <input 
                 type="date"
@@ -348,7 +348,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   fontWeight: 800,
                   cursor: 'pointer',
                   padding: 0,
-                  width: '110px',
+                  width: '96px',
                   textAlign: 'center',
                   fontFamily: 'inherit'
                 }}
@@ -466,9 +466,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 )}
                 
                 {/* 거래처명 (한 라인 레이아웃: 거래처명 라벨 오른쪽 입력창 정렬) */}
-                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 0 }}>
-                  <label style={{ margin: 0, flexShrink: 0, width: '60px', fontSize: '0.8rem', fontWeight: 700 }}>거래처명</label>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex !important', flexDirection: 'row !important', alignItems: 'center !important', gap: '8px !important', width: '100% !important', margin: '4px 0 !important', padding: '0 !important', boxSizing: 'border-box' }}>
+                  <label style={{ display: 'inline-block !important', margin: '0 !important', flexShrink: '0 !important', width: '62px !important', fontSize: '0.8rem', fontWeight: 700, textAlign: 'left', color: '#334155' }}>거래처명</label>
+                  <div style={{ flex: '1 !important', minWidth: '0 !important' }}>
                     <PartnerSearchInput 
                       partners={partners} 
                       value={orderData.partner} 
