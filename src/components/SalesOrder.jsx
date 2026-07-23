@@ -326,10 +326,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     <WindowModal title={editingOrder ? (isMobileView ? "수주 수정" : "간편수주 수정") : (isMobileView ? "수주 등록" : "간편수주 등록")} onClose={onClose} width="1200px" contentPadding="0">
       <div className="so-wrapper" style={{ maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* 상단 헤더: 왼쪽(날짜선택), 오른쪽(새 수주 | 수주 목록 버튼) */}
-        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', gap: '4px' }}>
-          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShoppingCart size={isMobileView ? 16 : 20} />
-            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#f1f5f9', padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+        <div className="so-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', gap: '2px' }}>
+          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <ShoppingCart size={isMobileView ? 15 : 18} style={{ color: themeColor }} />
+            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#f1f5f9', padding: '2px 4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
               <input 
                 type="date"
                 value={orderData.date}
@@ -343,12 +343,13 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   border: 'none',
                   background: 'transparent',
                   outline: 'none',
-                  fontSize: '0.78rem',
+                  fontSize: '0.75rem',
                   color: '#1e293b',
                   fontWeight: 800,
                   cursor: 'pointer',
                   padding: 0,
-                  width: '90px',
+                  width: '110px',
+                  textAlign: 'center',
                   fontFamily: 'inherit'
                 }}
               />
@@ -370,8 +371,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
             </span>
           </div>
 
-          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <button className="so-btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => {
+          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={() => {
               setOrderData({
                 id: Date.now(),
                 date: (() => {
@@ -386,10 +387,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 memo: ''
               });
             }}>
-              <RefreshCw size={12} /> 새 수주
+              <RefreshCw size={11} /> 새 수주
             </button>
-            <button className="so-btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
-              <List size={12} /> 목록
+            <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
+              <List size={11} /> 목록
             </button>
           </div>
         </div>
