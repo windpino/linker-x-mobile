@@ -612,19 +612,19 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         <div className="invoice-body invoice-body-flex" style={{ padding: '12px', gap: '12px' }}>
           <div className="invoice-left-part" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
             
-            {/* 1. 전표일자 및 출고창고, 담당자 수평 한 줄 배치 (창이름에서 내려옴) */}
+            {/* 1. 전표일자 및 출고창고, 담당자 수평 한 줄 배치 (테두리 박스/배경색 제거) */}
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '16px', 
-              backgroundColor: '#f8fafc', 
-              padding: '8px 12px', 
-              borderRadius: '8px', 
-              border: '1px solid #e2e8f0',
-              marginBottom: '4px'
+              gap: '12px', 
+              backgroundColor: 'transparent', 
+              padding: '4px 0', 
+              borderRadius: '0', 
+              border: 'none',
+              marginBottom: '2px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>전표일자</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>전표일자</span>
                 <input 
                   type="date" 
                   value={invoiceData.date} 
@@ -638,8 +638,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{ 
                     border: '1px solid #cbd5e1', 
                     borderRadius: '4px', 
-                    padding: '3px 6px', 
-                    fontSize: '0.8rem', 
+                    padding: '2px 4px', 
+                    fontSize: '0.78rem', 
                     fontWeight: 700, 
                     color: '#1e293b', 
                     cursor: 'pointer', 
@@ -649,8 +649,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>출고창고</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>출고창고</span>
                 <select 
                   value={invoiceData.warehouse} 
                   onChange={(e) => {
@@ -663,8 +663,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{
                     border: '1px solid #cbd5e1',
                     borderRadius: '4px',
-                    padding: '3px 6px',
-                    fontSize: '0.8rem',
+                    padding: '2px 4px',
+                    fontSize: '0.78rem',
                     fontWeight: 600,
                     color: '#1e293b',
                     outline: 'none',
@@ -680,8 +680,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>담당자</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>담당자</span>
                 <select 
                   value={invoiceData.manager} 
                   onChange={(e) => {
@@ -699,8 +699,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{
                     border: '1px solid #cbd5e1',
                     borderRadius: '4px',
-                    padding: '3px 6px',
-                    fontSize: '0.8rem',
+                    padding: '2px 4px',
+                    fontSize: '0.78rem',
                     fontWeight: 600,
                     color: '#1e293b',
                     outline: 'none',
@@ -717,7 +717,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               </div>
 
               {invoiceData.partner && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '100px', fontWeight: 700 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '100px', fontWeight: 700 }}>
                   {invoiceData.items.length === 0 && partnerDayInvoices.length === 0 ? (
                     '해당일 전표 0 / 0'
                   ) : partnerDayInvoices.length > 0 || invoiceData.items.length > 0 ? (
@@ -725,13 +725,13 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       <button 
                         disabled={currentIndex <= 0}
                         onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
-                        style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 4px', color: currentIndex <= 0 ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                        style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 2px', color: currentIndex <= 0 ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
                       >◀</button>
-                      해당일 전표 {currentIndex + 1} / {Math.max(partnerDayInvoices.length, currentIndex + 1)}
+                      {currentIndex + 1}/{Math.max(partnerDayInvoices.length, currentIndex + 1)}
                       <button 
                         disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
                         onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
-                        style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 4px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                        style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 2px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
                       >▶</button>
                     </>
                   ) : (
@@ -741,19 +741,18 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               )}
             </div>
 
-            {/* 2. 거래처명 및 품목검색 최적화 콤팩트 라인 */}
+            {/* 2. 거래처명 바 (테두리 박스/배경색 제거) */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
-              backgroundColor: '#ffffff',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              backgroundColor: 'transparent',
+              padding: '2px 0',
+              borderRadius: '0',
+              border: 'none',
               marginBottom: '2px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155', width: '56px', flexShrink: 0 }}>거래처명</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', width: '48px', flexShrink: 0 }}>거래처명</span>
                 <div style={{ flex: 1 }}>
                   <PartnerSearchInput 
                     partners={partners} 
@@ -794,10 +793,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               </div>
             </div>
 
-            <div className="item-search-section">
+            {/* 3. 품목 검색 (테두리 박스/배경색 제거) */}
+            <div className="item-search-section" style={{ border: 'none', background: 'transparent', padding: '2px 0', margin: 0 }}>
               <div className="item-search-grid-responsive">
                 <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={productSearchRef}>
-                  <label>품목 검색 <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400 }}>초성 검색 가능</span></label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '2px' }}>품목 검색</label>
                   <div style={{ position: 'relative' }}>
                     <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                     <input
