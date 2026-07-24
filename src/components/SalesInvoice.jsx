@@ -541,13 +541,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
         /* 매출전표 반응형 레이아웃 */
         .sales-invoice-scroll-wrapper {
-          overflow-x: auto;
+          overflow-x: hidden !important;
           overflow-y: auto;
           min-width: 0;
           flex: 1;
         }
         .sales-invoice-inner {
-          min-width: 680px;  /* 이 너비 이하로 줄어지면 가로 스크롤 활성화 */
+          min-width: auto !important;
+          width: 100% !important;
           display: flex;
           flex-direction: column;
           height: 100%;
@@ -976,64 +977,39 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               );
             })()}
 
-            <div className="invoice-table-container" style={{ overflowX: 'auto' }}>
-              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', minWidth: '700px' }}>
+            <div className="invoice-table-container" style={{ overflowX: 'hidden' }}>
+              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
                 <colgroup>
-                  <col style={{ width: colWidths.name + 'px' }} />
-                  <col style={{ width: colWidths.spec + 'px' }} />
-                  <col style={{ width: colWidths.qty + 'px' }} />
-                  <col style={{ width: colWidths.stock + 'px' }} />
-                  <col style={{ width: colWidths.price + 'px' }} />
-                  <col style={{ width: colWidths.supply + 'px' }} />
-                  <col style={{ width: colWidths.tax + 'px' }} />
-                  <col style={{ width: colWidths.total + 'px' }} />
-                  <col style={{ width: colWidths.del + 'px' }} />
+                  <col style={{ width: '45%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '4%' }} />
                 </colgroup>
                 <thead>
                   <tr>
                     {[
-                      { key: 'name',   label: '품목명',  align: 'center', pl: undefined },
-                      { key: 'spec',   label: '규격',    align: 'center', pl: undefined },
+                      { key: 'name',   label: '품목명',  align: 'left', pl: '8px' },
                       { key: 'qty',    label: '수량',    align: 'center', pl: undefined },
-                      { key: 'stock',  label: '현재고',  align: 'center', pl: undefined, color: '#3b82f6' },
-                      { key: 'price',  label: '단가',    align: 'center', pl: undefined },
-                      { key: 'supply', label: '공급가',  align: 'center', pl: undefined },
-                      { key: 'tax',    label: '세액',    align: 'center', pl: undefined },
-                      { key: 'total',  label: '합계',    align: 'center', pl: undefined },
+                      { key: 'price',  label: '단가',    align: 'right', pl: undefined },
+                      { key: 'total',  label: '합계',    align: 'right', pl: undefined },
                     ].map(col => (
                       <th key={col.key} style={{
                         position: 'relative', userSelect: 'none', overflow: 'hidden',
-                        textAlign: col.align, paddingLeft: col.pl || '8px',
+                        textAlign: col.align, padding: '6px 8px',
                         color: col.color || undefined,
                         whiteSpace: 'nowrap',
                       }}>
                         {col.label}
-                        {/* 드래그 리사이즈 핸들 */}
-                        <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                          style={{
-                            position: 'absolute', right: 0, top: 0, bottom: 0,
-                            width: '6px', cursor: 'col-resize',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 2,
-                          }}
-                          title={`${col.label} 너비 조절`}
-                        >
-                          <span style={{
-                            display: 'block', width: '0px', height: '100%',
-                            borderLeft: resizingCol.current === col.key ? `2px dotted ${themeColor}` : '1px dotted #cbd5e1',
-                            transition: 'border-color 0.15s, border-width 0.15s',
-                          }} />
-                        </span>
                       </th>
                     ))}
-                    <th style={{ width: colWidths.del + 'px' }}>
+                    <th style={{ width: '4%', textAlign: 'center', padding: '6px 0' }}>
                       <button
                         onClick={handleClearAllItems}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', margin: 0 }}
                         title="전체 품목 삭제"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </th>
                   </tr>
@@ -1041,87 +1017,71 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 <tbody>
                   {invoiceData.items.map(item => (
                     <tr key={item.id}>
-                      <td style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: colWidths.name + 'px' }}>{item.name}</td>
-                      <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.spec}</td>
-                      <td>
+                      <td style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '6px 8px' }}>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.name}</div>
+                        {item.spec && <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{item.spec}</div>}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: '6px 8px' }}>
                         {item.isBox ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <span style={{ fontWeight: 700, color: themeColor }}>1박스</span>
                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({item.qty}개)</span>
                           </div>
-                        ) : item.qty}
+                        ) : (
+                          <span style={{ fontWeight: 600 }}>{item.qty}</span>
+                        )}
                       </td>
-                      {/* 현재고 셀 */}
-                      <td>
-                        {(() => {
-                          const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(invoiceData.id));
-                          const baseSq = getStockQty(item.productId, invoiceData.warehouse);
-                          const sq = baseSq !== null ? (baseSq - (isAlreadySaved ? 0 : item.qty)) : null;
-                          const badge = getStockBadge(sq);
-                          return (
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 7px', borderRadius: '10px',
-                              backgroundColor: badge.bg,
-                              color: badge.color, fontWeight: 700,
-                              fontSize: '0.78rem', border: `1px solid ${badge.color}30`,
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {sq !== null ? `${sq}개` : '-'}
-                            </span>
-                          );
-                        })()}
+                      <td style={{ textAlign: 'right', padding: '6px 8px' }}>
+                        <input
+                          type="text"
+                          value={item.price ? item.price.toLocaleString() : ''}
+                          onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
+                          onBlur={() => handleItemPriceBlur(item)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.target.blur();
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            textAlign: 'right',
+                            padding: '3px 6px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            backgroundColor: '#f8fafc',
+                            color: '#1e293b'
+                          }}
+                        />
                       </td>
-                       <td>
-                         <input
-                           type="text"
-                           value={item.price ? item.price.toLocaleString() : ''}
-                           onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
-                           onBlur={() => handleItemPriceBlur(item)}
-                           onKeyDown={(e) => {
-                             if (e.key === 'Enter') {
-                               e.target.blur();
-                             }
-                           }}
-                           style={{
-                             width: '100%',
-                             textAlign: 'right',
-                             padding: '4px 6px',
-                             border: '1px solid #cbd5e1',
-                             borderRadius: '6px',
-                             fontSize: '0.85rem',
-                             fontWeight: 600,
-                             backgroundColor: '#f8fafc',
-                             color: '#1e293b'
-                           }}
-                         />
-                       </td>
-                      <td>{item.supplyValue.toLocaleString()}</td>
-                      <td>{item.tax.toLocaleString()}</td>
-                      <td style={{ fontWeight: 700 }}>{item.total.toLocaleString()}</td>
-                      <td><button className="icon-btn" onClick={() => {
-                        const updatedItems = invoiceData.items.filter(i => i.id !== item.id);
-                        if (updatedItems.length === 0) {
-                          if (currentIndex >= 0 && partnerDayInvoices[currentIndex]) {
-                            onDeleteInvoice(partnerDayInvoices[currentIndex].id);
-                          }
-                          if (currentIndex > 0) {
-                            const prevIdx = currentIndex - 1;
-                            const prevInv = partnerDayInvoices[prevIdx];
-                            if (prevInv) {
-                              setInvoiceData({ ...prevInv });
-                              setCurrentIndex(prevIdx);
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a', padding: '6px 8px' }}>
+                        {item.total.toLocaleString()}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: '6px 0' }}>
+                        <button className="icon-btn" onClick={() => {
+                          const updatedItems = invoiceData.items.filter(i => i.id !== item.id);
+                          if (updatedItems.length === 0) {
+                            if (currentIndex >= 0 && partnerDayInvoices[currentIndex]) {
+                              onDeleteInvoice(partnerDayInvoices[currentIndex].id);
+                            }
+                            if (currentIndex > 0) {
+                              const prevIdx = currentIndex - 1;
+                              const prevInv = partnerDayInvoices[prevIdx];
+                              if (prevInv) {
+                                setInvoiceData({ ...prevInv });
+                                setCurrentIndex(prevIdx);
+                              }
+                            } else {
+                              setInvoiceData({ ...invoiceData, id: Date.now(), items: [], receivedAmount: 0, payments: { cash: 0, account: 0, card: 0, bill: 0 }, discount: 0, creator: currentUser?.name || '시스템' });
+                              setCurrentIndex(-1);
                             }
                           } else {
-                            setInvoiceData({ ...invoiceData, id: Date.now(), items: [], receivedAmount: 0, payments: { cash: 0, account: 0, card: 0, bill: 0 }, discount: 0, creator: currentUser?.name || '시스템' });
-                            setCurrentIndex(-1);
+                            const updatedInvoice = { ...invoiceData, items: updatedItems };
+                            setInvoiceData(updatedInvoice);
+                            handleAutoSave(updatedInvoice);
                           }
-                        } else {
-                          const updatedInvoice = { ...invoiceData, items: updatedItems };
-                          setInvoiceData(updatedInvoice);
-                          handleAutoSave(updatedInvoice);
-                        }
-                      }}><Trash2 size={14} color="#ef4444" /></button></td>
+                        }}><Trash2 size={14} color="#ef4444" /></button></td>
                     </tr>
                   ))}
                   {invoiceData.items.length === 0 && (
