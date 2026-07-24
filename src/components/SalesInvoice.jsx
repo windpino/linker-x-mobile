@@ -1132,50 +1132,50 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 </tbody>
               </table>
             </div>
-            <div className="total-footer">
+            <div className="total-footer" style={{ marginBottom: '10px' }}>
               <div className="total-label">총 합계 (VAT 포함)</div>
               <div className="total-amount" style={{ color: themeColor }}>{totalAmount.toLocaleString()}원</div>
             </div>
-          </div>
 
-          <div className="invoice-summary-card">
-            <div className="summary-title"><BookOpen size={18} color={themeColor} />결제 요약</div>
-            <div className="summary-row"><span className="label">총 합계</span><span className="value">{totalAmount.toLocaleString()}원</span></div>
-            {invoiceData.discount > 0 && (
-              <div className="summary-row"><span className="label" style={{ color: '#ef4444' }}>현장 할인</span><span className="value" style={{ color: '#ef4444' }}>-{invoiceData.discount.toLocaleString()}원</span></div>
-            )}
-            <div className="summary-row"><span className="label">입금액</span><span className="value" style={{ color: '#10b981' }}>{invoiceData.receivedAmount.toLocaleString()}원</span></div>
-            
-            {invoiceData.receivedAmount > 0 && (
-              <div className="payment-breakdown" style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '10px', marginTop: '-4px', marginBottom: '8px', borderLeft: '2px solid #e2e8f0' }}>
-                {invoiceData.payments.cash > 0 && <div>현금: {invoiceData.payments.cash.toLocaleString()}원</div>}
-                {invoiceData.payments.account > 0 && <div>계좌: {invoiceData.payments.account.toLocaleString()}원</div>}
-                {invoiceData.payments.card > 0 && <div>카드: {invoiceData.payments.card.toLocaleString()}원</div>}
-                {invoiceData.payments.bill > 0 && <div>어음: {invoiceData.payments.bill.toLocaleString()}원</div>}
+            {/* 결제 요약 (아래쪽으로 이사하여 수평 및 수직 정돈) */}
+            <div className="invoice-summary-card" style={{ width: '100%', maxWidth: 'none', margin: '8px 0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 24px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 800, color: themeColor }}>
+                  <BookOpen size={16} /> 결제 요약
+                </div>
+                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                  <span>총 합계: <strong>{totalAmount.toLocaleString()}원</strong></span>
+                  {invoiceData.discount > 0 && <span style={{ color: '#ef4444' }}>현장 할인: -{invoiceData.discount.toLocaleString()}원</span>}
+                  <span>입금액: <strong style={{ color: '#10b981' }}>{invoiceData.receivedAmount.toLocaleString()}원</strong></span>
+                  <span>전 미수금: <strong>{previousBalance.toLocaleString()}원</strong></span>
+                  <span>금회 미수금: <strong>{outstandingBalance.toLocaleString()}원</strong></span>
+                  <span>누적 미수금: <strong style={{ color: '#ef4444' }}>{finalBalance.toLocaleString()}원</strong></span>
+                </div>
+
+                {invoiceData.receivedAmount > 0 && (
+                  <div className="payment-breakdown" style={{ display: 'inline-flex', gap: '10px', fontSize: '0.72rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
+                    {invoiceData.payments.cash > 0 && <span>현금: {invoiceData.payments.cash.toLocaleString()}원</span>}
+                    {invoiceData.payments.account > 0 && <span>계좌: {invoiceData.payments.account.toLocaleString()}원</span>}
+                    {invoiceData.payments.card > 0 && <span>카드: {invoiceData.payments.card.toLocaleString()}원</span>}
+                    {invoiceData.payments.bill > 0 && <span>어음: {invoiceData.payments.bill.toLocaleString()}원</span>}
+                  </div>
+                )}
               </div>
-            )}
-
-            <div style={{ margin: '10px 0', borderTop: '1px solid #f1f5f9' }}></div>
-            <div className="summary-row"><span className="label">전 미수금</span><span className="value">{previousBalance.toLocaleString()}원</span></div>
-            <div className="summary-row"><span className="label">금회 미수금</span><span className="value">{outstandingBalance.toLocaleString()}원</span></div>
-            <div className="summary-row total" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              <span className="label">누적 미수금</span>
-              <span className="value" style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: 800 }}>{finalBalance.toLocaleString()}원</span>
-            </div>
 
               <button 
                 className="btn-primary" 
                 style={{ 
-                  marginTop: '16px', 
+                  marginTop: '6px', 
                   width: '100%', 
                   backgroundColor: themeColor, 
                   border: 'none', 
-                  padding: '12px', 
-                  borderRadius: '8px', 
+                  padding: '10px', 
+                  borderRadius: '6px', 
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
-                  color: '#fff'
+                  color: '#fff',
+                  fontSize: '0.85rem'
                 }}
                 onClick={() => {
                   if (invoiceData.items.length === 0) {
@@ -1185,9 +1185,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   onSave(invoiceData, false);
                 }}
               >
-                {editingInvoice ? '전표 수정하기' : '전표 저장하기'}
+                {editingInvoice ? '전표 수정 완료 및 저장' : '전표 발행 및 최종 저장'}
               </button>
-          </div>{/* invoice-summary-card end */}
+            </div>
+          </div>{/* invoice-left-part end */}
         </div>{/* invoice-body invoice-body-flex end */}
         </div>{/* sales-invoice-inner end */}
         </div>{/* sales-invoice-scroll-wrapper end */}
@@ -1274,7 +1275,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             </div>
           </div>
         )}
-        {/* 하단 풋바 버튼 정렬: [새전표] [입금] [인쇄] [매출원장] 및 계산서 발급 */}
+        {/* 하단 풋바 버튼 정렬: [새전표] [입금] [인쇄] 버튼만 유지 */}
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
@@ -1370,63 +1371,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             onClick={() => window.print()}
           >
             <Printer size={13} /> 인쇄
-          </button>
-
-          <button 
-            className="btn-primary" 
-            style={{ 
-              backgroundColor: '#475569', 
-              color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
-              fontWeight: 700, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '5px',
-              margin: 0
-            }} 
-            onClick={() => onOpenLedger(invoiceData.partner, invoiceData.date)}
-          >
-            <BookOpen size={13} /> 매출원장
-          </button>
-
-          <button 
-            className="btn-primary" 
-            style={{ 
-              backgroundColor: '#f59e0b', 
-              color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
-              fontWeight: 700, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '5px',
-              margin: 0
-            }} 
-            onClick={() => onPrintTaxInvoice(invoiceData, false)}
-          >
-            <FileText size={13} /> 세금계산서
-          </button>
-
-          <button 
-            className="btn-primary" 
-            style={{ 
-              backgroundColor: '#d97706', 
-              color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
-              fontWeight: 700, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '5px',
-              margin: 0
-            }} 
-            onClick={() => onPrintTaxInvoice(invoiceData, true)}
-          >
-            <FileText size={13} /> 계산서
           </button>
         </div>
       </WindowModal>

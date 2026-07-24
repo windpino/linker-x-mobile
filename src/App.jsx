@@ -4537,32 +4537,39 @@ function FavoriteMenuBar({
       marginBottom: '4px',
       position: 'relative'
     }}>
-      {/* 헤더 행 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+      {/* 롤오버 공지사항 NOTICE (독립된 상단 1줄 표시) */}
+      <div
+        onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fee2e2',
+          borderRadius: '8px',
+          padding: '6px 12px',
+          cursor: 'pointer',
+          marginBottom: '10px',
+          transition: 'all 0.2s',
+          opacity: noticeFade ? 1 : 0,
+          transform: noticeFade ? 'none' : 'translateY(-2px)'
+        }}
+      >
+        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>NOTICE</span>
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {SYSTEM_NOTICES[currentNoticeIdx]?.title}
+        </span>
+      </div>
+
+      {/* 헤더 행: 자주 찾는 메뉴 타이틀 + 설정 톱니바퀴 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Star size={16} color="#f59e0b" fill="#f59e0b" />
           <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>자주 찾는 메뉴 (8개)</h4>
         </div>
 
-        {/* 롤오버 공지사항 */}
-        <div
-          onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
-          style={{
-            flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center',
-            backgroundColor: '#f1f5f9', borderRadius: '20px', padding: '3px 10px',
-            cursor: 'pointer', height: '24px', transition: 'all 0.2s',
-            opacity: noticeFade ? 1 : 0, transform: noticeFade ? 'none' : 'translateY(-2px)'
-          }}
-        >
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#ef4444', marginRight: '6px', whiteSpace: 'nowrap' }}>NOTICE</span>
-          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-            {SYSTEM_NOTICES[currentNoticeIdx]?.title}
-          </span>
-        </div>
-
         <button
           onClick={e => { e.stopPropagation(); setIsFavoriteSettingsOpen(true); }}
-          style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           title="전체 설정"
         >
           <SettingsIcon size={15} />
