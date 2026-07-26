@@ -92,7 +92,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
             }
           }}
           className="partner-input"
-          style={{ width: '100%', paddingLeft: '32px' }}
+          style={{ width: '100%', padding: '6px 12px 6px 32px', fontSize: '0.82rem', height: '34px', boxSizing: 'border-box' }}
         />
         <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
       </div>
