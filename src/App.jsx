@@ -253,7 +253,7 @@ function App() {
     setIsPurchaseInvoiceOpen(true);
   };
   const [isPurchaseOrderOpen, setIsPurchaseOrderOpen] = useState(false);
-  const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(false);
+  const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(true);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [isSalesLedgerOpen, setIsSalesLedgerOpen] = useState(false);
   const [isSalesInvoiceListOpen, setIsSalesInvoiceListOpen] = useState(false);
