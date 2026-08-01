@@ -931,12 +931,12 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         .so-preview-table th {
           position: sticky;
           top: 0;
-          background-color: #f1f5f9;
+          background-color: #f8fafc;
           padding: 12px 16px;
           font-size: 0.85rem;
           color: #475569;
           font-weight: 600;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid #f1f5f9;
           text-align: left;
         }
 
@@ -1036,14 +1036,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         .so-mobile-tabs {
           display: flex;
           background-color: #ffffff;
-          border-bottom: 1px solid #cbd5e1;
+          border-bottom: 1px solid #e2e8f0;
         }
 
         .so-mobile-tab-btn {
           flex: 1;
-          padding: 12px 8px;
+          padding: 14px 8px;
           border: none;
-          background: none;
+          background: #ffffff;
           font-size: 0.9rem;
           font-weight: 700;
           color: #64748b;
@@ -1056,7 +1056,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         .so-mobile-tab-btn.active {
           color: ${themeColor};
           border-bottom-color: ${themeColor};
-          background-color: color-mix(in srgb, ${themeColor} 12%, transparent);
+          background-color: #f8fafc;
         }
 
         /* Mobile Sticky Footer */
