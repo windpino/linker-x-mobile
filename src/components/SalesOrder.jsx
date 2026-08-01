@@ -630,14 +630,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 </div>
               </div>
 
-              <div className="so-action-buttons">
-                <button className="so-btn-transfer" onClick={handleTransferToInvoice}>
-                  <FileText size={18} /> 전표로 전송
-                </button>
-                <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
-                  <Save size={18} /> {editingOrder ? '수주 수정 저장' : '수주서 저장'}
-                </button>
-              </div>
+              {/* 중복 수주서 저장 및 전표로 전송 버튼 영역 제거 완료 */}
             </div>
           )}
         </div>
