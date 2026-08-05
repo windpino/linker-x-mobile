@@ -317,4 +317,82 @@
   align-self: flex-start;
 }
 
+/* 인쇄 및 프린트 레이아웃 스타일시트 공통 추가 */
+@media screen {
+  .print-only-container { display: none !important; }
+}
+@media print {
+  /* Hide everything by default */
+  body * { 
+    display: none !important; 
+  }
+  /* Show only the print container and its children */
+  .print-only-container, 
+  .print-only-container * { 
+    display: block !important; 
+    visibility: visible !important;
+  }
+  
+  .print-only-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    background: white;
+    z-index: 99999;
+  }
+  
+  /* Table specifics need table display, not block */
+  .print-item-table { display: table !important; width: 100% !important; border-collapse: collapse; margin-top: 20px; }
+  .print-item-table thead { display: table-header-group !important; }
+  .print-item-table tbody { display: table-row-group !important; }
+  .print-item-table tr { display: table-row !important; }
+  .print-item-table th, .print-item-table td { display: table-cell !important; padding: 12px; border: 1px solid #e2e8f0; }
+
+  .print-statement {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+    color: #1e293b;
+  }
+  .print-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 30px;
+    text-align: center;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 10px;
+  }
+  .print-header-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+  }
+  .partner-name { font-size: 32px; font-weight: 800; }
+  .honorific { font-size: 18px; font-weight: 500; color: #64748b; }
+  .top-total-amount { text-align: right; }
+  .top-total-amount .label { display: block; font-size: 14px; color: #64748b; font-weight: 600; }
+  .top-total-amount .value { font-size: 36px; font-weight: 800; color: #2563eb; }
+  
+  .print-item-table th { background: #f8fafc !important; -webkit-print-color-adjust: exact; }
+  .print-item-table td.item-name { text-align: left; font-weight: 700; }
+  .print-item-table tfoot td { font-weight: 800; font-size: 18px; }
+
+  .print-payment-section { margin-top: 40px; border: 2px solid #e2e8f0; padding: 24px; border-radius: 12px; }
+  .print-payment-section h3 { margin-top: 0; font-size: 18px; margin-bottom: 20px; }
+  .payment-grid { display: flex; gap: 20px; margin-bottom: 24px; }
+  .payment-box { flex: 1; border: 1px solid #e2e8f0; padding: 10px; text-align: center; border-radius: 8px; }
+  .payment-box .label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+  .payment-box .value { font-weight: 700; font-size: 16px; }
+
+  .balance-summary { border-top: 2px solid #e2e8f0; padding-top: 20px; }
+  .balance-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; }
+  .balance-row.highlight { font-size: 28px; font-weight: 800; color: #ef4444 !important; }
+  
+  .print-footer { margin-top: 50px; text-align: center; font-size: 16px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+}
+
 

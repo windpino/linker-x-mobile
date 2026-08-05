@@ -234,7 +234,7 @@ const HomepageApp = ({ onLoginClick }) => {
           <div className="flex items-center gap-2 text-sm md:text-base font-extrabold tracking-tight">
             <span className="bg-white/20 px-2.5 py-0.5 rounded text-xs">실시간</span>
             <span>무료 도입상담</span>
-            <span className="text-yellow-300 ml-1">02) 401-5121 | 1566-8680</span>
+            <span className="text-yellow-300 ml-1">02) 401-5121 | 1588-2220</span>
           </div>
 
           {/* Inline Form */}

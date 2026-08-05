@@ -77,7 +77,7 @@ const Navbar = ({ onOpenInquiry, onNavigateToLogin, onNavigateToSupport, onNavig
             {/* Phone Hotline */}
             <div className="flex items-center gap-1 text-[#f97316] font-extrabold text-sm ml-2">
               <Phone className="h-4 w-4" />
-              <span>1566-8680</span>
+              <span>1588-2220</span>
             </div>
           </div>
 
@@ -116,7 +116,7 @@ const Navbar = ({ onOpenInquiry, onNavigateToLogin, onNavigateToSupport, onNavig
                 onClick={() => { setIsOpen(false); onOpenInquiry(); }}
                 className="w-full text-center py-2.5 rounded-lg bg-[#f97316] text-white font-bold hover:bg-[#ea580c]"
               >
-                원격지원 (1566-8680)
+                원격지원 (1588-2220)
               </button>
             </div>
           </div>
