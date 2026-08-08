@@ -2273,8 +2273,12 @@ function App() {
             </button>
           )}
         </div>
-        <div className="widget-content">
-          {widgetId === 'Favorites' && (
+        <div className="widget-content" style={{ height: 'calc(100% - 40px)', overflowY: 'auto' }}>
+          {(() => {
+            try {
+              return (
+                <>
+                  {widgetId === 'Favorites' && (
             <div className="favorites-grid-wrapper" style={{ padding: '4px 0' }}>
               <div className="favorites-grid" style={{ 
                 display: 'grid', 
@@ -2283,7 +2287,7 @@ function App() {
                 rowGap: '12px'
               }}>
                 {Array.from({ length: 10 }).map((_, idx) => {
-                  const menuId = favoriteMenus[idx];
+                  const menuId = (favoriteMenus || [])[idx];
                   const menu = [
                     { id: 'staff', name: '직원 관리', icon: <Users size={20} />, action: () => setIsStaffManagerOpen(true) },
                     { id: 'warehouse', name: '창고 관리', icon: <Home size={20} />, action: () => setIsWarehouseManagerOpen(true) },
@@ -2873,6 +2877,17 @@ function App() {
               </div>
             </div>
           )}
+                </>
+              );
+            } catch (err) {
+              console.error("Widget render error:", widgetId, err);
+              return (
+                <div style={{ padding: '20px', color: '#dc2626', fontSize: '0.78rem', textAlign: 'center' }}>
+                  위젯 데이터를 불러오는 중 오류가 발생했습니다.
+                </div>
+              );
+            }
+          })()}
         </div>
       </div>
     );
