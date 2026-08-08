@@ -126,6 +126,52 @@ const ALL_FAVORITE_MENUS = [
   { id: 'settings',            name: '환경설정',        category: '환경설정&정품등록', emoji: '⚙️' },
   { id: 'license',             name: '정품등록',        category: '환경설정&정품등록', emoji: '🔑' },
 ];
+const getFavMenuIcon = (menuId, size = 18) => {
+  const icons = {
+    staff:                      <Users size={size} />,
+    warehouse:                  <Home size={size} />,
+    partner:                    <UserPlus size={size} />,
+    product:                    <Package size={size} />,
+    inventory_transfer:         <History size={size} />,
+    inventory_movement_manager: <List size={size} />,
+    inventory_adjustment:       <Box size={size} />,
+    inventory_mismatch:         <AlertTriangle size={size} />,
+    inventory_report_1:         <Box size={size} />,
+    inventory_report_2:         <Box size={size} />,
+    inventory_report_3:         <Box size={size} />,
+    purchase_invoice:           <FileInput size={size} />,
+    purchase_ledger:            <FileText size={size} />,
+    purchase_order:             <Send size={size} />,
+    sales_invoice:              <FileOutput size={size} />,
+    sales_invoice_list:         <List size={size} />,
+    sales_ledger:               <List size={size} />,
+    sales_order:                <ShoppingCart size={size} />,
+    order_list:                 <List size={size} />,
+    account:                    <CreditCard size={size} />,
+    cash_report_1:              <BarChart2 size={size} />,
+    cash_report_2:              <TrendingUp size={size} />,
+    cash_report_3:              <BarChart2 size={size} />,
+    cash_book:                  <FileText size={size} />,
+    expense:                    <DollarSign size={size} />,
+    sales_report:               <BarChart2 size={size} />,
+    order_report:               <BarChart2 size={size} />,
+    edit_delete:                <FileSearch size={size} />,
+    staff_perf:                 <TrendingUp size={size} />,
+    receivables:                <DollarSign size={size} />,
+    partner_special_price:      <Percent size={size} />,
+    tax_report:                 <Percent size={size} />,
+    schedule:                   <CalendarIcon size={size} />,
+    data_manager:               <Database size={size} />,
+    partner_excel:              <FileText size={size} />,
+    product_excel:              <FileText size={size} />,
+    sales_ledger_excel:         <FileText size={size} />,
+    purchase_ledger_excel:      <FileText size={size} />,
+    settings:                   <SettingsIcon size={size} />,
+    license:                    <Key size={size} />,
+  };
+  return icons[menuId] || <Package size={size} />;
+};
+
 const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'];
 
 function App() {
@@ -4663,7 +4709,7 @@ function FavoriteMenuBar({
                               cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
                             }}
                           >
-                            <span style={{ fontSize: '0.9rem' }}>{opt.emoji}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6' }}>{getFavMenuIcon(opt.id, 16)}</span>
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
                               <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{opt.category}</div>
@@ -4686,7 +4732,7 @@ function FavoriteMenuBar({
                                     cursor: 'pointer', textAlign: 'left'
                                   }}
                                 >
-                                  <span style={{ fontSize: '0.85rem' }}>{opt.emoji}</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6', marginRight: '4px' }}>{getFavMenuIcon(opt.id, 16)}</span>
                                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
                                   {(favoriteMenus || []).includes(opt.id) && (
                                     <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '6px' }}>등록됨</span>
@@ -4720,7 +4766,7 @@ function FavoriteMenuBar({
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6', marginBottom: '2px' }}>{getFavMenuIcon(menuId, 20)}</span>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
                   {menuInfo.name}
                 </span>
