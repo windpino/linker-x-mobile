@@ -2722,7 +2722,7 @@ function App() {
             const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
             const canViewAllOrders = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
             
-            const selectedDateOrders = salesOrders.filter(o => {
+            const selectedDateOrders = (salesOrders || []).filter(o => {
               const isDate = o.date === dateStr;
               if (!isDate) return false;
               return canViewAllOrders || o.manager === currentUser?.name;
@@ -2745,7 +2745,7 @@ function App() {
               if (!managerStats[managerName]) {
                 managerStats[managerName] = {
                   manager: managerName,
-                  warehouse: staffList.find(s => s.name === managerName)?.warehouse || '미지정',
+                  warehouse: (staffList || []).find(s => s.name === managerName)?.warehouse || '미지정',
                   totalQty: 0,
                   orderCount: 0
                 };
@@ -2805,11 +2805,11 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">선택일 매출합계</span>
-                <span className="stat-value">{salesInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{(salesInvoices || []).filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">선택일 매입합계</span>
-                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{(purchaseInvoices || []).filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
               </div>
             </div>
           )}
@@ -2829,7 +2829,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">당월 경비 합계</span>
-                <span className="stat-value">{expenses.filter(e => e.date.startsWith(dateStr.substring(0, 7))).reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{(expenses || []).filter(e => e.date && e.date.startsWith(dateStr.substring(0, 7))).reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()}원</span>
               </div>
             </div>
           )}
@@ -2837,7 +2837,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">미수금 총액</span>
-                <span className="stat-value">{partners.reduce((acc, p) => acc + (p.receivables || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{(partners || []).reduce((acc, p) => acc + (p.receivables || 0), 0).toLocaleString()}원</span>
               </div>
             </div>
           )}
@@ -2861,7 +2861,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">회사명</span>
-                <span className="stat-value">{systemSettings.companyName}</span>
+                <span className="stat-value">{systemSettings?.companyName || '미지정'}</span>
               </div>
             </div>
           )}
@@ -2869,7 +2869,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">사용 기한</span>
-                <span className="stat-value">{licenseData.expiryDate}</span>
+                <span className="stat-value">{licenseData?.expiryDate || '미지정'}</span>
               </div>
             </div>
           )}
