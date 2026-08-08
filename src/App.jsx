@@ -2360,12 +2360,12 @@ function App() {
           )}
           {widgetId === 'Inventory' && (() => {
             let discrepancyCount = 0;
-            warehouses.forEach(w => {
-              products.forEach(p => {
-                const bookStock = (p.initialStock || 0) + (inventory[w.name]?.[p.name] || 0);
-                const physStock = physicalInventory[w.name]?.[p.name];
+            (warehouses || []).forEach(w => {
+              (products || []).forEach(p => {
+                const bookStock = (p.initialStock || 0) + ((inventory || {})[w.name]?.[p.name] || 0);
+                const physStock = (physicalInventory || {})[w.name]?.[p.name];
                 if (physStock !== undefined && physStock !== bookStock) {
-                  discrepancyCount++;
+                   discrepancyCount++;
                 }
               });
             });
@@ -2374,11 +2374,11 @@ function App() {
               <div className="summary-stat" onClick={() => setIsInventoryMismatchOpen(true)} style={{ cursor: 'pointer' }}>
                 <div className="stat-item">
                   <span className="stat-label">총 품목 수</span>
-                  <span className="stat-value">{products.length}개</span>
+                  <span className="stat-value">{(products || []).length}개</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">카테고리</span>
-                  <span className="stat-value">{categories.length}개</span>
+                  <span className="stat-value">{(categories || []).length}개</span>
                 </div>
                 <div className="stat-item" style={{ 
                   backgroundColor: discrepancyCount > 0 ? '#fef2f2' : 'transparent', 
@@ -2396,17 +2396,17 @@ function App() {
             const currentOrderDateStr = dateStr;
             
             // 1. 수주받은 전체 매출 금액
-            const totalOrderAmount = salesOrders
+            const totalOrderAmount = (salesOrders || [])
               .filter(o => o.date === currentOrderDateStr)
               .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
             
             // 2. 수주받은 주문 건수
-            const totalOrderCount = salesOrders
+            const totalOrderCount = (salesOrders || [])
               .filter(o => o.date === currentOrderDateStr)
               .length;
             
             // 3. 매출전표 발행완료 건수
-            const completedOrderCount = salesOrders
+            const completedOrderCount = (salesOrders || [])
               .filter(o => o.date === currentOrderDateStr && o.status === '완료')
               .length;
 
@@ -2414,7 +2414,7 @@ function App() {
             const dailyAmountSums = {};
             const dailyOrderCounts = {};
             
-            salesOrders.forEach(o => {
+            (salesOrders || []).forEach(o => {
               dailyAmountSums[o.date] = (dailyAmountSums[o.date] || 0) + (Number(o.totalPrice) || 0);
               dailyOrderCounts[o.date] = (dailyOrderCounts[o.date] || 0) + 1;
             });
@@ -2487,11 +2487,11 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">선택일 매입</span>
-                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.totalAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{(purchaseInvoices || []).filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.totalAmount || 0), 0).toLocaleString()}원</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">진행 중 발주</span>
-                <span className="stat-value">{purchaseOrders.filter(o => o.status === '진행중').length}건</span>
+                <span className="stat-value">{(purchaseOrders || []).filter(o => o.status === '진행중').length}건</span>
               </div>
             </div>
           )}
@@ -2499,7 +2499,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">총 거래처</span>
-                <span className="stat-value">{partners.length}개</span>
+                <span className="stat-value">{(partners || []).length}개</span>
               </div>
             </div>
           )}
@@ -2522,7 +2522,7 @@ function App() {
             // Gather Activity Items
             const activities = [];
 
-            salesInvoices.forEach(inv => {
+            (salesInvoices || []).forEach(inv => {
               activities.push({
                 id: `sales-inv-${inv.id}`,
                 category: '전표등록',
@@ -2539,7 +2539,7 @@ function App() {
               });
             });
 
-            purchaseInvoices.forEach(inv => {
+            (purchaseInvoices || []).forEach(inv => {
               activities.push({
                 id: `purch-inv-${inv.id}`,
                 category: '전표등록',
@@ -2556,7 +2556,7 @@ function App() {
               });
             });
 
-            salesOrders.forEach(ord => {
+            (salesOrders || []).forEach(ord => {
               activities.push({
                 id: `order-${ord.id}`,
                 category: '전표등록',
@@ -2573,7 +2573,7 @@ function App() {
               });
             });
 
-            purchaseOrders.forEach(po => {
+            (purchaseOrders || []).forEach(po => {
               activities.push({
                 id: `po-${po.id}`,
                 category: '전표등록',
@@ -2590,7 +2590,7 @@ function App() {
               });
             });
 
-            inventoryMovements.forEach(mov => {
+            (inventoryMovements || []).forEach(mov => {
               activities.push({
                 id: `mov-${mov.id}`,
                 category: '이동',
@@ -2607,7 +2607,7 @@ function App() {
               });
             });
 
-            inventoryAdjustments.forEach(adj => {
+            (inventoryAdjustments || []).forEach(adj => {
               activities.push({
                 id: `adj-${adj.id}`,
                 category: '변경',
@@ -3501,7 +3501,7 @@ function App() {
             gap: '12px', padding: '12px', maxHeight: '80vh', overflowY: 'auto'
           }}>
             {(() => {
-              const activeWidgets = dashboardConfig.widgets.filter(id => id !== 'Calendar' && id !== 'Favorites');
+              const activeWidgets = (dashboardConfig?.widgets || ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses']).filter(id => id !== 'Calendar' && id !== 'Favorites');
               const maxWidgets = 6;
               const displayWidgets = activeWidgets.slice(0, maxWidgets);
               return displayWidgets.map((widgetId) => (
