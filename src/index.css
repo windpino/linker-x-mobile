@@ -1,5 +1,9 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
 
+html {
+  font-size: 112.5% !important;
+}
+
 :root {
   --bg-dark: #1e293b;
   --bg-darker: #0f172a;
