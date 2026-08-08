@@ -18,7 +18,6 @@ import AgencySignup from './components/AgencySignup';
 import UserSignup from './components/UserSignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import HomepageApp from './homepage/HomepageApp';
 
 const ALL_PERMS = {
   warehouse: true, staff: true, partner: true, product: true, account: true,
@@ -131,11 +130,6 @@ const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수
 function App() {
   const [currentView, setCurrentView] = useState(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('home') === 'true') {
-        return 'homepage';
-      }
-      
       if (window.location.pathname === '/madmin') return 'super_admin';
       
       const savedUser = localStorage.getItem('currentUser');
@@ -150,7 +144,7 @@ function App() {
     } catch (err) {
       console.error('Error initializing currentView:', err);
     }
-    return 'homepage';
+    return 'login';
   }); 
 
 
@@ -2882,18 +2876,9 @@ function App() {
     );
   };
 
-  if (currentView === 'homepage') {
-    return (
-      <HomepageApp 
-        onLoginClick={() => setCurrentView('login')} 
-      />
-    );
-  }
-
   if (currentView === 'login') {
     return (
       <Login 
-        onBackToHome={() => setCurrentView('homepage')}
         prefilledAgencyId={prefilledAgencyId}
         onFindAgency={async (idOrEmail, pwd) => {
           // 0. Master Check (Login directly from Stage 1)

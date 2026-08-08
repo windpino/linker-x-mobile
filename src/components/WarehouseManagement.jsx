@@ -73,6 +73,16 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       const whDocRef = doc(db, 'companies', companyId, 'warehouses', whId);
       batch.set(whDocRef, finalData);
 
+      // If this warehouse is set as the main warehouse, disable isMain on all other warehouses
+      if (whData.isMain) {
+        warehouses.forEach(w => {
+          if (w.id !== Number(whId) && w.isMain) {
+            const otherWhDocRef = doc(db, 'companies', companyId, 'warehouses', String(w.id));
+            batch.update(otherWhDocRef, { isMain: false });
+          }
+        });
+      }
+
       // 2. Sync Staff's default warehouse if manager is set
       if (whData.manager) {
         const staff = staffList.find(s => s.name === whData.manager);

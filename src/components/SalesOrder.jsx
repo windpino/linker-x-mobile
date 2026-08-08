@@ -517,13 +517,13 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     onKeyUp={(e) => updateCaretPosition(e.target)}
                     onClick={(e) => updateCaretPosition(e.target)}
                     style={{
-                      height: '140px',
-                      minHeight: '120px',
-                      maxHeight: '180px',
-                      fontSize: '0.85rem',
-                      lineHeight: '1.4',
-                      padding: '8px',
-                      borderRadius: '8px',
+                      height: '75px',
+                      minHeight: '60px',
+                      maxHeight: '110px',
+                      fontSize: '0.82rem',
+                      lineHeight: '1.3',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
                       border: '1px solid #cbd5e1',
                       resize: 'none'
                     }}
@@ -566,14 +566,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     </div>
                   )}
                 </div>
-                <div className="form-group" style={{ marginTop: '16px' }}>
-                  <label>비고 (메모)</label>
+                <div className="form-group" style={{ marginTop: '8px' }}>
+                  <label style={{ fontSize: '0.78rem' }}>비고 (메모)</label>
                   <input 
                     type="text" 
                     placeholder="특이사항이나 요청사항을 입력하세요" 
                     value={orderData.memo} 
                     onChange={(e) => setOrderData({...orderData, memo: e.target.value})} 
-                    style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem' }}
+                    style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 10px', borderRadius: '6px', fontSize: '0.82rem' }}
                   />
                 </div>
               </div>
@@ -1129,27 +1129,39 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
           .so-body {
             flex-direction: column;
-            padding: 12px;
+            padding: 8px; /* 양옆 여백 축소 */
             overflow: hidden; /* Prevent body scroll, use pane scroll instead */
             flex: 1;
             gap: 0;
+            box-sizing: border-box;
+            width: 100%;
           }
           
           .so-pane-left {
-            min-width: 100%;
+            width: 100%;
+            min-width: 0;
             flex: 1;
             overflow-y: auto;
             padding-bottom: 8px;
+            box-sizing: border-box;
           }
 
           .so-pane-right {
-            min-width: 100%;
+            width: 100%;
+            min-width: 0;
             flex: 1;
             overflow-y: auto;
             padding-bottom: 8px;
             box-shadow: none;
             border: none;
             border-radius: 0;
+            box-sizing: border-box;
+          }
+
+          .so-card {
+            padding: 10px !important;
+            border-radius: 12px !important;
+            box-sizing: border-box !important;
           }
 
           /* Hide desktop-only elements on mobile preview pane */
@@ -1173,7 +1185,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
           }
 
           .so-items-textarea {
-            min-height: 140px;
+            min-height: 60px;
           }
         }
       `}</style>
