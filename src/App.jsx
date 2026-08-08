@@ -2135,6 +2135,9 @@ function App() {
   const renderWidget = (widgetId, spanClass = 'grid-span-2') => {
     if (!widgetId) return <div className={`dashboard-widget empty-slot ${spanClass}`}></div>;
 
+    const safeDate = selectedDate instanceof Date ? selectedDate : (selectedDate ? new Date(selectedDate) : new Date());
+    const dateStr = safeDate.toISOString().split('T')[0];
+
     if (widgetId?.toLowerCase() === 'schedule') {
       return (
         <div 
@@ -2390,21 +2393,21 @@ function App() {
             );
           })()}
           {widgetId === 'Sales' && (() => {
-            const dateStr = selectedDate.toISOString().split('T')[0];
+            const currentOrderDateStr = dateStr;
             
             // 1. 수주받은 전체 매출 금액
             const totalOrderAmount = salesOrders
-              .filter(o => o.date === dateStr)
+              .filter(o => o.date === currentOrderDateStr)
               .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
             
             // 2. 수주받은 주문 건수
             const totalOrderCount = salesOrders
-              .filter(o => o.date === dateStr)
+              .filter(o => o.date === currentOrderDateStr)
               .length;
             
             // 3. 매출전표 발행완료 건수
             const completedOrderCount = salesOrders
-              .filter(o => o.date === dateStr && o.status === '완료')
+              .filter(o => o.date === currentOrderDateStr && o.status === '완료')
               .length;
 
             // 최대치 계산 (동적 스케일링)
@@ -2484,7 +2487,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">선택일 매입</span>
-                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.totalAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.totalAmount || 0), 0).toLocaleString()}원</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">진행 중 발주</span>
@@ -2716,7 +2719,6 @@ function App() {
             );
           })()}
           {widgetId === 'OrderReport' && (() => {
-            const dateStr = selectedDate.toISOString().split('T')[0];
             const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
             const canViewAllOrders = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
             
@@ -2803,11 +2805,11 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">선택일 매출합계</span>
-                <span className="stat-value">{salesInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{salesInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">선택일 매입합계</span>
-                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === selectedDate.toISOString().split('T')[0]).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{purchaseInvoices.filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
               </div>
             </div>
           )}
@@ -2827,7 +2829,7 @@ function App() {
             <div className="summary-stat">
               <div className="stat-item">
                 <span className="stat-label">당월 경비 합계</span>
-                <span className="stat-value">{expenses.filter(e => e.date.startsWith(selectedDate.toISOString().split('T')[0].substring(0, 7))).reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()}원</span>
+                <span className="stat-value">{expenses.filter(e => e.date.startsWith(dateStr.substring(0, 7))).reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()}원</span>
               </div>
             </div>
           )}
