@@ -4709,7 +4709,7 @@ function FavoriteMenuBar({
                               cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
                             }}
                           >
-                            <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6' }}>{getFavMenuIcon(opt.id, 16)}</span>
+                            <span style={{ fontSize: '0.9rem' }}>{opt.emoji}</span>
                             <div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
                               <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{opt.category}</div>
@@ -4732,7 +4732,7 @@ function FavoriteMenuBar({
                                     cursor: 'pointer', textAlign: 'left'
                                   }}
                                 >
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6', marginRight: '4px' }}>{getFavMenuIcon(opt.id, 16)}</span>
+                                  <span style={{ fontSize: '0.85rem' }}>{opt.emoji}</span>
                                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
                                   {(favoriteMenus || []).includes(opt.id) && (
                                     <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '6px' }}>등록됨</span>
@@ -4766,7 +4766,7 @@ function FavoriteMenuBar({
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', color: '#3b82f6', marginBottom: '2px' }}>{getFavMenuIcon(menuId, 20)}</span>
+                <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
                   {menuInfo.name}
                 </span>
