@@ -461,7 +461,7 @@ const Header = ({
       {/* 맨 오른쪽 정렬: [ 위젯창 아이콘 | 달력 아이콘 ] */}
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button 
-          onClick={onOpenWidgetModal}
+          onClick={() => { playMenuClickSound(); onOpenWidgetModal(); }}
           title="위젯창 열기 (6개 위젯)"
           style={{
             background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '8px',
@@ -471,9 +471,9 @@ const Header = ({
         >
           <LayoutDashboard size={18} />
         </button>
-
+ 
         <button 
-          onClick={onOpenCalendarModal}
+          onClick={() => { playMenuClickSound(); onOpenCalendarModal(); }}
           title="달력 열기"
           style={{
             background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px',

@@ -71,6 +71,7 @@ import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import useDevice from './hooks/useDevice';
+import { playMenuClickSound } from './utils/audio';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc, collection, getDocs, getDoc, writeBatch, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
 
@@ -4608,7 +4609,7 @@ function FavoriteMenuBar({
             return (
               <div key={idx} style={{ position: 'relative' }}>
                 <button
-                  onClick={() => { setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
+                  onClick={() => { playMenuClickSound(); setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
                     width: '100%', height: '62px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
@@ -4655,7 +4656,7 @@ function FavoriteMenuBar({
                         filteredMenus.length === 0 ? (
                           <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>검색 결과 없음</div>
                         ) : filteredMenus.map(opt => (
-                          <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
+                          <button key={opt.id} onClick={() => { playMenuClickSound(); assignMenuToSlot(idx, opt.id); }}
                             style={{
                               width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
                               padding: '6px 10px', border: 'none', background: 'none',
@@ -4678,7 +4679,7 @@ function FavoriteMenuBar({
                                 {cat}
                               </div>
                               {catMenus.map(opt => (
-                                <button key={opt.id} onClick={() => assignMenuToSlot(idx, opt.id)}
+                                <button key={opt.id} onClick={() => { playMenuClickSound(); assignMenuToSlot(idx, opt.id); }}
                                   style={{
                                     width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
                                     padding: '5px 10px', border: 'none', background: 'none',
@@ -4710,7 +4711,7 @@ function FavoriteMenuBar({
               onMouseLeave={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '0')}
             >
               <button
-                onClick={() => { onMenuAction(menuId); }}
+                onClick={() => { playMenuClickSound(); onMenuAction(menuId); }}
                 style={{
                   width: '100%', height: '62px', border: '1px solid #e2e8f0',
                   backgroundColor: '#f8fafc', borderRadius: '10px',
