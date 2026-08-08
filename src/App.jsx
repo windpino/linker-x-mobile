@@ -2630,8 +2630,19 @@ function App() {
 
             // Sort most recent first
             const sortedActivities = activities.sort((a, b) => {
-              if (b.date !== a.date) return b.date.localeCompare(a.date);
-              return Number(b.timestamp) - Number(a.timestamp);
+              const dateB = String(b.date || '');
+              const dateA = String(a.date || '');
+              if (dateB !== dateA) return dateB.localeCompare(dateA);
+              
+              const getMs = (val) => {
+                if (!val) return 0;
+                if (typeof val === 'number') return val;
+                if (typeof val.seconds === 'number') return val.seconds * 1000;
+                if (typeof val.toDate === 'function') return val.toDate().getTime();
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? 0 : d.getTime();
+              };
+              return getMs(b.timestamp) - getMs(a.timestamp);
             });
 
             const filteredInWidget = sortedActivities.filter(act => {
@@ -3520,7 +3531,14 @@ function App() {
               const maxWidgets = 6;
               const displayWidgets = activeWidgets.slice(0, maxWidgets);
               return displayWidgets.map((widgetId) => (
-                <div key={widgetId} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', height: '290px' }}>
+                <div key={widgetId} style={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '10px', 
+                  overflow: 'hidden', 
+                  height: '290px', 
+                  minHeight: '290px', 
+                  flexShrink: 0 
+                }}>
                   {renderWidget(widgetId, '')}
                 </div>
               ));
