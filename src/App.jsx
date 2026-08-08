@@ -3460,35 +3460,32 @@ function App() {
             }}
           />
 
-          {/* 일정 목록만 노출되는 메인 영역 */}
+          {/* 대시보드 위젯들이 세로로 나열되는 메인 영역 */}
           <div style={{
-            backgroundColor: 'white', borderRadius: '12px', padding: '12px',
-            border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            width: '100%'
           }}>
-            <ScheduleSidebar 
-              selectedDate={selectedDate} 
-              schedules={schedules} 
-              setSchedules={setSchedules} 
-              currentUser={currentUser} 
-              scheduleTypes={scheduleTypes}
-              hiddenScheduleTypes={hiddenScheduleTypes}
-              onAdd={() => setIsScheduleRegistrationOpen(true)}
-              isDashboardLocked={true}
-              onOpenScheduleDetail={handleOpenScheduleDetail}
-              onCopy={(s) => {
-                setCopiedSchedule(s);
-                alert('일정이 복사되었습니다.');
-              }}
-              onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
-              onDelete={async (id) => {
-                setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
-                try {
-                  const companyId = currentUser?.companyId || 'default';
-                  await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
-                  showToast('일정이 삭제되었습니다.', 'success');
-                } catch (err) { console.error(err); }
-              }}
-            />
+            {(() => {
+              const activeWidgets = (dashboardConfig?.widgets || ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses']).filter(id => id !== 'Calendar' && id !== 'Favorites');
+              const maxWidgets = 6;
+              const displayWidgets = activeWidgets.slice(0, maxWidgets);
+              return displayWidgets.map((widgetId) => (
+                <div key={widgetId} style={{ 
+                  backgroundColor: 'white', 
+                  borderRadius: '12px', 
+                  padding: '12px',
+                  border: '1px solid #e2e8f0', 
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                  minHeight: '290px',
+                  height: '290px',
+                  overflow: 'hidden'
+                }}>
+                  {renderWidget(widgetId, '')}
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </div>
