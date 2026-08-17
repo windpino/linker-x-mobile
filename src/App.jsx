@@ -679,6 +679,62 @@ function App() {
     }
   }, [systemSettings.display?.darkMode, companySettings, systemSettings.theme, currentUser]);
 
+  // Automatic cleanup of logs older than 1 month
+  React.useEffect(() => {
+    if (!currentUser || currentView === 'login' || currentView === 'super_admin') return;
+    
+    // We run the cleanup once when the user is logged in
+    const companyId = currentUser.companyId || 'default';
+    const hasCleanedUp = sessionStorage.getItem(`logs_cleaned_${companyId}`);
+    if (hasCleanedUp) return;
+
+    const cleanupLogs = async () => {
+      try {
+        const cutoffTime = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const cutoffDateStr = new Date(cutoffTime).toISOString().split('T')[0];
+        
+        const targetCollections = ['actionLogs', 'inventoryTransferHistory', 'inventoryAdjustments'];
+        
+        for (const colName of targetCollections) {
+          const colRef = collection(db, 'companies', companyId, colName);
+          const snap = await getDocs(colRef);
+          
+          snap.forEach(async (dDoc) => {
+            const data = dDoc.data();
+            const id = dDoc.id;
+            
+            // Check if record is older than 30 days
+            let isOld = false;
+            
+            if (data.date && data.date < cutoffDateStr) {
+              isOld = true;
+            } else if (data.timestamp && data.timestamp < cutoffTime) {
+              isOld = true;
+            } else if (data.createdAt) {
+              const createdTime = new Date(data.createdAt).getTime();
+              if (!isNaN(createdTime) && createdTime < cutoffTime) {
+                isOld = true;
+              }
+            }
+            
+            if (isOld) {
+              console.log(`[Auto Cleanup] Deleting old log in ${colName}: ${id} (date: ${data.date})`);
+              await deleteDoc(doc(db, 'companies', companyId, colName, id));
+            }
+          });
+        }
+        
+        sessionStorage.setItem(`logs_cleaned_${companyId}`, 'true');
+      } catch (err) {
+        console.warn('[Auto Cleanup] Failed to run log cleanup:', err);
+      }
+    };
+
+    // Run cleanup 3 seconds after load to not block initial loading rendering
+    const timer = setTimeout(cleanupLogs, 3000);
+    return () => clearTimeout(timer);
+  }, [currentUser, currentView]);
+
   React.useEffect(() => {
     if (currentUser && currentUser.userId && currentUser.role !== 'super_admin') {
       const currentStaff = staffList.find(s => s.userId === currentUser.userId);
