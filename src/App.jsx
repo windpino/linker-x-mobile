@@ -3229,20 +3229,7 @@ function App() {
             createdAt: new Date().toISOString()
           });
           
-          const newPartner = {
-            id: Date.now(),
-            loginId: userData.email,
-            password: userData.password,
-            name: userData.name,
-            email: userData.email,
-            companyId: companyId,
-            type: '매출처',
-            status: 'pending',
-            createdAt: new Date().toISOString()
-          };
-          // Save to agency sub-collection
-          await setDoc(doc(db, 'companies', companyId, 'partners', String(newPartner.id)), newPartner);
-          setPartners(prev => [...prev, newPartner]);
+
 
           alert('회원사 가입이 완료되었습니다! 방금 가입한 정보로 로그인해 주세요.');
           return true;
