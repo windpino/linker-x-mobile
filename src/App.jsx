@@ -3922,6 +3922,9 @@ function App() {
         salesInvoices={salesInvoices}
         products={products}
         partners={partners}
+        staffList={staffList}
+        warehouses={warehouses}
+        categories={categories}
         onOpenInvoice={(inv) => openSalesInvoice(inv)}
         currentUser={currentUser}
         zIndex={activeSalesModal === 'ledger' ? 5000 : 4000}

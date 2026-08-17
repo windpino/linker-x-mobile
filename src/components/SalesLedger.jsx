@@ -6,7 +6,21 @@ import { exportToExcel } from '../utils/excelUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
-const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice, currentUser, onUpdateInvoice, zIndex, initialPartner = '', initialDate = '' }) => {
+const SalesLedger = ({ 
+  onClose, 
+  salesInvoices = [], 
+  partners = [], 
+  onOpenInvoice, 
+  currentUser, 
+  onUpdateInvoice, 
+  zIndex, 
+  initialPartner = '', 
+  initialDate = '',
+  staffList = [],
+  warehouses = [],
+  categories = [],
+  products = []
+}) => {
   const [colWidths, setColWidths] = useState({
     date: 100,
     partner: 130,
@@ -50,7 +64,10 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
     window.addEventListener('mouseup', onUp);
   }, [colWidths]);
   const [filter, setFilter] = useState('한달');
-  const filterOptions = ['1주일', '한달', '상반기', '하반기', '1년'];
+  const filterOptions = ['오늘', '1주일', '한달', '상반기', '하반기', '1년'];
+  const [selectedStaff, setSelectedStaff] = useState('전체');
+  const [selectedWarehouse, setSelectedWarehouse] = useState('전체');
+  const [selectedCategory, setSelectedCategory] = useState('전체');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -122,6 +139,10 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
     let end = formatDate(today);
 
     switch (opt) {
+      case '오늘':
+        start = formatDate(today);
+        end = formatDate(today);
+        break;
       case '1년':
         start = `${y}-01-01`;
         end = `${y}-12-31`;
@@ -159,15 +180,38 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
 
 
 
+  const getMatchingInvoiceItems = (inv) => {
+    if (!inv.items || inv.items.length === 0) {
+      return selectedCategory === '전체' ? [{ name: '매출', total: inv.totalAmount || 0, qty: 0, price: 0 }] : [];
+    }
+    return inv.items.filter(item => {
+      if (selectedCategory === '전체') return true;
+      const prod = products.find(p => p.name === item.name);
+      return prod && prod.category === selectedCategory;
+    });
+  };
+
+  const isInvoiceMatchingFilters = (inv) => {
+    if (selectedStaff !== '전체') {
+      const creator = inv.creator || inv.manager || '시스템';
+      if (inv.manager !== selectedStaff && creator !== selectedStaff) return false;
+    }
+    if (selectedWarehouse !== '전체' && inv.warehouse !== selectedWarehouse) return false;
+    const matchingItems = getMatchingInvoiceItems(inv);
+    if (matchingItems.length === 0) return false;
+    return true;
+  };
+
   // 1. Calculate Carried Forward
   let carriedForward = 0;
   const priorInvoices = salesInvoices.filter(inv => {
     if (inv.date >= startDate) return false;
-    if (selectedPartner) return inv.partner === selectedPartner;
-    return true;
+    if (selectedPartner && inv.partner !== selectedPartner) return false;
+    return isInvoiceMatchingFilters(inv);
   });
   const priorSales = priorInvoices.reduce((sum, inv) => {
-    const itemsSum = inv.items && inv.items.length > 0 ? inv.items.reduce((s, item) => s + (item.total || 0), 0) : (inv.totalAmount || 0);
+    const matchingItems = getMatchingInvoiceItems(inv);
+    const itemsSum = matchingItems.reduce((s, item) => s + (item.total || 0), 0);
     return sum + itemsSum;
   }, 0);
   const priorReceived = priorInvoices.reduce((sum, inv) => sum + (inv.receivedAmount || 0), 0);
@@ -197,8 +241,8 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
   const currentInvoices = salesInvoices
     .filter(inv => {
       if (inv.date < startDate || inv.date > endDate) return false;
-      if (selectedPartner) return inv.partner === selectedPartner;
-      return true;
+      if (selectedPartner && inv.partner !== selectedPartner) return false;
+      return isInvoiceMatchingFilters(inv);
     })
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -237,8 +281,9 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
       const partnerBankAccount = partner ? partner.bankAccount : '';
 
       // A. Sales items rows
-      if (inv.items && inv.items.length > 0) {
-        inv.items.forEach((item, idx) => {
+      const matchingItems = getMatchingInvoiceItems(inv);
+      if (matchingItems.length > 0) {
+        matchingItems.forEach((item, idx) => {
           runningBalance += (item.total || 0);
           dayTotalQty += Number(item.qty || 0);
           const itemSupply = item.supplyValue !== undefined ? item.supplyValue : Math.floor((item.total || 0) / 1.1);
@@ -248,7 +293,7 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
           dayRows.push({
             rowType: 'sale',
             invoiceId: inv.id,
-            itemId: item.id,
+            itemId: item.id || null,
             date: dateStr,
             partner: inv.partner,
             name: item.name,
@@ -265,35 +310,6 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
             creator: rowCreator
           });
         });
-      } else {
-        // Fallback if no items but total exists
-        const totalAmt = inv.totalAmount || 0;
-        if (totalAmt > 0) {
-          runningBalance += totalAmt;
-          const itemSupply = Math.floor(totalAmt / 1.1);
-          dayTotalSupplyValue += itemSupply;
-          dayTotalAmount += totalAmt;
-
-          dayRows.push({
-            rowType: 'sale',
-            invoiceId: inv.id,
-            itemId: null,
-            date: dateStr,
-            partner: inv.partner,
-            name: '매출',
-            spec: '',
-            qty: 0,
-            price: 0,
-            supplyValue: itemSupply,
-            total: totalAmt,
-            received: '',
-            balance: runningBalance,
-            isFirstRowOfInvoice: true,
-            createdAt: inv.createdAt,
-            updatedAt: inv.updatedAt,
-            creator: rowCreator
-          });
-        }
       }
 
       // B. Payment rows
@@ -392,13 +408,14 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
 
   const currentSummaryInvoices = salesInvoices.filter(inv => {
     if (inv.date < startDate || inv.date > endDate) return false;
-    if (selectedPartner) return inv.partner === selectedPartner;
-    return true;
+    if (selectedPartner && inv.partner !== selectedPartner) return false;
+    return isInvoiceMatchingFilters(inv);
   });
   currentSummaryInvoices.forEach(inv => {
-    totalSales += inv.items ? inv.items.reduce((s, i) => s + (i.total || 0), 0) : (inv.totalAmount || 0);
+    const matchingItems = getMatchingInvoiceItems(inv);
+    totalSales += matchingItems.reduce((s, i) => s + (i.total || 0), 0);
+    totalQty += matchingItems.reduce((s, i) => s + Number(i.qty || 0), 0);
     totalReceived += (inv.receivedAmount || 0) + (inv.discount || 0);
-    totalQty += inv.items ? inv.items.reduce((s, i) => s + Number(i.qty || 0), 0) : 0;
   });
   balance = carriedForward + totalSales - totalReceived;
 
@@ -535,6 +552,50 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
             </div>
           </div>
 
+          <div className="filter-row" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
+              <label>담당 직원</label>
+              <select 
+                value={selectedStaff} 
+                onChange={e => setSelectedStaff(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              >
+                <option value="전체">전체 직원</option>
+                {staffList.map(s => (
+                  <option key={s.id || s.userId} value={s.name}>{s.name} ({s.jobTitle || '사원'})</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
+              <label>출고 창고</label>
+              <select 
+                value={selectedWarehouse} 
+                onChange={e => setSelectedWarehouse(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              >
+                <option value="전체">전체 창고</option>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.name}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
+              <label>품목 카테고리</label>
+              <select 
+                value={selectedCategory} 
+                onChange={e => setSelectedCategory(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              >
+                <option value="전체">전체 카테고리</option>
+                {categories.map(c => (
+                  <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="filter-btns">
             {filterOptions.map(opt => (
               <button key={opt} className={`filter-btn ${filter === opt ? 'active' : ''}`} onClick={() => applyFilter(opt)}>{opt}</button>
@@ -543,11 +604,14 @@ const SalesLedger = ({ onClose, salesInvoices = [], partners = [], onOpenInvoice
         </div>
 
         <>
-          <div style={{ padding: '6px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: '0.84rem', color: '#1d4ed8', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0' }}>
+          <div style={{ padding: '6px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: '0.84rem', color: '#1d4ed8', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0', flexWrap: 'wrap' }}>
             🔍 <strong>{selectedPartner || '전체 거래처'}</strong> 매출원장 조회 중
             {selectedPartner && (
               <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>조회 해제</button>
             )}
+            {selectedStaff !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>직원: {selectedStaff}</span>}
+            {selectedWarehouse !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>창고: {selectedWarehouse}</span>}
+            {selectedCategory !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>카테고리: {selectedCategory}</span>}
           </div>
 
             <div className="invoice-table-container" style={{ backgroundColor: 'white', borderRadius: '0 0 12px 12px', border: '1px solid #e2e8f0', borderTop: 'none', overflowX: 'auto' }}>
