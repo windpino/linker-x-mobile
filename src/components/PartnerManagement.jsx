@@ -260,6 +260,7 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
         const remainingPartners = safePartners.filter(p => String(p.id) !== String(id));
         const withNewSequences = autoAssignSequences(remainingPartners);
         await savePartnerSequences(withNewSequences);
+        setPartners(withNewSequences);
 
       } catch (err) {
         console.error('Partner delete error:', err);
