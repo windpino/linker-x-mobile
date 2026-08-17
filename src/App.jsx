@@ -3222,7 +3222,7 @@ function App() {
             userId: trimmedId,
             password: userData.password,
             name: userData.ceoName || '관리자',
-            jobTitle: '관리자',
+            jobTitle: '대표',
             role: 'admin',
             companyId: companyId,
             permissions: { ALL: true },
@@ -3323,8 +3323,8 @@ function App() {
                 email: data.email,
                 phone: data.phone,
                 jobTitle: data.jobTitle,
-                role: 'admin', 
-                permissions: ALL_PERMS,
+                role: 'staff', 
+                permissions: {},
                 companyId: data.companyId,
                 createdAt: data.createdAt
               };

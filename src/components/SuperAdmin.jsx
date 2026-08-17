@@ -329,7 +329,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           userId: adminUserId,
           password: agencyForm.password || '123456',
           name: agencyForm.ceo || agencyForm.name, // 회사명/대표명
-          jobTitle: '관리자', // 관리자 직급
+          jobTitle: '대표', // 대표 직급
           role: 'admin',
           companyId: agencyForm.id,
           permissions: { ALL: true },
@@ -595,7 +595,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         userId: adminUserId,
         password: inquiry.password,
         name: inquiry.ceoName,
-        jobTitle: '관리자',
+        jobTitle: '대표',
         role: 'admin',
         companyId: companyId,
         permissions: { ALL: true },
