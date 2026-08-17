@@ -638,13 +638,15 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{ 
                     border: '1px solid #cbd5e1', 
                     borderRadius: '4px', 
-                    padding: '2px 4px', 
-                    fontSize: '0.78rem', 
+                    padding: '4px 8px', 
+                    fontSize: '0.82rem', 
                     fontWeight: 700, 
                     color: '#1e293b', 
                     cursor: 'pointer', 
                     outline: 'none',
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    height: '34px',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -663,12 +665,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{
                     border: '1px solid #cbd5e1',
                     borderRadius: '4px',
-                    padding: '2px 4px',
-                    fontSize: '0.78rem',
+                    padding: '4px 8px',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
                     color: '#1e293b',
                     outline: 'none',
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    height: '34px',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {warehouses.map(w => (
@@ -699,12 +703,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   style={{
                     border: '1px solid #cbd5e1',
                     borderRadius: '4px',
-                    padding: '2px 4px',
-                    fontSize: '0.78rem',
+                    padding: '4px 8px',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
                     color: '#1e293b',
                     outline: 'none',
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    height: '34px',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {staffList.map(s => (
@@ -831,7 +837,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                           setShowProductSuggestions(false);
                         }
                       }}
-                      style={{ paddingLeft: '28px', paddingRight: searchItem ? '28px' : '8px' }}
+                      style={{ paddingLeft: '28px', paddingRight: searchItem ? '28px' : '8px', height: '34px', boxSizing: 'border-box', fontSize: '0.82rem' }}
                     />
                     {searchItem && (
                       <button
