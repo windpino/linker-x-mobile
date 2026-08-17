@@ -3106,14 +3106,6 @@ function App() {
               };
               setCurrentUser(partnerUser);
               
-              // Check if the agency itself is new and needs setup
-              const compDoc = await getDoc(doc(db, 'companies', partnerUser.companyId));
-              const compData = compDoc.exists() ? compDoc.data() : null;
-              if (compData && compData.status === 'pending_setup') {
-                setCurrentView('onboarding');
-                return true;
-              }
-
               setCurrentView('shopping');
               return true;
             }
@@ -3149,7 +3141,7 @@ function App() {
             email: userData.email,
             password: userData.password,
             category: userData.category || '',
-            status: 'pending_setup',
+            status: 'active',
             createdAt: new Date().toISOString()
           });
           

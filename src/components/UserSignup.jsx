@@ -4,7 +4,7 @@ import './Login.css';
 import './Signup.css';
 
 const UserSignup = ({ onNavigateToLogin, onSignup, agency, staffList = [], warehouses = [] }) => {
-  const [regType, setRegType] = useState('partner'); // 'partner' or 'staff'
+  const [regType, setRegType] = useState('staff'); // 'partner' or 'staff'
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     // Shared fields
@@ -74,18 +74,18 @@ const UserSignup = ({ onNavigateToLogin, onSignup, agency, staffList = [], wareh
             
             <div className="registration-type-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
               <button 
-                className={`type-toggle-btn ${regType === 'partner' ? 'active' : ''}`}
-                onClick={() => setRegType('partner')}
-                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: regType === 'partner' ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: regType === 'partner' ? '#eff6ff' : '#fff', color: regType === 'partner' ? '#1d4ed8' : '#64748b', fontWeight: 700, cursor: 'pointer' }}
-              >
-                거래처 가입
-              </button>
-              <button 
                 className={`type-toggle-btn ${regType === 'staff' ? 'active' : ''}`}
                 onClick={() => setRegType('staff')}
                 style={{ flex: 1, padding: '12px', borderRadius: '12px', border: regType === 'staff' ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: regType === 'staff' ? '#eff6ff' : '#fff', color: regType === 'staff' ? '#1d4ed8' : '#64748b', fontWeight: 700, cursor: 'pointer' }}
               >
                 직원 등록
+              </button>
+              <button 
+                className={`type-toggle-btn ${regType === 'partner' ? 'active' : ''}`}
+                onClick={() => setRegType('partner')}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: regType === 'partner' ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: regType === 'partner' ? '#eff6ff' : '#fff', color: regType === 'partner' ? '#1d4ed8' : '#64748b', fontWeight: 700, cursor: 'pointer' }}
+              >
+                거래처 가입
               </button>
             </div>
 

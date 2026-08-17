@@ -7,7 +7,7 @@ const AgencySignup = ({ onSignup, onNavigateToLogin, agencyCategories = ['본사
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [inputCode, setInputCode] = useState('');
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -78,14 +78,13 @@ const AgencySignup = ({ onSignup, onNavigateToLogin, agencyCategories = ['본사
     e.preventDefault();
     setError('');
 
-    if (!isEmailVerified) return setError('이메일 인증을 먼저 완료해주세요.');
     if (password !== confirmPassword) return setError('비밀번호가 일치하지 않습니다.');
     if (password.length < 6) return setError('비밀번호는 6자 이상이어야 합니다.');
 
     setIsLoading(true);
     try {
-      // Create a unique ID for the agency/company based on email
-      const agencyId = email.split('@')[0] + '_' + Math.random().toString(36).substr(2, 4);
+      // Use the input simple ID directly as agencyId
+      const agencyId = email.trim().toLowerCase();
       
       await onSignup({
         email,
@@ -124,7 +123,7 @@ const AgencySignup = ({ onSignup, onNavigateToLogin, agencyCategories = ['본사
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '16px', color: '#0f172a' }}>회원사 생성 완료!</h2>
           <p style={{ color: '#475569', marginBottom: '32px', lineHeight: '1.7', fontSize: '1.05rem' }}>
-            <strong style={{ color: '#3b82f6' }}>{email}</strong> 계정으로<br />
+            회원사 ID: <strong style={{ color: '#3b82f6' }}>{email}</strong><br />
             회원사 기반이 성공적으로 마련되었습니다.
           </p>
           <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '32px', width: '100%' }}>
@@ -221,61 +220,18 @@ const AgencySignup = ({ onSignup, onNavigateToLogin, agencyCategories = ['본사
               </div>
 
               <div className="input-group">
-                <label>관리자 이메일 주소</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <div className="input-wrapper" style={{ flex: 1 }}>
-                    <Mail size={16} className="input-icon" />
-                    <input 
-                      type="email" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="example@email.com" 
-                      disabled={isCodeSent && !isEmailVerified}
-                      required
-                    />
-                  </div>
-                  {!isEmailVerified && (
-                    <button 
-                      type="button" 
-                      onClick={handleSendCode}
-                      style={{ padding: '0 16px', borderRadius: '8px', border: '1px solid #3b82f6', color: '#3b82f6', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
-                    >
-                      {isCodeSent ? '재전송' : '인증번호'}
-                    </button>
-                  )}
+                <label>회원사 ID 설정</label>
+                <div className="input-wrapper">
+                  <Package size={16} className="input-icon" />
+                  <input 
+                    type="text" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="영문/숫자 사용할 ID 입력" 
+                    required
+                  />
                 </div>
               </div>
-
-              {isCodeSent && !isEmailVerified && (
-                <div className="input-group" style={{ animation: 'slideDown 0.3s ease' }}>
-                  <label>인증번호 입력 (6자리)</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div className="input-wrapper" style={{ flex: 1 }}>
-                      <Lock size={16} className="input-icon" />
-                      <input 
-                        type="text" 
-                        value={inputCode}
-                        onChange={(e) => setInputCode(e.target.value)}
-                        placeholder="6자리 숫자 입력"
-                        maxLength={6}
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={handleVerifyCode}
-                      style={{ padding: '0 16px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
-                    >
-                      확인
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {isEmailVerified && (
-                <div style={{ padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#16a34a', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <CheckCircle2 size={16} /> 인증되었습니다.
-                </div>
-              )}
               
               <div className="input-group" style={{ opacity: isEmailVerified ? 1 : 0.5, pointerEvents: isEmailVerified ? 'auto' : 'none' }}>
                 <label>관리자 비밀번호 설정</label>
