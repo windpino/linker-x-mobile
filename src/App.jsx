@@ -3143,6 +3143,9 @@ function App() {
         }}
         onSignup={async (userData) => {
           const companyId = userData.id;
+          const loginId = userData.email.trim();
+          const trimmedId = loginId.toLowerCase();
+
           await setDoc(doc(db, 'companies', companyId), {
             id: companyId,
             name: userData.name,
@@ -3150,6 +3153,20 @@ function App() {
             password: userData.password,
             category: userData.category || '',
             status: 'active',
+            createdAt: new Date().toISOString()
+          });
+
+          // Create initial Admin staff in staffList with registered ID as userId
+          const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${trimmedId}`);
+          await setDoc(adminRef, {
+            id: Date.now(),
+            userId: trimmedId,
+            password: userData.password,
+            name: userData.ceoName || '관리자',
+            jobTitle: '관리자',
+            role: 'admin',
+            companyId: companyId,
+            permissions: { ALL: true },
             createdAt: new Date().toISOString()
           });
           

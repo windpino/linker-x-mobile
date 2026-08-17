@@ -320,14 +320,15 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       }
       
       // Create admin staff if new
-      const adminRef = doc(db, 'companies', agencyForm.id, 'staffList', `${agencyForm.id}_admin`);
+      const adminUserId = (agencyForm.email || agencyForm.id || 'admin').trim().toLowerCase();
+      const adminRef = doc(db, 'companies', agencyForm.id, 'staffList', `${agencyForm.id}_${adminUserId}`);
       const adminSnap = await getDoc(adminRef);
       if (!adminSnap.exists()) {
         await setDoc(adminRef, {
           id: Date.now(),
-          userId: 'admin',
-          password: '123456',
-          name: agencyForm.name, // 회사명
+          userId: adminUserId,
+          password: agencyForm.password || '123456',
+          name: agencyForm.ceo || agencyForm.name, // 회사명/대표명
           jobTitle: '관리자', // 관리자 직급
           role: 'admin',
           companyId: agencyForm.id,
@@ -587,10 +588,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       };
       await setDoc(doc(db, 'companies', companyId), companyData);
 
-      const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_admin`);
+      const adminUserId = (inquiry.email || 'admin').trim().toLowerCase();
+      const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
       await setDoc(adminRef, {
         id: Date.now(),
-        userId: 'admin',
+        userId: adminUserId,
         password: inquiry.password,
         name: inquiry.ceoName,
         jobTitle: '관리자',
@@ -607,7 +609,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         processedAt: new Date().toISOString()
       });
 
-      alert(`[${inquiry.companyName}] 대리점 가입 승인이 완료되었습니다!\n발급된 회사 ID: ${companyId}\n관리자 ID: admin`);
+      alert(`[${inquiry.companyName}] 대리점 가입 승인이 완료되었습니다!\n발급된 회사 ID: ${companyId}\n관리자 ID: ${adminUserId}`);
     } catch (err) {
       console.error('Approve error:', err);
       alert('승인 처리 실패: ' + err.message);
