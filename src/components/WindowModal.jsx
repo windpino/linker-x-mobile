@@ -68,6 +68,11 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = desktopOnly ? false : true;
 
+  // Default sizes for modals: if width >= 800 (wide modals/tables), set default width to 1400px to prevent text wrapping.
+  const parsedWidth = width ? parseInt(width, 10) : 1400;
+  const defaultWidth = parsedWidth >= 800 ? '1400px' : (width || (desktopOnly ? '1100px' : '100%'));
+  const defaultHeight = parsedWidth >= 800 ? '820px' : (height || (desktopOnly ? '800px' : '90%'));
+
   // Load saved size and state from localStorage based on title
   const [savedData, setSavedData] = useState(() => {
     try {
@@ -270,13 +275,13 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
         className={`window-container ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
         style={{ 
           transform: isMaximized ? 'none' : `translate(${targetX}px, ${targetY}px)`,
-          transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s, height 0.3s',
+          transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           width: isMaximized 
             ? (desktopOnly ? '100vw' : '100%') 
-            : (isMinimized ? (desktopOnly ? '280px' : '120px') : (savedData?.width || width || (desktopOnly ? '1100px' : '100%'))),
+            : (isMinimized ? (desktopOnly ? '280px' : '120px') : (savedData?.width ? `${savedData.width}px` : defaultWidth)),
           height: isMaximized 
             ? (desktopOnly ? '100vh' : '100%') 
-            : (isMinimized ? (desktopOnly ? '40px' : '36px') : (savedData?.height || height || (desktopOnly ? '800px' : '90%'))),
+            : (isMinimized ? (desktopOnly ? '40px' : '36px') : (savedData?.height ? `${savedData.height}px` : defaultHeight)),
           top: isMaximized ? 0 : undefined,
           left: isMaximized ? 0 : undefined,
           borderRadius: isMaximized ? 0 : undefined,
