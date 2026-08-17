@@ -661,10 +661,18 @@ function App() {
     document.documentElement.style.setProperty('--primary', primary);
     document.documentElement.style.setProperty('--primary-hover', primary + 'dd');
 
-    if (systemSettings.display?.darkMode) {
+    const isDark = !!systemSettings.display?.darkMode;
+    if (isDark) {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.removeAttribute('data-theme');
+    }
+
+    // Dynamically update window title bar color (theme-color) to match menu bar (--bg-darker)
+    const themeColor = isDark ? '#020617' : '#0f172a';
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', themeColor);
     }
   }, [systemSettings.display?.darkMode, companySettings, systemSettings.theme]);
 
