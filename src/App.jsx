@@ -668,13 +668,16 @@ function App() {
       document.documentElement.removeAttribute('data-theme');
     }
 
-    // Dynamically update window title bar color (theme-color) to match menu bar (--bg-darker)
-    const themeColor = isDark ? '#020617' : '#0f172a';
+    // Dynamically update window title bar color (theme-color) to match menu bar or login page
+    let themeColor = '#090d16'; // Sophisticated dark color for login page when logged out
+    if (currentUser) {
+      themeColor = isDark ? '#020617' : '#0f172a';
+    }
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', themeColor);
     }
-  }, [systemSettings.display?.darkMode, companySettings, systemSettings.theme]);
+  }, [systemSettings.display?.darkMode, companySettings, systemSettings.theme, currentUser]);
 
   React.useEffect(() => {
     if (currentUser && currentUser.userId && currentUser.role !== 'super_admin') {

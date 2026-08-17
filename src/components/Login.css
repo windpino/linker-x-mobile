@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #21356b; /* Deep blue background as in screenshot */
+  background-color: #090d16; /* Sophisticated deep dark background */
   width: 100vw;
   position: fixed;
   top: 0;
@@ -16,9 +16,10 @@
   width: 850px;
   min-height: 480px;
   max-height: 90vh;
-  border-radius: 12px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 /* Left Side Styles */
@@ -78,7 +79,7 @@
 /* Right Side Styles */
 .login-right {
   flex: 1;
-  background-color: #2a2f3a; /* Dark gray for right panel */
+  background-color: #0b0f19; /* Sophisticated deep dark slate for right panel */
   padding: 30px;
   display: flex;
   flex-direction: column;
@@ -140,16 +141,16 @@
 
 .input-wrapper input {
   width: 100%;
-  background-color: #334155; /* Input background */
-  border: 1px solid #475569;
-  border-radius: 6px;
+  background-color: #1a2233; /* Darker input background */
+  border: 1px solid #2d384c;
+  border-radius: 8px;
   color: white;
-  padding: 8px 8px 8px 36px;
+  padding: 10px 10px 10px 38px;
   font-size: 0.95rem;
   letter-spacing: 0px !important;
   font-feature-settings: "kern" 1;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .input-wrapper input.pr-10 {

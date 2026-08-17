@@ -128,8 +128,8 @@ const Login = ({ onLogin, onNavigateToSignup, onFindAgency, prefilledAgencyId, o
         {/* Left Side */}
         <div className="login-left" style={{ 
           background: step === 1 
-            ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' 
-            : 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+            ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' 
+            : 'linear-gradient(135deg, #0f172a 0%, #020617 100%)',
           transition: 'all 0.5s ease'
         }}>
           <div className="logo-circle" style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
