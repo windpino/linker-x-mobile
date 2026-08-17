@@ -275,6 +275,19 @@ const Login = ({ onLogin, onNavigateToSignup, onFindAgency, prefilledAgencyId, o
                   <h2 className="form-title" style={{ marginBottom: 0 }}>사용자 로그인</h2>
                 </div>
                 <p className="form-subtitle" style={{ marginBottom: '8px' }}><b>{selectedAgency?.name}</b> 소속 직원 및 거래처 계정으로 로그인하세요.</p>
+                <div style={{ 
+                  backgroundColor: '#f0f9ff', 
+                  border: '1px solid #bae6fd', 
+                  borderRadius: '12px', 
+                  padding: '10px 14px', 
+                  fontSize: '0.8rem', 
+                  color: '#0369a1', 
+                  marginBottom: '16px', 
+                  lineHeight: '1.5',
+                  fontWeight: 600
+                }}>
+                  💡 최초 가입하신 회원사의 경우, 가입 시 등록하신 <b>회원사 ID</b>가 그대로 최초 관리자(Admin)의 <b>사용자 ID</b>가 되며, 모든 관리 권한을 가집니다.
+                </div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px', display: 'flex', gap: '6px' }}>
                   아직 계정이 없으신가요? 
                   <span 
