@@ -387,500 +387,299 @@ const InventoryTransfer = ({
   const totalQuantity = recentHistory.reduce((sum, item) => sum + item.qty, 0);
 
   return (
-    <WindowModal title="재고이동 (매출관리)" onClose={onClose} width="950px">
-      <div className="inv-wrapper" style={{ padding: '10px' }}>
-        <div className="inv-form-box" style={{ background: '#fff', border: '2px solid #3b82f6', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={18} color="#3b82f6" /> 신규 재고이동 등록
+    <WindowModal title="재고이동 (매출관리)" onClose={onClose} width="950px" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '14px', boxSizing: 'border-box' }}>
+        
+        {/* 1. 신규 재고이동 등록 카드 */}
+        <div style={{ background: '#fff', border: '1.5px solid #3b82f6', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ArrowLeftRight size={16} color="#3b82f6" /> 신규 재고이동 등록
             </h4>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '4px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>이력조회:</span>
-              <input type="date" value={startDateInput} onChange={e => setStartDateInput(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.82rem', color: '#334155', fontWeight: 700 }} />
-              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>~</span>
-              <input type="date" value={endDateInput} onChange={e => setEndDateInput(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.82rem', color: '#334155', fontWeight: 700 }} />
-              <div style={{ display: 'flex', gap: '3px', margin: '0 4px', borderLeft: '1px solid #cbd5e1', paddingLeft: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>창고 간 재고 이동</span>
+          </div>
+
+          {/* 창고 선택 (출고 -> 입고 2열) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', marginBottom: '4px' }}>
+                출고 창고 (FROM)
+              </label>
+              <select 
+                value={fromWarehouse} 
+                onChange={e => setFromWarehouse(e.target.value)} 
+                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(fromWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
+              >
+                <option value="전체창고">전체창고</option>
+                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>
+                입고 창고 (TO)
+              </label>
+              <select 
+                value={toWarehouse} 
+                onChange={e => setToWarehouse(e.target.value)} 
+                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(toWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
+              >
+                <option value="전체창고">전체창고</option>
+                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* 이동 일자 */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6', marginBottom: '4px' }}>
+              이동 일자
+            </label>
+            <input 
+              type="date" 
+              value={transferDate} 
+              onChange={e => setTransferDate(e.target.value)} 
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }} 
+            />
+          </div>
+
+          {/* 품목 검색 */}
+          <div style={{ position: 'relative' }} ref={searchRef}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+              품목 검색
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input 
+                ref={productInputRef}
+                type="text" 
+                placeholder="품목명 또는 초성 검색 (예: 멸치)" 
+                value={itemSearch}
+                onChange={e => {
+                  setItemSearch(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => {
+                  if (itemSearch) setShowSuggestions(true);
+                }}
+                style={{ width: '100%', padding: '8px 10px 8px 34px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div 
+                  ref={productListRef}
+                  style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '200px', overflowY: 'auto',
+                    marginTop: '4px'
+                  }}
+                >
+                  {suggestions.map((p, index) => (
+                    <div 
+                      key={p.id} 
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelectProduct(p);
+                      }}
+                      style={{ 
+                        padding: '10px 12px', cursor: 'pointer', 
+                        borderBottom: '1px solid #f1f5f9', 
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        backgroundColor: index === selectedIndex ? '#f0f9ff' : 'transparent'
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '6px' }}>{p.spec}</span>
+                      </div>
+                      <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.8rem' }}>
+                        재고: {((p.initialStock || 0) + (inventory[fromWarehouse]?.[p.name] || 0))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 수량 입력 및 이동 실행 버튼 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', alignItems: 'end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                이동 수량
+              </label>
+              <input 
+                ref={qtyInputRef}
+                type="number" 
+                value={quantity}
+                onChange={e => setQuantity(e.target.value)}
+                onFocus={e => e.target.select()}
+                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #3b82f6', borderRadius: '8px', textAlign: 'right', fontWeight: 800, fontSize: '1rem', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <button 
+              ref={submitBtnRef}
+              onClick={handleTransfer}
+              style={{ 
+                height: '42px', 
+                background: '#3b82f6', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: 800, 
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              이동 실행
+            </button>
+          </div>
+        </div>
+
+        {/* 2. 이동 내역 (실시간) 섹션 */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
+              이동 내역 (실시간)
+            </h4>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6' }}>
+              총 {recentHistory.length}건 ({totalQuantity.toLocaleString()}개)
+            </span>
+          </div>
+
+          {/* 기간 조회 필터 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input 
+                type="date" 
+                value={startDateInput} 
+                onChange={e => setStartDateInput(e.target.value)} 
+                style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+              />
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+              <input 
+                type="date" 
+                value={endDateInput} 
+                onChange={e => setEndDateInput(e.target.value)} 
+                style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto' }}>
                 {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
                   <button
                     key={btn}
                     onClick={() => handleQuickDate(btn)}
                     style={{
-                      padding: '2px 6px',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '4px',
-                      background: '#fff',
-                      color: '#475569',
-                      cursor: 'pointer'
+                      padding: '4px 6px', fontSize: '0.72rem', fontWeight: 700,
+                      border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                      color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
                     }}
                   >{btn}</button>
                 ))}
               </div>
-              <button 
-                onClick={handleSearch}
-                style={{ background: '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
-              >
-                검색
-              </button>
-            </div>
-          </div>
-          
-          <div className="inv-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-            <div className="inv-col">
-              <label className="inv-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#ef4444', marginBottom: '5px' }}>출고 창고 (FROM)</label>
-              <select className="inv-select" value={fromWarehouse} onChange={e => setFromWarehouse(e.target.value)} style={{ width: '100%', padding: '10px', border: '2px solid', borderColor: getWarehouseColor(fromWarehouse), borderRadius: '8px', outline: 'none' }}>
-                <option value="전체창고">전체창고</option>
-                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-              </select>
-            </div>
-            <div className="inv-col">
-              <label className="inv-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#10b981', marginBottom: '5px' }}>입고 창고 (TO)</label>
-              <select className="inv-select" value={toWarehouse} onChange={e => setToWarehouse(e.target.value)} style={{ width: '100%', padding: '10px', border: '2px solid', borderColor: getWarehouseColor(toWarehouse), borderRadius: '8px', outline: 'none' }}>
-                <option value="전체창고">전체창고</option>
-                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-              </select>
-            </div>
-            <div className="inv-col">
-              <label className="inv-label text-blue" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#3b82f6', marginBottom: '5px' }}>이동 일자</label>
-              <input type="date" className="inv-input" value={transferDate} onChange={e => setTransferDate(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }} />
-            </div>
-          </div>
-
-          <div className="inv-form-row" style={{ position: 'relative' }} ref={searchRef}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '15px', alignItems: 'end' }}>
-              <div style={{ position: 'relative' }}>
-                <label className="inv-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '5px' }}>품목 검색</label>
-                <div style={{ position: 'relative' }}>
-                  <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input 
-                    ref={productInputRef}
-                    type="text" 
-                    className="inv-input" 
-                    placeholder="품목명 또는 초성 검색" 
-                    value={itemSearch}
-                    onChange={e => {
-                      setItemSearch(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => {
-                      if (itemSearch) setShowSuggestions(true);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-                      } else if (e.key === 'Enter') {
-                        if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
-                          e.preventDefault();
-                          handleSelectProduct(suggestions[selectedIndex]);
-                        } else if (suggestions.length === 1) {
-                          e.preventDefault();
-                          handleSelectProduct(suggestions[0]);
-                        }
-                      } else if (e.key === 'Escape') {
-                        setShowSuggestions(false);
-                      }
-                    }}
-                    style={{ width: '100%', padding: '10px 10px 10px 40px', border: '1px solid #cbd5e1', borderRadius: '8px', height: '48px', outline: 'none' }}
-                  />
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div 
-                      ref={productListRef}
-                      className="search-suggestions" 
-                      style={{
-                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)', maxHeight: '250px', overflowY: 'auto',
-                        marginTop: '5px'
-                      }}
-                    >
-                      {suggestions.map((p, index) => (
-                        <div 
-                          key={p.id} 
-                          className="suggestion-item" 
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelectProduct(p);
-                          }}
-                          onMouseEnter={() => setSelectedIndex(index)}
-                          style={{ 
-                            padding: '12px 15px', 
-                            cursor: 'pointer', 
-                            borderBottom: '1px solid #f1f5f9', 
-                            display: 'flex', 
-                            justifyContent: 'space-between',
-                            backgroundColor: index === selectedIndex ? '#f0f9ff' : 'transparent'
-                          }}
-                        >
-                          <div>
-                            <span style={{ fontWeight: index === selectedIndex ? 800 : 700 }}>{p.name}</span>
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginLeft: '8px' }}>{p.spec}</span>
-                          </div>
-                          <span style={{ color: '#3b82f6', fontWeight: 600 }}>현 재고: {((p.initialStock || 0) + (inventory[fromWarehouse]?.[p.name] || 0))}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="inv-col">
-                <label className="inv-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '5px' }}>이동 수량</label>
-                <input 
-                  ref={qtyInputRef}
-                  type="number" 
-                  className="inv-input" 
-                  value={quantity}
-                  onChange={e => setQuantity(e.target.value)}
-                  onFocus={e => e.target.select()}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      submitBtnRef.current?.focus();
-                    }
-                  }}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', height: '48px', textAlign: 'right', fontWeight: 800, fontSize: '1.1rem', outline: 'none' }}
-                />
-              </div>
 
               <button 
-                ref={submitBtnRef}
-                className="btn-primary-inline" 
-                onClick={handleTransfer}
-                style={{ 
-                  height: '48px', 
-                  background: '#3b82f6', 
-                  color: '#fff', 
-                  border: 'none', 
-                  borderRadius: '8px', 
-                  fontWeight: 800, 
-                  cursor: 'pointer' 
-                }}
-              >
-                이동 실행
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="inv-table-container" style={{ marginTop: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h4 style={{ margin: '0', fontSize: '0.9rem', color: '#64748b' }}>이동 내역 (실시간)</h4>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-                <input
-                  type="text"
-                  value={historySearch}
-                  onChange={e => setHistorySearch(e.target.value)}
-                  placeholder="품목명 검색"
-                  style={{
-                    paddingLeft: '32px', paddingRight: '10px',
-                    height: '34px', border: '1px solid #e2e8f0',
-                    borderRadius: '8px', fontSize: '0.85rem',
-                    outline: 'none', width: '180px',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-            </div>
-            {recentHistory.some(h => getTransferBadge(h).text === '창고이동') && (
-              <button
-                onClick={async () => {
-                  const deletableHistory = recentHistory.filter(h => getTransferBadge(h).text === '창고이동');
-                  const visibleSelectedIds = selectedHistoryIds.filter(id => deletableHistory.some(h => h.id === id));
-                  if (visibleSelectedIds.length === 0) {
-                    alert('삭제할 내역을 선택해주세요.');
-                    return;
-                  }
-                  const count = visibleSelectedIds.length;
-                  if (window.confirm(`선택한 수동 재고이동 내역 ${count}건을 삭제하시겠습니까?\n(선택된 창고이동 건만 삭제되며, 각 창고의 재고가 복구됩니다)`)) {
-                    try {
-                      if (onDeleteMoveStock) {
-                        for (const id of visibleSelectedIds) {
-                          await onDeleteMoveStock(id);
-                        }
-                      } else {
-                        setHistoryData(historyData.filter(h => !visibleSelectedIds.includes(h.id)));
-                      }
-                      setSelectedHistoryIds(prev => prev.filter(id => !visibleSelectedIds.includes(id)));
-                      alert('삭제가 완료되었습니다.');
-                    } catch (err) {
-                      console.error(err);
-                      alert('삭제 중 오류가 발생했습니다.');
-                    }
-                  }
-                }}
-                disabled={selectedHistoryIds.length === 0}
+                onClick={handleSearch} 
                 style={{
-                  padding: '6px 12px',
-                  background: selectedHistoryIds.length === 0 ? '#cbd5e1' : '#ef4444',
-                  color: selectedHistoryIds.length === 0 ? '#64748b' : '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: selectedHistoryIds.length === 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 600
+                  padding: '5px 14px', backgroundColor: '#1e293b', color: 'white',
+                  border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer', whiteSpace: 'nowrap'
                 }}
               >
-                선택삭제 {selectedHistoryIds.length > 0 ? `(${selectedHistoryIds.length})` : ''}
+                조회
               </button>
-            )}
+            </div>
           </div>
-          <div className="inv-table-scrollable" style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto' }}>
-            <table className="inv-table" style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  {[
-                    { key: 'select', label: '', width: 40, align: 'center' },
-                    { key: 'date', label: '이동일자', width: colWidths.date, align: 'center' },
-                    { key: 'from', label: '출고 창고', width: colWidths.from, align: 'center' },
-                    { key: 'to', label: '입고 창고', width: colWidths.to, align: 'center' },
-                    { key: 'moveType', label: '이동내역', width: colWidths.moveType, align: 'center' },
-                    { key: 'item', label: '품목명 (규격)', width: colWidths.item, align: 'left' },
-                    { key: 'qty', label: '수량', width: colWidths.qty, align: 'right' },
-                    { key: 'processedAt', label: '시간', width: colWidths.processedAt, align: 'center' },
-                    { key: 'operator', label: '담당자', width: colWidths.operator, align: 'center' },
-                    { key: 'manage', label: '관리', width: colWidths.manage, align: 'center' }
-                  ].map(col => (
-                    <th 
-                      key={col.key} 
-                      style={{ 
-                        width: col.width + 'px', 
-                        position: 'relative', 
-                        userSelect: 'none', 
-                        padding: '12px',
-                        borderBottom: '2px solid #e2e8f0', 
-                        fontSize: '0.85rem',
-                        textAlign: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left'
-                      }}
-                    >
-                      {col.key === 'select' ? (
-                        <input
-                          type="checkbox"
-                          checked={isAllSelected}
-                          ref={el => {
-                            if (el) {
-                              el.indeterminate = isSomeSelected;
-                            }
-                          }}
-                          onChange={handleSelectAll}
-                          disabled={deletableHistory.length === 0}
-                          style={{ cursor: deletableHistory.length > 0 ? 'pointer' : 'default' }}
-                        />
-                      ) : (
-                        col.label
-                      )}
-                      {col.key !== 'select' && (
-                        <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                          style={{
-                            position: 'absolute', right: 0, top: 0, bottom: 0,
-                            width: '6px', cursor: 'col-resize',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 2,
-                          }}
-                          title={`${col.label} 너비 조절`}
-                        >
-                          <span style={{
-                            display: 'block', width: '0px', height: '100%',
-                            borderLeft: '1px dotted #cbd5e1',
-                          }} />
+
+          {/* 품목명 검색 */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="text"
+              value={historySearch}
+              onChange={e => setHistorySearch(e.target.value)}
+              placeholder="내역 내 품목명 검색..."
+              style={{
+                width: '100%', padding: '6px 10px 6px 30px',
+                border: '1px solid #e2e8f0', borderRadius: '6px',
+                fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* 이동 내역 카드 리스트 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {recentHistory.length === 0 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                해당 기간의 재고 이동 내역이 없습니다.
+              </div>
+            ) : (
+              recentHistory.map(item => {
+                const badge = getTransferBadge(item);
+                const isDeletable = badge.text === '창고이동';
+                return (
+                  <div key={item.id} style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, backgroundColor: badge.bg, color: badge.color }}>
+                          {badge.text}
                         </span>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentHistory.length === 0 ? (
-                  <tr><td colSpan="10" style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>해당 조건 및 기간에 발생한 이동 내역이 없습니다.</td></tr>
-                ) : (
-                  recentHistory.map(row => {
-                    const badge = getTransferBadge(row);
-                    const isEditing = editingId === row.id;
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{item.date}</span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#2563eb' }}>
+                        {item.qty?.toLocaleString()}개
+                      </div>
+                    </div>
 
-                    if (isEditing) {
-                      return (
-                        <tr key={row.id} style={{ background: '#eff6ff' }}>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <input 
-                              type="checkbox" 
-                              disabled 
-                            />
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <input 
-                              type="date" 
-                              value={editForm.date} 
-                              onChange={e => setEditForm({...editForm, date: e.target.value})} 
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }} 
-                            />
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <select 
-                              value={editForm.from} 
-                              onChange={e => setEditForm({...editForm, from: e.target.value})} 
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}
-                            >
-                              {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <select 
-                              value={editForm.to} 
-                              onChange={e => setEditForm({...editForm, to: e.target.value})} 
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}
-                            >
-                              {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              backgroundColor: badge.bg,
-                              color: badge.color
-                            }}>{badge.text}</span>
-                          </td>
-                          <td style={{ padding: '8px' }}>
-                            <div style={{ fontWeight: 700, color: '#64748b' }}>{row.item}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>{row.spec}</div>
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'right' }}>
-                            <input 
-                              type="number" 
-                              value={editForm.qty} 
-                              onChange={e => setEditForm({...editForm, qty: Number(e.target.value)})} 
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'right', fontWeight: 800 }} 
-                            />
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>{row.processedAt}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontWeight: 600 }}>{row.operator}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                              <button 
-                                onClick={handleSaveEdit} 
-                                style={{ padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                              >저장</button>
-                              <button 
-                                onClick={() => { setEditingId(null); setEditForm(null); }} 
-                                style={{ padding: '4px 8px', background: '#cbd5e1', color: '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                              >취소</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
+                      <span>{item.from}</span>
+                      <span style={{ color: '#94a3b8' }}>➔</span>
+                      <span>{item.to}</span>
+                    </div>
 
-                    return (
-                      <tr 
-                        key={row.id}
-                        onDoubleClick={() => handleRowClickOrDoubleClick(row)}
-                        style={{ cursor: (badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? 'pointer' : 'default' }}
-                        title={(badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? '더블클릭하여 전표/주문서 상세로 이동' : ''}
-                      >
-                        <td style={{ textAlign: 'center', padding: '10px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedHistoryIds.includes(row.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedHistoryIds(prev => [...prev, row.id]);
-                              } else {
-                                setSelectedHistoryIds(prev => prev.filter(id => id !== row.id));
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#475569' }}>
+                      <span style={{ fontWeight: 600 }}>{item.item}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{item.operator || '-'}</span>
+                        {isDeletable && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('해당 재고이동 내역을 삭제하시겠습니까? (재고가 원복됩니다)')) {
+                                onDeleteMoveStock(item);
                               }
                             }}
-                            disabled={badge.text !== '창고이동'}
-                            style={{ cursor: badge.text === '창고이동' ? 'pointer' : 'default' }}
-                          />
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '10px', fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>
-                          {row.date}
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '10px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}20`, color: getWarehouseColor(row.from), fontWeight: 700, fontSize: '0.75rem' }}>{row.from}</span>
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '10px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}20`, color: getWarehouseColor(row.to), fontWeight: 700, fontSize: '0.75rem' }}>{row.to}</span>
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '10px' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            backgroundColor: badge.bg,
-                            color: badge.color,
-                            whiteSpace: 'nowrap'
-                          }}>{badge.text}</span>
-                        </td>
-                        <td style={{ padding: '10px' }}>
-                          <div 
-                            onClick={() => handleRowClickOrDoubleClick(row)}
-                            style={{ 
-                              fontWeight: 700,
-                              cursor: (badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? 'pointer' : 'default',
-                              color: (badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? '#3b82f6' : 'inherit',
-                              textDecoration: (badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? 'underline' : 'none'
-                            }}
-                            title={(badge.text === '매출전표' || badge.text === '주문상차' || badge.text === '매입전표') ? '클릭 시 전표/주문서 상세로 이동' : ''}
-                          >{row.item}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>{row.spec}</div>
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '10px', fontWeight: 800, color: '#3b82f6' }}>{row.qty.toLocaleString()}</td>
-                        <td style={{ textAlign: 'center', padding: '10px', fontSize: '0.8rem', color: '#64748b' }}>{row.processedAt}</td>
-                        <td style={{ textAlign: 'center', padding: '10px', fontWeight: 600 }}>{row.operator}</td>
-                        <td style={{ textAlign: 'center', padding: '10px' }}>
-                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                            {badge.text === '창고이동' ? (
-                              <>
-                                <button 
-                                  onClick={() => handleEditClick(row)}
-                                  style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-                                >수정</button>
-                                <button 
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (window.confirm('이 내역을 삭제하시겠습니까? (이동된 재고가 각 창고에서 환원됩니다)')) {
-                                      if (onDeleteMoveStock) {
-                                        await onDeleteMoveStock(row.id);
-                                      } else {
-                                        setHistoryData(historyData.filter(h => h.id !== row.id));
-                                      }
-                                    }
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-                                >삭제</button>
-                              </>
-                            ) : (
-                              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>-</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, padding: '2px 4px' }}
+                          >
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
-        <div className="inv-footer" style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'flex-end', gap: '30px' }}>
-          <div className="inv-stat">
-            <span style={{ color: '#64748b', fontWeight: 600 }}>오늘 총 이동:</span>
-            <span style={{ marginLeft: '8px', fontWeight: 800, fontSize: '1.1rem', color: '#3b82f6' }}>{totalQuantity.toLocaleString()}</span>
-          </div>
+        {/* 3. 하단 요약 바 */}
+        <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>선택 기간 총 이동 수량</span>
+          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#3b82f6' }}>{totalQuantity.toLocaleString()}개</span>
         </div>
+
       </div>
     </WindowModal>
   );

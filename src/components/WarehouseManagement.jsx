@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Box, Printer, Download, Plus, Edit2, Trash2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import WarehouseRegistration from './WarehouseRegistration';
@@ -8,41 +8,6 @@ import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import './Warehouse.css';
 
 const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentUser, staffList = [] }) => {
-  const [colWidths, setColWidths] = useState({
-    name: 180,
-    address: 280,
-    manager: 150,
-    memo: 250,
-    control: 100
-  });
-
-  const resizingCol = useRef(null);
-  const resizeStartX = useRef(0);
-  const resizeStartW = useRef(0);
-  const MIN_COL_W = 50;
-
-  const onResizeMouseDown = useCallback((e, colKey) => {
-    e.preventDefault();
-    resizingCol.current = colKey;
-    resizeStartX.current = e.clientX;
-    resizeStartW.current = colWidths[colKey];
-
-    const onMove = (mv) => {
-      const delta = mv.clientX - resizeStartX.current;
-      const newW = Math.max(MIN_COL_W, resizeStartW.current + delta);
-      setColWidths(prev => ({ ...prev, [resizingCol.current]: newW }));
-    };
-
-    const onUp = () => {
-      resizingCol.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [colWidths]);
-
   const hasWritePermission = () => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
     return currentUser?.allowAllEditDelete === true;
@@ -50,6 +15,16 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
 
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredWarehouses = warehouses.filter(w => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (w.name && w.name.toLowerCase().includes(term)) ||
+           (w.manager && w.manager.toLowerCase().includes(term)) ||
+           (w.address && w.address.toLowerCase().includes(term)) ||
+           (w.memo && w.memo.toLowerCase().includes(term));
+  });
 
   const handleSaveWarehouse = async (whData) => {
     if (!hasWritePermission()) {
@@ -147,89 +122,122 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
 
   return (
     <>
-      <WindowModal title="창고관리" onClose={onClose}>
-        <div className="warehouse-header">
-          <div className="wh-title-section">
-            <h2 className="wh-title">
-              <Box color="#3b82f6" size={24} strokeWidth={2} />
-              창고 관리
-            </h2>
-            <p className="wh-desc">물류 거점(창고) 정보를 등록하고 관리합니다.</p>
+      <WindowModal title="창고관리" onClose={onClose} width="100%">
+        <div style={{ padding: '10px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box color="#3b82f6" size={18} strokeWidth={2.2} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>창고 관리</h2>
+                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>물류 거점(창고) 및 차량 창고 관리</p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <button 
+                onClick={handleExcelExport} 
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 8px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <Download size={13} /> 엑셀
+              </button>
+              <button 
+                onClick={handleOpenRegistration}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
+              >
+                <Plus size={14} /> 창고 등록
+              </button>
+            </div>
           </div>
-          <div className="wh-actions">
-            <button className="btn-outline wh-btn"><Printer size={16} /> 인쇄</button>
-            <button className="btn-outline wh-btn" onClick={handleExcelExport}><Download size={16} /> 엑셀</button>
-            <button className="btn-primary" onClick={handleOpenRegistration}>
-              <Plus size={16} /> 창고 등록
-            </button>
-          </div>
-        </div>
 
-        <div className="warehouse-table-container">
-          <table className="warehouse-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <thead>
-              <tr>
-                {[
-                  { key: 'name', label: '창고명', width: colWidths.name, align: 'left' },
-                  { key: 'address', label: '주소', width: colWidths.address, align: 'left' },
-                  { key: 'manager', label: '담당자', width: colWidths.manager, align: 'left' },
-                  { key: 'memo', label: '설명 메모', width: colWidths.memo, align: 'left' },
-                  { key: 'control', label: '관리', width: colWidths.control, align: 'center' }
-                ].map(col => (
-                  <th 
-                    key={col.key} 
-                    style={{ 
-                      width: col.width + 'px', 
-                      position: 'relative', 
-                      userSelect: 'none',
-                      textAlign: col.align === 'center' ? 'center' : 'left'
-                    }}
-                  >
-                    {col.label}
-                    <span
-                      onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                      style={{
-                        position: 'absolute', right: 0, top: 0, bottom: 0,
-                        width: '6px', cursor: 'col-resize',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 2,
-                      }}
-                      title={`${col.label} 너비 조절`}
-                    >
-                      <span style={{
-                        display: 'block', width: '0px', height: '100%',
-                        borderLeft: '1px dotted #cbd5e1',
-                      }} />
+          {/* Search Bar */}
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="창고명, 담당자, 주소 검색"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#f8fafc' }}
+            />
+          </div>
+
+          {/* Mobile Warehouse Card List */}
+          <div className="warehouse-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {filteredWarehouses.length === 0 ? (
+              <div style={{
+                padding: '36px 16px', textAlign: 'center', backgroundColor: '#f8fafc',
+                borderRadius: '10px', border: '1px dashed #cbd5e1', color: '#94a3b8',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
+              }}>
+                <Box size={28} color="#94a3b8" />
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>등록된 창고가 없습니다.</div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>우측 상단의 '+ 창고 등록' 버튼을 눌러 등록하세요.</div>
+              </div>
+            ) : filteredWarehouses.map(wh => (
+              <div key={wh.id} style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: wh.color || '#3b82f6', flexShrink: 0 }}></div>
+                    <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1e293b' }}>
+                      {wh.name}
                     </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {warehouses.map(wh => (
-                <tr key={wh.id}>
-                  <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <div className="wh-name-cell">
-                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: wh.color || '#3b82f6', marginRight: '8px', flexShrink: 0 }}></div>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.name}</span>
-                      {wh.isMain && <span className="wh-badge" style={{ flexShrink: 0 }}><Box size={12} /> 메인</span>}
-                    </div>
-                  </td>
-                  <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.address}</td>
-                  <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.manager || '-'}</td>
-                  <td style={{ color: '#64748b', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {wh.memo || '-'}
-                  </td>
-                  <td>
-                    <div className="wh-action-cell">
-                      <button className="icon-btn" onClick={() => handleEditWarehouse(wh)}><Edit2 size={16} /></button>
-                      <button className="icon-btn" onClick={() => handleDeleteWarehouse(wh.id)}><Trash2 size={16} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {wh.isMain && (
+                      <span style={{ fontSize: '0.7rem', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        메인
+                      </span>
+                    )}
+                    {wh.isVehicle && (
+                      <span style={{ fontSize: '0.7rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        차량
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button 
+                      onClick={() => handleEditWarehouse(wh)} 
+                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                    >
+                      <Edit2 size={12} /> 수정
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteWarehouse(wh.id)} 
+                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                    >
+                      <Trash2 size={12} /> 삭제
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem' }}>
+                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>담당:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{wh.manager || '미지정'}</span>
+                  </div>
+                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>주소:</span>
+                    <span style={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.address || '-'}</span>
+                  </div>
+                </div>
+
+                {wh.memo && (
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>
+                    {wh.memo}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </WindowModal>
 

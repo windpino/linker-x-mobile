@@ -101,7 +101,7 @@ export default function ChatAssistant({ context }) {
 
   const handleSend = async (e) => {
     if (e) e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isTyping) return;
 
     const userText = inputMessage;
     setInputMessage('');
@@ -111,6 +111,8 @@ export default function ChatAssistant({ context }) {
     const newUserMsg = { sender: 'user', text: userText, timestamp };
     setMessages(prev => [...prev, newUserMsg]);
     setIsTyping(true);
+
+    const startTime = Date.now();
 
     try {
       const response = await fetch('http://localhost:8000/api/chat', {
@@ -132,19 +134,27 @@ export default function ChatAssistant({ context }) {
       }
 
       const data = await response.json();
-      setIsOnline(true);
-      setIsTyping(false);
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'agent',
-          text: data.response || '응답을 받지 못했습니다.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
+      const elapsed = Date.now() - startTime;
+      const remainingDelay = Math.max(0, 3000 - elapsed);
+
+      setTimeout(() => {
+        setIsOnline(true);
+        setIsTyping(false);
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: 'agent',
+            text: data.response || '응답을 받지 못했습니다.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }, remainingDelay);
     } catch (err) {
-      // Backend offline fallback
+      // Backend offline fallback (3초간 생각하는 중 효과 후 응답)
       setIsOnline(false);
+      const elapsed = Date.now() - startTime;
+      const remainingDelay = Math.max(0, 3000 - elapsed);
+
       setTimeout(() => {
         setIsTyping(false);
         const fallbackText = getLocalSimulationResponse(userText);
@@ -156,7 +166,7 @@ export default function ChatAssistant({ context }) {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
-      }, 1000);
+      }, remainingDelay);
     }
   };
 

@@ -101,9 +101,9 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
   ];
 
   return (
-    <WindowModal title="환경설정" onClose={onClose} width="1100px">
+    <WindowModal title="환경설정" onClose={onClose} width="100%" contentPadding="0" noScroll>
       <div className="settings-container">
-        {/* Sidebar */}
+        {/* Category Tabs */}
         <div className="settings-sidebar">
           {categories.map(cat => (
             <div 
@@ -111,13 +111,10 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
               className={`settings-sidebar-item ${activeCategory === cat.id ? 'active' : ''}`}
               onClick={() => setActiveCategory(cat.id)}
             >
-              <cat.icon size={20} />
-              {cat.label}
+              <cat.icon size={15} />
+              <span>{cat.label}</span>
             </div>
           ))}
-          <div style={{ marginTop: 'auto', padding: '20px 24px', fontSize: '0.8rem', color: '#94a3b8' }}>
-            시스템 버전: v2.4.0 (Stable)
-          </div>
         </div>
 
         {/* Content Area */}
@@ -210,16 +207,6 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
               <div className="settings-section">
                 <h3 className="settings-section-title">디스플레이 설정</h3>
                 <div className="toggle-group">
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>다크 모드 사용</h4>
-                      <p>어두운 테마로 눈의 피로를 줄입니다.</p>
-                    </div>
-                    <label className="switch">
-                      <input type="checkbox" checked={localSettings.display.darkMode} onChange={e => updateDisplay('darkMode', e.target.checked)} />
-                      <span className="slider"></span>
-                    </label>
-                  </div>
                   <div className="toggle-item">
                     <div className="toggle-info">
                       <h4>효과음 재생</h4>

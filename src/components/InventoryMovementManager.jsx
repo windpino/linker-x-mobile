@@ -154,174 +154,243 @@ const InventoryMovementManager = ({
   };
 
   return (
-    <WindowModal title="재고 이동 현황 관리" onClose={onClose} width="1100px">
-      <div className="report-v2-header">
-        <div className="report-v2-title-group">
-          <ArrowLeftRight size={24} color="#3b82f6" />
-          <h2 className="report-v2-title">재고 이동 현황 관리</h2>
-        </div>
-        <div className="report-v2-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-            <ShieldAlert size={14} color="#f59e0b" />
-            내역 삭제/수정 시 실제 재고가 연동되어 자동 복구됩니다.
+    <WindowModal title="재고 이동 현황 관리" onClose={onClose} width="1100px" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box' }}>
+        
+        {/* Header: Title & Bulk Delete */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowLeftRight size={18} color="#3b82f6" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                재고 이동 현황 관리
+              </h2>
+              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                총 <strong style={{ color: '#3b82f6' }}>{filteredHistory.length}</strong>건 내역
+              </p>
+            </div>
           </div>
+
           <button 
             onClick={handleDeleteAll}
-            style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600 }}
+            style={{
+              padding: '6px 10px', background: '#fee2e2', color: '#ef4444',
+              border: '1px solid #fca5a5', borderRadius: '8px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem',
+              fontWeight: 700
+            }}
             title="현재 검색 조건에 해당하는 모든 내역을 삭제합니다."
           >
-            <Trash2 size={14} />
-            전체 내역 삭제
+            <Trash2 size={13} /> 전체 삭제
           </button>
         </div>
-      </div>
 
-      <div className="report-v2-filters" style={{ padding: '15px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="date-range-picker" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px' }}>
-              <Calendar size={18} color="#64748b" />
-              <input type="date" value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} style={{ border: 'none', outline: 'none' }} />
-              <span>~</span>
-              <input type="date" value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} style={{ border: 'none', outline: 'none' }} />
-            </div>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
-                <button
-                  key={btn}
-                  type="button"
-                  onClick={() => handleQuickDate(btn)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    background: '#fff',
-                    color: '#475569',
-                    cursor: 'pointer',
-                    transition: 'all 0.1s'
-                  }}
-                  onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
-                  onMouseOut={e => e.currentTarget.style.background = '#fff'}
-                >{btn}</button>
-              ))}
-            </div>
+        {/* Info Banner */}
+        <div style={{ fontSize: '0.72rem', color: '#b45309', display: 'flex', alignItems: 'center', gap: '6px', background: '#fffbeb', padding: '6px 10px', borderRadius: '8px', border: '1px solid #fde68a' }}>
+          <ShieldAlert size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
+          <span>내역 삭제/수정 시 실제 재고가 연동되어 자동 복구됩니다.</span>
+        </div>
+
+        {/* Filters Section */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          {/* Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input 
+              type="date" 
+              value={filters.startDate} 
+              onChange={e => setFilters({...filters, startDate: e.target.value})} 
+              style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+            <input 
+              type="date" 
+              value={filters.endDate} 
+              onChange={e => setFilters({...filters, endDate: e.target.value})} 
+              style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
           </div>
-          
-          <select value={filters.fromWarehouse} onChange={e => setFilters({...filters, fromWarehouse: e.target.value})} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', outline: 'none' }}>
-            <option value="전체">출고창고 (전체)</option>
-            {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
-          </select>
 
-          <select value={filters.toWarehouse} onChange={e => setFilters({...filters, toWarehouse: e.target.value})} style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', outline: 'none' }}>
-            <option value="전체">입고창고 (전체)</option>
-            {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
-          </select>
+          {/* Quick Date Chips */}
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+              <button
+                key={btn}
+                type="button"
+                onClick={() => handleQuickDate(btn)}
+                style={{
+                  padding: '4px 8px', fontSize: '0.72rem', fontWeight: 700,
+                  border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                  color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >{btn}</button>
+            ))}
+          </div>
 
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          {/* Warehouse Selectors (2-Col Grid) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <select 
+              value={filters.fromWarehouse} 
+              onChange={e => setFilters({...filters, fromWarehouse: e.target.value})} 
+              style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff', fontSize: '0.75rem', fontWeight: 600, outline: 'none' }}
+            >
+              <option value="전체">출고: 전체</option>
+              {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+            </select>
+
+            <select 
+              value={filters.toWarehouse} 
+              onChange={e => setFilters({...filters, toWarehouse: e.target.value})} 
+              style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff', fontSize: '0.75rem', fontWeight: 600, outline: 'none' }}
+            >
+              <option value="전체">입고: 전체</option>
+              {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+            </select>
+          </div>
+
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 
               placeholder="품목명 검색..." 
               value={filters.searchTerm} 
               onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-              style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+              style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}
             />
           </div>
         </div>
-      </div>
 
-      <div style={{ padding: '20px', background: '#fff' }}>
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>일자</th>
-                <th style={{ padding: '12px', textAlign: 'center', width: '120px' }}>출고창고 (From)</th>
-                <th style={{ padding: '12px', textAlign: 'center', width: '120px' }}>입고창고 (To)</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>품목명</th>
-                <th style={{ padding: '12px', textAlign: 'right', width: '100px' }}>수량</th>
-                <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>담당자</th>
-                <th style={{ padding: '12px', textAlign: 'center', width: '120px' }}>관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHistory.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                    해당 기간에 이동 내역이 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                filteredHistory.map(row => (
-                  <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9', background: editingId === row.id ? '#eff6ff' : '#fff' }}>
-                    {editingId === row.id ? (
-                      // 편집 모드
-                      <>
-                        <td style={{ padding: '8px' }}>
-                          <input type="date" value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <select value={editForm.from} onChange={e => setEditForm({...editForm, from: e.target.value})} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                            {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
-                          </select>
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <select value={editForm.to} onChange={e => setEditForm({...editForm, to: e.target.value})} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                            {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
-                          </select>
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <input type="text" value={editForm.item} readOnly disabled style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px', background: '#f8fafc', color: '#64748b' }} title="품목명은 수정할 수 없습니다." />
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          <input type="number" value={editForm.qty} onChange={e => setEditForm({...editForm, qty: Number(e.target.value)})} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'right' }} />
-                        </td>
-                        <td style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>{row.operator}</td>
-                        <td style={{ padding: '8px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                            <button onClick={handleSaveEdit} style={{ padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>저장</button>
-                            <button onClick={() => setEditingId(null)} style={{ padding: '4px 8px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>취소</button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      // 보기 모드
-                      <>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>{row.date}</td>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}20`, color: getWarehouseColor(row.from), fontWeight: 600, fontSize: '0.75rem' }}>{row.from}</span>
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}20`, color: getWarehouseColor(row.to), fontWeight: 600, fontSize: '0.75rem' }}>{row.to}</span>
-                        </td>
-                        <td style={{ padding: '10px' }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{row.item}</div>
-                          {row.spec && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{row.spec}</div>}
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, color: '#3b82f6' }}>
-                          {Number(row.qty).toLocaleString()}
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>{row.operator}</td>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button onClick={() => handleEditClick(row)} style={{ padding: '4px', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }} title="수정">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => handleDelete(row.id)} style={{ padding: '4px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="삭제">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* History List Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredHistory.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', margin: '8px 0' }}>
+              해당 기간 및 조건에 이동 내역이 없습니다.
+            </div>
+          ) : (
+            filteredHistory.map(row => {
+              const isEditing = editingId === row.id;
+
+              if (isEditing) {
+                return (
+                  <div key={row.id} style={{ backgroundColor: '#eff6ff', border: '1.5px solid #3b82f6', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb' }}>내역 수정</span>
+                      <input 
+                        type="date" 
+                        value={editForm.date} 
+                        onChange={e => setEditForm({...editForm, date: e.target.value})} 
+                        style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', outline: 'none' }} 
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700 }}>출고창고</label>
+                        <select 
+                          value={editForm.from} 
+                          onChange={e => setEditForm({...editForm, from: e.target.value})} 
+                          style={{ width: '100%', padding: '4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem' }}
+                        >
+                          {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700 }}>입고창고</label>
+                        <select 
+                          value={editForm.to} 
+                          onChange={e => setEditForm({...editForm, to: e.target.value})} 
+                          style={{ width: '100%', padding: '4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem' }}
+                        >
+                          {warehouses.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{editForm.item}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>수량:</span>
+                        <input 
+                          type="number" 
+                          value={editForm.qty} 
+                          onChange={e => setEditForm({...editForm, qty: Number(e.target.value)})} 
+                          style={{ width: '70px', padding: '4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem' }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
+                      <button onClick={handleSaveEdit} style={{ padding: '5px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                        저장
+                      </button>
+                      <button onClick={() => setEditingId(null)} style={{ padding: '5px 12px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={row.id} style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {/* Row 1: Date & Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{row.date}</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => handleEditClick(row)} style={{ padding: '3px 6px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        <Edit2 size={12} /> 수정
+                      </button>
+                      <button onClick={() => handleDelete(row.id)} style={{ padding: '3px 6px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '4px', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        <Trash2 size={12} /> 삭제
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Warehouse Route */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
+                    <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}20`, color: getWarehouseColor(row.from), fontSize: '0.75rem' }}>
+                      {row.from}
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>➔</span>
+                    <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}20`, color: getWarehouseColor(row.to), fontSize: '0.75rem' }}>
+                      {row.to}
+                    </span>
+                  </div>
+
+                  {/* Row 3: Product Name & Quantity */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#475569' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: '#1e293b' }}>{row.item}</span>
+                      {row.spec && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: '6px' }}>({row.spec})</span>}
+                    </div>
+                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.9rem' }}>
+                      {Number(row.qty).toLocaleString()}개
+                    </span>
+                  </div>
+
+                  {/* Row 4: Operator */}
+                  {row.operator && (
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right' }}>
+                      담당자: {row.operator}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
+
       </div>
     </WindowModal>
   );

@@ -87,101 +87,159 @@ const StaffPerformanceReport = ({ onClose, staffList = [], salesInvoices = [] })
   };
 
   return (
-    <WindowModal title="직원 실적 보고서" onClose={onClose} width="1000px">
-      <div className="report-v2-header">
-        <h2 className="report-v2-title">직원 실적 보고서</h2>
-        <div className="report-v2-actions">
-          <button className="btn-v2-action"><Printer size={16} /> 인쇄</button>
-          <button className="btn-v2-action" onClick={handleExcelExport}><Download size={16} /> 엑셀</button>
-        </div>
-      </div>
-
-      <div className="report-v2-filters">
-        <div className="filter-row">
+    <WindowModal title="직원 실적 보고서" onClose={onClose} width="100%" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
+        
+        {/* Header: Title & Utilities */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="date-range-picker" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px' }}>
-              <input type="date" value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} style={{ border: 'none', outline: 'none' }} />
-              <span>~</span>
-              <input type="date" value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} style={{ border: 'none', outline: 'none' }} />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UserCheck size={18} color="#3b82f6" strokeWidth={2.5} />
             </div>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
-                <button
-                  key={btn}
-                  type="button"
-                  onClick={() => handleQuickDate(btn)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    background: '#fff',
-                    color: '#475569',
-                    cursor: 'pointer',
-                    transition: 'all 0.1s'
-                  }}
-                  onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
-                  onMouseOut={e => e.currentTarget.style.background = '#fff'}
-                >{btn}</button>
-              ))}
+            <div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                직원 실적 보고서
+              </h2>
+              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                {filters.startDate} ~ {filters.endDate}
+              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="report-v2-content">
-        <div className="summary-badges" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          <div className="badge-card blue" style={{ padding: '24px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{ background: 'white', padding: '12px', borderRadius: '50%' }}><TrendingUp color="#3b82f6" /></div>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>기간 내 총 매출액</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b' }}>{totalPeriodSales.toLocaleString()}원</div>
-            </div>
-          </div>
-          <div className="badge-card purple" style={{ padding: '24px', borderRadius: '12px', background: '#f5f3ff', border: '1px solid #ede9fe', display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{ background: 'white', padding: '12px', borderRadius: '50%' }}><FileText color="#8b5cf6" /></div>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>기간 내 총 처리 전표 수</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b' }}>{totalPeriodCount.toLocaleString()}건</div>
-            </div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              <Printer size={12} /> 인쇄
+            </button>
+            <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              <Download size={12} /> 엑셀
+            </button>
           </div>
         </div>
 
-        <div className="report-v2-table-container" style={{ marginTop: '24px' }}>
-          <table className="report-v2-table">
-            <thead>
-              <tr>
-                <th width="80px">순위</th>
-                <th style={{ textAlign: 'left' }}>직원명</th>
-                <th style={{ textAlign: 'center' }}>처리 전표 수</th>
-                <th style={{ textAlign: 'center' }}>총 매출액</th>
-                <th width="200px">매출 기여도</th>
-              </tr>
-            </thead>
-            <tbody>
-              {performanceData.map((d, idx) => {
-                const contribution = totalPeriodSales > 0 ? (d.totalSales / totalPeriodSales * 100).toFixed(1) : 0;
-                return (
-                  <tr key={d.name}>
-                    <td>{idx + 1}</td>
-                    <td style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}><UserCheck size={14} color="#94a3b8" /> {d.name}</td>
-                    <td style={{ textAlign: 'center' }}>{d.count.toLocaleString()}건</td>
-                    <td style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 700 }}>{d.totalSales.toLocaleString()}원</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.85rem', minWidth: '40px' }}>{contribution}%</span>
-                        <div style={{ flex: 1, height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ width: `${contribution}%`, height: '100%', background: '#3b82f6' }}></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {/* Filters Panel */}
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input 
+              type="date" 
+              value={filters.startDate} 
+              onChange={e => setFilters({...filters, startDate: e.target.value})} 
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+            <input 
+              type="date" 
+              value={filters.endDate} 
+              onChange={e => setFilters({...filters, endDate: e.target.value})} 
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+          </div>
+
+          {/* Quick Date Chips */}
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+              <button
+                key={btn}
+                type="button"
+                onClick={() => handleQuickDate(btn)}
+                style={{
+                  padding: '3px 8px', fontSize: '0.7rem', fontWeight: 700,
+                  border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                  color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >{btn}</button>
+            ))}
+          </div>
         </div>
+
+        {/* 2 Summary Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#2563eb', fontSize: '0.72rem', fontWeight: 700 }}>
+              <TrendingUp size={14} />
+              <span>기간 내 총 매출액</span>
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#1d4ed8' }}>
+              {totalPeriodSales.toLocaleString()}원
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#7c3aed', fontSize: '0.72rem', fontWeight: 700 }}>
+              <FileText size={14} />
+              <span>총 처리 전표 수</span>
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#6d28d9' }}>
+              {totalPeriodCount.toLocaleString()}건
+            </div>
+          </div>
+        </div>
+
+        {/* Ranked Staff Cards List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b' }}>
+              직원별 실적 순위 ({performanceData.length}명)
+            </span>
+          </div>
+
+          {performanceData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+              등록된 직원 실적 데이터가 없습니다.
+            </div>
+          ) : (
+            performanceData.map((d, idx) => {
+              const contribution = totalPeriodSales > 0 ? (d.totalSales / totalPeriodSales * 100).toFixed(1) : 0;
+              const rankColor = idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#cbd5e1';
+              const rankBg = idx === 0 ? '#fef3c7' : idx === 1 ? '#f1f5f9' : idx === 2 ? '#ffedd5' : '#f8fafc';
+
+              return (
+                <div key={d.name} style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {/* Row 1: Rank, Name & Total Sales */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        backgroundColor: rankBg, color: rankColor,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.72rem', fontWeight: 900, border: `1px solid ${rankColor}`
+                      }}>
+                        {idx + 1}
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                        {d.name}
+                      </span>
+                    </div>
+
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#2563eb' }}>
+                      {d.totalSales.toLocaleString()}원
+                    </span>
+                  </div>
+
+                  {/* Row 2: Invoices Count & Contribution Bar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
+                      <span>처리 전표: <strong style={{ color: '#1e293b' }}>{d.count.toLocaleString()}건</strong></span>
+                      <span>기여도: <strong style={{ color: '#2563eb' }}>{contribution}%</strong></span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${contribution}%`, height: '100%', backgroundColor: '#3b82f6', borderRadius: '3px' }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
       </div>
     </WindowModal>
   );

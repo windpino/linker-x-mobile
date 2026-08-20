@@ -130,173 +130,180 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
   };
 
   return (
-    <WindowModal title="거래처관리" onClose={onClose}>
-      <form className="partner-reg-form" onSubmit={handleSubmit}>
-        <div className="partner-reg-scroll-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <WindowModal title="거래처관리" onClose={onClose} width="100%">
+      <form className="partner-reg-form" onSubmit={handleSubmit} style={{ padding: '8px' }}>
+        <div className="partner-reg-scroll-content" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-          <div className="partner-reg-header" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-            <h3 className="partner-reg-title">
+          <div className="partner-reg-header" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '4px' }}>
+            <h3 className="partner-reg-title" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
               <Contact color="#3b82f6" size={20} />
               {titleText}
             </h3>
           </div>
 
-        
-        {/* Section 1: Basic Info */}
-        <div className="form-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ef4444', marginBottom: '12px' }}>
-            <h4 className="form-section-title" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: '6px' }}><Building2 size={16} /> 기본 정보</h4>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#ef4444', paddingBottom: '6px' }}>
-              <input type="checkbox" name="hideOrderInfo" checked={formData.hideOrderInfo} onChange={handleChange} style={{ width: '15px', height: '15px', cursor: 'pointer' }} />
-              관리안함(숨김)
-            </label>
-          </div>
-          
-          <div className="form-row-multi">
-            <div className="partner-input-group flex-1">
-              <label>구분 <span className="required" style={{color: '#ef4444'}}>*</span></label>
-              <div style={{ display: 'flex', gap: '16px', height: '41px', alignItems: 'center', padding: '0 4px' }}>
-                {['매출처', '매입처', '혼합'].map((t) => (
-                  <label 
-                    key={t} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px', 
-                      fontSize: '0.95rem', 
-                      fontWeight: formData.type === t ? 600 : 500,
-                      color: formData.type === t ? '#2563eb' : '#475569',
-                      cursor: 'pointer',
-                      userSelect: 'none'
-                    }}
-                  >
-                    <input 
-                      type="radio" 
-                      name="type" 
-                      value={t} 
-                      checked={formData.type === t} 
-                      onChange={handleChange} 
-                      style={{
-                        appearance: 'none',
-                        width: '18px',
-                        height: '18px',
-                        border: formData.type === t ? '6px solid #2563eb' : '2px solid #cbd5e1',
-                        borderRadius: '50%',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        backgroundColor: '#fff'
+          {/* Section 1: Basic Info */}
+          <div className="form-section" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ef4444', paddingBottom: '6px', marginBottom: '12px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Building2 size={16} color="#ef4444" /> 기본 정보
+              </h4>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#ef4444' }}>
+                <input type="checkbox" name="hideOrderInfo" checked={formData.hideOrderInfo} onChange={handleChange} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
+                관리안함(숨김)
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 구분 */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>
+                  구분 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '6px 8px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  {['매출처', '매입처', '혼합'].map((t) => (
+                    <label 
+                      key={t} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        fontSize: '0.85rem', 
+                        fontWeight: formData.type === t ? 700 : 500,
+                        color: formData.type === t ? '#2563eb' : '#475569',
+                        cursor: 'pointer'
                       }}
-                    />
-                    {t === '혼합' ? '혼합 (매입매출처)' : t}
+                    >
+                      <input 
+                        type="radio" 
+                        name="type" 
+                        value={t} 
+                        checked={formData.type === t} 
+                        onChange={handleChange} 
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      {t === '혼합' ? '혼합(매입/매출)' : t}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* 순번 & 상호명 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>순번</label>
+                  <input type="text" name="sequence" value={formData.sequence} onChange={handleChange} placeholder="2-1" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>
+                    상호명 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                ))}
+                  <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="거래처 상호명 입력" required style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+              </div>
+
+              {/* 약칭 */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>약칭</label>
+                <input type="text" name="abbreviation" value={formData.abbreviation} onChange={handleChange} placeholder="예: (주)링크" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+              </div>
+
+              {/* 바코드 */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>바코드</label>
+                <div style={{ position: 'relative' }}>
+                  <ScanBarcode size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <input type="text" name="barcode" value={formData.barcode} onChange={handleChange} placeholder="스캔 또는 직접 입력" style={{ width: '100%', padding: '7px 8px 7px 32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+              </div>
+
+              {/* 대표자 & 사업자번호 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>대표자</label>
+                  <input type="text" name="ceo" value={formData.ceo} onChange={handleChange} placeholder="대표자명" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>사업자번호</label>
+                  <input type="text" name="businessNo" value={formData.businessNo} onChange={handleChange} placeholder="000-00-00000" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+              </div>
+
+              {/* 주소 */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>주소</label>
+                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="사업장 주소 입력" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
               </div>
             </div>
-            <div className="partner-input-group" style={{ flex: '0 0 80px' }}>
-              <label>순번</label>
-              <input type="text" name="sequence" value={formData.sequence} onChange={handleChange} placeholder="2-1" className="partner-input" />
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>상호명 <span className="required" style={{color: '#ef4444'}}>*</span></label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} className="partner-input" required />
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>약칭</label>
-              <input type="text" name="abbreviation" value={formData.abbreviation} onChange={handleChange} placeholder="예: (주)링크" className="partner-input" />
-            </div>
           </div>
 
-          <div className="form-row-multi">
-            <div className="partner-input-group flex-1">
-              <label>바코드</label>
-              <div className="barcode-input-wrapper">
-                <ScanBarcode size={16} className="input-icon-left" />
-                <input type="text" name="barcode" value={formData.barcode} onChange={handleChange} placeholder="스캔 또는 입력" className="partner-input pl-10" style={{borderRadius: '6px'}} />
+          {/* Section 2: Contact Info */}
+          <div className="form-section" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+              <Phone size={16} color="#3b82f6" /> 연락처 정보
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 일반전화 & 휴대전화 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>일반전화</label>
+                  <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="02-000-0000" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>휴대전화</label>
+                  <input type="text" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="010-0000-0000" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+              </div>
+
+              {/* 팩스번호 & 이메일 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>팩스번호</label>
+                  <input type="text" name="fax" value={formData.fax} onChange={handleChange} placeholder="02-000-0000" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>이메일</label>
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="email@domain.com" style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }} />
+                </div>
               </div>
             </div>
-            <div className="partner-input-group flex-1">
-              <label>대표자</label>
-              <input type="text" name="ceo" value={formData.ceo} onChange={handleChange} className="partner-input" />
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>사업자번호</label>
-              <input type="text" name="businessNo" value={formData.businessNo} onChange={handleChange} placeholder="000-00-00000" className="partner-input" />
-            </div>
           </div>
 
-          <div className="form-row-multi">
-            <div className="partner-input-group" style={{ flex: 1 }}>
-              <label>주소</label>
-              <input type="text" name="address" value={formData.address} onChange={handleChange} className="partner-input" />
-            </div>
-          </div>
-        </div>
-
-        <hr className="section-divider" />
-
-        {/* Section 2: Contact Info */}
-        <div className="form-section">
-          <h4 className="form-section-title"><Phone size={16} /> 연락처 정보</h4>
-          
-          <div className="form-row-multi">
-            <div className="partner-input-group flex-1">
-              <label>일반전화</label>
-              <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="partner-input" />
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>휴대전화</label>
-              <input type="text" name="mobile" value={formData.mobile} onChange={handleChange} className="partner-input" />
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>팩스번호</label>
-              <input type="text" name="fax" value={formData.fax} onChange={handleChange} className="partner-input" />
-            </div>
-          </div>
-
-          <div className="form-row-multi">
-            <div className="partner-input-group" style={{ flex: 1, maxWidth: '33.33%' }}>
-              <label>이메일</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} className="partner-input" />
-            </div>
-          </div>
-        </div>
-
-        <hr className="section-divider" />
-
-        {/* Section 3: Management & Settings */}
-        <div className="form-section">
-          <h4 className="form-section-title"><Users size={16} /> 관리 및 설정</h4>
-          
-          <div className="form-row-multi">
-            <div className="partner-input-group flex-1">
-              <label>담당자 (직원)</label>
-              <div className="partner-select-wrapper">
-                <select name="manager" value={formData.manager} onChange={handleChange} className="partner-select">
-                  <option value="-">선택안함</option>
-                  {safeStaffList.map((staff) => (
-                    <option key={staff.id} value={staff.name}>
-                      {staff.name} {staff.warehouse ? `(${staff.warehouse})` : ''}
-                    </option>
-                  ))}
-                </select>
+          {/* Section 3: Management & Settings */}
+          <div className="form-section" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+              <Users size={16} color="#3b82f6" /> 관리 및 설정
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 담당자 & 관리창고 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>담당자 (직원)</label>
+                  <select name="manager" value={formData.manager} onChange={handleChange} style={{ width: '100%', padding: '7px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#fff' }}>
+                    <option value="-">선택안함</option>
+                    {safeStaffList.map((staff) => (
+                      <option key={staff.id} value={staff.name}>
+                        {staff.name} {staff.warehouse ? `(${staff.warehouse})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>관리 창고</label>
+                  <select name="warehouse" value={formData.warehouse} onChange={handleChange} style={{ width: '100%', padding: '7px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#fff' }}>
+                    <option value="-">선택안함</option>
+                    {safeWarehouses.map((wh) => (
+                      <option key={wh.id} value={wh.name}>{wh.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>관리 창고</label>
-              <div className="partner-select-wrapper">
-                <select name="warehouse" value={formData.warehouse} onChange={handleChange} className="partner-select">
-                  <option value="-">선택안함</option>
-                  {safeWarehouses.map((wh) => (
-                    <option key={wh.id} value={wh.name}>{wh.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>거래통장 지정</label>
-              <div className="partner-select-wrapper">
-                <select name="bankAccount" value={formData.bankAccount} onChange={handleChange} className="partner-select">
+
+              {/* 거래통장 지정 */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>거래통장 지정</label>
+                <select name="bankAccount" value={formData.bankAccount} onChange={handleChange} style={{ width: '100%', padding: '7px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#fff' }}>
                   <option value="선택안함">선택안함</option>
                   {safeAccounts.map(acc => {
                     const displayVal = acc.accountAlias 
@@ -311,164 +318,157 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
                   })}
                 </select>
               </div>
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>거래한도 (원)</label>
-              <input type="text" name="creditLimit" value={formData.creditLimit} onChange={handleChange} className="partner-input text-right" />
-              <span className="input-hint">* 초과 시 매출전표 발행 제한</span>
-            </div>
-          </div>
 
-          <div className="form-row-multi">
-            <div className="partner-input-group flex-1">
-              <label>누적 미수금 (원)</label>
-              <input 
-                type="text" 
-                name="receivables" 
-                value={formData.receivables} 
-                className="partner-input text-right" 
-                readOnly 
-                style={{ backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
-              />
-              <span className="input-hint">* 기초미수금 + 이미 발행된 전표상의 누적 미수금</span>
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>기초미수금 (원)</label>
-              <input type="text" name="receivableBase" value={formData.receivableBase} onChange={handleChange} className="partner-input text-right" />
-              <span className="input-hint">* 거래처 거래 개시 시점 또는 기준 미수금</span>
-            </div>
-            <div className="partner-input-group flex-1">
-              <label>거래처 등급</label>
-              <div className="partner-select-wrapper">
-                <select name="grade" value={formData.grade} onChange={handleChange} className="partner-select" style={{
-                  background: formData.grade === '1' ? '#eff6ff' : formData.grade === '2' ? '#fffbeb' : '#fef2f2',
-                  color: formData.grade === '1' ? '#1d4ed8' : formData.grade === '2' ? '#b45309' : '#dc2626',
-                  fontWeight: 700
-                }}>
-                  <option value="1">★ 1등급 (안전 / 파란불)</option>
-                  <option value="2">★★ 2등급 (주의 / 노란불)</option>
-                  <option value="3">★★★ 3등급 (위험 / 빨간불)</option>
-                </select>
-              </div>
-              <span className="input-hint">* 미수금 신호등과 자동 연동</span>
-            </div>
-          </div>
-
-          <div className="form-row-multi" style={{ marginTop: '12px' }}>
-            <div className="partner-input-group flex-1">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#ef4444' }}>
-                <input type="checkbox" name="hideAmountInInvoice" checked={formData.hideAmountInInvoice} onChange={handleChange} style={{ width: '16px', height: '16px' }} />
-                전표출력시 금액가리기 (수량만 표시)
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <hr className="section-divider" />
-
-        {/* Section 4: Order Login Info */}
-        <div className="form-section" style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '16px', backgroundColor: '#f8fafc' }}>
-          <h4 className="form-section-title" style={{ borderBottom: 'none', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Lock size={16} /> 주문 접속 정보 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>(최대 3개 계정 등록 가능)</span>
-          </h4>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            {/* 계정 1 */}
-            <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2563eb', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563eb' }}></span>
-                  주문 계정 1
+              {/* 거래한도 & 기초미수금 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>거래한도 (원)</label>
+                  <input type="text" name="creditLimit" value={formData.creditLimit} onChange={handleChange} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', textAlign: 'right' }} />
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb' }}>
-                  <input type="checkbox" name="isMain1" checked={formData.isMain1} onChange={handleChange} style={{ width: '13px', height: '13px', cursor: 'pointer' }} />
-                  대표
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>기초미수금 (원)</label>
+                  <input type="text" name="receivableBase" value={formData.receivableBase} onChange={handleChange} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', textAlign: 'right' }} />
+                </div>
+              </div>
+
+              {/* 누적 미수금 & 거래처 등급 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>누적 미수금 (원)</label>
+                  <input 
+                    type="text" 
+                    name="receivables" 
+                    value={formData.receivables} 
+                    readOnly 
+                    style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', textAlign: 'right', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>거래처 등급</label>
+                  <select name="grade" value={formData.grade} onChange={handleChange} style={{
+                    width: '100%',
+                    padding: '7px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    background: formData.grade === '1' ? '#eff6ff' : formData.grade === '2' ? '#fffbeb' : '#fef2f2',
+                    color: formData.grade === '1' ? '#1d4ed8' : formData.grade === '2' ? '#b45309' : '#dc2626',
+                    fontWeight: 700
+                  }}>
+                    <option value="1">★ 1등급 (안전)</option>
+                    <option value="2">★★ 2등급 (주의)</option>
+                    <option value="3">★★★ 3등급 (위험)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 전표출력시 금액가리기 */}
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: '#ef4444' }}>
+                  <input type="checkbox" name="hideAmountInInvoice" checked={formData.hideAmountInInvoice} onChange={handleChange} style={{ width: '15px', height: '15px' }} />
+                  전표출력시 금액가리기 (수량만 표시)
                 </label>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>아이디</label>
-                  <input type="text" name="loginId" value={formData.loginId} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+            </div>
+          </div>
+
+          {/* Section 4: Order Login Info */}
+          <div className="form-section" style={{ border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px', backgroundColor: '#f8fafc' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Lock size={16} color="#2563eb" /> 주문 접속 계정 <span style={{ fontSize: '0.72rem', fontWeight: 'normal', color: '#64748b' }}>(최대 3개)</span>
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 계정 1 */}
+              <div style={{ padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#2563eb', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>● 주문 계정 1</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, color: '#2563eb' }}>
+                    <input type="checkbox" name="isMain1" checked={formData.isMain1} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                    대표
+                  </label>
                 </div>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>패스워드</label>
-                  <input type="text" name="password" value={formData.password} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>아이디</label>
+                    <input type="text" name="loginId" value={formData.loginId} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>패스워드</label>
+                    <input type="text" name="password" value={formData.password} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#f43f5e', marginTop: '4px' }}>
-                  <input type="checkbox" name="hidePrice1" checked={formData.hidePrice1} onChange={handleChange} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: '#f43f5e' }}>
+                  <input type="checkbox" name="hidePrice1" checked={formData.hidePrice1} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                  주문몰내 물품가격 표시안함
+                </label>
+              </div>
+
+              {/* 계정 2 */}
+              <div style={{ padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#2563eb', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>● 주문 계정 2</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, color: '#2563eb' }}>
+                    <input type="checkbox" name="isMain2" checked={formData.isMain2} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                    대표
+                  </label>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>아이디</label>
+                    <input type="text" name="loginId2" value={formData.loginId2} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>패스워드</label>
+                    <input type="text" name="password2" value={formData.password2} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: '#f43f5e' }}>
+                  <input type="checkbox" name="hidePrice2" checked={formData.hidePrice2} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                  주문몰내 물품가격 표시안함
+                </label>
+              </div>
+
+              {/* 계정 3 */}
+              <div style={{ padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#2563eb', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>● 주문 계정 3</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, color: '#2563eb' }}>
+                    <input type="checkbox" name="isMain3" checked={formData.isMain3} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                    대표
+                  </label>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>아이디</label>
+                    <input type="text" name="loginId3" value={formData.loginId3} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>패스워드</label>
+                    <input type="text" name="password3" value={formData.password3} onChange={handleChange} style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: '#f43f5e' }}>
+                  <input type="checkbox" name="hidePrice3" checked={formData.hidePrice3} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
                   주문몰내 물품가격 표시안함
                 </label>
               </div>
             </div>
 
-            {/* 계정 2 */}
-            <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2563eb', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563eb' }}></span>
-                  주문 계정 2
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb' }}>
-                  <input type="checkbox" name="isMain2" checked={formData.isMain2} onChange={handleChange} style={{ width: '13px', height: '13px', cursor: 'pointer' }} />
-                  대표
-                </label>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>아이디</label>
-                  <input type="text" name="loginId2" value={formData.loginId2} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                </div>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>패스워드</label>
-                  <input type="text" name="password2" value={formData.password2} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#f43f5e', marginTop: '4px' }}>
-                  <input type="checkbox" name="hidePrice2" checked={formData.hidePrice2} onChange={handleChange} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
-                  주문몰내 물품가격 표시안함
-                </label>
-              </div>
-            </div>
-
-            {/* 계정 3 */}
-            <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#fff' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2563eb', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563eb' }}></span>
-                  주문 계정 3
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb' }}>
-                  <input type="checkbox" name="isMain3" checked={formData.isMain3} onChange={handleChange} style={{ width: '13px', height: '13px', cursor: 'pointer' }} />
-                  대표
-                </label>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>아이디</label>
-                  <input type="text" name="loginId3" value={formData.loginId3} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                </div>
-                <div className="partner-input-group">
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>패스워드</label>
-                  <input type="text" name="password3" value={formData.password3} onChange={handleChange} className="partner-input" style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#f43f5e', marginTop: '4px' }}>
-                  <input type="checkbox" name="hidePrice3" checked={formData.hidePrice3} onChange={handleChange} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
-                  주문몰내 물품가격 표시안함
-                </label>
-              </div>
+            {/* 메모 */}
+            <div style={{ marginTop: '10px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>메모</label>
+              <textarea name="memo" value={formData.memo} onChange={handleChange} placeholder="거래처 특이사항 입력" style={{ width: '100%', minHeight: '60px', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', resize: 'vertical' }} />
             </div>
           </div>
 
-          <div className="form-row-multi" style={{ marginTop: '16px' }}>
-            <div className="partner-input-group" style={{ flex: 1 }}>
-              <label>메모</label>
-              <textarea name="memo" value={formData.memo} onChange={handleChange} className="partner-textarea" placeholder="특이사항 입력" />
-            </div>
-          </div>
-        </div>
-
-          <div className="partner-reg-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
-            <button type="button" className="btn-text" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '8px 16px', fontWeight: '600' }}>취소</button>
-            <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Footer Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '4px' }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#64748b', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+              취소
+            </button>
+            <button type="submit" style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#3b82f6', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}>
               <Save size={16} /> {isEditing ? "수정하기" : "저장하기"}
             </button>
           </div>

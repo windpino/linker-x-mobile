@@ -63,23 +63,33 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
   };
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '0 0 2px 0', cursor: isDashboardLocked ? 'default' : 'grab' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+    <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '0 0 6px 0', borderBottom: '1px solid #f1f5f9', marginBottom: '6px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
           <Clock size={16} color="#3b82f6" />
-          {formattedDate} 일정
+          <span>{formattedDate} 일정</span>
+          {dailySchedules.length > 0 && (
+            <span style={{ fontSize: '0.7rem', color: '#3b82f6', backgroundColor: '#eff6ff', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>
+              {dailySchedules.length}건
+            </span>
+          )}
         </div>
         <button 
           className="btn-sub-primary" 
           onClick={(e) => { e.stopPropagation(); onAdd(); }} 
-          style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}
+          style={{ 
+            padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, 
+            display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
+            backgroundColor: '#3b82f6', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
+          }}
         >
           <Plus size={14} /> 일정 추가
         </button>
       </div>
-      <div className="sidebar-content" style={{ padding: '0' }}>
+
+      <div className="sidebar-content" style={{ padding: '0', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {dailySchedules.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
              {dailySchedules.map(schedule => {
                const hasViewed = schedule.viewers && schedule.viewers.includes(currentUser?.name);
                const badgeStyle = getBadgeStyles(schedule.type);
@@ -103,65 +113,67 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
                      }
                    }}
                    style={{ 
-                     padding: '5px 8px', 
-                     backgroundColor: hasViewed ? '#e8f5e9' : '#f8fafc', 
+                     padding: '6px 9px', 
+                     backgroundColor: hasViewed ? '#f0fdf4' : '#f8fafc', 
                      border: '1px solid',
-                     borderColor: hasViewed ? '#a5d6a7' : '#e2e8f0', 
+                     borderColor: hasViewed ? '#bbf7d0' : '#e2e8f0', 
                      borderRadius: '8px',
                      cursor: 'pointer',
-                     transition: 'all 0.2s',
+                     transition: 'all 0.15s',
                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
                    }}
                  >
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                        <span style={{ 
-                         fontSize: '0.75rem', 
-                         padding: '2px 6px', 
+                         fontSize: '0.72rem', 
+                         padding: '1px 5px', 
                          borderRadius: '4px', 
                          backgroundColor: badgeStyle.backgroundColor,
                          color: badgeStyle.color,
-                         border: badgeStyle.border
+                         border: badgeStyle.border,
+                         fontWeight: 700
                        }}>
                          {schedule.type}
                        </span>
-                       {schedule.time}
+                       <span style={{ color: '#1e293b', fontSize: '0.82rem' }}>{schedule.time}</span>
                        {schedule.author && (
                          <>
-                           <span style={{ color: 'var(--text-muted)', opacity: 0.5, margin: '0 3px' }}>|</span>
-                           <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)', opacity: 0.8 }}>
+                           <span style={{ color: '#cbd5e1', margin: '0 2px' }}>•</span>
+                           <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#64748b' }}>
                              {schedule.author}
                            </span>
                          </>
                        )}
                      </span>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {canModify && (
-                        <div style={{ display: 'flex', gap: '4px', marginRight: '4px' }}>
+                        <div style={{ display: 'flex', gap: '2px' }}>
                           <button 
                             onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
-                            style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', padding: '3px', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
-                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                            title="일정 수정"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={13} />
                           </button>
                           {deletingId === schedule.id ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', backgroundColor: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>
                               <button 
                                 onClick={(e) => { 
                                   e.stopPropagation(); 
                                   onDelete(schedule.id); 
                                   setDeletingId(null);
                                 }}
-                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: '#ef4444', fontSize: '0.7rem', fontWeight: 700 }}
+                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: '#ef4444', fontSize: '0.68rem', fontWeight: 700 }}
                               >
                                 삭제
                               </button>
                               <button 
                                 onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
-                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: '#64748b', fontSize: '0.7rem' }}
+                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: '#64748b', fontSize: '0.68rem' }}
                               >
                                 취소
                               </button>
@@ -170,33 +182,33 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
                             <button 
                               onClick={(e) => { 
                                 e.stopPropagation(); 
-                                setDeletingId(schedule.id);
+                                setDeletingId(schedule.id); 
                               }}
-                              style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                              style={{ background: 'none', border: 'none', padding: '3px', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
                               onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
                               title="일정 삭제"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>
                       )}
-                      {hasViewed && <CheckCircle2 size={16} color="#10b981" />}
+                      {hasViewed && <CheckCircle2 size={15} color="#10b981" />}
                     </div>
                   </div>
                   
-                  <div style={{ fontSize: '0.8rem', color: 'var(--sch-desc)', opacity: 0.9, lineHeight: '1.3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }} title={schedule.description}>
-                    {schedule.description && schedule.description.length > 25 ? schedule.description.substring(0, 25) + '...' : schedule.description}
+                  <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: '1.3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={schedule.description}>
+                    {schedule.description || '내용 없음'}
                   </div>
                   
                   {schedule.viewers && schedule.viewers.length > 0 && (
-                    <div style={{ display: 'flex', gap: '4px', marginBottom: '2px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '3px', alignItems: 'center' }}>
                       <span style={{ 
-                        fontSize: '0.68rem', 
-                        padding: '1px 6px', 
+                        fontSize: '0.65rem', 
+                        padding: '1px 5px', 
                         backgroundColor: '#e0f2fe', 
-                        borderRadius: '10px',
+                        borderRadius: '6px',
                         color: '#0369a1',
                         fontWeight: 600
                       }}>
@@ -209,8 +221,25 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
             })}
           </div>
         ) : (
-          <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px 0', fontSize: '0.95rem' }}>
-            일정이 없습니다.
+          <div style={{ 
+            height: '100%', minHeight: '160px', display: 'flex', flexDirection: 'column', 
+            alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94a3b8',
+            backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1',
+            padding: '24px 16px', textAlign: 'center'
+          }}>
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '50%',
+              backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', marginBottom: '2px'
+            }}>
+              <Clock size={22} color="#3b82f6" strokeWidth={2} />
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
+              오늘 등록된 일정이 없습니다.
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+              상단의 '+ 일정 추가' 버튼으로<br />새로운 일정을 등록하고 관리하세요.
+            </div>
           </div>
         )}
       </div>

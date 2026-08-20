@@ -161,22 +161,6 @@
   color: #64748b;
 }
 
-/* Dark mode overrides for tags */
-[data-theme='dark'] .discount-tag {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
-
-[data-theme='dark'] .discount-tag.surcharge {
-  background-color: rgba(217, 119, 6, 0.15);
-  color: #fbbf24;
-}
-
-[data-theme='dark'] .discount-tag.neutral {
-  background-color: rgba(100, 116, 139, 0.15);
-  color: #94a3b8;
-}
-
 .sp-action-cell {
   display: flex;
   justify-content: center;

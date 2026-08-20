@@ -117,14 +117,7 @@ const ALL_FAVORITE_MENUS = [
   { id: 'tax_report',          name: '세금신고 지원 보고서', category: '스마트지원', emoji: '🧮' },
   { id: 'schedule',            name: '일정추가',        category: '스마트지원',     emoji: '📅' },
 
-  { id: 'data_manager',        name: '데이터 전체 저장/불러오기', category: '시스템관리', emoji: '🗄️' },
-  { id: 'partner_excel',       name: '거래처 엑셀파일로 저장/불러오기', category: '시스템관리', emoji: '📊' },
-  { id: 'product_excel',       name: '품목 엑셀파일로 저장/불러오기', category: '시스템관리', emoji: '📈' },
-  { id: 'sales_ledger_excel',  name: '매출처원장 저장/불러오기', category: '시스템관리', emoji: '📋' },
-  { id: 'purchase_ledger_excel', name: '매입처원장 저장/불러오기', category: '시스템관리', emoji: '📝' },
-
-  { id: 'settings',            name: '환경설정',        category: '환경설정&정품등록', emoji: '⚙️' },
-  { id: 'license',             name: '정품등록',        category: '환경설정&정품등록', emoji: '🔑' },
+  { id: 'settings',            name: '환경설정',        category: '환경설정', emoji: '⚙️' },
 ];
 const getFavMenuIcon = (menuId, size = 18) => {
   const icons = {
@@ -172,7 +165,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
   return icons[menuId] || <Package size={size} />;
 };
 
-const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'];
+const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '환경설정'];
 
 function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -294,7 +287,7 @@ function App() {
     setIsPurchaseInvoiceOpen(true);
   };
   const [isPurchaseOrderOpen, setIsPurchaseOrderOpen] = useState(false);
-  const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(true);
+  const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [isSalesLedgerOpen, setIsSalesLedgerOpen] = useState(false);
   const [isSalesInvoiceListOpen, setIsSalesInvoiceListOpen] = useState(false);
@@ -559,7 +552,9 @@ function App() {
   }, []);
 
   const [favoriteMenus, setFavoriteMenus] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('favoriteMenus'));
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const key = user?.userId ? `favoriteMenus_${user.userId}` : 'favoriteMenus';
+    const saved = JSON.parse(localStorage.getItem(key));
     if (saved && Array.isArray(saved)) {
       return saved.slice(0, 7);
     }
@@ -569,7 +564,9 @@ function App() {
   });
   
   const [dashboardConfig, setDashboardConfig] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('dashboardConfig'));
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const key = user?.userId ? `dashboardConfig_${user.userId}` : 'dashboardConfig';
+    const saved = JSON.parse(localStorage.getItem(key));
     if (saved && saved.widgets) {
       return { ...saved, widgets: saved.widgets.filter(id => id !== 'Calendar') };
     }
@@ -584,6 +581,27 @@ function App() {
     isLockedOnExpiry: false,
     lastPaymentDate: null
   });
+
+  React.useEffect(() => {
+    if (currentUser?.userId) {
+      const favKey = `favoriteMenus_${currentUser.userId}`;
+      const configKey = `dashboardConfig_${currentUser.userId}`;
+      
+      const savedFavs = JSON.parse(localStorage.getItem(favKey));
+      if (savedFavs && Array.isArray(savedFavs)) {
+        setFavoriteMenus(savedFavs.slice(0, 7));
+      } else {
+        setFavoriteMenus(['sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense']);
+      }
+      
+      const savedConfig = JSON.parse(localStorage.getItem(configKey));
+      if (savedConfig) {
+        setDashboardConfig(savedConfig);
+      } else {
+        setDashboardConfig({ widgets: ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses'] });
+      }
+    }
+  }, [currentUser]);
 
   const [showLicenseAlert, setShowLicenseAlert] = useState(false);
   
@@ -820,15 +838,24 @@ function App() {
     ];
 
     singleDocs.forEach(sd => {
-      // New structure: companies/{companyId}/settings/{docName}
-      const unsub = onSnapshot(doc(db, 'companies', companyId, 'settings', sd.name), (snapshot) => {
+      let docRef;
+      if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser.userId) {
+        docRef = doc(db, 'companies', companyId, 'userSettings', currentUser.userId + '_' + sd.name);
+      } else {
+        docRef = doc(db, 'companies', companyId, 'settings', sd.name);
+      }
+
+      const unsub = onSnapshot(docRef, (snapshot) => {
         if (snapshot.metadata.hasPendingWrites) return; // 로컬 쓰기가 대기 중일 때는 리스너 덮어쓰기를 스킵하여 Race Condition 방어
         
         if (snapshot.exists()) {
           const dataVal = snapshot.data().value;
           sd.setter(dataVal);
 
-
+          if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser.userId) {
+            const key = `${sd.name}_${currentUser.userId}`;
+            localStorage.setItem(key, JSON.stringify(dataVal));
+          }
         }
       });
       unsubscribes.push(unsub);
@@ -2074,7 +2101,15 @@ function App() {
       if (currentUser && currentUser.companyId) {
         const companyId = currentUser.companyId;
         Object.entries(settingsToSync).forEach(([name, value]) => {
-          setDoc(doc(db, 'companies', companyId, 'settings', name), { value }).catch(e => console.warn("Firebase settings sync failed:", e));
+          let docRef;
+          if ((name === 'favoriteMenus' || name === 'dashboardConfig') && currentUser.userId) {
+            docRef = doc(db, 'companies', companyId, 'userSettings', currentUser.userId + '_' + name);
+            const key = `${name}_${currentUser.userId}`;
+            localStorage.setItem(key, JSON.stringify(value));
+          } else {
+            docRef = doc(db, 'companies', companyId, 'settings', name);
+          }
+          setDoc(docRef, { value }).catch(e => console.warn("Firebase settings sync failed:", e));
         });
       }
 
@@ -2114,11 +2149,15 @@ function App() {
         }
         
         // 로컬스토리지 저장
-        localStorage.setItem('favoriteMenus', JSON.stringify(next));
+        const key = currentUser?.userId ? `favoriteMenus_${currentUser.userId}` : 'favoriteMenus';
+        localStorage.setItem(key, JSON.stringify(next));
         
         // 파이어베이스 저장 (Firestore 동기화)
         if (currentUser?.companyId) {
-          setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: next })
+          const docRef = currentUser.userId 
+            ? doc(db, 'companies', currentUser.companyId, 'userSettings', currentUser.userId + '_favoriteMenus')
+            : doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus');
+          setDoc(docRef, { value: next })
             .catch(err => console.warn('Firebase favorite sync failed:', err));
         } else {
           setDoc(doc(db, 'settings', 'favoriteMenus'), { value: next })
@@ -2419,8 +2458,8 @@ function App() {
                     { id: 'cash_report_1', name: '결산 보고', icon: <BarChart2 size={20} />, action: () => openCashReport('결산') },
                     { id: 'cash_report_2', name: '입출금 현황', icon: <TrendingUp size={20} />, action: () => openCashReport('일자별') },
                     { id: 'sales_report', name: '매출 보고', icon: <BarChart2 size={20} />, action: () => setIsSalesReportOpen(true) },
-                    { id: 'inventory_report_1', name: '일자별 재고현황(창고별이동현황)', icon: <Box size={20} />, action: () => openInventoryReport('일자별') },
-                    { id: 'inventory_report_2', name: '최종 재고 현황(창고별 최종재고현황)', icon: <Box size={20} />, action: () => openInventoryReport('최종') },
+                    { id: 'inventory_report_1', name: '일자별 재고이동', icon: <Box size={20} />, action: () => openInventoryReport('일자별') },
+                    { id: 'inventory_report_2', name: '최종재고', icon: <Box size={20} />, action: () => openInventoryReport('최종') },
                     { id: 'receivables', name: '미수금 보고', icon: <DollarSign size={20} />, action: () => setIsReceivablesReportOpen(true) },
                     { id: 'edit_delete', name: '수정삭제 보고', icon: <FileSearch size={20} />, action: () => setIsEditDeleteReportOpen(true) },
                     { id: 'staff_perf', name: '직원 실적', icon: <TrendingUp size={20} />, action: () => setIsStaffPerformanceReportOpen(true) },
@@ -2708,14 +2747,14 @@ function App() {
               });
             });
 
-            (inventoryMovements || []).forEach(mov => {
+            (inventoryTransferHistory || []).forEach(mov => {
               activities.push({
                 id: `mov-${mov.id}`,
                 category: '이동',
                 subCategory: '재고이동',
-                title: `재고이동 (${mov.fromWarehouse || '출발'}➔${mov.toWarehouse || '도착'})`,
-                detail: `${mov.items?.[0]?.name || '품목'}`,
-                user: mov.creator || '시스템',
+                title: `재고이동 (${mov.from || '출발'}➔${mov.to || '도착'})`,
+                detail: `${mov.item || '품목'} (${mov.qty || 0}개)`,
+                user: mov.creator || mov.operator || '시스템',
                 date: mov.date || new Date().toISOString().split('T')[0],
                 timestamp: mov.createdAt || mov.id || new Date(mov.date || Date.now()).getTime(),
                 type: '이동',
@@ -3534,104 +3573,136 @@ function App() {
           onToggleMobileDrawer={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
-      <div className="main-content" style={{ padding: '8px 10px' }}>
+      <div className="main-content" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 56px)', overflow: 'hidden', gap: '8px', boxSizing: 'border-box' }}>
         {/* 모바일 메인 뷰: [ 상단 자주 찾는 메뉴 ] + [ 하단 일정 목록 ] */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-          {/* 자주 찾는 메뉴 (퀵메뉴) */}
-          <FavoriteMenuBar
-            favoriteMenus={favoriteMenus}
-            currentUser={currentUser}
-            db={db}
-            setFavoriteMenus={setFavoriteMenus}
-            showToast={showToast}
-            SYSTEM_NOTICES={SYSTEM_NOTICES}
-            currentNoticeIdx={currentNoticeIdx}
-            noticeFade={noticeFade}
-            setSelectedSystemNotice={setSelectedSystemNotice}
-            setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
-            onMenuAction={(menuId) => {
-              const actions = {
-                staff:                      () => setIsStaffManagerOpen(true),
-                warehouse:                  () => setIsWarehouseManagerOpen(true),
-                partner:                    () => setIsPartnerManagerOpen(true),
-                product:                    () => setIsProductManagerOpen(true),
-                inventory_transfer:         () => openInventoryTransfer(),
-                inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
-                inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
-                inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
-                inventory_report_1:         () => openInventoryReport('일자별'),
-                inventory_report_2:         () => openInventoryReport('최종'),
-                inventory_report_3:         () => openInventoryReport('partner'),
-                purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
-                purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
-                purchase_order:             () => setIsPurchaseOrderOpen(true),
-                sales_invoice:              () => setIsSalesInvoiceOpen(true),
-                sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
-                sales_ledger:               () => setIsSalesLedgerOpen(true),
-                sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
-                order_list:                 () => setIsOrderListOpen(true),
-                account:                    () => setIsAccountManagerOpen(true),
-                cash_report_1:              () => openCashReport('결산'),
-                cash_report_2:              () => openCashReport('일자별'),
-                cash_report_3:              () => openCashReport('계좌별'),
-                cash_book:                  () => setIsCashBookOpen(true),
-                expense:                    () => setIsExpenseRegistrationOpen(true),
-                sales_report:               () => setIsSalesReportOpen(true),
-                order_report:               () => setIsOrderReportOpen(true),
-                edit_delete:                () => setIsEditDeleteReportOpen(true),
-                staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
-                receivables:                () => setIsReceivablesReportOpen(true),
-                partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
-                tax_report:                 () => setIsTaxReportOpen(true),
-                schedule:                   () => setIsScheduleRegistrationOpen(true),
-                data_manager:               () => setIsDataManagerOpen(true),
-                partner_excel:              () => setIsPartnerExcelOpen(true),
-                product_excel:              () => setIsProductExcelOpen(true),
-                sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
-                purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
-                settings:                   () => setIsSettingsOpen(true),
-                license:                    () => setIsLicenseOpen(true),
-              };
-              if (actions[menuId]) actions[menuId]();
+        {/* 자주 찾는 메뉴 (퀵메뉴) */}
+        <FavoriteMenuBar
+          favoriteMenus={favoriteMenus}
+          currentUser={currentUser}
+          db={db}
+          setFavoriteMenus={setFavoriteMenus}
+          showToast={showToast}
+          SYSTEM_NOTICES={SYSTEM_NOTICES}
+          currentNoticeIdx={currentNoticeIdx}
+          noticeFade={noticeFade}
+          setSelectedSystemNotice={setSelectedSystemNotice}
+          setIsFavoriteSettingsOpen={setIsFavoriteSettingsOpen}
+          onMenuAction={(menuId) => {
+            const actions = {
+              staff:                      () => setIsStaffManagerOpen(true),
+              warehouse:                  () => setIsWarehouseManagerOpen(true),
+              partner:                    () => setIsPartnerManagerOpen(true),
+              product:                    () => setIsProductManagerOpen(true),
+              inventory_transfer:         () => openInventoryTransfer(),
+              inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
+              inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
+              inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
+              inventory_report_1:         () => openInventoryReport('일자별'),
+              inventory_report_2:         () => openInventoryReport('최종'),
+              inventory_report_3:         () => openInventoryReport('partner'),
+              purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
+              purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
+              purchase_order:             () => setIsPurchaseOrderOpen(true),
+              sales_invoice:              () => setIsSalesInvoiceOpen(true),
+              sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
+              sales_ledger:               () => setIsSalesLedgerOpen(true),
+              sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
+              order_list:                 () => setIsOrderListOpen(true),
+              account:                    () => setIsAccountManagerOpen(true),
+              cash_report_1:              () => openCashReport('결산'),
+              cash_report_2:              () => openCashReport('일자별'),
+              cash_report_3:              () => openCashReport('계좌별'),
+              cash_book:                  () => setIsCashBookOpen(true),
+              expense:                    () => setIsExpenseRegistrationOpen(true),
+              sales_report:               () => setIsSalesReportOpen(true),
+              order_report:               () => setIsOrderReportOpen(true),
+              edit_delete:                () => setIsEditDeleteReportOpen(true),
+              staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
+              receivables:                () => setIsReceivablesReportOpen(true),
+              partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
+              tax_report:                 () => setIsTaxReportOpen(true),
+              schedule:                   () => setIsScheduleRegistrationOpen(true),
+              data_manager:               () => setIsDataManagerOpen(true),
+              partner_excel:              () => setIsPartnerExcelOpen(true),
+              product_excel:              () => setIsProductExcelOpen(true),
+              sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
+              purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
+              settings:                   () => setIsSettingsOpen(true),
+              license:                    () => setIsLicenseOpen(true),
+            };
+            if (actions[menuId]) actions[menuId]();
+          }}
+        />
+
+        {/* 일정 목록만 노출되는 메인 영역 (남은 화면 100% 핏 & 내부 스크롤 격리) */}
+        <div style={{
+          flex: 1, minHeight: 0,
+          backgroundColor: 'white', borderRadius: '12px', padding: '10px 12px',
+          border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden'
+        }}>
+          <ScheduleSidebar 
+            selectedDate={selectedDate} 
+            schedules={schedules} 
+            setSchedules={setSchedules} 
+            currentUser={currentUser} 
+            scheduleTypes={scheduleTypes}
+            hiddenScheduleTypes={hiddenScheduleTypes}
+            onAdd={() => setIsScheduleRegistrationOpen(true)}
+            isDashboardLocked={true}
+            onOpenScheduleDetail={handleOpenScheduleDetail}
+            onCopy={(s) => {
+              setCopiedSchedule(s);
+              alert('일정이 복사되었습니다.');
+            }}
+            onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
+            onDelete={async (id) => {
+              setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
+              try {
+                const companyId = currentUser?.companyId || 'default';
+                await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+                showToast('일정이 삭제되었습니다.', 'success');
+              } catch (err) {
+                console.error('Failed to delete schedule:', err);
+                showToast('일정 삭제에 실패했습니다.', 'error');
+              }
             }}
           />
-
-          {/* 일정 목록만 노출되는 메인 영역 */}
-          <div style={{
-            backgroundColor: 'white', borderRadius: '12px', padding: '12px',
-            border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}>
-            <ScheduleSidebar 
-              selectedDate={selectedDate} 
-              schedules={schedules} 
-              setSchedules={setSchedules} 
-              currentUser={currentUser} 
-              scheduleTypes={scheduleTypes}
-              hiddenScheduleTypes={hiddenScheduleTypes}
-              onAdd={() => setIsScheduleRegistrationOpen(true)}
-              isDashboardLocked={true}
-              onOpenScheduleDetail={handleOpenScheduleDetail}
-              onCopy={(s) => {
-                setCopiedSchedule(s);
-                alert('일정이 복사되었습니다.');
-              }}
-              onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
-              onDelete={async (id) => {
-                setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
-                try {
-                  const companyId = currentUser?.companyId || 'default';
-                  await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
-                  showToast('일정이 삭제되었습니다.', 'success');
-                } catch (err) { console.error(err); }
-              }}
-            />
-          </div>
         </div>
       </div>
 
       {/* 위젯 모달 창 (상단 헤더의 위젯 아이콘 클릭 시 노출) */}
       {isWidgetModalOpen && (
         <WindowModal title="대시보드 주요 위젯 (6개 현황)" onClose={() => setIsWidgetModalOpen(false)}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '8px 12px 0 12px',
+            backgroundColor: '#ffffff'
+          }}>
+            <button 
+              onClick={() => {
+                setIsWidgetModalOpen(false);
+                setIsDashboardSettingsOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid #3b82f6',
+                backgroundColor: '#eff6ff',
+                color: '#2563eb',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <SettingsIcon size={14} /> 위젯 관리설정
+            </button>
+          </div>
           <div style={{
             display: 'flex', flexDirection: 'column',
             gap: '12px', padding: '12px', maxHeight: '80vh', overflowY: 'auto'
@@ -4416,10 +4487,14 @@ function App() {
           onSave={(newMenus) => {
             setFavoriteMenus(newMenus);
             // 로컬스토리지 저장
-            localStorage.setItem('favoriteMenus', JSON.stringify(newMenus));
+            const key = currentUser?.userId ? `favoriteMenus_${currentUser.userId}` : 'favoriteMenus';
+            localStorage.setItem(key, JSON.stringify(newMenus));
             // Firebase 저장
             if (currentUser?.companyId) {
-              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: newMenus })
+              const docRef = currentUser.userId 
+                ? doc(db, 'companies', currentUser.companyId, 'userSettings', currentUser.userId + '_favoriteMenus')
+                : doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus');
+              setDoc(docRef, { value: newMenus })
                 .catch(err => console.warn('Firebase favorite sync failed:', err));
             }
             setIsFavoriteSettingsOpen(false);
@@ -4626,9 +4701,13 @@ function FavoriteMenuBar({
   // Firebase + localStorage에 저장하는 함수
   const saveFavorites = (newMenus) => {
     setFavoriteMenus(newMenus);
-    localStorage.setItem('favoriteMenus', JSON.stringify(newMenus));
+    const key = currentUser?.userId ? `favoriteMenus_${currentUser.userId}` : 'favoriteMenus';
+    localStorage.setItem(key, JSON.stringify(newMenus));
     if (currentUser?.companyId) {
-      setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus'), { value: newMenus })
+      const docRef = currentUser.userId 
+        ? doc(db, 'companies', currentUser.companyId, 'userSettings', currentUser.userId + '_favoriteMenus')
+        : doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus');
+      setDoc(docRef, { value: newMenus })
         .catch(err => console.warn('Firebase favorite sync failed:', err));
     }
   };
@@ -4664,11 +4743,11 @@ function FavoriteMenuBar({
     <div className="calendar-favorites-section" style={{
       backgroundColor: 'white',
       borderRadius: '12px',
-      padding: '12px',
-      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+      padding: '8px 10px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
       border: '1px solid #e2e8f0',
-      marginBottom: '4px',
-      position: 'relative'
+      position: 'relative',
+      flexShrink: 0
     }}>
       {/* 롤오버 공지사항 NOTICE (독립된 상단 1줄 표시) */}
       <div
@@ -4678,39 +4757,39 @@ function FavoriteMenuBar({
           alignItems: 'center',
           backgroundColor: '#fef2f2',
           border: '1px solid #fee2e2',
-          borderRadius: '8px',
-          padding: '6px 12px',
+          borderRadius: '6px',
+          padding: '4px 8px',
           cursor: 'pointer',
-          marginBottom: '10px',
+          marginBottom: '6px',
           transition: 'all 0.2s',
           opacity: noticeFade ? 1 : 0,
           transform: noticeFade ? 'none' : 'translateY(-2px)'
         }}
       >
-        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ef4444', marginRight: '8px', whiteSpace: 'nowrap', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>NOTICE</span>
+        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', marginRight: '6px', whiteSpace: 'nowrap', backgroundColor: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>NOTICE</span>
         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {SYSTEM_NOTICES[currentNoticeIdx]?.title}
         </span>
       </div>
 
       {/* 헤더 행: 자주 찾는 메뉴 타이틀 + 설정 톱니바퀴 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Star size={16} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>자주 찾는 메뉴 (8개)</h4>
+          <Star size={14} color="#f59e0b" fill="#f59e0b" />
+          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>자주 찾는 메뉴</h4>
         </div>
 
         <button
           onClick={e => { e.stopPropagation(); setIsFavoriteSettingsOpen(true); }}
-          style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{ padding: '2px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           title="전체 설정"
         >
-          <SettingsIcon size={15} />
+          <SettingsIcon size={14} />
         </button>
       </div>
 
-      {/* 8칸 메뉴 그리드 (1열당 4개 x 2행 = 총 8개) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+      {/* 8칸 메뉴 그리드 (1열당 4개 x 2행 = 총 8개, 컴팩트) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
         {Array.from({ length: 8 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
@@ -4723,23 +4802,23 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { playMenuClickSound(); setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '62px', border: '1.5px dashed #cbd5e1',
+                    width: '100%', height: '50px', border: '1.5px dashed #cbd5e1',
                     backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
                     borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: '10px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '3px',
-                    cursor: 'pointer', transition: 'all 0.18s'
+                    borderRadius: '8px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '1px',
+                    cursor: 'pointer', transition: 'all 0.15s'
                   }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={16} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
+                  <Plus size={15} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  <span style={{ fontSize: '0.65rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
                 {isSelecting && (
                   <div ref={popupRef} style={{
-                    position: 'absolute', top: '68px', left: (idx % 4) >= 2 ? 'auto' : '0',
+                    position: 'absolute', top: '56px', left: (idx % 4) >= 2 ? 'auto' : '0',
                     right: (idx % 4) >= 2 ? '0' : 'auto',
                     width: '240px', backgroundColor: 'white',
                     borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
@@ -4825,15 +4904,16 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { playMenuClickSound(); onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '62px', border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc', borderRadius: '10px',
+                  width: '100%', height: '50px', border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc', borderRadius: '8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '3px', cursor: 'pointer', transition: 'all 0.18s'
+                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.15s',
+                  padding: '3px 4px', boxSizing: 'border-box'
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                <span style={{ fontSize: '0.67rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', letterSpacing: '-0.3px', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                   {menuInfo.name}
                 </span>
               </button>
@@ -4843,9 +4923,9 @@ function FavoriteMenuBar({
                 onClick={e => { e.stopPropagation(); removeSlot(idx); }}
                 style={{
                   position: 'absolute', top: '-4px', right: '-4px',
-                  width: '16px', height: '16px', borderRadius: '50%',
+                  width: '15px', height: '15px', borderRadius: '50%',
                   backgroundColor: '#ef4444', border: '1.5px solid white',
-                  color: 'white', fontSize: '9px', display: 'flex',
+                  color: 'white', fontSize: '8px', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
                   padding: 0, lineHeight: 1
@@ -4924,7 +5004,7 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
                 }}
               >
                 <option value="">없음</option>
-                {['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '시스템관리', '환경설정&정품등록'].map(cat => (
+                {['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '환경설정'].map(cat => (
                   <optgroup key={cat} label={cat}>
                     {ALL_FAVORITE_MENUS.filter(o => o.category === cat).map(opt => (
                       <option key={opt.id} value={opt.id}>{opt.name}</option>
@@ -4986,8 +5066,7 @@ function DashboardSettingsModal({ config, onClose, onSave }) {
               { id: 'Receivables', name: '미수금관리', icon: <DollarSign size={18} /> },
               { id: 'InventoryAdjustment', name: '재고조정', icon: <AlertTriangle size={18} /> },
               { id: 'TaxReport', name: '세금신고 지원', icon: <FileText size={18} /> },
-              { id: 'Settings', name: '환경설정', icon: <SettingsIcon size={18} /> },
-              { id: 'License', name: '정품등록', icon: <Star size={18} /> }
+              { id: 'Settings', name: '환경설정', icon: <SettingsIcon size={18} /> }
             ].map(opt => (
               <label key={opt.id} className={`widget-option-label ${tempWidgets.includes(opt.id) ? 'active' : ''}`} style={{ 
                 display: 'flex', 

@@ -333,10 +333,12 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
           <div 
             className="window-content-area" 
             style={{ 
-              height: isMaximized ? 'calc(100vh - 40px)' : undefined,
+              height: isMaximized ? 'calc(100% - 40px)' : undefined,
+              flex: 1,
               padding: contentPadding || undefined,
               overflowY: noScroll ? 'hidden' : 'auto',
-              overflowX: noScroll ? 'hidden' : 'auto'
+              overflowX: noScroll ? 'hidden' : 'auto',
+              boxSizing: 'border-box'
             }}
           >
             {children}

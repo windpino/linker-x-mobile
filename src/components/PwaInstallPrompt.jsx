@@ -71,60 +71,78 @@ export default function PwaInstallPrompt() {
   if (!showBanner) return null;
 
   return (
-    <div className="pwa-install-banner">
-      <div className="pwa-banner-header">
-        <div className="pwa-app-icon">
-          <Package size={24} color="white" />
+    <div className="pwa-install-banner" style={{
+      position: 'fixed',
+      bottom: '12px',
+      left: '12px',
+      right: '12px',
+      maxWidth: '460px',
+      margin: '0 auto',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255, 255, 255, 0.12)',
+      borderRadius: '12px',
+      padding: '8px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      zIndex: 99999,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+      animation: 'slideUpPrompt 0.3s ease'
+    }}>
+      <div style={{
+        width: '32px', height: '32px', borderRadius: '8px',
+        backgroundColor: '#2563eb', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', flexShrink: 0
+      }}>
+        <Package size={18} color="white" />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          Linker X 모바일 앱 설치
         </div>
-        <div className="pwa-app-info">
-          <h4>Linker X 모바일 앱 설치</h4>
-          <p>
-            홈 화면에 앱을 추가하여 브라우저 주소창 없이 모바일 앱처럼 깔끔하고 쾌적하게 사용해 보세요.
-          </p>
+        <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          홈 화면에 추가하여 앱처럼 사용
         </div>
-        <button 
-          onClick={handleDismiss} 
-          style={{ color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <button
+          onClick={handleInstallClick}
+          style={{
+            backgroundColor: '#3b82f6', color: 'white', border: 'none',
+            borderRadius: '6px', padding: '4px 8px', fontSize: '0.72rem',
+            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+          }}
+        >
+          <Download size={12} />
+          {isIOS ? '안내' : '설치'}
+        </button>
+        <button
+          onClick={handleDismiss}
+          style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px' }}
           title="닫기"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
 
-      {!showIosTutorial ? (
-        <div className="pwa-banner-actions">
-          <button className="pwa-btn-later" onClick={handleDismiss}>
-            나중에
-          </button>
-          <button className="pwa-btn-install" onClick={handleInstallClick}>
-            <Download size={14} style={{ marginRight: '6px', display: 'inline' }} />
-            {isIOS ? '설치 안내 보기' : '앱 설치하기'}
-          </button>
-        </div>
-      ) : (
-        <div className="ios-tutorial-panel">
-          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '0.82rem' }}>
+      {showIosTutorial && (
+        <div className="ios-tutorial-panel" style={{
+          position: 'absolute', bottom: '100%', left: 0, right: 0,
+          marginBottom: '8px', backgroundColor: '#1e293b', padding: '12px',
+          borderRadius: '12px', border: '1px solid #334155'
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '0.8rem', color: 'white' }}>
              iOS Safari 설치 방법:
           </div>
-          <div className="ios-step">
-            <span className="ios-icon-badge">1단계</span>
-            <span>Safari 브라우저 하단의 <strong>공유 아이콘</strong> <Share size={14} style={{ display: 'inline', margin: '0 2px' }} /> 을 누릅니다.</span>
+          <div className="ios-step" style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+            1. Safari 브라우저 하단 <strong>공유 아이콘</strong>을 누릅니다.
           </div>
-          <div className="ios-step">
-            <span className="ios-icon-badge">2단계</span>
-            <span>메뉴를 아래로 스크롤하여 <strong>'홈 화면에 추가'</strong>를 선택합니다.</span>
+          <div className="ios-step" style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+            2. 메뉴에서 <strong>'홈 화면에 추가'</strong>를 선택합니다.
           </div>
-          <div className="ios-step">
-            <span className="ios-icon-badge">3단계</span>
-            <span>우측 상단의 <strong>'추가'</strong> 버튼을 눌러 홈 화면에서 앱을 실행합니다.</span>
-          </div>
-          <button 
-            className="pwa-btn-later" 
-            style={{ width: '100%', marginTop: '8px', padding: '8px' }} 
-            onClick={handleDismiss}
-          >
-            확인했습니다
-          </button>
         </div>
       )}
     </div>

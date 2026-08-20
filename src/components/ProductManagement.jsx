@@ -28,6 +28,8 @@ const DEFAULT_COLUMNS = {
 };
 
 const ProductManagement = ({ onClose, products, setProducts, categories, setCategories, onOpenBulk, currentUser }) => {
+  const isMobile = true;
+
   const [colWidths, setColWidths] = useState({
     photo: 80,
     categoryLarge: 100,
@@ -384,117 +386,82 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
   return (
     <>
       <WindowModal title="품목 등록/관리" onClose={onClose} width="1100px" contentPadding="0" noScroll>
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(85vh - 40px)' }}>
-          <div style={{ padding: 'clamp(12px, 2vw, 24px)', borderBottom: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
-            <div className="product-header" style={{ marginBottom: '16px' }}>
-              <div className="prod-title-section">
-                <h2 className="prod-title">
-                  <Package color="#3b82f6" size={24} strokeWidth={2} />
-                  품목 등록/관리
-                </h2>
-                <p className="prod-desc">상품의 상세 정보를 등록하고 관리합니다.</p>
-              </div>
-              
-              <div className="prod-actions">
-                <div className="prod-search-box" style={{ position: 'relative' }}>
-                  <Search size={18} className="search-icon" />
-                  <input 
-                    type="text" 
-                    placeholder="상품명, 카테고리, 바코드 검색" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {searchTerm && !categories.some(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())) && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, marginTop: '4px',
-                      color: '#ef4444', fontSize: '0.75rem', fontWeight: 600,
-                      whiteSpace: 'nowrap'
-                    }}>
-                      * 등록되지 않은 카테고리명입니다.
-                    </div>
-                  )}
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}>
+          {/* Header & Filters Section */}
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#fff', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Top Bar: Title & Main Action */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Package color="#3b82f6" size={18} strokeWidth={2.5} />
                 </div>
-                
-                <button 
-                  ref={settingsRef}
-                  className="btn-outline" 
-                  onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
-                  style={{ position: 'relative' }}
-                >
-                  <Settings size={16} /> 설정
-                  {isSettingsOpen && (
-                    <div style={{
-                      position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-                      background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px',
-                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100,
-                      width: '200px', padding: '12px'
-                    }} onClick={e => e.stopPropagation()}>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '8px', textAlign: 'left' }}>항목 표시 설정</p>
-                      {[
-                        { id: 'photo', label: '상품 사진' },
-                        { id: 'categoryLarge', label: '대분류' },
-                        { id: 'categoryMedium', label: '중분류' },
-                        { id: 'categorySmall', label: '소분류' },
-                        { id: 'name', label: '상품명' },
-                        { id: 'abbreviation', label: '상품약칭' },
-                        { id: 'spec', label: '규격' },
-                        { id: 'innerQty', label: '내품수량' },
-                        { id: 'showInMall', label: '몰 노출' },
-                        { id: 'optimalStock', label: '적정재고량' },
-                        { id: 'initialStock', label: '기초재고수량' },
-                        { id: 'salesPrice', label: '매출가' },
-                        { id: 'purchasePrice', label: '매입가' },
-                        { id: 'barcode', label: '바코드' },
-                        { id: 'memo', label: '상품 설명' }
-                      ].map(col => (
-                        <div key={col.id} onClick={() => toggleColumn(col.id)} style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '8px', borderRadius: '6px', cursor: 'pointer',
-                          backgroundColor: visibleColumns[col.id] ? '#eff6ff' : 'transparent',
-                          transition: 'all 0.1s', marginBottom: '2px'
-                        }}>
-                          <span style={{ fontSize: '0.85rem', color: visibleColumns[col.id] ? '#1d4ed8' : '#475569', fontWeight: 500 }}>{col.label}</span>
-                          {visibleColumns[col.id] && <Check size={14} color="#1d4ed8" />}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </button>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                    품목 등록/관리
+                  </h2>
+                  <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                    총 <strong style={{ color: '#3b82f6' }}>{filteredProducts.length}</strong>개 품목
+                  </p>
+                </div>
+              </div>
 
-                <button className="btn-outline" onClick={() => window.print()}>
-                  <Printer size={16} /> 인쇄
-                </button>
-                <button className="btn-outline" onClick={handleExcelExport}>
-                  <Download size={16} /> 엑셀
-                </button>
-                
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {Object.keys(editedStocks).length > 0 && (
+                  <button 
+                    onClick={handleSaveEditedStocks}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '6px 10px', borderRadius: '6px', border: 'none',
+                      backgroundColor: '#10b981', color: 'white', fontSize: '0.75rem',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    <Save size={13} /> 저장
+                  </button>
+                )}
                 <button 
-                  className="btn-primary" 
-                  onClick={handleSaveEditedStocks} 
-                  disabled={Object.keys(editedStocks).length === 0}
-                  style={Object.keys(editedStocks).length === 0 ? { opacity: 0.6, cursor: 'not-allowed', backgroundColor: '#94a3b8', borderColor: '#94a3b8' } : { backgroundColor: '#10b981', borderColor: '#10b981' }}
+                  onClick={handleAddProduct}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '6px 12px', borderRadius: '8px', border: 'none',
+                    backgroundColor: '#3b82f6', color: 'white', fontSize: '0.78rem',
+                    fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)'
+                  }}
                 >
-                  <Save size={16} /> 저장
-                </button>
-
-                <button className="btn-primary" onClick={handleAddProduct}>
-                  <Plus size={16} /> 품목 추가
+                  <Plus size={14} strokeWidth={2.5} /> 품목 추가
                 </button>
               </div>
             </div>
 
-            {/* Category Filter Dropdowns */}
-            <div className="product-category-filters" style={{ 
-              display: 'flex', 
-              gap: '16px', 
-              alignItems: 'center', 
-              paddingBottom: '4px',
-              flexWrap: 'wrap',
-              borderTop: '1px solid #f1f5f9',
-              paddingTop: '12px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>대분류</span>
+            {/* Search Bar */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="상품명, 카테고리, 바코드 검색..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 12px 8px 34px',
+                  borderRadius: '8px', border: '1px solid #cbd5e1',
+                  fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box',
+                  backgroundColor: '#f8fafc'
+                }}
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Category Filters (2x2 Grid on Mobile) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>대분류</span>
                 <select
                   value={selectedLargeId}
                   onChange={(e) => {
@@ -502,21 +469,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                     setSelectedMediumId('전체');
                     setSelectedSmallId('전체');
                   }}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#fff',
-                    color: '#334155',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s',
-                    minWidth: '140px',
-                    height: '38px'
-                  }}
+                  style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer' }}
                 >
                   <option value="전체">전체</option>
                   {categories.filter(c => String(c.level) === '1' || !c.parentId).sort((a,b) => (a.order||0) - (b.order||0)).map(cat => (
@@ -525,8 +478,8 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>중분류</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: selectedLargeId === '전체' ? '#f1f5f9' : '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: selectedLargeId === '전체' ? '#94a3b8' : '#64748b', whiteSpace: 'nowrap' }}>중분류</span>
                 <select
                   disabled={selectedLargeId === '전체'}
                   value={selectedMediumId}
@@ -534,21 +487,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                     setSelectedMediumId(e.target.value);
                     setSelectedSmallId('전체');
                   }}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: selectedLargeId === '전체' ? '#f8fafc' : '#fff',
-                    color: selectedLargeId === '전체' ? '#94a3b8' : '#334155',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: selectedLargeId === '전체' ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s',
-                    minWidth: '140px',
-                    height: '38px'
-                  }}
+                  style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: selectedLargeId === '전체' ? '#94a3b8' : '#1e293b', outline: 'none', cursor: selectedLargeId === '전체' ? 'not-allowed' : 'pointer' }}
                 >
                   <option value="전체">전체</option>
                   {categories.filter(c => String(c.level) === '2' && String(c.parentId) === String(selectedLargeId)).sort((a,b) => (a.order||0) - (b.order||0)).map(cat => (
@@ -557,27 +496,13 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>소분류</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: selectedMediumId === '전체' ? '#f1f5f9' : '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: selectedMediumId === '전체' ? '#94a3b8' : '#64748b', whiteSpace: 'nowrap' }}>소분류</span>
                 <select
                   disabled={selectedMediumId === '전체'}
                   value={selectedSmallId}
                   onChange={(e) => setSelectedSmallId(e.target.value)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: selectedMediumId === '전체' ? '#f8fafc' : '#fff',
-                    color: selectedMediumId === '전체' ? '#94a3b8' : '#334155',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: selectedMediumId === '전체' ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s',
-                    minWidth: '140px',
-                    height: '38px'
-                  }}
+                  style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: selectedMediumId === '전체' ? '#94a3b8' : '#1e293b', outline: 'none', cursor: selectedMediumId === '전체' ? 'not-allowed' : 'pointer' }}
                 >
                   <option value="전체">전체</option>
                   {categories.filter(c => String(c.level) === '3' && String(c.parentId) === String(selectedMediumId)).sort((a,b) => (a.order||0) - (b.order||0)).map(cat => (
@@ -587,91 +512,233 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
               </div>
 
               <button 
-                className="cat-tab add-cat"
                 onClick={() => setIsCategoryModalOpen(true)}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: '1px solid #3b82f6',
-                  background: '#eff6ff',
-                  color: '#3b82f6',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  height: '38px',
-                  boxShadow: '0 1px 2px rgba(59, 130, 246, 0.05)'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                  padding: '4px 8px', borderRadius: '6px', border: '1px solid #bfdbfe',
+                  backgroundColor: '#eff6ff', color: '#2563eb', fontSize: '0.75rem',
+                  fontWeight: 700, cursor: 'pointer'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = '#fff'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.color = '#3b82f6'; }}
               >
-                <Plus size={14} strokeWidth={3} />
-                관리
+                <Plus size={13} strokeWidth={2.5} /> 카테고리 관리
               </button>
+            </div>
+
+            {/* Utility Bar: Print, Excel, Settings */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                  onClick={() => window.print()}
+                  style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                >
+                  <Printer size={12} /> 인쇄
+                </button>
+                <button 
+                  onClick={handleExcelExport}
+                  style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                >
+                  <Download size={12} /> 엑셀
+                </button>
+              </div>
+
+              <div style={{ position: 'relative' }}>
+                <button 
+                  ref={settingsRef}
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                >
+                  <Settings size={12} /> 표시 항목
+                </button>
+                {isSettingsOpen && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 100,
+                    width: '180px', padding: '8px', maxHeight: '250px', overflowY: 'auto'
+                  }} onClick={e => e.stopPropagation()}>
+                    <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '6px', padding: '0 4px' }}>항목 표시 설정</p>
+                    {[
+                      { id: 'photo', label: '상품 사진' },
+                      { id: 'categoryLarge', label: '대분류' },
+                      { id: 'categoryMedium', label: '중분류' },
+                      { id: 'categorySmall', label: '소분류' },
+                      { id: 'name', label: '상품명' },
+                      { id: 'spec', label: '규격' },
+                      { id: 'innerQty', label: '내품수량' },
+                      { id: 'showInMall', label: '몰 노출' },
+                      { id: 'salesPrice', label: '매출가' },
+                      { id: 'purchasePrice', label: '매입가' },
+                      { id: 'barcode', label: '바코드' }
+                    ].map(col => (
+                      <div key={col.id} onClick={() => toggleColumn(col.id)} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '6px 8px', borderRadius: '6px', cursor: 'pointer',
+                        backgroundColor: visibleColumns[col.id] ? '#eff6ff' : 'transparent',
+                        fontSize: '0.75rem', color: visibleColumns[col.id] ? '#1d4ed8' : '#475569',
+                        fontWeight: visibleColumns[col.id] ? 700 : 500
+                      }}>
+                        <span>{col.label}</span>
+                        {visibleColumns[col.id] && <Check size={12} color="#1d4ed8" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(8px, 2vw, 24px)', paddingTop: '16px' }}>
-            <div className="product-table-container">
-              <table className="product-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-                <thead>
-                  <tr>
-                    {[
-                      { key: 'photo', label: '사진', visible: visibleColumns.photo, align: 'center' },
-                      { key: 'categoryLarge', label: '대분류', visible: visibleColumns.categoryLarge, align: 'left' },
-                      { key: 'categoryMedium', label: '중분류', visible: visibleColumns.categoryMedium, align: 'left' },
-                      { key: 'categorySmall', label: '소분류', visible: visibleColumns.categorySmall, align: 'left' },
-                      { key: 'name', label: '상품명', visible: visibleColumns.name, align: 'left' },
-                      { key: 'spec', label: '규격', visible: visibleColumns.spec, align: 'left' },
-                      { key: 'innerQty', label: '내품수량', visible: visibleColumns.innerQty, align: 'center' },
-                      { 
-                        key: 'showInMall', 
-                        label: (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>몰 노출</span>
-                            <input 
-                              type="checkbox" 
-                              checked={allInMallChecked}
-                              onChange={(e) => handleToggleAllMallExposure(e.target.checked)}
-                              style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                              onClick={e => e.stopPropagation()}
-                              title="전체 선택/해제"
-                            />
-                          </div>
-                        ),
-                        visible: visibleColumns.showInMall, 
-                        align: 'center' 
-                      },
-                      { key: 'optimalStock', label: '적정재고', visible: visibleColumns.optimalStock, align: 'center' },
-                      { key: 'initialStock', label: '기초재고', visible: visibleColumns.initialStock, align: 'center' },
-                      { key: 'salesPrice', label: '매출가(낱/박)', visible: visibleColumns.salesPrice, align: 'right' },
-                      { key: 'purchasePrice', label: '매입가', visible: visibleColumns.purchasePrice, align: 'right' },
-                      { key: 'barcode', label: '바코드', visible: visibleColumns.barcode, align: 'left' },
-                      { key: 'memo', label: '상품 설명', visible: visibleColumns.memo, align: 'left' },
-                    ].filter(col => col.visible).map(col => (
-                      <th 
-                        key={col.key} 
-                        style={{ 
-                          width: (colWidths[col.key] || 100) + 'px', 
-                          position: 'relative', 
-                          userSelect: 'none',
-                          textAlign: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left'
-                        }}
-                      >
-                        {col.label}
+            {isMobile ? (
+              <div className="product-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '4px' }}>
+                {paginatedProducts.map(product => (
+                  <div key={product.id} style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {product.photos && product.photos.length > 0 ? (
+                          <img src={product.photos[0]} alt={product.name} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : product.photo ? (
+                          <img src={product.photo} alt={product.name} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : (
+                          <Package size={24} color="#cbd5e1" />
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span>{product.name}</span>
+                          {product.abbreviation && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{product.abbreviation}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="icon-btn" onClick={() => handleEditProduct(product)} style={{ padding: '4px' }}><Edit2 size={16} /></button>
+                        <button className="icon-btn" onClick={() => handleDeleteProduct(product.id)} style={{ padding: '4px' }}><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem', color: '#475569' }}>
+                      <div>
+                        <span style={{ color: '#94a3b8', marginRight: '6px' }}>분류:</span>
+                        <span className="prod-badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginRight: '4px', fontSize: '0.7rem' }}>{product.categoryLarge || '-'}</span>
+                        <span className="prod-badge" style={{ backgroundColor: '#eff6ff', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px', marginRight: '4px', fontSize: '0.7rem' }}>{product.categoryMedium || '-'}</span>
+                        <span className="prod-badge" style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>{product.categorySmall || '-'}</span>
+                      </div>
+                      <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>규격:</span>{product.spec || '-'} (내품: {product.innerQty || '-'})</div>
+                      <div>
+                        <span style={{ color: '#94a3b8', marginRight: '6px' }}>매출가:</span>
+                        {product.isBoxOnly ? (
+                          <span>{(product.salesPriceBox || 0).toLocaleString()}원(박스)</span>
+                        ) : (
+                          <span>{(product.salesPriceSingle || product.salesPrice || 0).toLocaleString()}원 / {(product.salesPriceBox || 0).toLocaleString()}원(박스)</span>
+                        )}
+                      </div>
+                      <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>매입가:</span>{product.purchasePrice?.toLocaleString()}원</div>
+                    </div>
+                  </div>
+                ))}
+                {filteredProducts.length === 0 && (
+                  <div style={{
+                    textAlign: 'center', padding: '40px 16px', color: '#94a3b8',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                    backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1',
+                    margin: '12px 0'
+                  }}>
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '50%',
+                      backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', marginBottom: '2px'
+                    }}>
+                      <Package size={22} color="#3b82f6" strokeWidth={2} />
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
+                      {searchTerm ? `'${searchTerm}' 검색 결과가 없습니다.` : '등록된 품목이 없습니다.'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      상단의 '+ 품목 추가' 버튼으로<br />새로운 상품을 등록하고 관리하세요.
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="product-table-container">
+                <table className="product-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                  <thead>
+                    <tr>
+                      {[
+                        { key: 'photo', label: '사진', visible: visibleColumns.photo, align: 'center' },
+                        { key: 'categoryLarge', label: '대분류', visible: visibleColumns.categoryLarge, align: 'left' },
+                        { key: 'categoryMedium', label: '중분류', visible: visibleColumns.categoryMedium, align: 'left' },
+                        { key: 'categorySmall', label: '소분류', visible: visibleColumns.categorySmall, align: 'left' },
+                        { key: 'name', label: '상품명', visible: visibleColumns.name, align: 'left' },
+                        { key: 'spec', label: '규격', visible: visibleColumns.spec, align: 'left' },
+                        { key: 'innerQty', label: '내품수량', visible: visibleColumns.innerQty, align: 'center' },
+                        { 
+                          key: 'showInMall', 
+                          label: (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>몰 노출</span>
+                              <input 
+                                type="checkbox" 
+                                checked={allInMallChecked}
+                                onChange={(e) => handleToggleAllMallExposure(e.target.checked)}
+                                style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                onClick={e => e.stopPropagation()}
+                                title="전체 선택/해제"
+                              />
+                            </div>
+                          ),
+                          visible: visibleColumns.showInMall, 
+                          align: 'center' 
+                        },
+                        { key: 'optimalStock', label: '적정재고', visible: visibleColumns.optimalStock, align: 'center' },
+                        { key: 'initialStock', label: '기초재고', visible: visibleColumns.initialStock, align: 'center' },
+                        { key: 'salesPrice', label: '매출가(낱/박)', visible: visibleColumns.salesPrice, align: 'right' },
+                        { key: 'purchasePrice', label: '매입가', visible: visibleColumns.purchasePrice, align: 'right' },
+                        { key: 'barcode', label: '바코드', visible: visibleColumns.barcode, align: 'left' },
+                        { key: 'memo', label: '상품 설명', visible: visibleColumns.memo, align: 'left' },
+                      ].filter(col => col.visible).map(col => (
+                        <th 
+                          key={col.key} 
+                          style={{ 
+                            width: (colWidths[col.key] || 100) + 'px', 
+                            position: 'relative', 
+                            userSelect: 'none',
+                            textAlign: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left'
+                          }}
+                        >
+                          {col.label}
+                          <span
+                            onMouseDown={(e) => onResizeMouseDown(e, col.key)}
+                            style={{
+                              position: 'absolute', right: 0, top: 0, bottom: 0,
+                              width: '6px', cursor: 'col-resize',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              zIndex: 2,
+                            }}
+                            title={`${typeof col.label === 'string' ? col.label : '몰 노출'} 너비 조절`}
+                          >
+                            <span style={{
+                              display: 'block', width: '0px', height: '100%',
+                              borderLeft: '1px dotted #cbd5e1',
+                            }} />
+                          </span>
+                        </th>
+                      ))}
+                      <th style={{ width: colWidths.management + 'px', position: 'relative', userSelect: 'none', textAlign: 'center' }}>
+                        관리
                         <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
+                          onMouseDown={(e) => onResizeMouseDown(e, 'management')}
                           style={{
                             position: 'absolute', right: 0, top: 0, bottom: 0,
                             width: '6px', cursor: 'col-resize',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             zIndex: 2,
                           }}
-                          title={`${typeof col.label === 'string' ? col.label : '몰 노출'} 너비 조절`}
+                          title="관리 너비 조절"
                         >
                           <span style={{
                             display: 'block', width: '0px', height: '100%',
@@ -679,167 +746,148 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                           }} />
                         </span>
                       </th>
-                    ))}
-                    <th style={{ width: colWidths.management + 'px', position: 'relative', userSelect: 'none', textAlign: 'center' }}>
-                      관리
-                      <span
-                        onMouseDown={(e) => onResizeMouseDown(e, 'management')}
-                        style={{
-                          position: 'absolute', right: 0, top: 0, bottom: 0,
-                          width: '6px', cursor: 'col-resize',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          zIndex: 2,
-                        }}
-                        title="관리 너비 조절"
-                      >
-                        <span style={{
-                          display: 'block', width: '0px', height: '100%',
-                          borderLeft: '1px dotted #cbd5e1',
-                        }} />
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedProducts.map(product => {
-                    const getCellStyle = (colKey, extra = {}) => {
-                      const w = (colWidths[colKey] || 100) + 'px';
-                      return {
-                        width: w,
-                        maxWidth: w,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        verticalAlign: 'middle',
-                        ...extra
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedProducts.map(product => {
+                      const getCellStyle = (colKey, extra = {}) => {
+                        const w = (colWidths[colKey] || 100) + 'px';
+                        return {
+                          width: w,
+                          maxWidth: w,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          verticalAlign: 'middle',
+                          ...extra
+                        };
                       };
-                    };
 
-                    return (
-                      <tr key={product.id}>
-                        {visibleColumns.photo && (
-                          <td style={getCellStyle('photo', { textAlign: 'center' })}>
-                            <div className="prod-photo-cell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                              {product.photos && product.photos.length > 0 ? (
-                                <img src={product.photos[0]} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover', borderRadius: '4px' }} />
-                              ) : product.photo ? (
-                                <img src={product.photo} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover', borderRadius: '4px' }} />
-                              ) : (
-                                <Package size={20} color="#cbd5e1" />
-                              )}
-                            </div>
-                          </td>
-                        )}
-                        {visibleColumns.categoryLarge && (
-                          <td style={getCellStyle('categoryLarge')}><span className="prod-badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categoryLarge || '-'}</span></td>
-                        )}
-                        {visibleColumns.categoryMedium && (
-                          <td style={getCellStyle('categoryMedium')}><span className="prod-badge" style={{ backgroundColor: '#eff6ff', color: '#3b82f6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categoryMedium || '-'}</span></td>
-                        )}
-                        {visibleColumns.categorySmall && (
-                          <td style={getCellStyle('categorySmall')}><span className="prod-badge" style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categorySmall || '-'}</span></td>
-                        )}
-                        {visibleColumns.name && (
-                          <td style={getCellStyle('name')}>
-                            <div className="prod-name-cell" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              <span className="main-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', fontWeight: 600 }}>{product.name}</span>
-                              {visibleColumns.abbreviation && product.abbreviation && <span className="sub-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', fontSize: '0.8rem', color: '#64748b' }}>{product.abbreviation}</span>}
-                            </div>
-                          </td>
-                        )}
-                        {visibleColumns.spec && <td style={getCellStyle('spec')}>{product.spec || '-'}</td>}
-                        {visibleColumns.innerQty && <td style={getCellStyle('innerQty', { textAlign: 'center' })}>{product.innerQty || 1}</td>}
-                        {visibleColumns.showInMall && (
-                          <td style={getCellStyle('showInMall', { textAlign: 'center' })}>
-                            <input 
-                              type="checkbox" 
-                              checked={product.showInMall !== false} 
-                              onChange={(e) => handleInlineUpdate(product.id, 'showInMall', e.target.checked)}
-                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                            />
-                          </td>
-                        )}
-                        {visibleColumns.optimalStock && (
-                          <td style={getCellStyle('optimalStock', { textAlign: 'center' })}>
-                            <input 
-                              type="text" 
-                              lang="ko"
-                              inputMode="numeric"
-                              value={editedStocks[product.id]?.optimalStock !== undefined ? editedStocks[product.id].optimalStock : (product.optimalStock || 0)}
-                              onChange={(e) => handleStockChange(product.id, 'optimalStock', e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveEditedStocks()}
-                              style={{ 
-                                width: '100%', 
-                                textAlign: 'center', 
-                                padding: '4px', 
-                                borderRadius: '4px', 
-                                border: editedStocks[product.id]?.optimalStock !== undefined ? '1px solid #10b981' : '1px solid #e2e8f0', 
-                                backgroundColor: editedStocks[product.id]?.optimalStock !== undefined ? '#f0fdf4' : 'white',
-                                fontSize: '0.85rem' 
-                              }}
-                            />
-                          </td>
-                        )}
-                        {visibleColumns.initialStock && (
-                          <td style={getCellStyle('initialStock', { textAlign: 'center' })}>
-                            <input 
-                              type="text" 
-                              lang="ko"
-                              inputMode="numeric"
-                              value={editedStocks[product.id]?.initialStock !== undefined ? editedStocks[product.id].initialStock : (product.initialStock || 0)}
-                              onChange={(e) => handleStockChange(product.id, 'initialStock', e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveEditedStocks()}
-                              style={{ 
-                                width: '100%', 
-                                textAlign: 'center', 
-                                padding: '4px', 
-                                borderRadius: '4px', 
-                                border: editedStocks[product.id]?.initialStock !== undefined ? '1px solid #10b981' : '1px solid #e2e8f0', 
-                                backgroundColor: editedStocks[product.id]?.initialStock !== undefined ? '#f0fdf4' : 'white',
-                                fontSize: '0.85rem' 
-                              }}
-                            />
-                          </td>
-                        )}
-                        {visibleColumns.salesPrice && (
-                          <td style={getCellStyle('salesPrice', { textAlign: 'right' })}>
-                            {product.isBoxOnly ? (
-                              <div style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceBox || 0).toLocaleString()}원(박스)</div>
-                            ) : (
-                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <div style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceSingle || product.salesPrice || 0).toLocaleString()}원</div>
-                                <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceBox || 0).toLocaleString()}원(박스)</div>
+                      return (
+                        <tr key={product.id}>
+                          {visibleColumns.photo && (
+                            <td style={getCellStyle('photo', { textAlign: 'center' })}>
+                              <div className="prod-photo-cell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                {product.photos && product.photos.length > 0 ? (
+                                  <img src={product.photos[0]} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                                ) : product.photo ? (
+                                  <img src={product.photo} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                                ) : (
+                                  <Package size={20} color="#cbd5e1" />
+                                )}
                               </div>
-                            )}
-                          </td>
-                        )}
-                        {visibleColumns.purchasePrice && (
-                          <td style={getCellStyle('purchasePrice', { textAlign: 'right', color: '#64748b' })}>{product.purchasePrice.toLocaleString()}원</td>
-                        )}
-                        {visibleColumns.barcode && (
-                          <td style={getCellStyle('barcode')}>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.singleBarcode || '-'} (낱개)</div>
-                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.boxBarcode || '-'} (박스)</div>
+                            </td>
+                          )}
+                          {visibleColumns.categoryLarge && (
+                            <td style={getCellStyle('categoryLarge')}><span className="prod-badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categoryLarge || '-'}</span></td>
+                          )}
+                          {visibleColumns.categoryMedium && (
+                            <td style={getCellStyle('categoryMedium')}><span className="prod-badge" style={{ backgroundColor: '#eff6ff', color: '#3b82f6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categoryMedium || '-'}</span></td>
+                          )}
+                          {visibleColumns.categorySmall && (
+                            <td style={getCellStyle('categorySmall')}><span className="prod-badge" style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100%' }}>{product.categorySmall || '-'}</span></td>
+                          )}
+                          {visibleColumns.name && (
+                            <td style={getCellStyle('name')}>
+                              <div className="prod-name-cell" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span className="main-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', fontWeight: 600 }}>{product.name}</span>
+                                {visibleColumns.abbreviation && product.abbreviation && <span className="sub-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', fontSize: '0.8rem', color: '#64748b' }}>{product.abbreviation}</span>}
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.spec && <td style={getCellStyle('spec')}>{product.spec || '-'}</td>}
+                          {visibleColumns.innerQty && <td style={getCellStyle('innerQty', { textAlign: 'center' })}>{product.innerQty || 1}</td>}
+                          {visibleColumns.showInMall && (
+                            <td style={getCellStyle('showInMall', { textAlign: 'center' })}>
+                              <input 
+                                type="checkbox" 
+                                checked={product.showInMall !== false} 
+                                onChange={(e) => handleInlineUpdate(product.id, 'showInMall', e.target.checked)}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                            </td>
+                          )}
+                          {visibleColumns.optimalStock && (
+                            <td style={getCellStyle('optimalStock', { textAlign: 'center' })}>
+                              <input 
+                                type="text" 
+                                lang="ko"
+                                inputMode="numeric"
+                                value={editedStocks[product.id]?.optimalStock !== undefined ? editedStocks[product.id].optimalStock : (product.optimalStock || 0)}
+                                onChange={(e) => handleStockChange(product.id, 'optimalStock', e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveEditedStocks()}
+                                style={{ 
+                                  width: '100%', 
+                                  textAlign: 'center', 
+                                  padding: '4px', 
+                                  borderRadius: '4px', 
+                                  border: editedStocks[product.id]?.optimalStock !== undefined ? '1px solid #10b981' : '1px solid #e2e8f0', 
+                                  backgroundColor: editedStocks[product.id]?.optimalStock !== undefined ? '#f0fdf4' : 'white',
+                                  fontSize: '0.85rem' 
+                                }}
+                              />
+                            </td>
+                          )}
+                          {visibleColumns.initialStock && (
+                            <td style={getCellStyle('initialStock', { textAlign: 'center' })}>
+                              <input 
+                                type="text" 
+                                lang="ko"
+                                inputMode="numeric"
+                                value={editedStocks[product.id]?.initialStock !== undefined ? editedStocks[product.id].initialStock : (product.initialStock || 0)}
+                                onChange={(e) => handleStockChange(product.id, 'initialStock', e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveEditedStocks()}
+                                style={{ 
+                                  width: '100%', 
+                                  textAlign: 'center', 
+                                  padding: '4px', 
+                                  borderRadius: '4px', 
+                                  border: editedStocks[product.id]?.initialStock !== undefined ? '1px solid #10b981' : '1px solid #e2e8f0', 
+                                  backgroundColor: editedStocks[product.id]?.initialStock !== undefined ? '#f0fdf4' : 'white',
+                                  fontSize: '0.85rem' 
+                                }}
+                              />
+                            </td>
+                          )}
+                          {visibleColumns.salesPrice && (
+                            <td style={getCellStyle('salesPrice', { textAlign: 'right' })}>
+                              {product.isBoxOnly ? (
+                                <div style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceBox || 0).toLocaleString()}원(박스)</div>
+                              ) : (
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceSingle || product.salesPrice || 0).toLocaleString()}원</div>
+                                  <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(product.salesPriceBox || 0).toLocaleString()}원(박스)</div>
+                                </div>
+                              )}
+                            </td>
+                          )}
+                          {visibleColumns.purchasePrice && (
+                            <td style={getCellStyle('purchasePrice', { textAlign: 'right', color: '#64748b' })}>{product.purchasePrice.toLocaleString()}원</td>
+                          )}
+                          {visibleColumns.barcode && (
+                            <td style={getCellStyle('barcode')}>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.singleBarcode || '-'} (낱개)</div>
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.boxBarcode || '-'} (박스)</div>
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.memo && (
+                            <td style={getCellStyle('memo')}>
+                              <div style={{ fontSize: '0.8rem', color: '#475569', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={product.memo}>
+                                {product.memo || '-'}
+                              </div>
+                            </td>
+                          )}
+                          <td style={getCellStyle('management', { textAlign: 'center' })}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                              <button className="icon-btn" onClick={() => handleEditProduct(product)}><Edit2 size={16} /></button>
+                              <button className="icon-btn" onClick={() => handleDeleteProduct(product.id)}><Trash2 size={16} /></button>
                             </div>
                           </td>
-                        )}
-                        {visibleColumns.memo && (
-                          <td style={getCellStyle('memo')}>
-                            <div style={{ fontSize: '0.8rem', color: '#475569', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={product.memo}>
-                              {product.memo || '-'}
-                            </div>
-                          </td>
-                        )}
-                        <td style={getCellStyle('management', { textAlign: 'center' })}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                            <button className="icon-btn" onClick={() => handleEditProduct(product)}><Edit2 size={16} /></button>
-                            <button className="icon-btn" onClick={() => handleDeleteProduct(product.id)}><Trash2 size={16} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        </tr>
+                      );
+                    })}
                   {filteredProducts.length === 0 && (
                     <tr>
                       <td colSpan="12" style={{ textAlign: 'center', padding: '60px 0', color: '#ef4444' }}>
@@ -853,6 +901,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 </tbody>
               </table>
             </div>
+            )}
           </div>
           
           {/* Beautiful Pagination Bar */}

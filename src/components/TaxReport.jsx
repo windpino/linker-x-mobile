@@ -120,165 +120,271 @@ const TaxReport = ({ onClose, salesInvoices = [], purchaseInvoices = [], expense
   };
 
   return (
-    <WindowModal title="세금신고 지원 보고서" onClose={onClose} width="1100px">
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#f8fafc' }}>
-        {/* Toolbar */}
-        <div style={{ padding: '20px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', marginRight: '16px' }}>
-              {[1, 2, 3, 4].map(q => (
-                <button key={q} onClick={() => setQuarter(q)} style={{ padding: '6px 12px', border: 'none', borderRadius: '6px', background: 'transparent', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>{q}분기</button>
-              ))}
+    <WindowModal title="세금신고 지원 보고서" onClose={onClose} width="100%" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
+        
+        {/* Header: Title & Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calculator size={18} color="#10b981" strokeWidth={2.5} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <span>~</span>
-              <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <div style={{ display: 'flex', gap: '3px', marginLeft: '8px' }}>
-                {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
-                  <button
-                    key={btn}
-                    type="button"
-                    onClick={() => handleQuickDate(btn)}
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      background: '#fff',
-                      color: '#475569',
-                      cursor: 'pointer',
-                      transition: 'all 0.1s'
-                    }}
-                    onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
-                    onMouseOut={e => e.currentTarget.style.background = '#fff'}
-                  >{btn}</button>
-                ))}
+            <div>
+              <h2 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                세금신고 지원 보고서
+              </h2>
+              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                부가세 및 소득세 증빙 지원
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              인쇄
+            </button>
+            <button style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              <FileSpreadsheet size={12} /> 엑셀
+            </button>
+          </div>
+        </div>
+
+        {/* Filters Panel */}
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Quarter Pills */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
+            {[1, 2, 3, 4].map(q => (
+              <button 
+                key={q} 
+                onClick={() => setQuarter(q)} 
+                style={{ 
+                  padding: '5px 0', border: 'none', borderRadius: '6px', 
+                  backgroundColor: '#fff', color: '#334155', fontSize: '0.72rem', 
+                  fontWeight: 700, cursor: 'pointer', textAlign: 'center',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+              >
+                {q}분기
+              </button>
+            ))}
+          </div>
+
+          {/* Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input 
+              type="date" 
+              value={dateRange.start} 
+              onChange={e => setDateRange({...dateRange, start: e.target.value})} 
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+            <input 
+              type="date" 
+              value={dateRange.end} 
+              onChange={e => setDateRange({...dateRange, end: e.target.value})} 
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+          </div>
+
+          {/* Quick Date Chips */}
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+              <button
+                key={btn}
+                type="button"
+                onClick={() => handleQuickDate(btn)}
+                style={{
+                  padding: '3px 8px', fontSize: '0.7rem', fontWeight: 700,
+                  border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                  color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >{btn}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2x2 Tax Summary Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {/* Card 1: Sales */}
+          <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#059669', fontSize: '0.7rem', fontWeight: 800 }}>
+              <span>총 매출액 (공급가액)</span>
+              <TrendingUp size={14} />
+            </div>
+            <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#065f46' }}>
+              {stats.salesNet.toLocaleString()}원
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#059669' }}>
+              부가세: {stats.salesVat.toLocaleString()}원
+            </div>
+          </div>
+
+          {/* Card 2: Purchases */}
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#2563eb', fontSize: '0.7rem', fontWeight: 800 }}>
+              <span>총 매입액 (공급가액)</span>
+              <TrendingDown size={14} />
+            </div>
+            <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#1e40af' }}>
+              {stats.purchaseNet.toLocaleString()}원
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#2563eb' }}>
+              부가세: {stats.purchaseVat.toLocaleString()}원
+            </div>
+          </div>
+
+          {/* Card 3: VAT To Pay */}
+          <div style={{ backgroundColor: stats.vatToPay >= 0 ? '#fef2f2' : '#eff6ff', border: stats.vatToPay >= 0 ? '1px solid #fecaca' : '1px solid #bfdbfe', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: stats.vatToPay >= 0 ? '#dc2626' : '#2563eb', fontSize: '0.7rem', fontWeight: 800 }}>
+              <span>예상 {stats.vatToPay >= 0 ? '납부' : '환급'} 부가세</span>
+              <Calculator size={14} />
+            </div>
+            <div style={{ fontSize: '1.02rem', fontWeight: 900, color: stats.vatToPay >= 0 ? '#b91c1c' : '#1e40af' }}>
+              {Math.abs(stats.vatToPay).toLocaleString()}원
+            </div>
+            <div style={{ fontSize: '0.68rem', color: stats.vatToPay >= 0 ? '#ef4444' : '#3b82f6' }}>
+              {stats.vatToPay >= 0 ? '납부 예정 세액' : '환급 예정 세액'}
+            </div>
+          </div>
+
+          {/* Card 4: Operating Expenses */}
+          <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#d97706', fontSize: '0.7rem', fontWeight: 800 }}>
+              <span>영업 경비 합계</span>
+              <PieChart size={14} />
+            </div>
+            <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#92400e' }}>
+              {stats.expTotal.toLocaleString()}원
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#b45309' }}>
+              소득세 증빙용 자료
+            </div>
+          </div>
+        </div>
+
+        {/* 2-Tab Segment */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', backgroundColor: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
+          <button 
+            onClick={() => setReportType('summary')}
+            style={{
+              padding: '6px', border: 'none', borderRadius: '6px', fontSize: '0.78rem',
+              fontWeight: reportType === 'summary' ? 800 : 600,
+              backgroundColor: reportType === 'summary' ? '#fff' : 'transparent',
+              color: reportType === 'summary' ? '#2563eb' : '#64748b',
+              cursor: 'pointer', boxShadow: reportType === 'summary' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            거래 유형별 요약
+          </button>
+          <button 
+            onClick={() => setReportType('partners')}
+            style={{
+              padding: '6px', border: 'none', borderRadius: '6px', fontSize: '0.78rem',
+              fontWeight: reportType === 'partners' ? 800 : 600,
+              backgroundColor: reportType === 'partners' ? '#fff' : 'transparent',
+              color: reportType === 'partners' ? '#2563eb' : '#64748b',
+              cursor: 'pointer', boxShadow: reportType === 'partners' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            거래처별 합계표
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {reportType === 'summary' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Sales Card */}
+            <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#059669' }}>
+                  매출 (과세)
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  {filteredData.sales.length}건
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
+                <span>공급가: <strong>{stats.salesNet.toLocaleString()}원</strong></span>
+                <span>세액: <strong>{stats.salesVat.toLocaleString()}원</strong></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 900, color: '#059669', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+                <span>합계</span>
+                <span>{stats.salesTotal.toLocaleString()}원</span>
+              </div>
+            </div>
+
+            {/* Purchase Card */}
+            <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#2563eb' }}>
+                  매입 (과세)
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  {filteredData.purchases.length}건
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
+                <span>공급가: <strong>{stats.purchaseNet.toLocaleString()}원</strong></span>
+                <span>세액: <strong>{stats.purchaseVat.toLocaleString()}원</strong></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 900, color: '#2563eb', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+                <span>합계</span>
+                <span>{stats.purchaseTotal.toLocaleString()}원</span>
+              </div>
+            </div>
+
+            {/* Expense Card */}
+            <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#d97706' }}>
+                  기타 경비
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  {filteredData.exps.length}건
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 900, color: '#d97706', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+                <span>합계</span>
+                <span>{stats.expTotal.toLocaleString()}원</span>
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>
-              <FileSpreadsheet size={18} /> 엑셀 다운로드
-            </button>
-          </div>
-        </div>
-
-        {/* Dashboard Cards */}
-        <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
-          <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>총 매출액 (공급가액)</span>
-              <TrendingUp size={20} color="#10b981" />
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.salesNet.toLocaleString()}원</div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>부가세: {stats.salesVat.toLocaleString()}원</div>
-          </div>
-          
-          <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>총 매입액 (공급가액)</span>
-              <TrendingDown size={20} color="#3b82f6" />
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.purchaseNet.toLocaleString()}원</div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>부가세: {stats.purchaseVat.toLocaleString()}원</div>
-          </div>
-
-          <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>예상 납부 부가세</span>
-              <Calculator size={20} color="#8b5cf6" />
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: stats.vatToPay >= 0 ? '#ef4444' : '#3b82f6' }}>
-              {Math.abs(stats.vatToPay).toLocaleString()}원 {stats.vatToPay >= 0 ? '납부' : '환급'}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>매출세액 - 매입세액</div>
-          </div>
-
-          <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>영업 경비 합계</span>
-              <PieChart size={20} color="#f59e0b" />
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.expTotal.toLocaleString()}원</div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>소득세 증빙용 자료</div>
-          </div>
-        </div>
-
-        {/* Tabs and Content */}
-        <div style={{ flex: 1, padding: '0 24px 24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', gap: '2px', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '10px', width: 'fit-content', marginBottom: '20px' }}>
-            <button onClick={() => setReportType('summary')} style={{ padding: '8px 20px', border: 'none', borderRadius: '8px', background: reportType === 'summary' ? 'white' : 'transparent', color: reportType === 'summary' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileText size={16} /> 거래 유형별 요약
-            </button>
-            <button onClick={() => setReportType('partners')} style={{ padding: '8px 20px', border: 'none', borderRadius: '8px', background: reportType === 'partners' ? 'white' : 'transparent', color: reportType === 'partners' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Users size={16} /> 거래처별 합계표
-            </button>
-          </div>
-
-          <div style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            {reportType === 'summary' ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#f8fafc' }}>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>구분</th>
-                    <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>건수</th>
-                    <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>공급가액</th>
-                    <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>세액</th>
-                    <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>합계</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: '16px', fontWeight: 600 }}>매출 (과세)</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{filteredData.sales.length}건</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{stats.salesNet.toLocaleString()}원</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{stats.salesVat.toLocaleString()}원</td>
-                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{stats.salesTotal.toLocaleString()}원</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px', fontWeight: 600 }}>매입 (과세)</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{filteredData.purchases.length}건</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{stats.purchaseNet.toLocaleString()}원</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{stats.purchaseVat.toLocaleString()}원</td>
-                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700, color: '#3b82f6' }}>{stats.purchaseTotal.toLocaleString()}원</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px', fontWeight: 600 }}>기타 경비</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>{filteredData.exps.length}건</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>-</td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>-</td>
-                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700 }}>{stats.expTotal.toLocaleString()}원</td>
-                  </tr>
-                </tbody>
-              </table>
+        ) : (
+          /* Partner List */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {partnerStats.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                거래 내역이 없습니다.
+              </div>
             ) : (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead style={{ backgroundColor: '#f8fafc', position: 'sticky', top: 0 }}>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>거래처명</th>
-                      <th style={{ textAlign: 'left', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>사업자번호</th>
-                      <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>매출 합계</th>
-                      <th style={{ textAlign: 'right', padding: '16px', color: '#64748b', fontSize: '0.85rem' }}>매입 합계</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partnerStats.map((p, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px', fontWeight: 600 }}>{p.name}</td>
-                        <td style={{ padding: '16px', color: '#64748b' }}>{p.bizNum}</td>
-                        <td style={{ padding: '16px', textAlign: 'right', color: '#10b981', fontWeight: 600 }}>{p.sales.toLocaleString()}원</td>
-                        <td style={{ padding: '16px', textAlign: 'right', color: '#3b82f6', fontWeight: 600 }}>{p.purchases.toLocaleString()}원</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              partnerStats.map((p, idx) => (
+                <div key={idx} style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                      {p.name}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {p.bizNum}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
+                    <span>매출: <strong style={{ color: '#059669' }}>{p.sales.toLocaleString()}원</strong></span>
+                    <span>매입: <strong style={{ color: '#2563eb' }}>{p.purchases.toLocaleString()}원</strong></span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        )}
+
       </div>
     </WindowModal>
   );

@@ -213,58 +213,72 @@ const InventoryMismatch = ({
   };
 
   return (
-    <WindowModal title="재고 불일치 현황 및 실사 조정" onClose={onClose} width="95%">
-      <div className="mismatch-modal-wrapper">
-        {/* Header Summary Stats */}
-        <div className="mismatch-summary-cards">
-          <div className="summary-card">
-            <div className="card-icon blue"><Layers size={20} /></div>
-            <div className="card-info">
-              <span className="card-label">조사 대상 품목</span>
-              <span className="card-value">{metrics.totalItems}개</span>
+    <WindowModal title="재고 불일치 현황 및 실사 조정" onClose={onClose} width="95%" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
+        
+        {/* Header Summary Stats (2x2 Grid on Mobile) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Layers size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>조사 대상</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e293b' }}>{metrics.totalItems}개</div>
             </div>
           </div>
-          <div className="summary-card">
-            <div className="card-icon green"><CheckCircle2 size={20} /></div>
-            <div className="card-info">
-              <span className="card-label">일치 품목</span>
-              <span className="card-value">{metrics.matchedItems}개</span>
+
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckCircle2 size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>일치 품목</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981' }}>{metrics.matchedItems}개</div>
             </div>
           </div>
-          <div className="summary-card warning">
-            <div className="card-icon orange"><AlertTriangle size={20} /></div>
-            <div className="card-info">
-              <span className="card-label">불일치 품목</span>
-              <span className="card-value text-orange">{metrics.mismatchedItems}개</span>
+
+          <div style={{ background: 'white', border: '1px solid #fde68a', borderLeft: '3px solid #f59e0b', borderRadius: '10px', padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fffbeb', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>불일치 품목</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#d97706' }}>{metrics.mismatchedItems}개</div>
             </div>
           </div>
-          <div className="summary-card primary">
-            <div className="card-icon purple"><ClipboardCheck size={20} /></div>
-            <div className="card-info">
-              <span className="card-label">조정 예정 건수</span>
-              <span className="card-value text-purple">{metrics.pendingAdjustmentsCount}건 ({metrics.totalAdjustmentQty.toLocaleString()}개)</span>
+
+          <div style={{ background: 'white', border: '1px solid #e0e7ff', borderLeft: '3px solid #6366f1', borderRadius: '10px', padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ClipboardCheck size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>조정 예정</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#4f46e5' }}>{metrics.pendingAdjustmentsCount}건</div>
             </div>
           </div>
         </div>
 
         {/* Filters Panel */}
-        <div className="mismatch-filter-panel">
-          <div className="filter-grid">
-            <div className="filter-item">
-              <label>대상 창고</label>
-              <select 
-                value={selectedWarehouse} 
-                onChange={e => setSelectedWarehouse(e.target.value)} 
-                className="select-v3"
-              >
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
-            </div>
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Target Warehouse */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>대상 창고</label>
+            <select 
+              value={selectedWarehouse} 
+              onChange={e => setSelectedWarehouse(e.target.value)} 
+              style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
+            >
+              {warehouses.map(w => (
+                <option key={w.id} value={w.name}>{w.name}</option>
+              ))}
+            </select>
+          </div>
 
-            <div className="filter-item">
-              <label>대분류</label>
+          {/* Large & Medium Category 2-Col */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>대분류</label>
               <select 
                 value={categoryLarge} 
                 onChange={e => {
@@ -272,17 +286,17 @@ const InventoryMismatch = ({
                   setCategoryMedium('전체');
                   setCategorySmall('전체');
                 }} 
-                className="select-v3"
+                style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none' }}
               >
-                <option value="전체">대분류 전체</option>
+                <option value="전체">전체</option>
                 {categories.filter(c => c.level === 1 || !c.parentId).map(c => (
                   <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="filter-item">
-              <label>중분류</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>중분류</label>
               <select 
                 value={categoryMedium} 
                 onChange={e => {
@@ -290,9 +304,9 @@ const InventoryMismatch = ({
                   setCategorySmall('전체');
                 }} 
                 disabled={categoryLarge === '전체'}
-                className="select-v3"
+                style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none', backgroundColor: categoryLarge === '전체' ? '#f1f5f9' : '#fff' }}
               >
-                <option value="전체">중분류 전체</option>
+                <option value="전체">전체</option>
                 {categories.filter(c => {
                   const large = categories.find(l => l.name === categoryLarge);
                   return large && c.parentId === large.id && c.level === 2;
@@ -301,16 +315,19 @@ const InventoryMismatch = ({
                 ))}
               </select>
             </div>
+          </div>
 
-            <div className="filter-item">
-              <label>소분류</label>
+          {/* Small Category & Stock Filter 2-Col */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>소분류</label>
               <select 
                 value={categorySmall} 
                 onChange={e => setCategorySmall(e.target.value)} 
                 disabled={categoryMedium === '전체'}
-                className="select-v3"
+                style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none', backgroundColor: categoryMedium === '전체' ? '#f1f5f9' : '#fff' }}
               >
-                <option value="전체">소분류 전체</option>
+                <option value="전체">전체</option>
                 {categories.filter(c => {
                   const medium = categories.find(m => m.name === categoryMedium);
                   return medium && c.parentId === medium.id && c.level === 3;
@@ -320,189 +337,178 @@ const InventoryMismatch = ({
               </select>
             </div>
 
-            <div className="filter-item">
-              <label>재고 상태</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>재고 상태</label>
               <select 
                 value={filterType} 
                 onChange={e => setFilterType(e.target.value)} 
-                className="select-v3"
+                style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, outline: 'none', color: filterType === 'mismatch' ? '#d97706' : '#1e293b' }}
               >
-                <option value="all">전체 품목</option>
                 <option value="mismatch">불일치 품목만</option>
+                <option value="all">전체 품목</option>
               </select>
             </div>
+          </div>
 
-            <div className="filter-item" style={{ gridColumn: 'span 2' }}>
-              <label>품목 검색</label>
-              <div className="search-input-wrapper">
-                <Search size={16} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="품목명, 단축명, 바코드 입력..." 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)} 
-                  className="input-v3 search-field"
-                />
-              </div>
-            </div>
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="품목명, 단축명 검색..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
+            />
           </div>
         </div>
 
-        {/* Table Area */}
-        <div className="mismatch-table-container">
-          <table className="mismatch-table">
-            <thead>
-              <tr>
-                <th style={{ width: '150px' }}>분류</th>
-                <th>품목명</th>
-                <th style={{ width: '120px' }}>규격</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>장부 재고</th>
-                <th style={{ width: '220px', textAlign: 'center' }}>실사 재고 입력</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>불일치 수량</th>
-                <th style={{ width: '130px' }}>조정 사유</th>
-                <th>비고</th>
-                <th style={{ width: '70px', textAlign: 'center' }}>초기화</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="no-data-cell">
-                    <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                    조회 조건에 맞는 품목이 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map(p => {
-                  const bookStock = (p.initialStock || 0) + (inventory[selectedWarehouse]?.[p.name] || 0);
-                  const hasEdit = editedCounts[p.name] !== undefined;
-                  const physicalValue = hasEdit ? editedCounts[p.name] : bookStock;
-                  const discrepancy = physicalValue === '' ? -bookStock : (physicalValue - bookStock);
+        {/* Product List Cards (Mobile Card View) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+              <Info size={20} style={{ display: 'block', margin: '0 auto 6px', color: '#cbd5e1' }} />
+              조회 조건에 맞는 품목이 없습니다.
+            </div>
+          ) : (
+            filteredProducts.map(p => {
+              const bookStock = (p.initialStock || 0) + (inventory[selectedWarehouse]?.[p.name] || 0);
+              const hasEdit = editedCounts[p.name] !== undefined;
+              const physicalValue = hasEdit ? editedCounts[p.name] : bookStock;
+              const discrepancy = physicalValue === '' ? -bookStock : (physicalValue - bookStock);
 
-                  return (
-                    <tr key={p.id} className={hasEdit ? 'row-edited' : ''}>
-                      <td className="category-cell">
-                        <span className="cat-badge">{p.categoryLarge || '-'}</span>
-                        {p.categoryMedium && <ChevronRight size={10} className="cat-arrow" />}
-                        {p.categoryMedium && <span className="cat-sub">{p.categoryMedium}</span>}
-                      </td>
-                      <td className="product-name-cell">
-                        <span className="prod-name">{p.name}</span>
-                        {p.abbreviation && <span className="prod-abbr">({p.abbreviation})</span>}
-                      </td>
-                      <td>{p.spec || '-'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: bookStock < 0 ? '#ef4444' : 'inherit' }} className="book-stock-cell">
+              return (
+                <div 
+                  key={p.id} 
+                  style={{
+                    backgroundColor: hasEdit ? '#eff6ff' : '#fff',
+                    border: hasEdit ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}
+                >
+                  {/* Title & Category */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                        {p.name}
+                        {p.spec && <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginLeft: '6px' }}>({p.spec})</span>}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                        {p.categoryLarge || '-'} {p.categoryMedium && `> ${p.categoryMedium}`}
+                      </div>
+                    </div>
+
+                    {hasEdit && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleResetCount(p.name)} 
+                        style={{ padding: '3px 6px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.7rem', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                      >
+                        <RefreshCw size={10} /> 초기화
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Stock Comparison Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '6px', backgroundColor: '#f8fafc', padding: '8px', borderRadius: '8px', alignItems: 'center' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>장부재고</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: bookStock < 0 ? '#ef4444' : '#1e293b' }}>
                         {bookStock.toLocaleString()}
-                      </td>
-                      <td>
-                        <div className="input-adjust-group">
-                          <button 
-                            type="button" 
-                            className="btn-adj-minus"
-                            onClick={() => handleQuickAdjust(p.name, physicalValue === '' ? 0 : physicalValue, -1)}
-                          >
-                            -
-                          </button>
-                          <input 
-                            type="number" 
-                            className="input-qty-field"
-                            value={physicalValue}
-                            onChange={e => handleCountChange(p.name, e.target.value)}
-                            placeholder={bookStock}
-                          />
-                          <button 
-                            type="button" 
-                            className="btn-adj-plus"
-                            onClick={() => handleQuickAdjust(p.name, physicalValue === '' ? 0 : physicalValue, 1)}
-                          >
-                            +
-                          </button>
-                          <button 
-                            type="button" 
-                            className="btn-match-equal"
-                            onClick={() => handleCountChange(p.name, bookStock)}
-                            title="장부재고와 맞춤"
-                          >
-                            =
-                          </button>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }} className="discrepancy-cell">
-                        {discrepancy === 0 ? (
-                          <span className="diff-zero">0</span>
-                        ) : discrepancy > 0 ? (
-                          <span className="diff-plus">+{discrepancy.toLocaleString()}</span>
-                        ) : (
-                          <span className="diff-minus">{discrepancy.toLocaleString()}</span>
-                        )}
-                      </td>
-                      <td>
-                        <select 
-                          className="select-v3-small"
-                          disabled={!hasEdit || discrepancy === 0}
-                          value={reasons[p.name] || '실사조정'}
-                          onChange={e => setReasons(prev => ({ ...prev, [p.name]: e.target.value }))}
-                        >
-                          <option value="실사조정">실사조정</option>
-                          <option value="파손">파손</option>
-                          <option value="분실">분실</option>
-                          <option value="폐기">폐기</option>
-                          <option value="기타">기타</option>
-                        </select>
-                      </td>
-                      <td>
-                        <input 
-                          type="text" 
-                          placeholder="특이사항 입력"
-                          className="input-v3-small"
-                          disabled={!hasEdit || discrepancy === 0}
-                          value={remarks[p.name] || ''}
-                          onChange={e => setRemarks(prev => ({ ...prev, [p.name]: e.target.value }))}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {hasEdit && (
-                          <button 
-                            type="button" 
-                            className="btn-reset-row"
-                            onClick={() => handleResetCount(p.name)}
-                            title="입력 취소"
-                          >
-                            <RefreshCw size={12} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      </div>
+                    </div>
+
+                    {/* Physical Count Input with +/- */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => handleQuickAdjust(p.name, physicalValue === '' ? 0 : physicalValue, -1)}
+                        style={{ width: '24px', height: '28px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}
+                      >-</button>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={physicalValue}
+                        onChange={e => handleCountChange(p.name, e.target.value)}
+                        style={{ width: '48px', height: '28px', border: '1.5px solid #3b82f6', borderRadius: '4px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', outline: 'none' }}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => handleQuickAdjust(p.name, physicalValue === '' ? 0 : physicalValue, 1)}
+                        style={{ width: '24px', height: '28px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}
+                      >+</button>
+                    </div>
+
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>불일치</div>
+                      <div style={{
+                        fontSize: '0.85rem', fontWeight: 800,
+                        color: discrepancy === 0 ? '#10b981' : discrepancy > 0 ? '#2563eb' : '#ef4444'
+                      }}>
+                        {discrepancy > 0 ? `+${discrepancy}` : discrepancy}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reasons & Remarks Inputs if Edited */}
+                  {hasEdit && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <select 
+                        value={reasons[p.name] || '실사차이'} 
+                        onChange={e => handleReasonChange(p.name, e.target.value)}
+                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', backgroundColor: '#fff' }}
+                      >
+                        <option value="실사차이">실사차이</option>
+                        <option value="파손손실">파손손실</option>
+                        <option value="도난분실">도난분실</option>
+                        <option value="입고오류">입고오류</option>
+                        <option value="기타">기타</option>
+                      </select>
+
+                      <input 
+                        type="text" 
+                        placeholder="비고 메모..." 
+                        value={remarks[p.name] || ''} 
+                        onChange={e => handleRemarkChange(p.name, e.target.value)}
+                        style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Footer Actions */}
-        <div className="mismatch-footer">
-          <div className="footer-info">
-            {adjustmentsList.length > 0 && (
-              <span className="alert-badge animate-pulse">
-                <AlertTriangle size={14} style={{ marginRight: '4px' }} />
-                반영 대기 중인 재고 조정이 {adjustmentsList.length}건 있습니다.
-              </span>
-            )}
-          </div>
-          <div className="footer-buttons">
-            <button type="button" className="btn-secondary-v3" onClick={onClose}>
-              닫기
-            </button>
-            <button 
-              type="button" 
-              className="btn-primary-v3" 
-              disabled={adjustmentsList.length === 0}
-              onClick={() => setShowConfirmModal(true)}
-            >
-              조정 반영 ({adjustmentsList.length}건)
-            </button>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            style={{ padding: '8px 16px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#475569', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+          >
+            닫기
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={handleApplyAdjustmentsClick} 
+            disabled={metrics.pendingAdjustmentsCount === 0}
+            style={{
+              padding: '8px 18px',
+              backgroundColor: metrics.pendingAdjustmentsCount > 0 ? '#3b82f6' : '#cbd5e1',
+              color: 'white', border: 'none', borderRadius: '8px',
+              fontSize: '0.82rem', fontWeight: 800,
+              cursor: metrics.pendingAdjustmentsCount > 0 ? 'pointer' : 'not-allowed',
+              boxShadow: metrics.pendingAdjustmentsCount > 0 ? '0 2px 6px rgba(59, 130, 246, 0.3)' : 'none'
+            }}
+          >
+            조정 반영 ({metrics.pendingAdjustmentsCount}건)
+          </button>
         </div>
 
         {/* Adjustments Confirmation Overlay Modal */}

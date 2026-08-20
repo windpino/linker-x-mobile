@@ -489,7 +489,7 @@ const SalesLedger = ({
                   currentUser?.allowAllEditDelete === true;
 
   return (
-    <WindowModal title="매출원장" onClose={onClose} width="1250px" zIndex={zIndex}>
+    <WindowModal title="매출원장" onClose={onClose} width="100%" zIndex={zIndex}>
       <div className="account-header">
         <div className="acc-title-section">
           <h2 className="acc-title">
@@ -503,62 +503,93 @@ const SalesLedger = ({
         </div>
       </div>
 
-      <div className="purchase-modal-body">
-        <div className="sales-ledger-filter">
-          <div className="filter-row">
+      <div className="purchase-modal-body" style={{ padding: '10px' }}>
+        <div className="sales-ledger-filter" style={{ padding: '12px', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+          
+          {/* 1. 날짜 범위 선택 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>시작일</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>시작일</label>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
             </div>
-            <span style={{ marginBottom: '10px' }}>~</span>
+            <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>종료일</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </div>
-
-            {/* 초성 검색 */}
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, position: 'relative' }} ref={searchRef}>
-              <label>업체명 검색 <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400 }}>초성 가능</span></label>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  value={searchText}
-                  placeholder="업체명 검색 (예: ㅈㅅㅁ)"
-                  onChange={e => { setSearchText(e.target.value); setSelectedPartner(''); setShowSuggestions(true); }}
-                  onFocus={() => searchText && setShowSuggestions(true)}
-                  style={{ paddingLeft: '28px', paddingRight: searchText ? '28px' : '8px' }}
-                />
-                {searchText && (
-                  <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                  {suggestions.map((name, i) => (
-                    <div key={i}
-                      onMouseDown={() => { setSelectedPartner(name); setSearchText(name); setShowSuggestions(false); }}
-                      style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {name}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>종료일</label>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
             </div>
           </div>
 
-          <div className="filter-row" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-              <label>담당 직원</label>
+          {/* 2. 기간 퀵버튼 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '10px' }}>
+            {filterOptions.map(opt => (
+              <button 
+                key={opt} 
+                className={`filter-btn ${filter === opt ? 'active' : ''}`} 
+                onClick={() => applyFilter(opt)}
+                style={{
+                  padding: '5px 2px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  borderRadius: '6px',
+                  border: filter === opt ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                  background: filter === opt ? '#3b82f6' : '#f8fafc',
+                  color: filter === opt ? '#fff' : '#475569',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {/* 3. 업체명 검색 (초성 가능) */}
+          <div className="form-group" style={{ marginBottom: '10px', position: 'relative' }} ref={searchRef}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>업체명 검색</span>
+              <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 500 }}>초성 검색 가능 (예: ㅈㅅㅁ)</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchText}
+                placeholder="업체명을 입력하세요"
+                onChange={e => { setSearchText(e.target.value); setSelectedPartner(''); setShowSuggestions(true); }}
+                onFocus={() => searchText && setShowSuggestions(true)}
+                style={{ width: '100%', padding: '8px 30px 8px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+              />
+              {searchText && (
+                <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                {suggestions.map((name, i) => (
+                  <div key={i}
+                    onMouseDown={() => { setSelectedPartner(name); setSearchText(name); setShowSuggestions(false); }}
+                    style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4. 세부 필터 (담당직원, 출고창고, 카테고리) - 3열 균등 그리드 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>담당 직원</label>
               <select 
                 value={selectedStaff} 
                 onChange={e => setSelectedStaff(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
               >
                 <option value="전체">전체 직원</option>
                 {staffList.map(s => (
@@ -567,12 +598,12 @@ const SalesLedger = ({
               </select>
             </div>
             
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-              <label>출고 창고</label>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>출고 창고</label>
               <select 
                 value={selectedWarehouse} 
                 onChange={e => setSelectedWarehouse(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
               >
                 <option value="전체">전체 창고</option>
                 {warehouses.map(w => (
@@ -581,12 +612,12 @@ const SalesLedger = ({
               </select>
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-              <label>품목 카테고리</label>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>품목 카테고리</label>
               <select 
                 value={selectedCategory} 
                 onChange={e => setSelectedCategory(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
               >
                 <option value="전체">전체 카테고리</option>
                 {categories.map(c => (
@@ -594,12 +625,6 @@ const SalesLedger = ({
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="filter-btns">
-            {filterOptions.map(opt => (
-              <button key={opt} className={`filter-btn ${filter === opt ? 'active' : ''}`} onClick={() => applyFilter(opt)}>{opt}</button>
-            ))}
           </div>
         </div>
 
@@ -812,12 +837,12 @@ const SalesLedger = ({
               </table>
             </div>
 
-            <div className="sales-summary-grid">
-              <div className="sales-summary-card summary-card-dark"><div className="summary-label">총 건수</div><div className="summary-value">{currentSummaryInvoices.length}</div></div>
-              <div className="sales-summary-card summary-card-purple"><div className="summary-label">총수량</div><div className="summary-value">{totalQty.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-blue"><div className="summary-label">매출액</div><div className="summary-value">{totalSales.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-green"><div className="summary-label">입금액</div><div className="summary-value">{totalReceived.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-blue"><div className="summary-label">잔액(미수)</div><div className="summary-value">{balance.toLocaleString()}</div></div>
+            <div className="sales-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginTop: '12px' }}>
+              <div className="sales-summary-card summary-card-dark" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>총 건수</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{currentSummaryInvoices.length}</div></div>
+              <div className="sales-summary-card summary-card-purple" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>총수량</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalQty.toLocaleString()}</div></div>
+              <div className="sales-summary-card summary-card-blue" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>매출액</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalSales.toLocaleString()}</div></div>
+              <div className="sales-summary-card summary-card-green" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>입금액</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalReceived.toLocaleString()}</div></div>
+              <div className="sales-summary-card summary-card-blue" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>잔액(미수)</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{balance.toLocaleString()}</div></div>
             </div>
         </>
       </div>

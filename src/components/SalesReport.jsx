@@ -297,289 +297,208 @@ const SalesReport = ({ onClose, salesInvoices = [], salesOrders = [], products =
   ];
 
   return (
-    <WindowModal title="매출보고서" onClose={onClose} width="1250px">
-      
-      {/* Header Info Panel */}
-      <div className="report-v2-header" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <div className="report-v2-title-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <BarChart3 size={22} color="#3b82f6" />
-          <h2 className="report-v2-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>종합 매출 보고서</h2>
-          {/* Date Pickers next to title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <Calendar size={13} color="#475569" />
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={e => { setFilters({...filters, startDate: e.target.value}); setActiveQuick(''); }}
-              style={{ border: 'none', background: 'transparent', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', outline: 'none' }}
-            />
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>~</span>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={e => { setFilters({...filters, endDate: e.target.value}); setActiveQuick(''); }}
-              style={{ border: 'none', background: 'transparent', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', outline: 'none' }}
-            />
-          </div>
-        </div>
-        <div className="report-v2-actions" style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.78rem' }}>
-            <Printer size={14} /> 인쇄
-          </button>
-          <button className="btn-v2-action" onClick={handleExcelExport} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.78rem' }}>
-            <Download size={14} /> 엑셀 다운로드
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Options Row */}
-      <div className="report-v2-filters" style={{ marginBottom: '16px' }}>
-        <div className="filter-card" style={{ padding: '12px' }}>
-          <div className="filter-row top" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            
-            {/* Quick Filters */}
-            <div className="quick-filters" style={{ display: 'flex', gap: '4px' }}>
-              {['오늘', '1주일', '한달', '상반기', '하반기', '1년'].map(opt => (
-                <button
-                  key={opt}
-                  className={`btn-quick ${activeQuick === opt ? 'active' : ''}`}
-                  onClick={() => applyQuickFilter(opt)}
-                  style={{
-                    fontSize: '0.72rem',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontWeight: 700,
-                    ...(activeQuick === opt ? { background: '#3b82f6', color: '#fff', borderColor: '#3b82f6' } : {})
-                  }}
-                >{opt}</button>
-              ))}
-            </div>
-
-            <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0' }} />
-
-            {/* Warehouse Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>출고창고:</span>
-              <select 
-                className="select-v2" 
-                value={filters.warehouse} 
-                onChange={e => setFilters({...filters, warehouse: e.target.value})}
-                style={{ fontSize: '0.75rem', padding: '4px 10px', minWidth: '130px' }}
-              >
-                {warehouses.map(w => <option key={w} value={w}>{w}</option>)}
-              </select>
-            </div>
-
-            <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0' }} />
-
-            {/* Search Box */}
-            <div className="search-input-v2" style={{ flex: 1, display: 'flex', gap: '6px', minWidth: '220px', position: 'relative', alignItems: 'center' }}>
-              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-              <input 
-                type="text" 
-                placeholder="업체명, 담당자명, 품목명 검색..." 
-                value={filters.searchTerm} 
-                onChange={e => setFilters({...filters, searchTerm: e.target.value})} 
-                style={{ flex: 1, fontSize: '0.75rem', padding: '6px 12px 6px 30px', height: 'auto' }} 
-              />
-              <button className="btn-search-main" style={{ padding: '6px 14px', fontSize: '0.75rem', flexShrink: 0 }}>
-                검색
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid Content */}
-      <div className="report-dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px', alignItems: 'start' }}>
+    <WindowModal title="매출보고서" onClose={onClose} width="100%" contentPadding="0" noScroll>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
         
-        {/* LEFT COLUMN: Visualizations */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          {/* Card 1: 당일(시작일) 수주 및 완료 현황 (Widget Mimic) */}
-          <div className="report-viz-card" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
-              시작일 ({filters.startDate}) 당일 수주/완료 현황
-            </h4>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '110px', padding: '10px 0 6px', borderBottom: '1px solid #e2e8f0' }}>
-              
-              {/* Bar 1: 수주 금액 */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }} title={`수주금액: ${dailyMetrics.amount.toLocaleString()}원`}>
-                <div style={{ width: '18px', height: '80px', backgroundColor: '#e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: `${dailyMetrics.amountPercent}%`, background: 'linear-gradient(to top, #3b82f6, #6366f1)', borderRadius: '8px', transition: 'height 0.4s' }} />
-                </div>
-                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#3b82f6' }}>{formatCurrency(dailyMetrics.amount)}원</span>
-              </div>
-
-              {/* Bar 2: 주문 건수 */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }} title={`수주 주문건수: ${dailyMetrics.count}건`}>
-                <div style={{ width: '18px', height: '80px', backgroundColor: '#e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: `${dailyMetrics.countPercent}%`, background: 'linear-gradient(to top, #10b981, #059669)', borderRadius: '8px', transition: 'height 0.4s' }} />
-                </div>
-                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#10b981' }}>{dailyMetrics.count}건</span>
-              </div>
-
-              {/* Bar 3: 완료 건수 */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }} title={`매출전표 전송 완료건수: ${dailyMetrics.completed}건`}>
-                <div style={{ width: '18px', height: '80px', backgroundColor: '#e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: `${dailyMetrics.completePercent}%`, background: 'linear-gradient(to top, #f59e0b, #d97706)', borderRadius: '8px', transition: 'height 0.4s' }} />
-                </div>
-                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#f59e0b' }}>{dailyMetrics.completed}건</span>
-              </div>
+        {/* Header: Title & Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BarChart3 size={18} color="#3b82f6" strokeWidth={2.5} />
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', textAlign: 'center', marginTop: '10px' }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748b' }}>수주금액</div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748b' }}>주문건수</div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748b' }}>완료건수</div>
+            <div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                종합 매출 보고서
+              </h2>
+              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                {filters.startDate} ~ {filters.endDate}
+              </p>
             </div>
           </div>
 
-          {/* Card 2: 선택 기간별 일자 매출 추이 그래프 */}
-          <div className="report-viz-card" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
-              선택 기간 내 일자별 매출 추이
-            </h4>
-            
-            <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '6px' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '110px', minWidth: `${periodTrendData.length * 30}px`, padding: '10px 4px 6px', borderBottom: '1px solid #e2e8f0' }}>
-                {periodTrendData.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '22px', flexShrink: 0 }} title={`${item.date}: ${item.amount.toLocaleString()}원`}>
-                    <div style={{ width: '10px', height: '70px', backgroundColor: '#e2e8f0', borderRadius: '5px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-                      <div style={{ width: '100%', height: `${item.percent}%`, background: 'linear-gradient(to top, #3b82f6, #93c5fd)', borderRadius: '5px', transition: 'height 0.3s' }} />
-                    </div>
-                    <span style={{ fontSize: '0.52rem', fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>
-                      {item.date.split('-')[2]}일
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <p style={{ margin: '6px 0 0 0', fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textAlign: 'center' }}>
-              (일자를 마우스 오버하면 상세 매출액이 팝업됩니다)
-            </p>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              <Printer size={12} /> 인쇄
+            </button>
+            <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+              <Download size={12} /> 엑셀
+            </button>
           </div>
-
         </div>
 
-        {/* RIGHT COLUMN: Interactive Tabbed Analysis & Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
-          {/* Tab Selector */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              backgroundColor: '#f1f5f9', 
-              borderRadius: '10px', 
-              padding: '4px',
-              gap: '4px',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {tabConfig.map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+        {/* Filters Panel */}
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Date Range */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input 
+              type="date" 
+              value={filters.startDate} 
+              onChange={e => { setFilters({...filters, startDate: e.target.value}); setActiveQuick(''); }}
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+            <input 
+              type="date" 
+              value={filters.endDate} 
+              onChange={e => { setFilters({...filters, endDate: e.target.value}); setActiveQuick(''); }}
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            />
+          </div>
+
+          {/* Quick Date Chips */}
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {['오늘', '1주일', '한달', '상반기', '하반기', '1년'].map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => applyQuickFilter(opt)}
                 style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '7px',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  backgroundColor: activeTab === tab.id ? '#ffffff' : 'transparent',
-                  color: activeTab === tab.id ? '#3b82f6' : '#64748b',
-                  boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'
+                  padding: '3px 8px', fontSize: '0.7rem', fontWeight: 700,
+                  border: activeQuick === opt ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  background: activeQuick === opt ? '#eff6ff' : '#fff',
+                  color: activeQuick === opt ? '#2563eb' : '#475569',
+                  cursor: 'pointer', whiteSpace: 'nowrap'
                 }}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
+              >{opt}</button>
             ))}
           </div>
 
-          {/* Top 3 Gauge Visualization */}
-          <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
-            <h5 style={{ margin: '0 0 8px 0', fontSize: '0.72rem', fontWeight: 800, color: '#64748b' }}>
-              매출 비중 점유율 (상위 3위)
-            </h5>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {activeReportData.slice(0, 3).map((item, idx) => {
-                const colors = ['#3b82f6', '#10b981', '#f59e0b'];
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
-                      <span>{item.name}</span>
-                      <span>{item.percent.toFixed(1)}% ({item.amount.toLocaleString()}원)</span>
-                    </div>
-                    <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${item.percent}%`, backgroundColor: colors[idx] || '#64748b', borderRadius: '3px', transition: 'width 0.4s' }} />
-                    </div>
-                  </div>
-                );
-              })}
-              {activeReportData.length === 0 && (
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', padding: '10px 0' }}>
-                  해당 조건의 매출 데이터가 존재하지 않습니다.
-                </div>
-              )}
+          {/* Warehouse & Search */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '6px' }}>
+            <select 
+              value={filters.warehouse} 
+              onChange={e => setFilters({...filters, warehouse: e.target.value})}
+              style={{ padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, outline: 'none', backgroundColor: '#fff' }}
+            >
+              {warehouses.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Search size={13} color="#94a3b8" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="업체/담당자/품목..." 
+                value={filters.searchTerm} 
+                onChange={e => setFilters({...filters, searchTerm: e.target.value})} 
+                style={{ width: '100%', padding: '6px 6px 6px 26px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Widget 1: 당일(시작일) 수주 및 완료 현황 (3열 대칭 카드) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 700 }}>수주금액</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
+              {formatCurrency(dailyMetrics.amount)}원
             </div>
           </div>
 
-          {/* Details Table */}
-          <div className="report-v2-table-container" style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-            <table className="report-v2-table" style={{ margin: 0 }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th style={{ textAlign: 'left', fontSize: '0.72rem', padding: '8px 12px' }}>구분</th>
-                  <th style={{ textAlign: 'center', fontSize: '0.72rem', padding: '8px 12px', width: '90px' }}>판매수량</th>
-                  <th style={{ textAlign: 'right', fontSize: '0.72rem', padding: '8px 12px', width: '150px' }}>순매출액</th>
-                  <th style={{ textAlign: 'right', fontSize: '0.72rem', padding: '8px 12px', width: '90px' }}>점유율</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeReportData.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ textAlign: 'left', fontSize: '0.72rem', padding: '8px 12px', fontWeight: 600, color: '#334155' }}>
-                      {row.name}
-                    </td>
-                    <td style={{ textAlign: 'center', fontSize: '0.72rem', padding: '8px 12px', color: '#475569' }}>
-                      {row.qty.toLocaleString()}
-                    </td>
-                    <td style={{ textAlign: 'right', fontSize: '0.72rem', padding: '8px 12px', color: '#1e293b', fontWeight: 700 }}>
-                      {row.amount.toLocaleString()} 원
-                    </td>
-                    <td style={{ textAlign: 'right', fontSize: '0.72rem', padding: '8px 12px', color: '#3b82f6', fontWeight: 700 }}>
-                      {row.percent.toFixed(1)}%
-                    </td>
-                  </tr>
-                ))}
-                {/* Total Row */}
-                {activeReportData.length > 0 && (
-                  <tr style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #e2e8f0', position: 'sticky', bottom: 0 }}>
-                    <td style={{ textAlign: 'left', fontSize: '0.72rem', padding: '10px 12px', fontWeight: 800, color: '#0f172a' }}>합계</td>
-                    <td style={{ textAlign: 'center', fontSize: '0.72rem', padding: '10px 12px', fontWeight: 800, color: '#0f172a' }}>
-                      {summaryInsights.totalQty.toLocaleString()}
-                    </td>
-                    <td style={{ textAlign: 'right', fontSize: '0.72rem', padding: '10px 12px', fontWeight: 800, color: '#3b82f6' }}>
-                      {summaryInsights.totalSales.toLocaleString()} 원
-                    </td>
-                    <td style={{ textAlign: 'right', fontSize: '0.72rem', padding: '10px 12px', fontWeight: 800, color: '#3b82f6' }}>100%</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700 }}>주문건수</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#047857', marginTop: '2px' }}>
+              {dailyMetrics.count}건
+            </div>
           </div>
 
+          <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.68rem', color: '#d97706', fontWeight: 700 }}>완료건수</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#b45309', marginTop: '2px' }}>
+              {dailyMetrics.completed}건
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Selector for In-Depth Analysis */}
+        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+          {tabConfig.map(tab => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: activeTab === tab.id ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+                backgroundColor: activeTab === tab.id ? '#3b82f6' : '#fff',
+                color: activeTab === tab.id ? '#fff' : '#475569',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Top 3 Share Gauge Card */}
+        <div style={{ backgroundColor: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e293b' }}>
+            매출 비중 점유율 (상위 3위)
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {activeReportData.slice(0, 3).map((item, idx) => {
+              const colors = ['#3b82f6', '#10b981', '#f59e0b'];
+              return (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
+                    <span>{item.name}</span>
+                    <span>{item.percent.toFixed(1)}% ({item.amount.toLocaleString()}원)</span>
+                  </div>
+                  <div style={{ width: '100%', height: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${item.percent}%`, backgroundColor: colors[idx] || '#64748b', borderRadius: '3px', transition: 'width 0.4s' }} />
+                  </div>
+                </div>
+              );
+            })}
+            {activeReportData.length === 0 && (
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', padding: '10px 0' }}>
+                해당 조건의 매출 데이터가 존재하지 않습니다.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sales Breakdown Cards List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b' }}>
+              상세 내역 ({activeReportData.length}건)
+            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#2563eb' }}>
+              총 {summaryInsights.totalSales.toLocaleString()}원
+            </span>
+          </div>
+
+          {activeReportData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+              해당 기간에 매출 내역이 없습니다.
+            </div>
+          ) : (
+            activeReportData.map((row, idx) => (
+              <div key={idx} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
+                    {row.name}
+                  </span>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#2563eb' }}>
+                    {row.amount.toLocaleString()}원
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
+                  <span>판매수량: <strong style={{ color: '#1e293b' }}>{row.qty.toLocaleString()}</strong></span>
+                  <span>점유율: <strong style={{ color: '#2563eb' }}>{row.percent.toFixed(1)}%</strong></span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
       </div>

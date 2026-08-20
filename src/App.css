@@ -4,16 +4,34 @@
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif !important;
 }
 
+body {
+  background-color: #0f172a;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #ffffff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;                        /* 기본 fallback */
-  height: calc(var(--vh, 1vh) * 100);  /* JS로 주입된 실제 높이 */
-  height: 100dvh;                       /* 최신 브라우저: 주소창 변동 없는 고정 높이 */
+  height: 100%;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  overflow-y: hidden;
+  overflow: hidden;
 }
 
 .main-content {
@@ -21,11 +39,12 @@
   flex-direction: column;
   flex: 1;
   padding: 8px 10px;
-  gap: 12px;
-  overflow-y: auto;
+  gap: 8px;
+  overflow: hidden;
   max-width: 100%;
   margin: 0;
   width: 100%;
+  min-height: 0;
 }
 
 .left-column {

@@ -212,25 +212,25 @@ const Header = ({
       keywords: '수주보고서 수주현황',
     },
     {
-      title: '일자별 재고현황(창고별이동현황)',
+      title: '일자별 재고이동',
       category: '재고관리',
       action: () => onOpenInventoryReport && onOpenInventoryReport('daily'),
       perm: hasPerm('재고보고서'),
-      keywords: '재고현황 날짜별재고',
+      keywords: '재고현황 날짜별재고 일자별재고현황',
     },
     {
-      title: '최종 재고 현황(창고별 최종재고현황)',
+      title: '최종재고',
       category: '재고관리',
       action: () => onOpenInventoryReport && onOpenInventoryReport('final'),
       perm: hasPerm('재고보고서'),
-      keywords: '남은재고 최종재고',
+      keywords: '남은재고 최종재고 최종재고현황',
     },
     {
-      title: '매입처별 재고현황',
+      title: '매입처별 재고',
       category: '재고관리',
       action: () => onOpenInventoryReport && onOpenInventoryReport('partner'),
       perm: hasPerm('재고보고서'),
-      keywords: '거래처별재고 매입처재고',
+      keywords: '거래처별재고 매입처재고 매입처별재고현황',
     },
     {
       title: '전표수정/삭제 보고서',
@@ -288,56 +288,13 @@ const Header = ({
       perm: hasPerm('특별단가관리'),
       keywords: '거래처단가 특별단가 할인단가 단가관리 거래처별특별단가',
     },
-    // 시스템관리
-    {
-      title: '데이터 전체 저장/불러오기',
-      category: '시스템관리',
-      action: onOpenDataManager,
-      perm: hasPerm('데이터 전체 저장/불러오기'),
-      keywords: '백업 복원 데이터백업 db저장',
-    },
-    {
-      title: '거래처 엑셀파일로 저장/불러오기',
-      category: '시스템관리',
-      action: onOpenPartnerExcel,
-      perm: hasPerm('거래처 엑셀파일로 저장/불러오기'),
-      keywords: '거래처엑셀 업로드 다운로드',
-    },
-    {
-      title: '품목 엑셀파일로 저장/불러오기',
-      category: '시스템관리',
-      action: onOpenProductExcel,
-      perm: hasPerm('품목 엑셀파일로 저장/불러오기'),
-      keywords: '품목엑셀 상품엑셀 업로드 다운로드',
-    },
-    {
-      title: '매출처원장 저장/불러오기',
-      category: '시스템관리',
-      action: onOpenSalesLedgerExcel,
-      perm: hasPerm('매출처원장 저장/불러오기'),
-      keywords: '매출처엑셀 매출원장엑셀',
-    },
-    {
-      title: '매입처원장 저장/불러오기',
-      category: '시스템관리',
-      action: onOpenPurchaseLedgerExcel,
-      perm: hasPerm('매입처원장 저장/불러오기'),
-      keywords: '매입처엑셀 매입원장엑셀',
-    },
-    // 환경설정&정품등록
+    // 환경설정
     {
       title: '환경설정',
-      category: '환경설정&정품등록',
+      category: '환경설정',
       action: onOpenSettings,
       perm: true,
       keywords: '설정 옵션 회사정보',
-    },
-    {
-      title: '정품등록',
-      category: '환경설정&정품등록',
-      action: onOpenLicense,
-      perm: true,
-      keywords: '라이센스 라이선스 시리얼',
     }
   ];
 
@@ -474,6 +431,17 @@ const Header = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <header className="header" ref={dropdownRef}>
@@ -621,16 +589,8 @@ const Header = ({
               { perm: true, label: '세금신고 지원 보고서', action: onOpenTaxReport },
               { perm: hasPerm('일정'), label: '일정추가', action: onOpenScheduleList },
             ]},
-            { id: 'data', label: '시스템관리', items: [
-              { perm: hasPerm('데이터 전체 저장/불러오기'), label: '데이터 전체 저장/불러오기', action: onOpenDataManager },
-              { perm: hasPerm('거래처 엑셀파일로 저장/불러오기'), label: '거래처 엑셀파일로 저장/불러오기', action: onOpenPartnerExcel },
-              { perm: hasPerm('품목 엑셀파일로 저장/불러오기'), label: '품목 엑셀파일로 저장/불러오기', action: onOpenProductExcel },
-              { perm: hasPerm('매출처원장 저장/불러오기'), label: '매출처원장 저장/불러오기', action: onOpenSalesLedgerExcel },
-              { perm: hasPerm('매입처원장 저장/불러오기'), label: '매입처원장 저장/불러오기', action: onOpenPurchaseLedgerExcel },
-            ]},
-            { id: 'settings_license', label: '환경설정&정품등록', items: [
+            { id: 'settings_license', label: '환경설정', items: [
               { perm: true, label: '환경설정', action: onOpenSettings },
-              { perm: true, label: '정품등록', action: onOpenLicense },
             ]}
           ].map(group => (
             <div key={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '8px' }}>
@@ -639,23 +599,34 @@ const Header = ({
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: '6px' }}>
                 {group.items.filter(item => item.perm).map((item, idx) => (
-                  <div 
+                  <button 
                     key={idx} 
-                    onClick={() => { setIsMobileMenuOpen(false); playMenuClickSound(); item.action(); }}
+                    data-menu-item={item.label}
+                    onClick={() => { 
+                      setIsMobileMenuOpen(false); 
+                      playMenuClickSound(); 
+                      if (typeof item.action === 'function') {
+                        item.action();
+                      }
+                    }}
                     style={{
                       padding: '8px 10px',
                       fontSize: '0.85rem',
                       color: '#e2e8f0',
+                      background: 'transparent',
+                      border: 'none',
                       cursor: 'pointer',
                       borderRadius: '6px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      textAlign: 'left',
+                      width: '100%'
                     }}
                   >
                     <span>{MENU_EMOJIS[item.label] || '📄'}</span>
                     <span>{item.label}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

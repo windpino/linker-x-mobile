@@ -640,42 +640,96 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
                     {safeStaffList.map(staff => <option key={staff.id} value={staff.name}>{staff.name}</option>)}
                   </select>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '6px', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 500 }}>
-                  <span>💡 리스트의 행을 드래그하여 거래처 순서를 자유롭게 변경할 수 있습니다.</span>
-                </div>
               </div>
             )}
-
-            {selectedPartnerName && (
-              <div style={{ padding: '8px 24px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderRadius: '6px' }}>
-                <span style={{ fontSize: '0.85rem', color: '#1d4ed8', fontWeight: 600 }}>🔍 "{selectedPartnerName}" 검색 중</span>
-                <button onClick={handleClearSearch} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}>전체 보기</button>
+                        {isMobileView ? (
+              <div className="partner-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '4px' }}>
+                {getFilteredPartners().map((partner, index) => {
+                  const isMixed = partner.type === '혼합' || partner.type === '매입매출처';
+                  const displayType = isMixed ? '매입매출처' : partner.type;
+                  return (
+                    <div key={partner.id} style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ color: '#64748b', fontSize: '0.8rem' }}>#{partner.sequence || '-'}</span>
+                          <span>{partner.name}</span>
+                          <span className={partner.type === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px' }}>
+                            {displayType}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button className="icon-btn" onClick={() => handleEditPartner(partner)} style={{ padding: '4px' }}><Edit2 size={16} /></button>
+                          <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }} style={{ padding: '4px' }}><Trash2 size={16} /></button>
+                          <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ padding: '2px 6px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><FileText size={12} /> 주문</button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem', color: '#475569' }}>
+                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>대표자:</span>{partner.ceo || '-'}</div>
+                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>연락처:</span>{partner.phone || partner.mobile || '-'}</div>
+                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>담당자:</span>{partner.manager || '-'}</div>
+                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>미수금:</span>{formatAmount(partner.receivables)}원</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {getFilteredPartners().length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                    {searchText ? `"${searchText}" 검색 결과가 없습니다.` : '거래처가 없습니다.'}
+                  </div>
+                )}
               </div>
-            )}
-
-            <div className="partner-table-container">
-              <table className="partner-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-                <thead>
-                  <tr>
-                    {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
-                      <th 
-                        key={col.id} 
-                        style={{ 
-                          width: (colWidths[col.id] || 120) + 'px', 
-                          position: 'relative', 
-                          userSelect: 'none' 
-                        }}
-                      >
-                        {col.label}
+            ) : (
+              <div className="partner-table-container">
+                <table className="partner-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                  <thead>
+                    <tr>
+                      {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
+                        <th 
+                          key={col.id} 
+                          style={{ 
+                            width: (colWidths[col.id] || 120) + 'px', 
+                            position: 'relative', 
+                            userSelect: 'none' 
+                          }}
+                        >
+                          {col.label}
+                          <span
+                            onMouseDown={(e) => onResizeMouseDown(e, col.id)}
+                            style={{
+                              position: 'absolute', right: 0, top: 0, bottom: 0,
+                              width: '6px', cursor: 'col-resize',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              zIndex: 2,
+                            }}
+                            title={`${col.label} 너비 조절`}
+                          >
+                            <span style={{
+                              display: 'block', width: '0px', height: '100%',
+                              borderLeft: '1px dotted #cbd5e1',
+                            }} />
+                          </span>
+                        </th>
+                      ))}
+                      <th style={{ width: colWidths.control + 'px', position: 'relative', userSelect: 'none', textAlign: 'center' }}>
+                        관리
                         <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.id)}
+                          onMouseDown={(e) => onResizeMouseDown(e, 'control')}
                           style={{
                             position: 'absolute', right: 0, top: 0, bottom: 0,
                             width: '6px', cursor: 'col-resize',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             zIndex: 2,
                           }}
-                          title={`${col.label} 너비 조절`}
+                          title="관리 너비 조절"
                         >
                           <span style={{
                             display: 'block', width: '0px', height: '100%',
@@ -683,167 +737,149 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
                           }} />
                         </span>
                       </th>
-                    ))}
-                    <th style={{ width: colWidths.control + 'px', position: 'relative', userSelect: 'none', textAlign: 'center' }}>
-                      관리
-                      <span
-                        onMouseDown={(e) => onResizeMouseDown(e, 'control')}
-                        style={{
-                          position: 'absolute', right: 0, top: 0, bottom: 0,
-                          width: '6px', cursor: 'col-resize',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          zIndex: 2,
-                        }}
-                        title="관리 너비 조절"
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredPartners().map((partner, index) => (
+                      <tr 
+                        key={partner.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDrop={(e) => handleDrop(e, index)}
+                        className={draggedIndex === index ? 'dragging-row' : ''}
+                        style={{ cursor: 'grab' }}
                       >
-                        <span style={{
-                          display: 'block', width: '0px', height: '100%',
-                          borderLeft: '1px dotted #cbd5e1',
-                        }} />
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getFilteredPartners().map((partner, index) => (
-                    <tr 
-                      key={partner.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDrop={(e) => handleDrop(e, index)}
-                      className={draggedIndex === index ? 'dragging-row' : ''}
-                      style={{ cursor: 'grab' }}
-                    >
-                      {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => {
-                        const colId = col.id;
-                        const value = partner[colId];
-                        const cellWidth = (colWidths[colId] || 120) + 'px';
-                        const baseStyle = {
-                          width: cellWidth,
-                          maxWidth: cellWidth,
+                        {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => {
+                          const colId = col.id;
+                          const value = partner[colId];
+                          const cellWidth = (colWidths[colId] || 120) + 'px';
+                          const baseStyle = {
+                            width: cellWidth,
+                            maxWidth: cellWidth,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            verticalAlign: 'middle'
+                          };
+
+                          if (colId === 'sequence') {
+                            return (
+                              <td key={colId} style={{ ...baseStyle, textAlign: 'center', fontWeight: '700', color: '#3b82f6', background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <Grid size={14} style={{ color: '#cbd5e1', flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '-'}</span>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'type') {
+                            const isMixed = value === '혼합' || value === '매입매출처';
+                            const displayValue = isMixed ? '매입매출처' : value;
+                            return (
+                              <td key={colId} style={baseStyle}>
+                                <span className={value === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                                  <User size={12} style={{ marginRight: '4px', flexShrink: 0 }} />
+                                  {displayValue}
+                                </span>
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'name') {
+                            return (
+                              <td key={colId} style={baseStyle}><div className="partner-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span className="main-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span></div></td>
+                            );
+                          }
+
+                          if (colId === 'phone' || colId === 'mobile') {
+                            return (
+                              <td key={colId} style={baseStyle}>
+                                <div className="partner-phone" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Phone size={14} className="icon-blue" style={{ flexShrink: 0 }} />{value || '-'}</div>
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'manager') {
+                            return (
+                              <td key={colId} style={baseStyle}>
+                                <div className="partner-manager-inline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <select value={value || '-'} onChange={(e) => handleManagerChange(partner.id, e.target.value)} className="inline-manager-select" style={{ paddingLeft: '12px', border: '1px solid transparent', background: 'transparent', fontSize: '0.875rem', color: '#1e293b', borderRadius: '4px', cursor: 'pointer', width: '100%', appearance: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.border = '1px solid #cbd5e1'} onMouseLeave={e => e.currentTarget.style.border = '1px solid transparent'}>
+                                    <option value="-">-</option>
+                                    {safeStaffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                  </select>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'creditLimit' || colId === 'receivableBase' || colId === 'receivables') {
+                            return (
+                              <td key={colId} style={{ ...baseStyle, textAlign: 'right' }}>
+                                {formatAmount(value)}원
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'hideOrderInfo') {
+                            return (
+                              <td key={colId} style={{ ...baseStyle, textAlign: 'center' }}>
+                                <span style={{ 
+                                  padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
+                                  background: value ? '#f1f5f9' : '#ecfdf5',
+                                  color: value ? '#64748b' : '#059669',
+                                  flexShrink: 0
+                                }}>
+                                  {value ? '숨김' : '노출'}
+                                </span>
+                              </td>
+                            );
+                          }
+
+                          if (colId === 'grade') {
+                            return (
+                              <td key={colId} style={{ ...baseStyle, textAlign: 'center' }}>
+                                 <span style={{ 
+                                   padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700,
+                                   background: value === '1' ? '#eff6ff' : value === '2' ? '#fffbeb' : '#fef2f2',
+                                   color: value === '1' ? '#1d4ed8' : value === '2' ? '#b45309' : '#dc2626',
+                                   flexShrink: 0
+                                 }}>
+                                   {value === '1' ? '★ 1등급' : value === '2' ? '★★ 2등급' : '★★★ 3등급'}
+                                  </span>
+                              </td>
+                            );
+                          }
+
+                          return (
+                            <td key={colId} style={baseStyle}>{value || '-'}</td>
+                          );
+                        })}
+
+                        <td style={{
+                          width: (colWidths.control || 120) + 'px',
+                          maxWidth: (colWidths.control || 120) + 'px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle'
-                        };
-
-                        if (colId === 'sequence') {
-                          return (
-                            <td key={colId} style={{ ...baseStyle, textAlign: 'center', fontWeight: '700', color: '#3b82f6', background: '#f8fafc' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <Grid size={14} style={{ color: '#cbd5e1', flexShrink: 0 }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '-'}</span>
-                              </div>
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'type') {
-                          const isMixed = value === '혼합' || value === '매입매출처';
-                          const displayValue = isMixed ? '매입매출처' : value;
-                          return (
-                            <td key={colId} style={baseStyle}>
-                              <span className={value === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                                <User size={12} style={{ marginRight: '4px', flexShrink: 0 }} />
-                                {displayValue}
-                              </span>
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'name') {
-                          return (
-                            <td key={colId} style={baseStyle}><div className="partner-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span className="main-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span></div></td>
-                          );
-                        }
-
-                        if (colId === 'phone' || colId === 'mobile') {
-                          return (
-                            <td key={colId} style={baseStyle}>
-                              <div className="partner-phone" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Phone size={14} className="icon-blue" style={{ flexShrink: 0 }} />{value || '-'}</div>
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'manager') {
-                          return (
-                            <td key={colId} style={baseStyle}>
-                              <div className="partner-manager-inline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <select value={value || '-'} onChange={(e) => handleManagerChange(partner.id, e.target.value)} className="inline-manager-select" style={{ paddingLeft: '12px', border: '1px solid transparent', background: 'transparent', fontSize: '0.875rem', color: '#1e293b', borderRadius: '4px', cursor: 'pointer', width: '100%', appearance: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.border = '1px solid #cbd5e1'} onMouseLeave={e => e.currentTarget.style.border = '1px solid transparent'}>
-                                  <option value="-">-</option>
-                                  {safeStaffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                </select>
-                              </div>
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'creditLimit' || colId === 'receivableBase' || colId === 'receivables') {
-                          return (
-                            <td key={colId} style={{ ...baseStyle, textAlign: 'right' }}>
-                              {formatAmount(value)}원
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'hideOrderInfo') {
-                          return (
-                            <td key={colId} style={{ ...baseStyle, textAlign: 'center' }}>
-                              <span style={{ 
-                                padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
-                                background: value ? '#f1f5f9' : '#ecfdf5',
-                                color: value ? '#64748b' : '#059669',
-                                flexShrink: 0
-                              }}>
-                                {value ? '숨김' : '노출'}
-                              </span>
-                            </td>
-                          );
-                        }
-
-                        if (colId === 'grade') {
-                          return (
-                            <td key={colId} style={{ ...baseStyle, textAlign: 'center' }}>
-                               <span style={{ 
-                                 padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700,
-                                 background: value === '1' ? '#eff6ff' : value === '2' ? '#fffbeb' : '#fef2f2',
-                                 color: value === '1' ? '#1d4ed8' : value === '2' ? '#b45309' : '#dc2626',
-                                 flexShrink: 0
-                               }}>
-                                 {value === '1' ? '★ 1등급' : value === '2' ? '★★ 2등급' : '★★★ 3등급'}
-                                </span>
-                            </td>
-                          );
-                        }
-
-                        return (
-                          <td key={colId} style={baseStyle}>{value || '-'}</td>
-                        );
-                      })}
-
-                      <td style={{
-                        width: (colWidths.control || 120) + 'px',
-                        maxWidth: (colWidths.control || 120) + 'px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        verticalAlign: 'middle'
-                      }}>
-                        <div className="partner-action-cell" style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                          <button className="icon-btn" onClick={() => handleEditPartner(partner)}><Edit2 size={16} /></button>
-                          <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }}><Trash2 size={16} /></button>
-                          <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ flexShrink: 0 }}><FileText size={14} /> 주문</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {getFilteredPartners().length === 0 && (
-                    <tr><td colSpan={visibleColumns.length + 3} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>{searchText ? `"${searchText}" 검색 결과가 없습니다.` : '거래처가 없습니다.'}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        }}>
+                          <div className="partner-action-cell" style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                            <button className="icon-btn" onClick={() => handleEditPartner(partner)}><Edit2 size={16} /></button>
+                            <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }}><Trash2 size={16} /></button>
+                            <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ flexShrink: 0 }}><FileText size={14} /> 주문</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {getFilteredPartners().length === 0 && (
+                      <tr><td colSpan={visibleColumns.length + 3} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>{searchText ? `"${searchText}" 검색 결과가 없습니다.` : '거래처가 없습니다.'}</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </WindowModal>
