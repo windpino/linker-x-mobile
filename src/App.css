@@ -12,6 +12,8 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 #root {
@@ -23,6 +25,8 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   position: relative;
   overflow: hidden;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 .app-container {
@@ -32,6 +36,8 @@ body {
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 .main-content {

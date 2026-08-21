@@ -2,6 +2,8 @@
 
 html {
   font-size: 112.5% !important;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 :root {
@@ -73,6 +75,8 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -88,6 +92,8 @@ body {
   border: 10px solid #1e293b;
   border-radius: 32px;
   overflow: hidden;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
   position: relative;
   box-sizing: content-box; /* 베젤 크기 포함하여 규격 유지 */
   display: flex;
@@ -105,6 +111,8 @@ body {
     border-radius: 0;
     box-shadow: none;
     box-sizing: border-box;
+    overscroll-behavior-y: none;
+    overscroll-behavior: none;
   }
 }
 

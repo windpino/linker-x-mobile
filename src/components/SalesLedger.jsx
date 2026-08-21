@@ -65,9 +65,6 @@ const SalesLedger = ({
   }, [colWidths]);
   const [filter, setFilter] = useState('한달');
   const filterOptions = ['오늘', '1주일', '한달', '상반기', '하반기', '1년'];
-  const [selectedStaff, setSelectedStaff] = useState('전체');
-  const [selectedWarehouse, setSelectedWarehouse] = useState('전체');
-  const [selectedCategory, setSelectedCategory] = useState('전체');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -182,24 +179,9 @@ const SalesLedger = ({
 
   const getMatchingInvoiceItems = (inv) => {
     if (!inv.items || inv.items.length === 0) {
-      return selectedCategory === '전체' ? [{ name: '매출', total: inv.totalAmount || 0, qty: 0, price: 0 }] : [];
+      return [{ name: '매출', total: inv.totalAmount || 0, qty: 0, price: 0 }];
     }
-    return inv.items.filter(item => {
-      if (selectedCategory === '전체') return true;
-      const prod = products.find(p => p.name === item.name);
-      return prod && prod.category === selectedCategory;
-    });
-  };
-
-  const isInvoiceMatchingFilters = (inv) => {
-    if (selectedStaff !== '전체') {
-      const creator = inv.creator || inv.manager || '시스템';
-      if (inv.manager !== selectedStaff && creator !== selectedStaff) return false;
-    }
-    if (selectedWarehouse !== '전체' && inv.warehouse !== selectedWarehouse) return false;
-    const matchingItems = getMatchingInvoiceItems(inv);
-    if (matchingItems.length === 0) return false;
-    return true;
+    return inv.items;
   };
 
   // 1. Calculate Carried Forward
@@ -207,7 +189,7 @@ const SalesLedger = ({
   const priorInvoices = salesInvoices.filter(inv => {
     if (inv.date >= startDate) return false;
     if (selectedPartner && inv.partner !== selectedPartner) return false;
-    return isInvoiceMatchingFilters(inv);
+    return true;
   });
   const priorSales = priorInvoices.reduce((sum, inv) => {
     const matchingItems = getMatchingInvoiceItems(inv);
@@ -242,7 +224,7 @@ const SalesLedger = ({
     .filter(inv => {
       if (inv.date < startDate || inv.date > endDate) return false;
       if (selectedPartner && inv.partner !== selectedPartner) return false;
-      return isInvoiceMatchingFilters(inv);
+      return true;
     })
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -409,7 +391,7 @@ const SalesLedger = ({
   const currentSummaryInvoices = salesInvoices.filter(inv => {
     if (inv.date < startDate || inv.date > endDate) return false;
     if (selectedPartner && inv.partner !== selectedPartner) return false;
-    return isInvoiceMatchingFilters(inv);
+    return true;
   });
   currentSummaryInvoices.forEach(inv => {
     const matchingItems = getMatchingInvoiceItems(inv);
@@ -545,7 +527,7 @@ const SalesLedger = ({
           </div>
 
           {/* 3. 업체명 검색 (초성 가능) */}
-          <div className="form-group" style={{ marginBottom: '10px', position: 'relative' }} ref={searchRef}>
+          <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={searchRef}>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>업체명 검색</span>
               <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 500 }}>초성 검색 가능 (예: ㅈㅅㅁ)</span>
@@ -581,62 +563,14 @@ const SalesLedger = ({
               </div>
             )}
           </div>
-
-          {/* 4. 세부 필터 (담당직원, 출고창고, 카테고리) - 3열 균등 그리드 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>담당 직원</label>
-              <select 
-                value={selectedStaff} 
-                onChange={e => setSelectedStaff(e.target.value)}
-                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
-              >
-                <option value="전체">전체 직원</option>
-                {staffList.map(s => (
-                  <option key={s.id || s.userId} value={s.name}>{s.name} ({s.jobTitle || '사원'})</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>출고 창고</label>
-              <select 
-                value={selectedWarehouse} 
-                onChange={e => setSelectedWarehouse(e.target.value)}
-                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
-              >
-                <option value="전체">전체 창고</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '3px', display: 'block' }}>품목 카테고리</label>
-              <select 
-                value={selectedCategory} 
-                onChange={e => setSelectedCategory(e.target.value)}
-                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
-              >
-                <option value="전체">전체 카테고리</option>
-                {categories.map(c => (
-                  <option key={c.id || c.name} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
 
         <>
-          <div style={{ padding: '6px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: '0.84rem', color: '#1d4ed8', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0', flexWrap: 'wrap' }}>
+          <div style={{ padding: '6px 14px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0', flexWrap: 'wrap' }}>
             🔍 <strong>{selectedPartner || '전체 거래처'}</strong> 매출원장 조회 중
             {selectedPartner && (
-              <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>조회 해제</button>
+              <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', fontWeight: 700 }}>전체 보기</button>
             )}
-            {selectedStaff !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>직원: {selectedStaff}</span>}
-            {selectedWarehouse !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>창고: {selectedWarehouse}</span>}
-            {selectedCategory !== '전체' && <span style={{ backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>카테고리: {selectedCategory}</span>}
           </div>
 
             <div className="invoice-table-container" style={{ backgroundColor: 'white', borderRadius: '0 0 12px 12px', border: '1px solid #e2e8f0', borderTop: 'none', overflowX: 'auto' }}>
