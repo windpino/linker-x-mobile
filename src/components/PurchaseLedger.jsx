@@ -51,7 +51,7 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
   }, [colWidths]);
 
   const [filter, setFilter] = useState('한달');
-  const filterOptions = ['1주일', '한달', '상반기', '하반기', '1년'];
+  const filterOptions = ['오늘', '1주일', '한달', '상반기', '하반기', '1년'];
   
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -125,6 +125,10 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
     let end = formatDate(today);
 
     switch (opt) {
+      case '오늘':
+        start = formatDate(today);
+        end = formatDate(today);
+        break;
       case '1년':
         start = `${y}-01-01`;
         end = `${y}-12-31`;
@@ -483,66 +487,91 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
         </div>
       </div>
 
-      <div className="purchase-modal-body">
-        <div className="sales-ledger-filter">
-          <div className="filter-row">
+      <div className="purchase-modal-body" style={{ padding: '10px' }}>
+        <div className="sales-ledger-filter" style={{ padding: '12px', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+          
+          {/* 1. 날짜 범위 선택 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>시작일</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>시작일</label>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
             </div>
-            <span style={{ marginBottom: '10px' }}>~</span>
+            <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>종료일</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, position: 'relative' }} ref={searchRef}>
-              <label>업체명 검색 <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400 }}>초성 가능</span></label>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                  type="text"
-                  value={searchText}
-                  placeholder="업체명 검색 (예: ㅈㅅㅁ)"
-                  onChange={e => { setSearchText(e.target.value); setSelectedPartner(''); setShowSuggestions(true); }}
-                  onFocus={() => searchText && setShowSuggestions(true)}
-                  style={{ paddingLeft: '28px', paddingRight: searchText ? '28px' : '8px' }}
-                />
-                {searchText && (
-                  <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                  {suggestions.map((name, i) => (
-                    <div key={i}
-                      onMouseDown={() => { setSelectedPartner(name); setSearchText(name); setShowSuggestions(false); }}
-                      style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {name}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>종료일</label>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
             </div>
           </div>
 
-          <div className="filter-btns">
+          {/* 2. 기간 퀵버튼 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '10px' }}>
             {filterOptions.map(opt => (
-              <button key={opt} className={`filter-btn ${filter === opt ? 'active' : ''}`} onClick={() => applyFilter(opt)}>{opt}</button>
+              <button 
+                key={opt} 
+                className={`filter-btn ${filter === opt ? 'active' : ''}`} 
+                onClick={() => applyFilter(opt)}
+                style={{
+                  padding: '5px 2px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  borderRadius: '6px',
+                  border: filter === opt ? '1px solid #ea580c' : '1px solid #e2e8f0',
+                  background: filter === opt ? '#ea580c' : '#f8fafc',
+                  color: filter === opt ? '#fff' : '#475569',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {opt}
+              </button>
             ))}
+          </div>
+
+          {/* 3. 업체명 검색 (초성 가능) */}
+          <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={searchRef}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>업체명 검색</span>
+              <span style={{ fontSize: '0.7rem', color: '#ea580c', fontWeight: 500 }}>초성 검색 가능 (예: ㅈㅅㅁ)</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchText}
+                placeholder="업체명을 입력하세요"
+                onChange={e => { setSearchText(e.target.value); setSelectedPartner(''); setShowSuggestions(true); }}
+                onFocus={() => searchText && setShowSuggestions(true)}
+                style={{ width: '100%', padding: '8px 30px 8px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+              />
+              {searchText && (
+                <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                {suggestions.map((name, i) => (
+                  <div key={i}
+                    onMouseDown={() => { setSelectedPartner(name); setSearchText(name); setShowSuggestions(false); }}
+                    style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fff7ed'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         <>
-          <div style={{ padding: '6px 16px', background: '#fff7ed', borderBottom: '1px solid #ffedd5', fontSize: '0.84rem', color: '#c2410c', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0' }}>
+          <div style={{ padding: '6px 14px', background: '#fff7ed', borderBottom: '1px solid #ffedd5', fontSize: '0.82rem', color: '#c2410c', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0', flexWrap: 'wrap' }}>
             🔍 <strong>{selectedPartner || '전체 거래처'}</strong> 매입원장 조회 중
             {selectedPartner && (
-              <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#f97316', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>조회 해제</button>
+              <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#ea580c', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', fontWeight: 700 }}>전체 보기</button>
             )}
           </div>
 
@@ -731,12 +760,32 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
             </table>
           </div>
 
-          <div className="sales-summary-grid">
-            <div className="sales-summary-card summary-card-dark"><div className="summary-label">총 건수</div><div className="summary-value">{currentSummaryInvoices.length}</div></div>
-            <div className="sales-summary-card summary-card-purple"><div className="summary-label">총수량</div><div className="summary-value">{totalQty.toLocaleString()}</div></div>
-            <div className="sales-summary-card summary-card-orange" style={{ background: '#fff7ed', border: '1px solid #ffedd5' }}><div className="summary-label" style={{ color: '#ea580c' }}>매입액</div><div className="summary-value" style={{ color: '#ea580c' }}>{totalPurchases.toLocaleString()}</div></div>
-            <div className="sales-summary-card summary-card-green"><div className="summary-label">출금액</div><div className="summary-value">{totalPaid.toLocaleString()}</div></div>
-            <div className="sales-summary-card summary-card-orange" style={{ background: '#fff7ed', border: '1px solid #ffedd5' }}><div className="summary-label" style={{ color: '#ea580c' }}>잔액(미지급)</div><div className="summary-value" style={{ color: '#ea580c' }}>{balance.toLocaleString()}</div></div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '6px',
+            marginTop: '8px'
+          }}>
+            <div style={{ padding: '6px 4px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>총 건수</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e293b' }}>{currentSummaryInvoices.length}</div>
+            </div>
+            <div style={{ padding: '6px 4px', borderRadius: '8px', background: '#f5f3ff', border: '1px solid #ddd6fe', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#7c3aed' }}>총수량</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#6d28d9' }}>{totalQty.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '6px 4px', borderRadius: '8px', background: '#fff7ed', border: '1px solid #ffedd5', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#ea580c' }}>매입액</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#c2410c' }}>{totalPurchases.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '6px 4px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#16a34a' }}>출금액</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#15803d' }}>{totalPaid.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '6px 4px', borderRadius: '8px', background: '#fff7ed', border: '1px solid #fed7aa', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#ea580c' }}>잔액(미지급)</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#9a3412' }}>{balance.toLocaleString()}</div>
+            </div>
           </div>
         </>
       </div>
@@ -772,8 +821,8 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
         }
 
         .ledger-table th, .ledger-table td {
-          padding: 8px 10px !important;
-          font-size: 0.88rem !important;
+          padding: 6px 8px !important;
+          font-size: 0.84rem !important;
           border-bottom: 1px solid #e2e8f0;
           vertical-align: middle;
         }
