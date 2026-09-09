@@ -921,17 +921,21 @@ function App() {
           const staffMap = new Map();
           data.forEach(s => {
             if (!s) return;
-            const matchKey = s._docId || (s.userId && String(s.userId).trim() ? `user_${String(s.userId).trim()}` : (s.id ? `id_${s.id}` : `raw_${Math.random()}`));
+            const sanitizedDocId = (s.userId && String(s.userId).trim()) ? `${companyId}_${String(s.userId).trim()}` : (s._docId || String(s.id || ''));
+            const sanitizedStaff = { ...s, _docId: sanitizedDocId };
+            const matchKey = (s.userId && String(s.userId).trim()) 
+              ? `user_${String(s.userId).trim()}` 
+              : (s._docId ? `doc_${s._docId}` : (s.id ? `id_${s.id}` : `name_${s.name || Math.random()}`));
 
             const existing = staffMap.get(matchKey);
             if (!existing) {
-              staffMap.set(matchKey, s);
+              staffMap.set(matchKey, sanitizedStaff);
             } else {
               const preferS = (s.updatedAt && (!existing.updatedAt || s.updatedAt >= existing.updatedAt));
               if (preferS) {
-                staffMap.set(matchKey, { ...existing, ...s });
+                staffMap.set(matchKey, { ...existing, ...sanitizedStaff });
               } else {
-                staffMap.set(matchKey, { ...s, ...existing });
+                staffMap.set(matchKey, { ...sanitizedStaff, ...existing });
               }
             }
           });
