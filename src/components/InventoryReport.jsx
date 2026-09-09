@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -54,6 +54,60 @@ const InventoryReport = ({
       hideZeroStock: savedHideZero !== null ? savedHideZero === 'true' : false
     };
   });
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+  const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(0);
+  const supplierDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target)) {
+        setIsSupplierDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const supplierPartners = useMemo(() => {
+    return (partners || []).filter(p => p.type === '매입처' || p.type === '혼합' || p.type === '공통' || p.type === '매입매출처');
+  }, [partners]);
+
+  const suggestedSuppliers = useMemo(() => {
+    const term = (filters.selectedSupplier === '전체 매입처' || filters.selectedSupplier === '전체' ? '' : filters.selectedSupplier || '').trim();
+    if (!term) return supplierPartners;
+    return supplierPartners.filter(p => 
+      matchesInitialSound(p.name, term) || 
+      p.name.toLowerCase().includes(term.toLowerCase())
+    );
+  }, [supplierPartners, filters.selectedSupplier]);
+
+  const handleSupplierKeyDown = (e) => {
+    if (!isSupplierDropdownOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        setIsSupplierDropdownOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSupplierSelectedIndex(prev => (prev < suggestedSuppliers.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSupplierSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (supplierSelectedIndex === -1) {
+        setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+        setIsSupplierDropdownOpen(false);
+      } else if (suggestedSuppliers[supplierSelectedIndex]) {
+        setFilters(prev => ({ ...prev, selectedSupplier: suggestedSuppliers[supplierSelectedIndex].name }));
+        setIsSupplierDropdownOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSupplierDropdownOpen(false);
+    }
+  };
 
   const handleQuickDate = (type) => {
     const today = new Date();
@@ -243,16 +297,17 @@ const InventoryReport = ({
         matchesInitialSound(p.name, filters.searchTerm) ||
         (p.abbreviation && matchesInitialSound(p.abbreviation, filters.searchTerm));
       
-      let matchesSupplier = filters.selectedSupplier === '전체 매입처';
+      let matchesSupplier = !filters.selectedSupplier || filters.selectedSupplier === '전체 매입처' || filters.selectedSupplier === '전체';
       if (!matchesSupplier) {
+        const sTerm = filters.selectedSupplier.trim();
         // 1. Check Product Master
         const masterSupplier = p.mainPartner || p.supplier;
-        if (masterSupplier === filters.selectedSupplier) {
+        if (masterSupplier && (masterSupplier === sTerm || matchesInitialSound(masterSupplier, sTerm) || masterSupplier.toLowerCase().includes(sTerm.toLowerCase()))) {
           matchesSupplier = true;
         } else {
           // 2. Check Purchase History (Invoices)
           const hasPurchasedFromThisSupplier = purchaseInvoices.some(inv => 
-            inv.partner === filters.selectedSupplier && 
+            inv.partner && (inv.partner === sTerm || matchesInitialSound(inv.partner, sTerm) || inv.partner.toLowerCase().includes(sTerm.toLowerCase())) && 
             (inv.items || []).some(item => item.name === p.name)
           );
           if (hasPurchasedFromThisSupplier) matchesSupplier = true;
@@ -443,18 +498,122 @@ const InventoryReport = ({
           )}
 
           {activeTab === 'partner' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>매입처 선택</label>
-              <select 
-                value={filters.selectedSupplier} 
-                onChange={e => setFilters({...filters, selectedSupplier: e.target.value})}
-                style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, outline: 'none' }}
-              >
-                <option value="전체 매입처">전체 매입처</option>
-                {partners.filter(p => p.type === '매입처' || p.type === '혼합' || p.type === '매입매출처').map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
+            <div style={{ position: 'relative' }} ref={supplierDropdownRef}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>매입처 검색 / 선택</label>
+                {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
+                  <span 
+                    onClick={() => {
+                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                      setIsSupplierDropdownOpen(false);
+                    }}
+                    style={{ fontSize: '0.65rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    초기화
+                  </span>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="매입처 검색 (초성 가능)"
+                  value={filters.selectedSupplier === '전체 매입처' ? '' : filters.selectedSupplier}
+                  onChange={e => {
+                    setFilters(prev => ({ ...prev, selectedSupplier: e.target.value }));
+                    setIsSupplierDropdownOpen(true);
+                    setSupplierSelectedIndex(0);
+                  }}
+                  onFocus={() => setIsSupplierDropdownOpen(true)}
+                  onKeyDown={handleSupplierKeyDown}
+                  style={{
+                    width: '100%',
+                    padding: '5px 24px 5px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
+                  <X 
+                    size={13} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                    }}
+                    style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8' }}
+                  />
+                )}
+              </div>
+
+              {isSupplierDropdownOpen && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 50,
+                    marginTop: '3px'
+                  }}
+                >
+                  <div
+                    onClick={() => {
+                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                      setIsSupplierDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '6px 8px',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      color: '#3b82f6',
+                      backgroundColor: supplierSelectedIndex === -1 ? '#eff6ff' : 'transparent',
+                      borderBottom: '1px solid #f1f5f9'
+                    }}
+                  >
+                    ✓ 전체 매입처
+                  </div>
+                  {suggestedSuppliers.length === 0 ? (
+                    <div style={{ padding: '8px', fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center' }}>
+                      일치하는 매입처가 없습니다.
+                    </div>
+                  ) : (
+                    suggestedSuppliers.map((p, idx) => (
+                      <div
+                        key={p.id || p.name}
+                        onClick={() => {
+                          setFilters(prev => ({ ...prev, selectedSupplier: p.name }));
+                          setIsSupplierDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '6px 8px',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          backgroundColor: idx === supplierSelectedIndex ? '#f1f5f9' : 'transparent',
+                          color: '#1e293b',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: '1px solid #f8fafc'
+                        }}
+                        onMouseEnter={() => setSupplierSelectedIndex(idx)}
+                      >
+                        <span style={{ fontWeight: 600 }}>{p.name}</span>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{p.type || '매입처'}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 
