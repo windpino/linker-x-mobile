@@ -74,6 +74,8 @@ const InventoryTransfer = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
   useEffect(() => {
     if (initialDate) {
       const dateStr = typeof initialDate === 'string' ? initialDate : (initialDate instanceof Date ? initialDate.toISOString().split('T')[0] : initialDate);
@@ -424,155 +426,274 @@ const InventoryTransfer = ({
     <WindowModal title="재고이동 (매출관리)" onClose={onClose} width="950px" contentPadding="0" noScroll>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '14px', boxSizing: 'border-box' }}>
         
-        {/* 1. 신규 재고이동 등록 카드 */}
-        <div style={{ background: '#fff', border: '1.5px solid #3b82f6', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ArrowLeftRight size={16} color="#3b82f6" /> 신규 재고이동 등록
-            </h4>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>창고 간 재고 이동</span>
-          </div>
-
-          {/* 창고 선택 (출고 -> 입고 2열) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', marginBottom: '4px' }}>
-                출고 창고 (FROM)
-              </label>
-              <select 
-                value={fromWarehouse} 
-                onChange={e => setFromWarehouse(e.target.value)} 
-                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(fromWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
-              >
-                <option value="전체창고">전체창고</option>
-                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-              </select>
+        {/* 1. 통합 필터 & 헤더 바 */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
+                이동 내역
+              </h4>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6' }}>
+                ({recentHistory.length}건 / {totalQuantity.toLocaleString()}개)
+              </span>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>
-                입고 창고 (TO)
-              </label>
-              <select 
-                value={toWarehouse} 
-                onChange={e => setToWarehouse(e.target.value)} 
-                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(toWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
-              >
-                <option value="전체창고">전체창고</option>
-                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* 이동 일자 */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6', marginBottom: '4px' }}>
-              이동 일자
-            </label>
-            <input 
-              type="date" 
-              value={transferDate} 
-              onChange={e => setTransferDate(e.target.value)} 
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }} 
-            />
-          </div>
-
-          {/* 품목 검색 */}
-          <div style={{ position: 'relative' }} ref={searchRef}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-              품목 검색
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input 
-                ref={productInputRef}
-                type="text" 
-                placeholder="품목명 또는 초성 검색 (예: 멸치)" 
-                value={itemSearch}
-                onChange={e => {
-                  setItemSearch(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => {
-                  if (itemSearch) setShowSuggestions(true);
-                }}
-                style={{ width: '100%', padding: '8px 10px 8px 34px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <div 
-                  ref={productListRef}
-                  style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '200px', overflowY: 'auto',
-                    marginTop: '4px'
-                  }}
-                >
-                  {suggestions.map((p, index) => (
-                    <div 
-                      key={p.id} 
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelectProduct(p);
-                      }}
-                      style={{ 
-                        padding: '10px 12px', cursor: 'pointer', 
-                        borderBottom: '1px solid #f1f5f9', 
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        backgroundColor: index === selectedIndex ? '#f0f9ff' : 'transparent'
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '6px' }}>{p.spec}</span>
-                      </div>
-                      <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.8rem' }}>
-                        재고: {((p.initialStock || 0) + (inventory[fromWarehouse]?.[p.name] || 0))}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 수량 입력 및 이동 실행 버튼 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', alignItems: 'end' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                이동 수량
-              </label>
-              <input 
-                ref={qtyInputRef}
-                type="number" 
-                value={quantity}
-                onChange={e => setQuantity(e.target.value)}
-                onFocus={e => e.target.select()}
-                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #3b82f6', borderRadius: '8px', textAlign: 'right', fontWeight: 800, fontSize: '1rem', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <button 
-              ref={submitBtnRef}
-              onClick={handleTransfer}
-              style={{ 
-                height: '42px', 
-                background: '#3b82f6', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: 800, 
-                fontSize: '0.9rem',
+            <button
+              type="button"
+              onClick={() => setIsRegisterOpen(prev => !prev)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: isRegisterOpen ? '1px solid #ef4444' : '1px solid #3b82f6',
+                background: isRegisterOpen ? '#fef2f2' : '#eff6ff',
+                color: isRegisterOpen ? '#dc2626' : '#2563eb',
+                fontSize: '0.76rem',
+                fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              이동 실행
+              {isRegisterOpen ? <X size={13} /> : <Plus size={13} />}
+              {isRegisterOpen ? '닫기' : '신규 이동 등록'}
             </button>
+          </div>
+
+          {/* 기간 조회 필터 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input 
+                type="date" 
+                value={startDateInput} 
+                onChange={e => setStartDateInput(e.target.value)} 
+                style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+              />
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+              <input 
+                type="date" 
+                value={endDateInput} 
+                onChange={e => setEndDateInput(e.target.value)} 
+                style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto' }}>
+                {['1주일', '한달', '상반기', '하반기', '1년', '전체'].map(btn => (
+                  <button
+                    key={btn}
+                    onClick={() => handleQuickDate(btn)}
+                    style={{
+                      padding: '4px 6px', fontSize: '0.72rem', fontWeight: 700,
+                      border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                      color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
+                    }}
+                  >{btn}</button>
+                ))}
+              </div>
+
+              <button 
+                onClick={handleSearch} 
+                style={{
+                  padding: '5px 14px', backgroundColor: '#1e293b', color: 'white',
+                  border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >
+                조회
+              </button>
+            </div>
+
+            {/* 출고/입고 창고 필터 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '4px', borderTop: '1px dashed #cbd5e1' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>출고창고:</span>
+                <select
+                  value={historyFromWarehouse}
+                  onChange={e => setHistoryFromWarehouse(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>입고창고:</span>
+                <select
+                  value={historyToWarehouse}
+                  onChange={e => setHistoryToWarehouse(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 2. 이동 내역 (실시간) 섹션 */}
+        {/* 2. 신규 재고이동 등록 카드 (버튼 클릭 시 토글) */}
+        {isRegisterOpen && (
+          <div style={{ background: '#fff', border: '1.5px solid #3b82f6', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowLeftRight size={16} color="#3b82f6" /> 신규 재고이동 등록
+              </h4>
+              <button
+                type="button"
+                onClick={() => setIsRegisterOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* 창고 선택 (출고 -> 입고 2열) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', marginBottom: '4px' }}>
+                  출고 창고 (FROM)
+                </label>
+                <select 
+                  value={fromWarehouse} 
+                  onChange={e => setFromWarehouse(e.target.value)} 
+                  style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(fromWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>
+                  입고 창고 (TO)
+                </label>
+                <select 
+                  value={toWarehouse} 
+                  onChange={e => setToWarehouse(e.target.value)} 
+                  style={{ width: '100%', padding: '8px 10px', border: '1.5px solid', borderColor: getWarehouseColor(toWarehouse), borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', backgroundColor: '#fff' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* 이동 일자 */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6', marginBottom: '4px' }}>
+                이동 일자
+              </label>
+              <input 
+                type="date" 
+                value={transferDate} 
+                onChange={e => setTransferDate(e.target.value)} 
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }} 
+              />
+            </div>
+
+            {/* 품목 검색 */}
+            <div style={{ position: 'relative' }} ref={searchRef}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                품목 검색
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input 
+                  ref={productInputRef}
+                  type="text" 
+                  placeholder="품목명 또는 초성 검색 (예: 멸치)" 
+                  value={itemSearch}
+                  onChange={e => {
+                    setItemSearch(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    if (itemSearch) setShowSuggestions(true);
+                  }}
+                  style={{ width: '100%', padding: '8px 10px 8px 34px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }} 
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div 
+                    ref={productListRef}
+                    style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                      background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '200px', overflowY: 'auto',
+                      marginTop: '4px'
+                    }}
+                  >
+                    {suggestions.map((p, index) => (
+                      <div 
+                        key={p.id} 
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectProduct(p);
+                        }}
+                        style={{ 
+                          padding: '10px 12px', cursor: 'pointer', 
+                          borderBottom: '1px solid #f1f5f9', 
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          backgroundColor: index === selectedIndex ? '#f0f9ff' : 'transparent'
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '6px' }}>{p.spec}</span>
+                        </div>
+                        <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.8rem' }}>
+                          재고: {((p.initialStock || 0) + (inventory[fromWarehouse]?.[p.name] || 0))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 수량 입력 및 이동 실행 버튼 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', alignItems: 'end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                  이동 수량
+                </label>
+                <input 
+                  ref={qtyInputRef}
+                  type="number" 
+                  value={quantity}
+                  onChange={e => setQuantity(e.target.value)}
+                  onFocus={e => e.target.select()}
+                  style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #3b82f6', borderRadius: '8px', textAlign: 'right', fontWeight: 800, fontSize: '1rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <button 
+                ref={submitBtnRef}
+                onClick={handleTransfer}
+                style={{ 
+                  height: '42px', 
+                  background: '#3b82f6', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  fontWeight: 800, 
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)'
+                }}
+              >
+                이동 실행
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 3. 이동 내역 (실시간) 목록 컨테이너 */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
