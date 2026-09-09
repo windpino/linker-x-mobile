@@ -33,12 +33,17 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     }
     try {
       const companyId = currentUser?.companyId || 'default';
-      const targetDocId = staffData.userId ? `${companyId}_${staffData.userId}` : (editingStaff?._docId || String(staffData.id || Date.now()));
+      const trimmedUserId = staffData.userId ? String(staffData.userId).trim() : '';
+      const targetDocId = trimmedUserId 
+        ? `${companyId}_${trimmedUserId}` 
+        : (editingStaff?._docId || (staffData.id ? String(staffData.id) : `${companyId}_staff_${Date.now()}`));
       
       const finalData = {
         ...(editingStaff || {}),
         ...staffData,
+        userId: trimmedUserId,
         id: editingStaff?.id || staffData.id || Date.now(),
+        _docId: targetDocId,
         companyId,
         updatedAt: new Date().toISOString()
       };
@@ -92,6 +97,19 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       }
 
       await batch.commit();
+
+      if (setStaffList) {
+        setStaffList(prev => {
+          const filtered = (prev || []).filter(s => {
+            if (editingStaff?._docId && s._docId === editingStaff._docId) return false;
+            if (editingStaff?.id && s.id === editingStaff.id) return false;
+            if (trimmedUserId && s.userId === trimmedUserId) return false;
+            return true;
+          });
+          return [...filtered, finalData];
+        });
+      }
+
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Staff save error:', err);
@@ -132,6 +150,16 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       });
 
       await batch.commit();
+
+      if (setStaffList) {
+        setStaffList(prev => (prev || []).filter(s => {
+          if (staff?._docId && s._docId === staff._docId) return false;
+          if (staff?.id && s.id === staff.id) return false;
+          if (staff?.userId && s.userId === staff.userId) return false;
+          if (typeof staffOrId === 'string' && String(s.id) === staffOrId) return false;
+          return true;
+        }));
+      }
     } catch (err) {
       console.error('Staff delete error:', err);
       alert('직원 삭제 중 오류가 발생했습니다: ' + (err.message || ''));

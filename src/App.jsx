@@ -921,25 +921,21 @@ function App() {
           data.forEach(s => {
             if (!s) return;
             let matchKey = null;
-            if (s.userId) {
-              matchKey = `user_${s.userId}`;
-            }
-            for (const [k, existing] of staffMap.entries()) {
-              if ((s.userId && existing.userId && s.userId === existing.userId) ||
-                  (s.name && existing.name && s.name === existing.name)) {
-                matchKey = k;
-                break;
-              }
-            }
-            if (!matchKey) {
-              matchKey = s.userId ? `user_${s.userId}` : (s.name ? `name_${s.name}` : `id_${s.id || Math.random()}`);
+            if (s.userId && String(s.userId).trim()) {
+              matchKey = `user_${String(s.userId).trim()}`;
+            } else if (s._docId) {
+              matchKey = `doc_${s._docId}`;
+            } else if (s.id) {
+              matchKey = `id_${s.id}`;
+            } else {
+              matchKey = `raw_${Math.random()}`;
             }
 
             const existing = staffMap.get(matchKey);
             if (!existing) {
               staffMap.set(matchKey, s);
             } else {
-              const preferS = (!existing.userId && s.userId) || (s.updatedAt && (!existing.updatedAt || s.updatedAt >= existing.updatedAt));
+              const preferS = (s.updatedAt && (!existing.updatedAt || s.updatedAt >= existing.updatedAt));
               if (preferS) {
                 staffMap.set(matchKey, { ...existing, ...s });
               } else {
