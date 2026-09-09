@@ -190,6 +190,10 @@ const InventoryTransfer = ({
     let end = formatDate(today);
 
     switch (type) {
+      case '전체':
+        start = '2000-01-01';
+        end = formatDate(today);
+        break;
       case '1년':
         start = `${y}-01-01`;
         end = `${y}-12-31`;
@@ -220,8 +224,18 @@ const InventoryTransfer = ({
     setStartDate(start);
     setEndDate(end);
   };
-  const [fromWarehouse, setFromWarehouse] = useState('전체창고');
-  const [toWarehouse, setToWarehouse] = useState('전체창고');
+  const [fromWarehouse, setFromWarehouse] = useState(warehouses[0]?.name || '창고');
+  const [toWarehouse, setToWarehouse] = useState(() => {
+    if (currentUser?.warehouse && currentUser.warehouse !== '-') {
+      return currentUser.warehouse;
+    }
+    const otherWh = warehouses.find(w => w.name !== warehouses[0]?.name);
+    return otherWh ? otherWh.name : '통영창고';
+  });
+
+  // 하단 이동 내역 전용 필터
+  const [historyFromWarehouse, setHistoryFromWarehouse] = useState('전체창고');
+  const [historyToWarehouse, setHistoryToWarehouse] = useState('전체창고');
   
   const getWarehouseColor = (name) => {
     if (name === '전체창고') return '#3b82f6';
@@ -305,17 +319,37 @@ const InventoryTransfer = ({
 
   const recentHistory = useMemo(() => {
     return historyData.filter(item => {
+      // 실사수정/실사조정으로 입력된 재고이동 내역은 목록에서 제외
+      const isPhysicalAdjustment = 
+        item.isPhysicalAdjustment || 
+        item.isAdjustment || 
+        item.adjustmentId ||
+        (typeof item.memo === 'string' && (item.memo.includes('실사') || item.memo.includes('재고조정'))) ||
+        (typeof item.from === 'string' && (item.from.includes('실사') || item.from.includes('재고조정'))) ||
+        (typeof item.to === 'string' && (item.to.includes('실사') || item.to.includes('재고조정'))) ||
+        (typeof item.description === 'string' && (item.description.includes('실사') || item.description.includes('재고조정')));
+      if (isPhysicalAdjustment) return false;
+
       const matchesDate = item.date >= startDate && item.date <= endDate;
       if (!matchesDate) return false;
-      const matchesFrom = fromWarehouse === '전체창고' || item.from === fromWarehouse;
-      const matchesTo = toWarehouse === '전체창고' || item.to === toWarehouse;
+      const matchesFrom = historyFromWarehouse === '전체창고' || item.from === historyFromWarehouse;
+      const matchesTo = historyToWarehouse === '전체창고' || item.to === historyToWarehouse;
       if (!matchesFrom || !matchesTo) return false;
       if (historySearch.trim()) {
-        return matchesInitialSound(item.item || '', historySearch.trim());
+        const q = historySearch.trim().toLowerCase();
+        const product = products?.find(p => p.name === item.item);
+        const matchItem = matchesInitialSound(item.item || '', q) || (item.item || '').toLowerCase().includes(q);
+        const matchSpec = (item.spec || '').toLowerCase().includes(q);
+        const matchAbbr = product?.abbreviation && (matchesInitialSound(product.abbreviation, q) || product.abbreviation.toLowerCase().includes(q));
+        const matchFrom = matchesInitialSound(item.from || '', q) || (item.from || '').toLowerCase().includes(q);
+        const matchTo = matchesInitialSound(item.to || '', q) || (item.to || '').toLowerCase().includes(q);
+        const matchOperator = matchesInitialSound(item.operator || '', q) || (item.operator || '').toLowerCase().includes(q);
+        const matchMemo = matchesInitialSound(item.memo || '', q) || (item.memo || '').toLowerCase().includes(q);
+        return matchItem || matchSpec || matchAbbr || matchFrom || matchTo || matchOperator || matchMemo;
       }
       return true;
     });
-  }, [historyData, startDate, endDate, fromWarehouse, toWarehouse, historySearch]);
+  }, [historyData, startDate, endDate, historyFromWarehouse, historyToWarehouse, historySearch, products]);
 
   const deletableHistory = useMemo(() => {
     return recentHistory.filter(h => getTransferBadge(h).text === '창고이동');
@@ -569,7 +603,7 @@ const InventoryTransfer = ({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
               <div style={{ display: 'flex', gap: '4px', overflowX: 'auto' }}>
-                {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+                {['1주일', '한달', '상반기', '하반기', '1년', '전체'].map(btn => (
                   <button
                     key={btn}
                     onClick={() => handleQuickDate(btn)}
@@ -593,6 +627,36 @@ const InventoryTransfer = ({
                 조회
               </button>
             </div>
+
+            {/* 출고/입고 창고 필터 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '4px', borderTop: '1px dashed #cbd5e1' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>출고창고:</span>
+                <select
+                  value={historyFromWarehouse}
+                  onChange={e => setHistoryFromWarehouse(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>입고창고:</span>
+                <select
+                  value={historyToWarehouse}
+                  onChange={e => setHistoryToWarehouse(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
+                >
+                  <option value="전체창고">전체창고</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* 품목명 검색 */}
@@ -602,11 +666,11 @@ const InventoryTransfer = ({
               type="text"
               value={historySearch}
               onChange={e => setHistorySearch(e.target.value)}
-              placeholder="내역 내 품목명 검색..."
+              placeholder="품목, 출고/입고창고, 담당자 검색..."
               style={{
                 width: '100%', padding: '6px 10px 6px 30px',
-                border: '1px solid #e2e8f0', borderRadius: '6px',
-                fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box'
+                border: '1px solid #cbd5e1', borderRadius: '6px',
+                fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box', background: '#fff'
               }}
             />
           </div>
@@ -620,7 +684,7 @@ const InventoryTransfer = ({
             ) : (
               recentHistory.map(item => {
                 const badge = getTransferBadge(item);
-                const isDeletable = badge.text === '창고이동';
+                const isDeletable = badge.text === '창고이동' || badge.text === '주문상차';
                 return (
                   <div key={item.id} style={{
                     backgroundColor: '#f8fafc',
@@ -655,12 +719,17 @@ const InventoryTransfer = ({
                         <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{item.operator || '-'}</span>
                         {isDeletable && (
                           <button
-                            onClick={() => {
-                              if (window.confirm('해당 재고이동 내역을 삭제하시겠습니까? (재고가 원복됩니다)')) {
-                                onDeleteMoveStock(item);
+                            onClick={async () => {
+                              const confirmMsg = badge.text === '주문상차' 
+                                ? '이 상차 이동 내역을 삭제하시겠습니까?\n삭제 시 상차된 수량은 출고창고로 자동 환원되며, 주문서의 상차 완료 상태도 취소됩니다.'
+                                : '해당 재고이동 내역을 삭제하시겠습니까? (이동된 재고가 각 창고에서 환원됩니다)';
+                              if (window.confirm(confirmMsg)) {
+                                if (onDeleteMoveStock) {
+                                  await onDeleteMoveStock(item.id || item);
+                                }
                               }
                             }}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, padding: '2px 4px' }}
+                            style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px' }}
                           >
                             삭제
                           </button>

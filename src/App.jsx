@@ -1294,51 +1294,77 @@ function App() {
     } catch (err) { console.error(err); }
   };
 
-  const onDeleteMoveStock = async (historyId) => {
+  const onDeleteMoveStock = async (historyIdOrIds) => {
     try {
       const companyId = currentUser?.companyId || 'default';
-      const record = inventoryTransferHistory.find(h => String(h.id) === String(historyId));
-      if (!record) return;
+      const rawList = Array.isArray(historyIdOrIds) ? historyIdOrIds : [historyIdOrIds];
+      const ids = rawList.map(item => (typeof item === 'object' && item !== null) ? String(item.id) : String(item)).filter(Boolean);
+      if (ids.length === 0) return;
 
-      const { from, to, item, qty, memo, date } = record;
       const nextInv = { ...inventory };
+      const batch = writeBatch(db);
+      const ordersToUpdate = {};
 
-      // 1. 역방향 재고 복구
-      if (to === '매출출고') {
-        if (!nextInv[from]) nextInv[from] = {};
-        nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
-      } else {
-        if (!nextInv[from]) nextInv[from] = {};
-        if (!nextInv[to]) nextInv[to] = {};
-        nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
-        nextInv[to][item] = (nextInv[to][item] || 0) - Number(qty);
+      for (const id of ids) {
+        const record = inventoryTransferHistory.find(h => String(h.id) === String(id));
+        if (!record) continue;
+
+        const { from, to, item, qty, memo, date, salesOrderId } = record;
+
+        // 1. 역방향 재고 복구
+        if (to === '매출출고') {
+          if (!nextInv[from]) nextInv[from] = {};
+          nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
+        } else if (from === '매입입고') {
+          if (!nextInv[to]) nextInv[to] = {};
+          nextInv[to][item] = (nextInv[to][item] || 0) - Number(qty);
+        } else {
+          if (!nextInv[from]) nextInv[from] = {};
+          if (!nextInv[to]) nextInv[to] = {};
+          nextInv[from][item] = (nextInv[from][item] || 0) + Number(qty);
+          nextInv[to][item] = (nextInv[to][item] || 0) - Number(qty);
+        }
+
+        // 2. 주문서 상차 기록인 경우 주문서(salesOrders)의 loaded 상태를 false로 자동 취소(동기화)
+        if (memo === '상차(자동이동)') {
+          let targetOrder = null;
+          if (salesOrderId) {
+            targetOrder = salesOrders.find(o => String(o.id) === String(salesOrderId));
+          }
+          if (!targetOrder) {
+            targetOrder = salesOrders.find(o => 
+              o.date === date &&
+              o.outWarehouse === from &&
+              o.inWarehouse === to &&
+              (o.items || []).some(i => i.name === item && Number(i.qty) === Number(qty) && i.loaded)
+            );
+          }
+
+          if (targetOrder) {
+            const currentItems = ordersToUpdate[targetOrder.id] || targetOrder.items;
+            const updatedItems = currentItems.map(i => {
+              if (i.name === item && Number(i.qty) === Number(qty) && i.loaded) {
+                return { ...i, loaded: false };
+              }
+              return i;
+            });
+            ordersToUpdate[targetOrder.id] = updatedItems;
+          }
+        }
+
+        // 3. Firestore에서 해당 이동 내역 삭제
+        batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(id)));
       }
 
       await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       setInventory(nextInv);
 
-      // 2. 주문서 상차 기록인 경우 주문서(salesOrders)의 loaded 상태를 false로 자동 취소(동기화)
-      if (memo === '상차(자동이동)') {
-        const targetOrder = salesOrders.find(o => 
-          o.date === date &&
-          o.outWarehouse === from &&
-          o.inWarehouse === to &&
-          (o.items || []).some(i => i.name === item && Number(i.qty) === Number(qty) && i.loaded)
-        );
-
-        if (targetOrder) {
-          const updatedItems = targetOrder.items.map(i => {
-            if (i.name === item && Number(i.qty) === Number(qty) && i.loaded) {
-              return { ...i, loaded: false };
-            }
-            return i;
-          });
-          await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(targetOrder.id)), { items: updatedItems }, { merge: true });
-        }
+      for (const orderId of Object.keys(ordersToUpdate)) {
+        await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(orderId)), { items: ordersToUpdate[orderId] }, { merge: true });
       }
 
-      // 3. Firestore에서 해당 이동 내역 삭제
-      await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)));
+      await batch.commit();
+      setInventoryTransferHistory(prev => prev.filter(h => !ids.includes(String(h.id))));
     } catch (err) {
       console.error('Error deleting move stock:', err);
     }
