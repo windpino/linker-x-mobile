@@ -15,6 +15,37 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
 
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState(null);
+
+  const handleToggleMainWarehouse = async (targetWh) => {
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
+      return;
+    }
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const targetDocId = targetWh._docId || String(targetWh.id);
+      const nextIsMain = !targetWh.isMain;
+      const batch = writeBatch(db);
+
+      const targetDocRef = doc(db, 'companies', companyId, 'warehouses', targetDocId);
+      batch.set(targetDocRef, { isMain: nextIsMain, updatedAt: new Date().toISOString() }, { merge: true });
+
+      if (nextIsMain) {
+        warehouses.forEach(w => {
+          const otherDocId = w._docId || String(w.id);
+          if (otherDocId !== targetDocId && w.isMain) {
+            const otherWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+            batch.set(otherWhDocRef, { isMain: false, updatedAt: new Date().toISOString() }, { merge: true });
+          }
+        });
+      }
+
+      await batch.commit();
+    } catch (err) {
+      console.error('Toggle main warehouse error:', err);
+      alert('메인창고 설정 중 오류가 발생했습니다: ' + (err.message || ''));
+    }
+  };
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredWarehouses = warehouses.filter(w => {
@@ -202,12 +233,19 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input 
+                      type="checkbox"
+                      checked={!!wh.isMain}
+                      onChange={() => handleToggleMainWarehouse(wh)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
+                      title={wh.isMain ? '현재 메인창고입니다 (클릭 시 해제)' : '클릭하여 메인창고로 지정'}
+                    />
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: wh.color || '#3b82f6', flexShrink: 0 }}></div>
                     <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1e293b' }}>
                       {wh.name}
                     </span>
                     {wh.isMain && (
-                      <span style={{ fontSize: '0.7rem', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.7rem', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
                         메인
                       </span>
                     )}
