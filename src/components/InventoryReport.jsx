@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User } from 'lucide-react';
+import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -54,6 +54,7 @@ const InventoryReport = ({
       hideZeroStock: savedHideZero !== null ? savedHideZero === 'true' : false
     };
   });
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(0);
   const supplierDropdownRef = useRef(null);
@@ -427,56 +428,56 @@ const InventoryReport = ({
           ))}
         </div>
 
-        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {activeTab === 'daily' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <input 
                   type="date" 
                   value={filters.startDate} 
                   onChange={e => setFilters({...filters, startDate: e.target.value})} 
-                  style={{ flex: 1, padding: '4px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+                  style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0, fontWeight: 600 }} 
                 />
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 800 }}>~</span>
                 <input 
                   type="date" 
                   value={filters.endDate} 
                   onChange={e => setFilters({...filters, endDate: e.target.value})} 
-                  style={{ flex: 1, padding: '4px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+                  style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0, fontWeight: 600 }} 
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '3px', overflowX: 'auto', paddingBottom: '2px' }}>
+              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
                 {['당일', '1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
                   <button
                     key={btn}
                     type="button"
                     onClick={() => handleQuickDate(btn)}
                     style={{
-                      padding: '2px 6px', fontSize: '0.68rem', fontWeight: 700,
+                      padding: '3px 8px', fontSize: '0.72rem', fontWeight: 700,
                       border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
-                      color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
+                      color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap'
                     }}
                   >{btn}</button>
                 ))}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <select 
                   value={filters.fromWarehouse} 
                   onChange={e => setFilters({...filters, fromWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 600, outline: 'none' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
                 >
-                  <option value="전체 창고">출고: 전체</option>
+                  <option value="전체 창고">출고: 전체 창고</option>
                   {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                 </select>
 
                 <select 
                   value={filters.toWarehouse} 
                   onChange={e => setFilters({...filters, toWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 600, outline: 'none' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
                 >
-                  <option value="전체 창고">입고: 전체</option>
+                  <option value="전체 창고">입고: 전체 창고</option>
                   {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                 </select>
               </div>
@@ -484,202 +485,243 @@ const InventoryReport = ({
           )}
 
           {activeTab === 'final' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>창고 선택</label>
-              <select 
-                value={filters.selectedWarehouse} 
-                onChange={e => setFilters({...filters, selectedWarehouse: e.target.value})}
-                style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, outline: 'none' }}
-              >
-                <option value="전체 창고">전체 창고 (총 합계)</option>
-                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-              </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>창고 선택</label>
+                <select 
+                  value={filters.selectedWarehouse} 
+                  onChange={e => setFilters({...filters, selectedWarehouse: e.target.value})}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
+                >
+                  <option value="전체 창고">전체 창고 (총 합계)</option>
+                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                </select>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#334155', fontWeight: 700, marginTop: '2px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={filters.hideZeroStock} 
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
+                    setFilters(prev => ({ ...prev, hideZeroStock: checked }));
+                  }} 
+                  style={{ width: '15px', height: '15px' }}
+                />
+                재고가 0인 품목 가리기
+              </label>
             </div>
           )}
 
           {activeTab === 'partner' && (
-            <div style={{ position: 'relative' }} ref={supplierDropdownRef}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>매입처 검색 / 선택</label>
-                {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
-                  <span 
-                    onClick={() => {
-                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
-                      setIsSupplierDropdownOpen(false);
-                    }}
-                    style={{ fontSize: '0.65rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    초기화
-                  </span>
-                )}
-              </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="매입처 검색 (초성 가능)"
-                  value={filters.selectedSupplier === '전체 매입처' ? '' : filters.selectedSupplier}
-                  onChange={e => {
-                    setFilters(prev => ({ ...prev, selectedSupplier: e.target.value }));
-                    setIsSupplierDropdownOpen(true);
-                    setSupplierSelectedIndex(0);
-                  }}
-                  onFocus={() => setIsSupplierDropdownOpen(true)}
-                  onKeyDown={handleSupplierKeyDown}
-                  style={{
-                    width: '100%',
-                    padding: '5px 24px 5px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
-                  <X 
-                    size={13} 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
-                    }}
-                    style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8' }}
-                  />
-                )}
-              </div>
-
-              {isSupplierDropdownOpen && (
-                <div 
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    maxHeight: '180px',
-                    overflowY: 'auto',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 50,
-                    marginTop: '3px'
-                  }}
-                >
-                  <div
-                    onClick={() => {
-                      setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
-                      setIsSupplierDropdownOpen(false);
-                    }}
-                    style={{
-                      padding: '6px 8px',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      color: '#3b82f6',
-                      backgroundColor: supplierSelectedIndex === -1 ? '#eff6ff' : 'transparent',
-                      borderBottom: '1px solid #f1f5f9'
-                    }}
-                  >
-                    ✓ 전체 매입처
-                  </div>
-                  {suggestedSuppliers.length === 0 ? (
-                    <div style={{ padding: '8px', fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center' }}>
-                      일치하는 매입처가 없습니다.
-                    </div>
-                  ) : (
-                    suggestedSuppliers.map((p, idx) => (
-                      <div
-                        key={p.id || p.name}
-                        onClick={() => {
-                          setFilters(prev => ({ ...prev, selectedSupplier: p.name }));
-                          setIsSupplierDropdownOpen(false);
-                        }}
-                        style={{
-                          padding: '6px 8px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          backgroundColor: idx === supplierSelectedIndex ? '#f1f5f9' : 'transparent',
-                          color: '#1e293b',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          borderBottom: '1px solid #f8fafc'
-                        }}
-                        onMouseEnter={() => setSupplierSelectedIndex(idx)}
-                      >
-                        <span style={{ fontWeight: 600 }}>{p.name}</span>
-                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{p.type || '매입처'}</span>
-                      </div>
-                    ))
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ position: 'relative' }} ref={supplierDropdownRef}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>매입처 검색 / 선택</label>
+                  {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
+                    <span 
+                      onClick={() => {
+                        setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                        setIsSupplierDropdownOpen(false);
+                      }}
+                      style={{ fontSize: '0.68rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      초기화
+                    </span>
                   )}
                 </div>
-              )}
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="매입처 검색 (초성 가능)"
+                    value={filters.selectedSupplier === '전체 매입처' ? '' : filters.selectedSupplier}
+                    onChange={e => {
+                      setFilters(prev => ({ ...prev, selectedSupplier: e.target.value }));
+                      setIsSupplierDropdownOpen(true);
+                      setSupplierSelectedIndex(0);
+                    }}
+                    onFocus={() => setIsSupplierDropdownOpen(true)}
+                    onKeyDown={handleSupplierKeyDown}
+                    style={{
+                      width: '100%',
+                      padding: '6px 28px 6px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
+                    <X 
+                      size={14} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                      }}
+                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8' }}
+                    />
+                  )}
+                </div>
+
+                {isSupplierDropdownOpen && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.15)',
+                      zIndex: 50,
+                      marginTop: '3px'
+                    }}
+                  >
+                    <div
+                      onClick={() => {
+                        setFilters(prev => ({ ...prev, selectedSupplier: '전체 매입처' }));
+                        setIsSupplierDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: '8px 10px',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        color: '#2563eb',
+                        backgroundColor: supplierSelectedIndex === -1 ? '#eff6ff' : 'transparent',
+                        borderBottom: '1px solid #f1f5f9'
+                      }}
+                    >
+                      ✓ 전체 매입처
+                    </div>
+                    {suggestedSuppliers.length === 0 ? (
+                      <div style={{ padding: '8px', fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>
+                        일치하는 매입처가 없습니다.
+                      </div>
+                    ) : (
+                      suggestedSuppliers.map((p, idx) => (
+                        <div
+                          key={p.id || p.name}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, selectedSupplier: p.name }));
+                            setIsSupplierDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: '8px 10px',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            backgroundColor: idx === supplierSelectedIndex ? '#f1f5f9' : 'transparent',
+                            color: '#1e293b',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid #f8fafc'
+                          }}
+                          onMouseEnter={() => setSupplierSelectedIndex(idx)}
+                        >
+                          <span style={{ fontWeight: 600 }}>{p.name}</span>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', padding: '1px 6px', background: '#f1f5f9', borderRadius: '4px' }}>{p.type || '매입처'}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#334155', fontWeight: 700, marginTop: '2px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={filters.hideZeroStock} 
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
+                    setFilters(prev => ({ ...prev, hideZeroStock: checked }));
+                  }} 
+                  style={{ width: '15px', height: '15px' }}
+                />
+                재고가 0인 품목 가리기
+              </label>
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
-            <select 
-              value={filters.categoryLarge} 
-              onChange={e => setFilters({...filters, categoryLarge: e.target.value, categoryMedium: '전체', categorySmall: '전체'})}
-              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none' }}
-            >
-              <option value="전체">대: 전체</option>
-              {categories.filter(c => c.level === 1 || !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
+          {/* Collapsible Category selection (대/중/소분류) */}
+          {showCategoryFilter && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+              <select 
+                value={filters.categoryLarge} 
+                onChange={e => setFilters({...filters, categoryLarge: e.target.value, categoryMedium: '전체', categorySmall: '전체'})}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none' }}
+              >
+                <option value="전체">대: 전체</option>
+                {categories.filter(c => c.level === 1 || !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
 
-            <select 
-              value={filters.categoryMedium} 
-              onChange={e => setFilters({...filters, categoryMedium: e.target.value, categorySmall: '전체'})}
-              disabled={filters.categoryLarge === '전체'}
-              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none', backgroundColor: filters.categoryLarge === '전체' ? '#f1f5f9' : '#fff' }}
-            >
-              <option value="전체">중: 전체</option>
-              {categories.filter(c => {
-                const large = categories.find(l => l.name === filters.categoryLarge);
-                return large && c.parentId === large.id && c.level === 2;
-              }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
+              <select 
+                value={filters.categoryMedium} 
+                onChange={e => setFilters({...filters, categoryMedium: e.target.value, categorySmall: '전체'})}
+                disabled={filters.categoryLarge === '전체'}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none', backgroundColor: filters.categoryLarge === '전체' ? '#f1f5f9' : '#fff' }}
+              >
+                <option value="전체">중: 전체</option>
+                {categories.filter(c => {
+                  const large = categories.find(l => l.name === filters.categoryLarge);
+                  return large && c.parentId === large.id && c.level === 2;
+                }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
 
-            <select 
-              value={filters.categorySmall} 
-              onChange={e => setFilters({...filters, categorySmall: e.target.value})}
-              disabled={filters.categoryMedium === '전체'}
-              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none', backgroundColor: filters.categoryMedium === '전체' ? '#f1f5f9' : '#fff' }}
-            >
-              <option value="전체">소: 전체</option>
-              {categories.filter(c => {
-                const medium = categories.find(m => m.name === filters.categoryMedium);
-                return medium && c.parentId === medium.id && c.level === 3;
-              }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
-          </div>
-
-          <div style={{ position: 'relative', width: '100%' }}>
-            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="품목명 검색..." 
-              value={filters.searchTerm} 
-              onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-              style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {(activeTab === 'final' || activeTab === 'partner') && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>
-              <input 
-                type="checkbox" 
-                checked={filters.hideZeroStock} 
-                onChange={e => {
-                  const checked = e.target.checked;
-                  localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
-                  setFilters(prev => ({ ...prev, hideZeroStock: checked }));
-                }} 
-                style={{ width: '14px', height: '14px' }}
-              />
-              재고가 0인 품목 숨기기
-            </label>
+              <select 
+                value={filters.categorySmall} 
+                onChange={e => setFilters({...filters, categorySmall: e.target.value})}
+                disabled={filters.categoryMedium === '전체'}
+                style={{ width: '100%', padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none', backgroundColor: filters.categoryMedium === '전체' ? '#f1f5f9' : '#fff' }}
+              >
+                <option value="전체">소: 전체</option>
+                {categories.filter(c => {
+                  const medium = categories.find(m => m.name === filters.categoryMedium);
+                  return medium && c.parentId === medium.id && c.level === 3;
+                }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
           )}
+
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button 
+              type="button" 
+              onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                border: showCategoryFilter ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                backgroundColor: showCategoryFilter ? '#eff6ff' : '#f8fafc',
+                color: showCategoryFilter ? '#2563eb' : '#475569',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {showCategoryFilter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              카테고리 {showCategoryFilter ? '접기' : '선택'}
+            </button>
+
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="품목명 검색..." 
+                value={filters.searchTerm} 
+                onChange={e => setFilters({...filters, searchTerm: e.target.value})}
+                style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
