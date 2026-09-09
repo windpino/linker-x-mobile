@@ -1,8 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Box, Upload, Barcode, FileText, DollarSign, Package, Tag, Save, X, Camera, Edit2, Trash2, Settings, Plus } from 'lucide-react';
+import { 
+  Box, Upload, Barcode, FileText, DollarSign, Package, Tag, Save, X, 
+  Camera, Edit2, Trash2, Settings, Plus, Sparkles, Sliders
+} from 'lucide-react';
 import WindowModal from './WindowModal';
 
-const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenCategoryModal }) => {
+const ProductRegistration = ({ onClose, onSave, categories = [], initialData, onOpenCategoryModal }) => {
+  const isEditing = !!initialData;
   const [formData, setFormData] = useState({
     photos: initialData?.photos || (initialData?.photo ? [initialData.photo] : []),
     category: initialData?.category || '',
@@ -13,8 +17,10 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
     boxBarcode: initialData?.boxBarcode || '',
     name: initialData?.name || '',
     abbreviation: initialData?.abbreviation || '',
+    manufacturer: initialData?.manufacturer || '',
     spec: initialData?.spec || '',
     innerQty: initialData?.innerQty || 1,
+    warehouse: initialData?.warehouse || '',
     taxType: initialData?.taxType || '과세',
     salesPriceSingle: initialData?.salesPriceSingle || initialData?.salesPrice || 0,
     salesPriceBox: initialData?.salesPriceBox || 0,
@@ -23,6 +29,8 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
     initialStock: initialData?.initialStock || 0,
     isBoxOnly: initialData?.isBoxOnly || false,
     showInMall: initialData?.showInMall !== undefined ? initialData.showInMall : true,
+    isNewProduct: initialData?.isNewProduct !== undefined ? initialData.isNewProduct : false,
+    isBestProduct: initialData?.isBestProduct !== undefined ? initialData.isBestProduct : false,
     memo: initialData?.memo || '',
     isAutoCalcPrice: true
   });
@@ -30,9 +38,13 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     
     setFormData(prev => {
+      if (type === 'checkbox') {
+        return { ...prev, [name]: checked };
+      }
+
       const isNumericField = ['salesPriceSingle', 'salesPriceBox', 'purchasePrice', 'optimalStock', 'innerQty', 'initialStock'].includes(name);
       const parsedValue = isNumericField ? Number(value.replace(/[^0-9]/g, '')) : value;
       
@@ -42,7 +54,7 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
       const innerQty = name === 'innerQty' ? parsedValue : prev.innerQty;
       const validInnerQty = innerQty > 0 ? innerQty : 1;
       
-      const isAutoCalc = name === 'isAutoCalcPrice' ? e.target.checked : prev.isAutoCalcPrice;
+      const isAutoCalc = name === 'isAutoCalcPrice' ? checked : prev.isAutoCalcPrice;
 
       if (isAutoCalc) {
         if (name === 'salesPriceSingle') {
@@ -50,7 +62,6 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
         } else if (name === 'salesPriceBox') {
           newData.salesPriceSingle = Math.floor(parsedValue / validInnerQty);
         } else if (name === 'innerQty') {
-          // If innerQty changes, update the box price based on the current single price
           newData.salesPriceBox = prev.salesPriceSingle * validInnerQty;
         }
       }
@@ -64,7 +75,9 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
       alert('사진은 최대 5장까지만 등록 가능합니다.');
       return;
     }
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handlePhotoChange = (e) => {
@@ -101,7 +114,7 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
           setFormData(prev => ({ 
             ...prev, 
             photos: [...prev.photos, compressedDataUrl] 
@@ -111,7 +124,6 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
       };
       reader.readAsDataURL(file);
     }
-    // Clear the input value so the same file can be selected again if needed
     e.target.value = '';
   };
 
@@ -143,20 +155,64 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
   };
 
   return (
-    <WindowModal title={initialData ? "품목 수정" : "신규 품목 등록"} onClose={onClose} width="1000px">
-      <form onSubmit={handleSubmit}>
-        <div className="registration-container">
-          {/* Multi Photo Upload Area */}
-          <div className="photo-upload-area" style={{ height: 'auto', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '15px', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 800, fontSize: '1rem', color: '#1e293b' }}>상품 사진 ({formData.photos.length}/5)</span>
+    <WindowModal title={isEditing ? "품목 정보 수정" : "신규 품목 등록"} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Main Body */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '14px',
+          background: '#f8fafc',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+
+          {/* Card 1: 상품 이미지 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Camera size={16} color="#3b82f6" strokeWidth={2.2} />
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
+                  상품 사진 ({formData.photos.length}/5)
+                </h4>
+              </div>
               {formData.photos.length < 5 && (
-                <button type="button" onClick={handlePhotoClick} className="btn-upload-manual" style={{ padding: '6px 16px', borderRadius: '8px', border: '1px solid #3b82f6', color: '#3b82f6', background: 'white', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}>
-                  + 사진 추가
+                <button 
+                  type="button" 
+                  onClick={handlePhotoClick}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #3b82f6',
+                    color: '#3b82f6',
+                    background: '#eff6ff',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Plus size={13} /> 추가
                 </button>
               )}
             </div>
-            
+
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -165,42 +221,44 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
               onChange={handlePhotoChange}
             />
 
-            <div className="photos-gallery" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
-              gap: '15px',
-              flex: 1
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
+              gap: '8px'
             }}>
               {formData.photos.map((photo, index) => (
-                <div key={index} className="photo-thumbnail-container" style={{ 
-                  position: 'relative', 
-                  aspectRatio: '1', 
-                  borderRadius: '12px', 
-                  overflow: 'hidden', 
-                  border: index === 0 ? '2px solid #3b82f6' : '1px solid #e2e8f0',
-                  background: '#f8fafc'
-                }}>
+                <div 
+                  key={index} 
+                  style={{ 
+                    position: 'relative', 
+                    aspectRatio: '1', 
+                    borderRadius: '8px', 
+                    overflow: 'hidden', 
+                    border: index === 0 ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    background: '#f1f5f9'
+                  }}
+                >
                   <img src={photo} alt={`Product ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   
                   {index === 0 ? (
                     <div style={{ 
-                      position: 'absolute', top: '8px', left: '8px', 
-                      background: '#3b82f6', color: 'white', fontSize: '0.65rem', 
-                      fontWeight: 800, padding: '2px 6px', borderRadius: '4px' 
+                      position: 'absolute', top: '4px', left: '4px', 
+                      background: '#3b82f6', color: 'white', fontSize: '0.62rem', 
+                      fontWeight: 800, padding: '1px 5px', borderRadius: '3px'
                     }}>대표</div>
                   ) : (
                     <button 
                       type="button" 
                       onClick={() => setAsMain(index)}
                       style={{ 
-                        position: 'absolute', top: '8px', left: '8px', 
+                        position: 'absolute', top: '4px', left: '4px', 
                         background: 'rgba(255, 255, 255, 0.9)', border: '1px solid #3b82f6', 
-                        color: '#3b82f6', fontSize: '0.65rem', 
-                        fontWeight: 800, padding: '2px 6px', borderRadius: '4px',
+                        color: '#3b82f6', fontSize: '0.62rem', 
+                        fontWeight: 800, padding: '1px 5px', borderRadius: '3px',
                         cursor: 'pointer'
                       }}
                     >
-                      대표 설정
+                      대표
                     </button>
                   )}
 
@@ -208,15 +266,14 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
                     type="button" 
                     onClick={() => removePhoto(index)}
                     style={{ 
-                      position: 'absolute', top: '8px', right: '8px', 
+                      position: 'absolute', top: '4px', right: '4px', 
                       background: 'rgba(255, 255, 255, 0.9)', border: 'none', 
-                      borderRadius: '50%', width: '24px', height: '24px', 
+                      borderRadius: '50%', width: '20px', height: '20px', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      color: '#ef4444'
+                      cursor: 'pointer', color: '#ef4444'
                     }}
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
@@ -226,51 +283,72 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
                   onClick={handlePhotoClick}
                   style={{ 
                     gridColumn: '1 / -1', 
-                    height: '200px', 
+                    height: '80px', 
                     display: 'flex', 
                     flexDirection: 'column', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
-                    border: '2px dashed #e2e8f0', 
-                    borderRadius: '16px', 
+                    border: '1.5px dashed #cbd5e1', 
+                    borderRadius: '8px', 
                     color: '#94a3b8',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    background: '#f8fafc'
                   }}
                 >
-                  <Camera size={40} strokeWidth={1.5} style={{ marginBottom: '10px' }} />
-                  <p style={{ fontWeight: 600 }}>사진을 등록해주세요 (최대 5장)</p>
+                  <Camera size={22} strokeWidth={1.5} style={{ marginBottom: '4px' }} />
+                  <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                    터치하여 상품 사진 등록 (최대 5장)
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="form-grid">
-            {/* Row 1: Category, Single Barcode, Box Barcode */}
-            <div className="form-group" style={{ gridColumn: 'span 3' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>카테고리 (대분류 {' > '} 중분류 {' > '} 소분류)</label>
-                <button 
-                  type="button"
-                  onClick={onOpenCategoryModal}
-                  style={{
-                    background: 'none', border: 'none', color: '#3b82f6', 
-                    fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '4px'
-                  }}
-                >
-                  <Plus size={14} /> 카테고리 관리
-                </button>
+          {/* Card 2: 분류 및 바코드 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Tag size={16} color="#3b82f6" strokeWidth={2.2} />
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>분류 및 바코드</h4>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div className="input-with-icon no-icon" style={{ flex: 1 }}>
+              <button 
+                type="button"
+                onClick={onOpenCategoryModal}
+                style={{
+                  background: 'none', border: 'none', color: '#3b82f6', 
+                  fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '2px'
+                }}
+              >
+                <Plus size={12} /> 카테고리 관리
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>카테고리</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                   <select 
                     value={(() => {
-                      const large = categories.find(c => c.name === formData.categoryLarge && (c.level === 1 || !c.parentId));
+                      const large = categories.find(c => c.name === formData.categoryLarge && (Number(c.level) === 1 || !c.parentId));
                       return large ? large.id : '';
                     })()} 
                     onChange={(e) => {
-                      const id = Number(e.target.value);
-                      const cat = categories.find(c => c.id === id);
+                      const idVal = String(e.target.value);
+                      const cat = categories.find(c => String(c.id) === idVal);
                       setFormData(prev => ({ 
                         ...prev, 
                         categoryLarge: cat ? cat.name : '',
@@ -279,23 +357,23 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
                         category: cat ? cat.name : ''
                       }));
                     }}
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: '0.8rem', background: '#fff' }}
                   >
-                    <option value="">대분류 선택</option>
-                    {categories.filter(c => String(c.level) === '1' || !c.parentId).sort((a,b) => (a.order||0) - (b.order||0)).map(cat => (
+                    <option value="">대분류</option>
+                    {categories.filter(c => Number(c.level) === 1 || !c.parentId).sort((a,b) => (a.order||0) - (b.order||0)).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
-                </div>
-                <div className="input-with-icon no-icon" style={{ flex: 1 }}>
+
                   <select 
                     disabled={!formData.categoryLarge}
                     value={(() => {
-                      const medium = categories.find(c => c.name === formData.categoryMedium && c.level === 2);
+                      const medium = categories.find(c => c.name === formData.categoryMedium && Number(c.level) === 2);
                       return medium ? medium.id : '';
                     })()}
                     onChange={(e) => {
-                      const id = Number(e.target.value);
-                      const cat = categories.find(c => c.id === id);
+                      const idVal = String(e.target.value);
+                      const cat = categories.find(c => String(c.id) === idVal);
                       setFormData(prev => ({ 
                         ...prev, 
                         categoryMedium: cat ? cat.name : '',
@@ -303,288 +381,308 @@ const ProductRegistration = ({ onClose, onSave, categories, initialData, onOpenC
                         category: cat ? cat.name : prev.categoryLarge
                       }));
                     }}
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: '0.8rem', background: !formData.categoryLarge ? '#f1f5f9' : '#fff' }}
                   >
-                    <option value="">중분류 선택</option>
+                    <option value="">중분류</option>
                     {categories.filter(c => {
-                      const large = categories.find(curr => curr.name === formData.categoryLarge && (curr.level === 1 || !curr.parentId));
-                      return large && c.parentId === large.id && c.level === 2;
+                      const large = categories.find(curr => curr.name === formData.categoryLarge && (Number(curr.level) === 1 || !curr.parentId));
+                      return large && String(c.parentId) === String(large.id) && Number(c.level) === 2;
                     }).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
-                </div>
-                <div className="input-with-icon no-icon" style={{ flex: 1 }}>
+
                   <select 
                     disabled={!formData.categoryMedium}
                     value={(() => {
-                      const small = categories.find(c => c.name === formData.categorySmall && c.level === 3);
+                      const small = categories.find(c => c.name === formData.categorySmall && Number(c.level) === 3);
                       return small ? small.id : '';
                     })()}
                     onChange={(e) => {
-                      const id = Number(e.target.value);
-                      const cat = categories.find(c => c.id === id);
+                      const idVal = String(e.target.value);
+                      const cat = categories.find(c => String(c.id) === idVal);
                       setFormData(prev => ({ 
                         ...prev, 
                         categorySmall: cat ? cat.name : '',
                         category: cat ? cat.name : prev.categoryMedium
                       }));
                     }}
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: '0.8rem', background: !formData.categoryMedium ? '#f1f5f9' : '#fff' }}
                   >
-                    <option value="">소분류 선택</option>
+                    <option value="">소분류</option>
                     {categories.filter(c => {
-                      const medium = categories.find(curr => curr.name === formData.categoryMedium && curr.level === 2);
-                      return medium && c.parentId === medium.id && c.level === 3;
+                      const medium = categories.find(curr => curr.name === formData.categoryMedium && Number(curr.level) === 2);
+                      return medium && String(c.parentId) === String(medium.id) && Number(c.level) === 3;
                     }).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
-            </div>
 
-            <div className="form-group">
-              <label>낱개 바코드</label>
-              <div className="input-with-icon">
-                <Barcode size={16} className="icon" />
-                <input 
-                  type="text" 
-                  name="singleBarcode" 
-                  placeholder="낱개 바코드 번호" 
-                  value={formData.singleBarcode}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>박스 바코드</label>
-              <div className="input-with-icon">
-                <Barcode size={16} className="icon" />
-                <input 
-                  type="text" 
-                  name="boxBarcode" 
-                  placeholder="박스 바코드 번호" 
-                  value={formData.boxBarcode}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Row 2: Product Name, Abbreviation, Spec */}
-            <div className="form-group">
-              <label>상품명 <span>*</span></label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="name" 
-                  placeholder="상품명을 입력하세요" 
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>상품약칭</label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="abbreviation" 
-                  placeholder="약칭 입력" 
-                  value={formData.abbreviation}
-                  onChange={handleChange}
-                />
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', fontWeight: 600 }}>
-                * 상품명에 숫자가 들어가는 경우엔 약칭을 꼭 사용해주세요
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label>규격</label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="spec" 
-                  placeholder="예: Box, EA, kg" 
-                  value={formData.spec}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Row 3: Inner Qty, Tax Type, Optimal Stock */}
-            <div className="form-group">
-              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                내품수량
-                <label className="checkbox-label" style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
-                  <input 
-                    type="checkbox" 
-                    name="isBoxOnly" 
-                    checked={formData.isBoxOnly}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isBoxOnly: e.target.checked }))}
-                    style={{ width: '14px', height: '14px', cursor: 'pointer' }}
-                  />
-                  박스 전용 판매
-                </label>
-              </label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="innerQty" 
-                  value={formData.innerQty}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>과세구분</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <div className="tax-type-toggle" style={{ flex: 1, height: '41px' }}>
-                  <button 
-                    type="button" 
-                    className={`tax-btn ${formData.taxType === '과세' ? 'active' : ''}`}
-                    onClick={() => setFormData(prev => ({ ...prev, taxType: '과세' }))}
-                  >과세</button>
-                  <button 
-                    type="button" 
-                    className={`tax-btn ${formData.taxType === '면세' ? 'active' : ''}`}
-                    onClick={() => setFormData(prev => ({ ...prev, taxType: '면세' }))}
-                  >면세</button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>낱개 바코드</label>
+                  <input type="text" name="singleBarcode" value={formData.singleBarcode} onChange={handleChange} placeholder="낱개 바코드" style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem', boxSizing: 'border-box' }} />
                 </div>
-                <label className="checkbox-label" style={{ 
-                  flex: 1,
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  cursor: 'pointer', 
-                  fontSize: '0.85rem', 
-                  fontWeight: 700, 
-                  color: formData.showInMall ? '#3b82f6' : '#64748b',
-                  background: formData.showInMall ? '#eff6ff' : '#f8fafc',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  border: formData.showInMall ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                  margin: 0,
-                  transition: 'all 0.2s'
-                }}>
-                  <input 
-                    type="checkbox" 
-                    name="showInMall" 
-                    checked={formData.showInMall}
-                    onChange={(e) => setFormData(prev => ({ ...prev, showInMall: e.target.checked }))}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  몰 노출
-                </label>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>적정재고량</label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="optimalStock" 
-                  value={formData.optimalStock.toLocaleString()}
-                  onChange={handleChange}
-                  style={{ textAlign: 'right' }}
-                />
-              </div>
-            </div>
-
-            {/* Row 4: Purchase Price, Sales Price */}
-            <div className="form-group">
-              <label>매입가</label>
-              <div className="price-input-wrapper">
-                <span className="price-currency">₩</span>
-                <input 
-                  type="text" 
-                  name="purchasePrice" 
-                  value={formData.purchasePrice.toLocaleString()}
-                  onChange={handleChange}
-                  style={{ textAlign: 'right' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '8px', color: formData.isBoxOnly ? '#94a3b8' : 'inherit' }}>
-                매출가(낱개)
-                <label className="checkbox-label" style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
-                  <input 
-                    type="checkbox" 
-                    name="isAutoCalcPrice" 
-                    checked={formData.isAutoCalcPrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isAutoCalcPrice: e.target.checked }))}
-                    style={{ width: '14px', height: '14px', cursor: 'pointer' }}
-                  />
-                  자동 계산 추천
-                </label>
-              </label>
-              <div className="price-input-wrapper" style={{ opacity: formData.isBoxOnly ? 0.6 : 1, backgroundColor: formData.isBoxOnly ? '#f1f5f9' : 'transparent' }}>
-                <span className="price-currency">₩</span>
-                <input 
-                  type="text" 
-                  name="salesPriceSingle" 
-                  value={formData.isBoxOnly ? '-' : formData.salesPriceSingle.toLocaleString()}
-                  onChange={handleChange}
-                  disabled={formData.isBoxOnly}
-                  style={{ cursor: formData.isBoxOnly ? 'not-allowed' : 'text', textAlign: 'right' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>매출가(박스)</label>
-              <div className="price-input-wrapper">
-                <span className="price-currency">₩</span>
-                <input 
-                  type="text" 
-                  name="salesPriceBox" 
-                  value={formData.salesPriceBox.toLocaleString()}
-                  onChange={handleChange}
-                  style={{ textAlign: 'right' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>기초 재고 수량</label>
-              <div className="input-with-icon no-icon">
-                <input 
-                  type="text" 
-                  name="initialStock" 
-                  value={formData.initialStock.toLocaleString()}
-                  onChange={handleChange}
-                  style={{ textAlign: 'right' }}
-                />
-              </div>
-            </div>
-
-            {/* Row 5: Product Description */}
-            <div className="form-group full-width" style={{ gridColumn: 'span 3' }}>
-              <label>상품 설명</label>
-              <div className="input-with-icon">
-                <FileText size={16} className="icon" style={{ top: '14px' }} />
-                <textarea 
-                  name="memo" 
-                  rows="3" 
-                  placeholder="상품 상세 설명 입력" 
-                  value={formData.memo}
-                  onChange={handleChange}
-                ></textarea>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>박스 바코드</label>
+                  <input type="text" name="boxBarcode" value={formData.boxBarcode} onChange={handleChange} placeholder="박스 바코드" style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem', boxSizing: 'border-box' }} />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Card 3: 기본 정보 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '12px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <Package size={16} color="#3b82f6" strokeWidth={2.2} />
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>기본 품목 정보</h4>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                  상품명 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="상품명 입력" style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.88rem', fontWeight: 700, boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>상품약칭</label>
+                  <input type="text" name="abbreviation" value={formData.abbreviation} onChange={handleChange} placeholder="약칭" style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>규격</label>
+                  <input type="text" name="spec" value={formData.spec} onChange={handleChange} placeholder="예: Box, EA, kg" style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>내품수량</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontSize: '0.72rem', color: formData.isBoxOnly ? '#ef4444' : '#64748b' }}>
+                      <input type="checkbox" name="isBoxOnly" checked={formData.isBoxOnly} onChange={(e) => setFormData(prev => ({ ...prev, isBoxOnly: e.target.checked }))} style={{ width: '12px', height: '12px' }} />
+                      박스전용
+                    </label>
+                  </div>
+                  <input type="text" name="innerQty" value={formData.innerQty} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>적정재고량</label>
+                  <input type="text" name="optimalStock" value={formData.optimalStock ? formData.optimalStock.toLocaleString() : '0'} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box', color: '#059669' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: 단가 및 재고 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <DollarSign size={16} color="#3b82f6" strokeWidth={2.2} />
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>단가 및 재고</h4>
+              </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.74rem', color: '#2563eb', fontWeight: 700 }}>
+                <input type="checkbox" name="isAutoCalcPrice" checked={formData.isAutoCalcPrice} onChange={(e) => setFormData(prev => ({ ...prev, isAutoCalcPrice: e.target.checked }))} style={{ width: '13px', height: '13px' }} />
+                단가 자동연동
+              </label>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>매입단가 (원)</label>
+                <input type="text" name="purchasePrice" value={formData.purchasePrice ? formData.purchasePrice.toLocaleString() : '0'} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>기초 재고</label>
+                <input type="text" name="initialStock" value={formData.initialStock ? formData.initialStock.toLocaleString() : '0'} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: formData.isBoxOnly ? '#94a3b8' : '#475569', marginBottom: '4px' }}>매출가 (낱개)</label>
+                <input type="text" name="salesPriceSingle" value={formData.isBoxOnly ? '-' : (formData.salesPriceSingle ? formData.salesPriceSingle.toLocaleString() : '0')} onChange={handleChange} disabled={formData.isBoxOnly} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box', background: formData.isBoxOnly ? '#f1f5f9' : '#fff' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>매출가 (박스)</label>
+                <input type="text" name="salesPriceBox" value={formData.salesPriceBox ? formData.salesPriceBox.toLocaleString() : '0'} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box', color: '#2563eb' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: 품목 속성 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '10px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <Sliders size={16} color="#3b82f6" strokeWidth={2.2} />
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>속성 및 주문몰 설정</h4>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', height: '36px' }}>
+                {['과세', '면세'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, taxType: t }))}
+                    style={{
+                      flex: 1,
+                      borderRadius: '6px',
+                      border: formData.taxType === t ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+                      background: formData.taxType === t ? '#eff6ff' : '#fff',
+                      color: formData.taxType === t ? '#1d4ed8' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: formData.showInMall ? '#2563eb' : '#64748b', background: formData.showInMall ? '#eff6ff' : '#f8fafc', padding: '8px 4px', borderRadius: '6px', border: formData.showInMall ? '1px solid #3b82f6' : '1px solid #e2e8f0' }}>
+                  <input type="checkbox" name="showInMall" checked={formData.showInMall} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                  주문몰노출
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: formData.isNewProduct ? '#059669' : '#64748b', background: formData.isNewProduct ? '#f0fdf4' : '#f8fafc', padding: '8px 4px', borderRadius: '6px', border: formData.isNewProduct ? '1px solid #10b981' : '1px solid #e2e8f0' }}>
+                  <input type="checkbox" name="isNewProduct" checked={formData.isNewProduct || false} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                  신상품
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: formData.isBestProduct ? '#dc2626' : '#64748b', background: formData.isBestProduct ? '#fef2f2' : '#f8fafc', padding: '8px 4px', borderRadius: '6px', border: formData.isBestProduct ? '1px solid #ef4444' : '1px solid #e2e8f0' }}>
+                  <input type="checkbox" name="isBestProduct" checked={formData.isBestProduct || false} onChange={handleChange} style={{ width: '13px', height: '13px' }} />
+                  베스트
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 6: 상품 설명 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '8px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '8px'
+            }}>
+              <FileText size={16} color="#3b82f6" strokeWidth={2.2} />
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>상품 메모</h4>
+            </div>
+            <textarea 
+              name="memo" 
+              rows="3" 
+              placeholder="상품 설명 또는 특이사항" 
+              value={formData.memo}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                padding: '8px',
+                fontSize: '0.82rem',
+                boxSizing: 'border-box',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+
         </div>
 
-        <div className="form-footer">
-          <button type="button" className="btn-outline" onClick={onClose} style={{ border: 'none', background: 'transparent' }}>취소</button>
-          <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}>
-            <Save size={18} /> 저장하기
+        {/* Footer */}
+        <div style={{
+          padding: '10px 14px',
+          background: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px'
+        }}>
+          <button 
+            type="button" 
+            onClick={onClose}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#475569',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            취소
+          </button>
+          <button 
+            type="submit" 
+            style={{
+              padding: '8px 20px',
+              borderRadius: '6px',
+              border: 'none',
+              background: '#3b82f6',
+              color: '#ffffff',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+            }}
+          >
+            <Save size={15} /> {isEditing ? "수정하기" : "저장하기"}
           </button>
         </div>
       </form>
