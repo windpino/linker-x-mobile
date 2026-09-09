@@ -38,18 +38,21 @@ const InventoryReport = ({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   })();
-  const [filters, setFilters] = useState({
-    startDate: today,
-    endDate: today,
-    fromWarehouse: '전체 창고',
-    toWarehouse: '전체 창고',
-    selectedWarehouse: '전체 창고',
-    selectedSupplier: '전체 매입처',
-    categoryLarge: '전체',
-    categoryMedium: '전체',
-    categorySmall: '전체',
-    searchTerm: '',
-    hideZeroStock: false
+  const [filters, setFilters] = useState(() => {
+    const savedHideZero = localStorage.getItem('linkerx_inventory_report_hide_zero');
+    return {
+      startDate: today,
+      endDate: today,
+      fromWarehouse: '전체 창고',
+      toWarehouse: '전체 창고',
+      selectedWarehouse: '전체 창고',
+      selectedSupplier: '전체 매입처',
+      categoryLarge: '전체',
+      categoryMedium: '전체',
+      categorySmall: '전체',
+      searchTerm: '',
+      hideZeroStock: savedHideZero !== null ? savedHideZero === 'true' : false
+    };
   });
 
   const handleQuickDate = (type) => {
@@ -508,7 +511,11 @@ const InventoryReport = ({
               <input 
                 type="checkbox" 
                 checked={filters.hideZeroStock} 
-                onChange={e => setFilters({...filters, hideZeroStock: e.target.checked})} 
+                onChange={e => {
+                  const checked = e.target.checked;
+                  localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
+                  setFilters(prev => ({ ...prev, hideZeroStock: checked }));
+                }} 
                 style={{ width: '14px', height: '14px' }}
               />
               재고가 0인 품목 숨기기
