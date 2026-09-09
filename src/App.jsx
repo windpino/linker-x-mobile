@@ -3157,18 +3157,116 @@ function App() {
               </div>
             );
           })()}
-          {widgetId === 'CashReport' && (
-            <div className="summary-stat">
-              <div className="stat-item">
-                <span className="stat-label">선택일 매출합계</span>
-                <span className="stat-value">{(salesInvoices || []).filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.receivedAmount || 0), 0).toLocaleString()}원</span>
+          {widgetId === 'CashReport' && (() => {
+            let cashTotal = 0;
+            let accountTotal = 0;
+            let cardTotal = 0;
+            let billTotal = 0;
+            let totalDeposit = 0;
+
+            (salesInvoices || []).filter(inv => inv.date === dateStr).forEach(inv => {
+              let pCash = 0, pAccount = 0, pCard = 0, pBill = 0;
+              if (inv.payments && typeof inv.payments === 'object') {
+                pCash = Number(inv.payments.cash) || 0;
+                pAccount = Number(inv.payments.account) || 0;
+                pCard = Number(inv.payments.card) || 0;
+                pBill = Number(inv.payments.bill) || 0;
+              } else {
+                const rec = Number(inv.receivedAmount) || 0;
+                const method = inv.paymentMethod || 'cash';
+                if (method === 'cash') pCash = rec;
+                else if (method === 'account' || method === 'bank') pAccount = rec;
+                else if (method === 'card') pCard = rec;
+                else if (method === 'bill' || method === 'note') pBill = rec;
+                else pCash = rec;
+              }
+              const invTotal = pCash + pAccount + pCard + pBill;
+              cashTotal += pCash;
+              accountTotal += pAccount;
+              cardTotal += pCard;
+              billTotal += pBill;
+              totalDeposit += (invTotal > 0 ? invTotal : (Number(inv.receivedAmount) || 0));
+            });
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                {/* 총입금 합계 강조 배너 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '7px 12px',
+                  backgroundColor: '#f0fdf4',
+                  borderRadius: '8px',
+                  border: '1px solid #bbf7d0'
+                }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>총입금 합계</span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#15803d' }}>
+                    {totalDeposit.toLocaleString()}원
+                  </span>
+                </div>
+
+                {/* 결제수단별 입금 합계 그리드 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '6px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>현금입금</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cashTotal.toLocaleString()}원</span>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>계좌입금</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{accountTotal.toLocaleString()}원</span>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>카드입금</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cardTotal.toLocaleString()}원</span>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>어음입금</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{billTotal.toLocaleString()}원</span>
+                  </div>
+                </div>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">선택일 매입합계</span>
-                <span className="stat-value">{(purchaseInvoices || []).filter(inv => inv.date === dateStr).reduce((acc, inv) => acc + (inv.paidAmount || 0), 0).toLocaleString()}원</span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
           {widgetId === 'CashBook' && (
             <div className="summary-stat">
               <div className="stat-item">
