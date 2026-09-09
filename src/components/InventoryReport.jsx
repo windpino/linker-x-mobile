@@ -39,7 +39,7 @@ const InventoryReport = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   })();
   const [filters, setFilters] = useState({
-    startDate: firstDayOfMonth,
+    startDate: today,
     endDate: today,
     fromWarehouse: '전체 창고',
     toWarehouse: '전체 창고',
@@ -65,6 +65,11 @@ const InventoryReport = ({
     let end = formatDate(today);
 
     switch (type) {
+      case '당일':
+      case '오늘':
+        start = formatDate(today);
+        end = formatDate(today);
+        break;
       case '1년':
         start = `${y}-01-01`;
         end = `${y}-12-31`;
@@ -384,7 +389,7 @@ const InventoryReport = ({
               </div>
 
               <div style={{ display: 'flex', gap: '3px', overflowX: 'auto', paddingBottom: '2px' }}>
-                {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+                {['당일', '1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
                   <button
                     key={btn}
                     type="button"
