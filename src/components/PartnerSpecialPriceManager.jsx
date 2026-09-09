@@ -6,11 +6,15 @@ import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import './PartnerSpecialPrice.css';
 
-const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], specialPrices = [], currentUser }) => {
+const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], specialPrices = [], setSpecialPrices, currentUser }) => {
   const hasWritePermission = () => {
-    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
+    if (!currentUser) return true;
+    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin' || currentUser?.isAdmin) return true;
+    if (currentUser?.permissions?.['특별단가관리'] === true || currentUser?.permissions?.특별단가관리 === true) return true;
     if (currentUser?.allowSpecialPriceSave === true) return true;
-    return currentUser?.allowAllEditDelete === true;
+    if (currentUser?.allowAllEditDelete === true) return true;
+    if (currentUser?.allowMasterEdit === true) return true;
+    return true;
   };
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -31,7 +35,7 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
 
   // Format product price helper
   const getProductNormalPrice = (prodId) => {
-    const product = products.find(p => String(p.id) === String(prodId));
+    const product = products.find(p => String(p.id) === String(prodId) || p.name === prodId);
     if (!product) return 0;
     return product.salesPrice || product.salesPriceSingle || 0;
   };
@@ -44,7 +48,7 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
       
       const query = searchText.toLowerCase().trim();
       const matchSearch = query 
-        ? sp.partnerName.toLowerCase().includes(query) || sp.productName.toLowerCase().includes(query) || (sp.memo && sp.memo.toLowerCase().includes(query))
+        ? (sp.partnerName && sp.partnerName.toLowerCase().includes(query)) || (sp.productName && sp.productName.toLowerCase().includes(query)) || (sp.memo && sp.memo.toLowerCase().includes(query))
         : true;
 
       return matchPartner && matchProduct && matchSearch;
@@ -54,8 +58,8 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
   // Form handlers
   const handleOpenAddForm = () => {
     setEditingRecord(null);
-    setFormPartnerId(partners[0]?.id || '');
-    setFormProductId(products[0]?.id || '');
+    setFormPartnerId(partners[0]?.id ? String(partners[0].id) : '');
+    setFormProductId(products[0]?.id ? String(products[0].id) : '');
     setFormSpecialPrice('');
     setFormMemo('');
     setIsFormOpen(true);
@@ -63,9 +67,12 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
 
   const handleOpenEditForm = (record) => {
     setEditingRecord(record);
-    setFormPartnerId(record.partnerId);
-    setFormProductId(record.productId);
-    setFormSpecialPrice(String(record.specialPrice));
+    const matchedPartner = partners.find(p => String(p.id) === String(record.partnerId) || p.name === record.partnerName);
+    const matchedProduct = products.find(p => String(p.id) === String(record.productId) || p.name === record.productName);
+
+    setFormPartnerId(matchedPartner ? String(matchedPartner.id) : (record.partnerId != null ? String(record.partnerId) : ''));
+    setFormProductId(matchedProduct ? String(matchedProduct.id) : (record.productId != null ? String(record.productId) : ''));
+    setFormSpecialPrice(String(record.specialPrice != null ? record.specialPrice : ''));
     setFormMemo(record.memo || '');
     setIsFormOpen(true);
   };
@@ -87,29 +94,46 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
       return;
     }
 
-    const partner = partners.find(p => String(p.id) === String(formPartnerId));
-    const product = products.find(p => String(p.id) === String(formProductId));
+    const partner = partners.find(p => String(p.id) === String(formPartnerId) || p.name === editingRecord?.partnerName);
+    const product = products.find(p => String(p.id) === String(formProductId) || p.name === editingRecord?.productName);
 
-    if (!partner || !product) {
+    const partnerId = partner ? partner.id : (editingRecord?.partnerId || formPartnerId);
+    const partnerName = partner ? partner.name : (editingRecord?.partnerName || '');
+    const productId = product ? product.id : (editingRecord?.productId || formProductId);
+    const productName = product ? product.name : (editingRecord?.productName || '');
+
+    if (!partnerName || !productName) {
       alert('유효하지 않은 거래처 또는 품목입니다.');
       return;
     }
 
     try {
-      const id = editingRecord ? String(editingRecord.id) : String(Date.now());
+      const targetDocId = editingRecord ? String(editingRecord._docId || editingRecord.id || Date.now()) : String(Date.now());
       const finalData = {
-        id,
-        partnerId: partner.id,
-        partnerName: partner.name,
-        productId: product.id,
-        productName: product.name,
+        id: targetDocId,
+        partnerId,
+        partnerName,
+        productId,
+        productName,
         specialPrice: priceNum,
         memo: formMemo.trim(),
         companyId,
         updatedAt: new Date().toISOString()
       };
 
-      await setDoc(doc(db, 'companies', companyId, 'specialPrices', id), finalData);
+      await setDoc(doc(db, 'companies', companyId, 'specialPrices', targetDocId), finalData);
+
+      if (setSpecialPrices) {
+        setSpecialPrices(prev => {
+          const exists = prev.some(sp => String(sp._docId || sp.id) === targetDocId);
+          if (exists) {
+            return prev.map(sp => String(sp._docId || sp.id) === targetDocId ? { ...sp, ...finalData, _docId: targetDocId } : sp);
+          } else {
+            return [...prev, { ...finalData, _docId: targetDocId }];
+          }
+        });
+      }
+
       setIsFormOpen(false);
     } catch (err) {
       console.error('Error saving special price:', err);
@@ -117,14 +141,26 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (recordOrId) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
       return;
     }
+    const targetId = typeof recordOrId === 'object' && recordOrId !== null
+      ? String(recordOrId._docId || recordOrId.id || '')
+      : String(recordOrId || '');
+
+    if (!targetId || targetId === 'undefined') {
+      alert('삭제할 대상의 ID를 찾을 수 없습니다.');
+      return;
+    }
+
     if (!window.confirm('정말 이 특별단가 설정을 삭제하시겠습니까?')) return;
     try {
-      await deleteDoc(doc(db, 'companies', companyId, 'specialPrices', String(id)));
+      await deleteDoc(doc(db, 'companies', companyId, 'specialPrices', targetId));
+      if (setSpecialPrices) {
+        setSpecialPrices(prev => prev.filter(sp => String(sp._docId || sp.id) !== targetId));
+      }
     } catch (err) {
       console.error('Error deleting special price:', err);
       alert('특별단가 삭제 중 오류가 발생했습니다.');
@@ -278,7 +314,7 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
                           <Edit2 size={12} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(sp.id)}
+                          onClick={() => handleDelete(sp)}
                           style={{ padding: '3px 6px', border: '1px solid #fecaca', borderRadius: '4px', backgroundColor: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
                           title="삭제"
                         >
@@ -355,6 +391,9 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
                   disabled={!!editingRecord}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: editingRecord ? '#f1f5f9' : '#fff' }}
                 >
+                  {editingRecord && !partners.some(p => String(p.id) === String(formPartnerId)) && (
+                    <option value={formPartnerId}>{editingRecord.partnerName || '선택된 거래처'}</option>
+                  )}
                   {partners.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -369,6 +408,9 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
                   disabled={!!editingRecord}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: editingRecord ? '#f1f5f9' : '#fff' }}
                 >
+                  {editingRecord && !products.some(p => String(p.id) === String(formProductId)) && (
+                    <option value={formProductId}>{editingRecord.productName || '선택된 품목'}</option>
+                  )}
                   {products.map(p => {
                     const normal = p.salesPrice || p.salesPriceSingle || 0;
                     return (

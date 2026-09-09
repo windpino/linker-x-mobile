@@ -303,11 +303,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
   const hasSpecialPricePermission = () => {
     if (!currentUser) return false;
-    if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.userId === 'admin') {
+    if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.userId === 'admin' || currentUser.isAdmin) {
+      return true;
+    }
+    if (currentUser.permissions?.['특별단가관리'] || currentUser.permissions?.특별단가관리) {
       return true;
     }
     const staff = staffList.find(s => s.userId === currentUser.userId || s.name === currentUser.name);
-    if (staff && staff.allowSpecialPriceSave) {
+    if (staff && (staff.allowSpecialPriceSave || staff.permissions?.['특별단가관리'] || staff.permissions?.특별단가관리)) {
       return true;
     }
     if (currentUser.allowSpecialPriceSave) {
@@ -398,10 +401,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         const partner = partners.find(p => p.name === invoiceData.partner);
         if (partner) {
           const existingSP = specialPrices.find(sp => 
-            sp.partnerName === invoiceData.partner && 
-            String(sp.productId) === String(selectedProduct.id)
+            (sp.partnerName === invoiceData.partner || String(sp.partnerId) === String(partner.id)) && 
+            (String(sp.productId) === String(selectedProduct.id) || sp.productName === selectedProduct.name)
           );
-          const spId = existingSP ? String(existingSP.id) : String(Date.now());
+          const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
           const newSpecialPriceData = {
             id: spId,
             partnerId: partner.id,
@@ -474,10 +477,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         const partner = partners.find(p => p.name === invoiceData.partner);
         if (partner) {
           const existingSP = specialPrices.find(sp => 
-            sp.partnerName === invoiceData.partner && 
-            String(sp.productId) === String(product.id)
+            (sp.partnerName === invoiceData.partner || String(sp.partnerId) === String(partner.id)) && 
+            (String(sp.productId) === String(product.id) || sp.productName === product.name)
           );
-          const spId = existingSP ? String(existingSP.id) : String(Date.now());
+          const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
           const newSpecialPriceData = {
             id: spId,
             partnerId: partner.id,

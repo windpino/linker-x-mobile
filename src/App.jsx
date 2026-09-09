@@ -4125,6 +4125,7 @@ function App() {
           partners={partners} 
           products={products} 
           specialPrices={specialPrices} 
+          setSpecialPrices={setSpecialPrices} 
           currentUser={currentUser}
         />
       )}
