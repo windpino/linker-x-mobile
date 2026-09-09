@@ -856,9 +856,83 @@ function App() {
       // New structure: companies/{companyId}/{collectionName}
       const q = collection(db, 'companies', companyId, col.name);
       const unsub = onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+        let data = snapshot.docs.map(doc => ({ ...doc.data(), _docId: doc.id }));
+
+        if (col.name === 'partners') {
+          const partMap = new Map();
+          data.forEach(p => {
+            if (!p) return;
+            const key = String(p.id || p.name);
+            const existing = partMap.get(key);
+            if (!existing || (p.updatedAt && (!existing.updatedAt || p.updatedAt >= existing.updatedAt))) {
+              partMap.set(key, { ...existing, ...p });
+            }
+          });
+          data = Array.from(partMap.values());
+        }
+
+        if (col.name === 'products') {
+          const prodMap = new Map();
+          data.forEach(p => {
+            if (!p) return;
+            const key = String(p.id || p.name);
+            const existing = prodMap.get(key);
+            if (!existing || (p.updatedAt && (!existing.updatedAt || p.updatedAt >= existing.updatedAt))) {
+              prodMap.set(key, { ...existing, ...p });
+            }
+          });
+          data = Array.from(prodMap.values());
+        }
+
+        if (col.name === 'staffList') {
+          const staffMap = new Map();
+          data.forEach(s => {
+            if (!s) return;
+            let matchKey = null;
+            if (s.userId) {
+              matchKey = `user_${s.userId}`;
+            }
+            for (const [k, existing] of staffMap.entries()) {
+              if ((s.userId && existing.userId && s.userId === existing.userId) ||
+                  (s.name && existing.name && s.name === existing.name)) {
+                matchKey = k;
+                break;
+              }
+            }
+            if (!matchKey) {
+              matchKey = s.userId ? `user_${s.userId}` : (s.name ? `name_${s.name}` : `id_${s.id || Math.random()}`);
+            }
+
+            const existing = staffMap.get(matchKey);
+            if (!existing) {
+              staffMap.set(matchKey, s);
+            } else {
+              const preferS = (!existing.userId && s.userId) || (s.updatedAt && (!existing.updatedAt || s.updatedAt >= existing.updatedAt));
+              if (preferS) {
+                staffMap.set(matchKey, { ...existing, ...s });
+              } else {
+                staffMap.set(matchKey, { ...s, ...existing });
+              }
+            }
+          });
+          data = Array.from(staffMap.values());
+        }
+
         col.setter(data);
+        if (col.name === 'staffList') {
+          setCurrentUser(prevUser => {
+            if (!prevUser || prevUser.role === 'super_admin' || prevUser.userId === 'admin') return prevUser;
+            const found = data.find(s => String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id));
+            if (found) {
+              const merged = { ...prevUser, ...found };
+              localStorage.setItem('currentUser', JSON.stringify(merged));
+              return merged;
+            }
+            return prevUser;
+          });
+        }
         localStorage.setItem(col.name, JSON.stringify(data));
+        localStorage.setItem(`${col.name}_${companyId}`, JSON.stringify(data));
         localStorage.setItem(`fb_synced_${col.name}_${companyId}`, 'true');
         setSyncedCollections(prev => ({ ...prev, [col.name]: true }));
       });

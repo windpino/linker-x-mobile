@@ -33,7 +33,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     }
     try {
       const companyId = currentUser?.companyId || 'default';
-      const docId = editingStaff?._docId || (staffData.userId ? `${companyId}_${staffData.userId}` : String(staffData.id || Date.now()));
+      const targetDocId = staffData.userId ? `${companyId}_${staffData.userId}` : (editingStaff?._docId || String(staffData.id || Date.now()));
       
       const finalData = {
         ...(editingStaff || {}),
@@ -46,8 +46,20 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       const batch = writeBatch(db);
 
       // 1. Save staff doc
-      const staffDocRef = doc(db, 'companies', companyId, 'staffList', docId);
+      const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
       batch.set(staffDocRef, finalData, { merge: true });
+
+      // If existing _docId is different from targetDocId, delete the old doc
+      if (editingStaff?._docId && editingStaff._docId !== targetDocId) {
+        const oldStaffDocRef = doc(db, 'companies', companyId, 'staffList', editingStaff._docId);
+        batch.delete(oldStaffDocRef);
+      }
+
+      // Also clean up any legacy raw numeric ID doc if it exists and differs
+      if (editingStaff?.id && String(editingStaff.id) !== targetDocId && !String(editingStaff.id).includes('_')) {
+        const legacyDocRef = doc(db, 'companies', companyId, 'staffList', String(editingStaff.id));
+        batch.delete(legacyDocRef);
+      }
 
       // 2. Bidirectional sync:
       // If this staff member has a warehouse assigned, set them as the manager of that warehouse
@@ -96,17 +108,30 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     try {
       const companyId = currentUser?.companyId || 'default';
       const staff = typeof staffOrId === 'object' ? staffOrId : staffList.find(s => String(s.id) === String(staffOrId));
-      
-      const docId = staff?._docId || (staff?.userId ? `${companyId}_${staff.userId}` : String(staffOrId));
-      
-      await deleteDoc(doc(db, 'companies', companyId, 'staffList', docId));
-      
-      // If docId differs from staff.id and staff.id is present
-      if (staff?.id && String(staff.id) !== docId && !String(staff.id).includes('_')) {
-        try {
-          await deleteDoc(doc(db, 'companies', companyId, 'staffList', String(staff.id)));
-        } catch (e) {}
-      }
+      const batch = writeBatch(db);
+
+      const docIdsToDelete = new Set();
+      if (staff?._docId) docIdsToDelete.add(staff._docId);
+      if (staff?.userId) docIdsToDelete.add(`${companyId}_${staff.userId}`);
+      if (staff?.id) docIdsToDelete.add(String(staff.id));
+      if (typeof staffOrId === 'string') docIdsToDelete.add(staffOrId);
+
+      docIdsToDelete.forEach(dId => {
+        if (dId) {
+          batch.delete(doc(db, 'companies', companyId, 'staffList', dId));
+        }
+      });
+
+      // 담당 창고가 있다면 창고 관리자 해제
+      warehouses.forEach(w => {
+        const otherDocId = w._docId || String(w.id);
+        if (staff?.name && w.manager === staff.name) {
+          const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+          batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+        }
+      });
+
+      await batch.commit();
     } catch (err) {
       console.error('Staff delete error:', err);
       alert('직원 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
