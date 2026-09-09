@@ -188,9 +188,41 @@ function App() {
   }); 
 
 
+  const getInitialStateFromCache = (key, fallback) => {
+    try {
+      let companyId = '';
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser && savedUser !== 'undefined') {
+        const u = JSON.parse(savedUser);
+        if (u && u.companyId) companyId = u.companyId;
+      }
+      const candidates = [
+        companyId ? `${key}_${companyId}` : null,
+        `${key}`,
+        `${key}_default`,
+        companyId ? `${key}_backup_${companyId}` : null
+      ].filter(Boolean);
+
+      for (const k of candidates) {
+        const cached = localStorage.getItem(k);
+        if (cached && cached !== 'undefined' && cached !== 'null') {
+          const parsed = JSON.parse(cached);
+          if (parsed !== null && parsed !== undefined) {
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) return parsed;
+            if (typeof parsed !== 'object') return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to read initial cache for ${key}:`, e);
+    }
+    return fallback;
+  };
+
   const [selectedDate, setSelectedDate] = useState(new Date()); 
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser')) || null);
-  const [staffList, setStaffList] = useState(() => JSON.parse(localStorage.getItem('staffList')) || []);
+  const [staffList, setStaffList] = useState(() => getInitialStateFromCache('staffList', []));
 
   const checkWritePermission = (docCreator = null, isMasterData = false) => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
@@ -1019,7 +1051,7 @@ function App() {
   // 1. Initialize all states with localStorage
 
   const [schedules, setSchedules] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('schedules')) || [];
+    const saved = getInitialStateFromCache('schedules', []);
     // Aggressively remove stuck April 22nd schedules at initialization
     return saved.filter(s => {
       if (!s.date) return true;
@@ -1031,27 +1063,25 @@ function App() {
     });
   });
   const [products, setProducts] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('products'));
-    return (saved && saved.length > 0) ? saved : [];
+    return getInitialStateFromCache('products', []);
   });
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('categories')) || []);
+  const [categories, setCategories] = useState(() => getInitialStateFromCache('categories', []));
   const [partners, setPartners] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem('partners'));
-    return (saved && saved.length > 0) ? saved : [];
+    return getInitialStateFromCache('partners', []);
   });
-  const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('accounts')) || []);
+  const [accounts, setAccounts] = useState(() => getInitialStateFromCache('accounts', []));
   
-  const [purchaseInvoices, setPurchaseInvoices] = useState(() => JSON.parse(localStorage.getItem('purchaseInvoices')) || []);
-  const [purchaseOrders, setPurchaseOrders] = useState(() => JSON.parse(localStorage.getItem('purchaseOrders')) || []);
-  const [salesInvoices, setSalesInvoices] = useState(() => JSON.parse(localStorage.getItem('salesInvoices')) || []);
-  const [salesOrders, setSalesOrders] = useState(() => JSON.parse(localStorage.getItem('salesOrders')) || []);
-  const [warehouses, setWarehouses] = useState(() => JSON.parse(localStorage.getItem('warehouses')) || []);
-  const [inventory, setInventory] = useState(() => JSON.parse(localStorage.getItem('inventory')) || {});
-  const [physicalInventory, setPhysicalInventory] = useState(() => JSON.parse(localStorage.getItem('physicalInventory')) || {});
+  const [purchaseInvoices, setPurchaseInvoices] = useState(() => getInitialStateFromCache('purchaseInvoices', []));
+  const [purchaseOrders, setPurchaseOrders] = useState(() => getInitialStateFromCache('purchaseOrders', []));
+  const [salesInvoices, setSalesInvoices] = useState(() => getInitialStateFromCache('salesInvoices', []));
+  const [salesOrders, setSalesOrders] = useState(() => getInitialStateFromCache('salesOrders', []));
+  const [warehouses, setWarehouses] = useState(() => getInitialStateFromCache('warehouses', []));
+  const [inventory, setInventory] = useState(() => getInitialStateFromCache('inventory', {}));
+  const [physicalInventory, setPhysicalInventory] = useState(() => getInitialStateFromCache('physicalInventory', {}));
   
-  const [inventoryAdjustments, setInventoryAdjustments] = useState(() => JSON.parse(localStorage.getItem('inventoryAdjustments')) || []);
-  const [inventoryTransferHistory, setInventoryTransferHistory] = useState(() => JSON.parse(localStorage.getItem('inventoryTransferHistory')) || []);
-  const [specialPrices, setSpecialPrices] = useState(() => JSON.parse(localStorage.getItem('specialPrices')) || []);
+  const [inventoryAdjustments, setInventoryAdjustments] = useState(() => getInitialStateFromCache('inventoryAdjustments', []));
+  const [inventoryTransferHistory, setInventoryTransferHistory] = useState(() => getInitialStateFromCache('inventoryTransferHistory', []));
+  const [specialPrices, setSpecialPrices] = useState(() => getInitialStateFromCache('specialPrices', []));
 
   // 유령 재고 이동 내업 자동 정리 클린업 (주문서/전표가 삭제되었으나 이동 내역만 유령으로 남은 경우 일괄 제거)
   React.useEffect(() => {
