@@ -364,33 +364,33 @@ const InventoryReport = ({
           ))}
         </div>
 
-        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {activeTab === 'daily' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <input 
                   type="date" 
                   value={filters.startDate} 
                   onChange={e => setFilters({...filters, startDate: e.target.value})} 
-                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+                  style={{ flex: 1, padding: '4px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
                 />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
                 <input 
                   type="date" 
                   value={filters.endDate} 
                   onChange={e => setFilters({...filters, endDate: e.target.value})} 
-                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+                  style={{ flex: 1, padding: '4px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+              <div style={{ display: 'flex', gap: '3px', overflowX: 'auto', paddingBottom: '2px' }}>
                 {['1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
                   <button
                     key={btn}
                     type="button"
                     onClick={() => handleQuickDate(btn)}
                     style={{
-                      padding: '3px 8px', fontSize: '0.7rem', fontWeight: 700,
+                      padding: '2px 6px', fontSize: '0.68rem', fontWeight: 700,
                       border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
                       color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap'
                     }}
@@ -398,11 +398,11 @@ const InventoryReport = ({
                 ))}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
                 <select 
                   value={filters.fromWarehouse} 
                   onChange={e => setFilters({...filters, fromWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 600, outline: 'none' }}
+                  style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 600, outline: 'none' }}
                 >
                   <option value="전체 창고">출고: 전체</option>
                   {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
@@ -411,7 +411,7 @@ const InventoryReport = ({
                 <select 
                   value={filters.toWarehouse} 
                   onChange={e => setFilters({...filters, toWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 600, outline: 'none' }}
+                  style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 600, outline: 'none' }}
                 >
                   <option value="전체 창고">입고: 전체</option>
                   {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
@@ -422,11 +422,11 @@ const InventoryReport = ({
 
           {activeTab === 'final' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>창고 선택</label>
+              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>창고 선택</label>
               <select 
                 value={filters.selectedWarehouse} 
                 onChange={e => setFilters({...filters, selectedWarehouse: e.target.value})}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, outline: 'none' }}
               >
                 <option value="전체 창고">전체 창고 (총 합계)</option>
                 {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
@@ -436,11 +436,11 @@ const InventoryReport = ({
 
           {activeTab === 'partner' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>매입처 선택</label>
+              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>매입처 선택</label>
               <select 
                 value={filters.selectedSupplier} 
                 onChange={e => setFilters({...filters, selectedSupplier: e.target.value})}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                style={{ width: '100%', padding: '5px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, outline: 'none' }}
               >
                 <option value="전체 매입처">전체 매입처</option>
                 {partners.filter(p => p.type === '매입처' || p.type === '혼합' || p.type === '매입매출처').map(p => (
@@ -450,13 +450,13 @@ const InventoryReport = ({
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
             <select 
               value={filters.categoryLarge} 
               onChange={e => setFilters({...filters, categoryLarge: e.target.value, categoryMedium: '전체', categorySmall: '전체'})}
-              style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none' }}
+              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none' }}
             >
-              <option value="전체">대분류: 전체</option>
+              <option value="전체">대: 전체</option>
               {categories.filter(c => c.level === 1 || !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
 
@@ -464,12 +464,25 @@ const InventoryReport = ({
               value={filters.categoryMedium} 
               onChange={e => setFilters({...filters, categoryMedium: e.target.value, categorySmall: '전체'})}
               disabled={filters.categoryLarge === '전체'}
-              style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', outline: 'none', backgroundColor: filters.categoryLarge === '전체' ? '#f1f5f9' : '#fff' }}
+              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none', backgroundColor: filters.categoryLarge === '전체' ? '#f1f5f9' : '#fff' }}
             >
-              <option value="전체">중분류: 전체</option>
+              <option value="전체">중: 전체</option>
               {categories.filter(c => {
                 const large = categories.find(l => l.name === filters.categoryLarge);
                 return large && c.parentId === large.id && c.level === 2;
+              }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+
+            <select 
+              value={filters.categorySmall} 
+              onChange={e => setFilters({...filters, categorySmall: e.target.value})}
+              disabled={filters.categoryMedium === '전체'}
+              style={{ width: '100%', padding: '5px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', outline: 'none', backgroundColor: filters.categoryMedium === '전체' ? '#f1f5f9' : '#fff' }}
+            >
+              <option value="전체">소: 전체</option>
+              {categories.filter(c => {
+                const medium = categories.find(m => m.name === filters.categoryMedium);
+                return medium && c.parentId === medium.id && c.level === 3;
               }).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
           </div>
