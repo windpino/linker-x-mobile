@@ -242,6 +242,7 @@ function App() {
   const [inventoryTransferInitialDate, setInventoryTransferInitialDate] = useState(null);
   const [syncedCollections, setSyncedCollections] = useState({});
   const [isPartnerManagerOpen, setIsPartnerManagerOpen] = useState(false);
+  const [partnerInitialFilter, setPartnerInitialFilter] = useState('all');
   const [isProductManagerOpen, setIsProductManagerOpen] = useState(false);
   const [isPartnerBulkOpen, setIsPartnerBulkOpen] = useState(false);
   const [isProductBulkOpen, setIsProductBulkOpen] = useState(false);
@@ -2840,14 +2841,188 @@ function App() {
               </div>
             </div>
           )}
-          {widgetId === 'Partners' && (
-            <div className="summary-stat">
-              <div className="stat-item">
-                <span className="stat-label">총 거래처</span>
-                <span className="stat-value">{(partners || []).length}개</span>
+          {widgetId === 'Partners' && (() => {
+            const list = Array.isArray(partners) ? partners : [];
+            const activePartners = list.filter(p => !p.hideOrderInfo);
+            const salesCount = activePartners.filter(p => p.type === '매출처').length;
+            const purchaseCount = activePartners.filter(p => p.type === '매입처').length;
+            const mixedCount = activePartners.filter(p => p.type === '매입매출처' || p.type === '혼합').length;
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoDateStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+            // 최근 1개월 신규 거래처
+            const newCount = activePartners.filter(p => {
+              if (p.createdAt) return new Date(p.createdAt) >= thirtyDaysAgo;
+              if (typeof p.id === 'number' && p.id > 1700000000000) return new Date(p.id) >= thirtyDaysAgo;
+              if (p.updatedAt) return new Date(p.updatedAt) >= thirtyDaysAgo;
+              return false;
+            }).length;
+
+            // 최근 1개월 거래 발생 거래처 Set
+            const recentSet = new Set();
+            const checkInv = (inv) => {
+              const d = inv.date || inv.invoiceDate || (inv.createdAt ? inv.createdAt.split('T')[0] : '');
+              if (d && d >= thirtyDaysAgoDateStr) {
+                if (inv.partner) recentSet.add(inv.partner.trim());
+                if (inv.partnerName) recentSet.add(inv.partnerName.trim());
+                if (inv.partnerId) recentSet.add(String(inv.partnerId));
+              }
+            };
+            (salesInvoices || []).forEach(checkInv);
+            (purchaseInvoices || []).forEach(checkInv);
+            (salesOrders || []).forEach(checkInv);
+            (purchaseOrders || []).forEach(checkInv);
+
+            // 최근 1개월 거래 없는 거래처
+            const noTxCount = activePartners.filter(p => {
+              const pName = (p.name || '').trim();
+              const pId = String(p.id || '');
+              return !(pName && recentSet.has(pName)) && !(pId && recentSet.has(pId));
+            }).length;
+
+            const handleOpenWithFilter = (filterType) => {
+              setPartnerInitialFilter(filterType);
+              setIsPartnerManagerOpen(true);
+            };
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '2px 0' }}>
+                {/* Top: 총 거래처 */}
+                <div 
+                  onClick={() => handleOpenWithFilter('all')}
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    padding: '8px 12px', 
+                    backgroundColor: '#f8fafc', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={16} color="#6366f1" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>총 거래처</span>
+                  </div>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#4f46e5' }}>
+                    {list.length}<span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginLeft: '2px' }}>개</span>
+                  </span>
+                </div>
+
+                {/* Grid: 매출처, 매입처, 매입매출처 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  <div 
+                    onClick={() => handleOpenWithFilter('매출처')}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      padding: '6px 4px', 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #fee2e2', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                  >
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#dc2626' }}>매출처</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
+                      {salesCount}<span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#991b1b' }}>개</span>
+                    </span>
+                  </div>
+
+                  <div 
+                    onClick={() => handleOpenWithFilter('매입처')}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      padding: '6px 4px', 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #dbeafe', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                  >
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb' }}>매입처</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
+                      {purchaseCount}<span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#1e40af' }}>개</span>
+                    </span>
+                  </div>
+
+                  <div 
+                    onClick={() => handleOpenWithFilter('매입매출처')}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      padding: '6px 4px', 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #dcfce7', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0fdf4'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                  >
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a' }}>매입매출처</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
+                      {mixedCount}<span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#166534' }}>개</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Stats: 최근 1개월 신규 & 최근 1개월 미거래 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <div 
+                    onClick={() => handleOpenWithFilter('newInMonth')}
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '6px 8px', 
+                      backgroundColor: '#f0fdfa', 
+                      border: '1px solid #ccfbf1', 
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0d9488' }}>1개월 신규</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f766e' }}>+{newCount}개</span>
+                  </div>
+
+                  <div 
+                    onClick={() => handleOpenWithFilter('noTransactionInMonth')}
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '6px 8px', 
+                      backgroundColor: '#fffbeb', 
+                      border: '1px solid #fef3c7', 
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#d97706' }}>1개월 미거래</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#b45309' }}>{noTxCount}개</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
           {widgetId === 'Warehouses' && (() => {
             const canViewRecentActivity = currentUser?.role === 'super_admin' || 
               currentUser?.role === 'admin' || 
@@ -4107,7 +4282,7 @@ function App() {
       />}
       {isPartnerManagerOpen && (
         <PartnerManagement 
-          onClose={() => setIsPartnerManagerOpen(false)} 
+          onClose={() => { setIsPartnerManagerOpen(false); setPartnerInitialFilter('all'); }} 
           staffList={staffList} 
           partners={partners} 
           setPartners={setPartners} 
@@ -4116,6 +4291,11 @@ function App() {
           onOpenBulk={() => setIsPartnerBulkOpen(true)} 
           currentUser={currentUser}
           accounts={accounts}
+          salesInvoices={salesInvoices}
+          purchaseInvoices={purchaseInvoices}
+          salesOrders={salesOrders}
+          purchaseOrders={purchaseOrders}
+          initialFilterType={partnerInitialFilter}
         />
       )}
       {isProductManagerOpen && <ProductManagement onClose={() => setIsProductManagerOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} onOpenBulk={() => setIsProductBulkOpen(true)} currentUser={currentUser} />}

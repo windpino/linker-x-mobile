@@ -10,7 +10,24 @@ import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import './Partner.css';
 
-const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners, onOrder, warehouses = [], onOpenBulk, currentUser, isBulkOpen, accounts = [] }) => {
+const PartnerManagement = ({ 
+  onClose, 
+  staffList = [], 
+  partners = [], 
+  setPartners, 
+  onOrder, 
+  warehouses = [], 
+  onOpenBulk, 
+  currentUser, 
+  isBulkOpen, 
+  accounts = [],
+  salesInvoices = [],
+  purchaseInvoices = [],
+  salesOrders = [],
+  purchaseOrders = [],
+  initialFilterType = 'all',
+  initialFilterManager = 'all'
+}) => {
   const isMobileView = true;
   const [colWidths, setColWidths] = useState({
     sequence: 60,
@@ -75,12 +92,37 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState(null);
-  const [activeTab, setActiveTab] = useState('전체');
-  const [filterType, setFilterType] = useState('전체');
-  const [filterManager, setFilterManager] = useState('전체');
+  const [filterType, setFilterType] = useState(initialFilterType || 'all');
+  const [filterManager, setFilterManager] = useState(initialFilterManager || 'all');
   const [confirmModal, setConfirmModal] = useState(null);
   const [clickManagerFilter, setClickManagerFilter] = useState(null); // set when badge is clicked
   const [draggedIndex, setDraggedIndex] = useState(null);
+
+  // 30 days transaction lookup set
+  const recentTransactedSet = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoDateStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    const names = new Set();
+    const ids = new Set();
+
+    const checkInvoice = (inv) => {
+      const invDate = inv.date || inv.invoiceDate || (inv.createdAt ? inv.createdAt.split('T')[0] : '');
+      if (invDate && invDate >= thirtyDaysAgoDateStr) {
+        if (inv.partner) names.add(inv.partner.trim());
+        if (inv.partnerName) names.add(inv.partnerName.trim());
+        if (inv.partnerId) ids.add(String(inv.partnerId));
+      }
+    };
+
+    (salesInvoices || []).forEach(checkInvoice);
+    (purchaseInvoices || []).forEach(checkInvoice);
+    (salesOrders || []).forEach(checkInvoice);
+    (purchaseOrders || []).forEach(checkInvoice);
+
+    return { names, ids, thirtyDaysAgo };
+  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders]);
 
   // Search state
   const [searchText, setSearchText] = useState('');
@@ -475,8 +517,8 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
 
   const getFilteredPartners = () => {
     return getSortedPartners().filter(partner => {
-      // Logic for 'Hidden' partners (hideOrderInfo)
-      if (activeTab === '숨김') {
+      // Logic for 'hidden' vs regular
+      if (filterType === 'hidden' || filterType === '숨김') {
         if (!partner.hideOrderInfo) return false;
       } else {
         if (partner.hideOrderInfo) return false;
@@ -495,27 +537,38 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
         }
         return pManagerNorm === cManagerNorm;
       }
-      // Tab filter
-      if (activeTab === '구분별') {
-        if (filterType !== '전체') {
-          if (filterType === '매입매출처') {
-            if (partner.type !== '혼합' && partner.type !== '매입매출처') return false;
-          } else {
-            if (partner.type !== filterType) return false;
-          }
+
+      // Type filter (롤박스)
+      if (filterType && filterType !== 'all' && filterType !== '전체' && filterType !== 'hidden' && filterType !== '숨김') {
+        if (filterType === '매입매출처') {
+          if (partner.type !== '혼합' && partner.type !== '매입매출처') return false;
+        } else if (filterType === 'newInMonth') {
+          let isNew = false;
+          if (partner.createdAt) isNew = new Date(partner.createdAt) >= recentTransactedSet.thirtyDaysAgo;
+          else if (typeof partner.id === 'number' && partner.id > 1700000000000) isNew = new Date(partner.id) >= recentTransactedSet.thirtyDaysAgo;
+          else if (partner.updatedAt) isNew = new Date(partner.updatedAt) >= recentTransactedSet.thirtyDaysAgo;
+          if (!isNew) return false;
+        } else if (filterType === 'noTransactionInMonth') {
+          const pName = (partner.name || '').trim();
+          const pId = String(partner.id || '');
+          const hasRecent = (pName && recentTransactedSet.names.has(pName)) || (pId && recentTransactedSet.ids.has(pId));
+          if (hasRecent) return false;
+        } else {
+          if (partner.type !== filterType) return false;
         }
       }
-      if (activeTab === '담당별') {
-        if (filterManager !== '전체') {
-          const pManagerNorm = (partner.manager || '').replace(/\s*\(.*?\)/g, '').trim();
-          const fManagerNorm = (filterManager || '').replace(/\s*\(.*?\)/g, '').trim();
-          if (fManagerNorm === '미지정' || fManagerNorm === '-') {
-            if (pManagerNorm && pManagerNorm !== '-' && pManagerNorm !== '미지정') return false;
-          } else {
-            if (pManagerNorm !== fManagerNorm) return false;
-          }
+
+      // Manager filter (롤박스)
+      if (filterManager && filterManager !== 'all' && filterManager !== '전체') {
+        const pManagerNorm = (partner.manager || '').replace(/\s*\(.*?\)/g, '').trim();
+        const fManagerNorm = (filterManager || '').replace(/\s*\(.*?\)/g, '').trim();
+        if (fManagerNorm === '미지정' || fManagerNorm === '-') {
+          if (pManagerNorm && pManagerNorm !== '-' && pManagerNorm !== '미지정') return false;
+        } else {
+          if (pManagerNorm !== fManagerNorm) return false;
         }
       }
+
       // Text search filter (no exact selection)
       if (searchText.trim()) {
         return matchesInitialSound(partner.name, searchText.trim());
@@ -528,130 +581,155 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
     <>
       <WindowModal title="거래처 등록/관리" onClose={onClose} width="1100px" contentPadding="0" noScroll>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(85vh - 40px)', overflow: 'hidden' }}>
-          <div style={{ padding: isMobileView ? '12px' : '0.8cm', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
-            <div className="partner-header-modern" style={{ marginBottom: isMobileView ? '0px' : '16px' }}>
-              {!isMobileView && (
-                <div className="partner-title-area">
-                  <h2 className="partner-title" style={{ fontSize: '1.8rem' }}>
-                    <Users color="#3b82f6" size={28} strokeWidth={2} />
-                    거래처 관리
-                  </h2>
-                </div>
-              )}
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
+            <div className="partner-header-modern" style={{ marginBottom: '8px' }}>
+              <div className="partner-header-right" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', width: '100%' }}>
+                {/* [전체 거래처] 버튼 */}
+                <button 
+                  className={`btn-filter-all ${filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter ? 'active' : ''}`}
+                  onClick={() => {
+                    setFilterType('all');
+                    setFilterManager('all');
+                    setSearchText('');
+                    setSelectedPartnerName(null);
+                    setClickManagerFilter(null);
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    border: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                    backgroundColor: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#3b82f6' : '#fff',
+                    color: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#fff' : '#475569',
+                    boxShadow: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '0 2px 6px rgba(59,130,246,0.3)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <Users size={13} /> 전체
+                </button>
 
-              <div className="partner-header-right">
-                {!isMobileView && (
-                  <div className="partner-tabs">
-                    <button className={`partner-tab ${activeTab === '전체' ? 'active' : ''}`} onClick={() => setActiveTab('전체')}>전체</button>
-                    <button className={`partner-tab ${activeTab === '구분별' ? 'active' : ''}`} onClick={() => setActiveTab('구분별')}>구분별</button>
-                    <button className={`partner-tab ${activeTab === '담당별' ? 'active' : ''}`} onClick={() => setActiveTab('담당별')}>담당별</button>
-                    <button className={`partner-tab ${activeTab === '숨김' ? 'active' : ''}`} onClick={() => setActiveTab('숨김')} style={{ color: activeTab === '숨김' ? '#ef4444' : '#94a3b8' }}>숨김</button>
-                  </div>
-                )}
+                {/* 거래처 구분 롤박스 */}
+                <select 
+                  className="partner-rollbox-select"
+                  value={filterType}
+                  onChange={(e) => {
+                    setFilterType(e.target.value);
+                    setSelectedPartnerName(null);
+                    setClickManagerFilter(null);
+                  }}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    border: filterType !== 'all' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                    backgroundColor: filterType !== 'all' ? '#eff6ff' : '#fff',
+                    color: filterType !== 'all' ? '#1d4ed8' : '#334155',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    cursor: 'pointer',
+                    flex: 1,
+                    minWidth: '95px'
+                  }}
+                >
+                  <option value="all">구분 전체</option>
+                  <option value="매출처">매출처</option>
+                  <option value="매입처">매입처</option>
+                  <option value="매입매출처">매입매출처</option>
+                  <option value="hidden">숨긴 거래처</option>
+                  <option value="newInMonth">최근 1개월 신규</option>
+                  <option value="noTransactionInMonth">최근 1개월 미거래</option>
+                </select>
 
-                <div ref={searchRef} style={{ position: 'relative' }}>
-                  <div className="partner-search" style={{ position: 'relative' }}>
-                    <Search size={16} className="search-icon" />
-                    <input
-                      type="text"
-                      value={searchText}
-                      onChange={handleSearchChange}
-                      onFocus={() => searchText && setShowSuggestions(true)}
-                      placeholder="상호 검색 (초성 가능)"
-                      style={{ paddingRight: searchText ? '28px' : '12px' }}
-                    />
-                    {searchText && (
-                      <button onClick={handleClearSearch} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto', marginTop: '4px' }}>
-                      {suggestions.map(p => (
-                        <div key={p.id} onMouseDown={() => handleSelectSuggestion(p.name)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }} onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{p.type === '혼합' ? '매입매출처' : p.type} {p.manager && p.manager !== '-' ? `· ${p.manager}` : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* 담당별 거래처 롤박스 */}
+                <select 
+                  className="partner-rollbox-select"
+                  value={filterManager}
+                  onChange={(e) => {
+                    setFilterManager(e.target.value);
+                    setClickManagerFilter(null);
+                  }}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    border: filterManager !== 'all' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                    backgroundColor: filterManager !== 'all' ? '#eff6ff' : '#fff',
+                    color: filterManager !== 'all' ? '#1d4ed8' : '#334155',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    cursor: 'pointer',
+                    flex: 1,
+                    minWidth: '95px'
+                  }}
+                >
+                  <option value="all">담당자 전체</option>
+                  {safeStaffList.map(staff => (
+                    <option key={staff.id || staff.userId} value={staff.name}>{staff.name}</option>
+                  ))}
+                  <option value="미지정">담당 미지정</option>
+                </select>
 
-
-                {!isMobileView && (
-                  <button className="btn-outline partner-btn" onClick={() => setIsSettingsOpen(true)}><Settings size={16} /> 환경설정</button>
-                )}
-                <button className="btn-outline partner-btn" onClick={() => window.print()}><Printer size={16} /> 인쇄</button>
-                {!isMobileView && (
-                  <button className="btn-outline partner-btn" onClick={onOpenBulk} style={{ color: '#10b981', borderColor: '#10b981' }}><Grid size={16} /> 일괄 편집</button>
-                )}
-                <button className="btn-primary" onClick={handleOpenRegistration}><Plus size={16} /> 거래처 추가</button>
+                <button className="btn-primary" onClick={handleOpenRegistration} style={{ padding: '6px 10px', fontSize: '0.78rem' }}><Plus size={14} /> 추가</button>
               </div>
             </div>
 
-            <div style={{ height: '8px' }}></div>
+            {/* 검색창 */}
+            <div ref={searchRef} style={{ position: 'relative', width: '100%', marginTop: '4px' }}>
+              <div className="partner-search" style={{ position: 'relative', width: '100%' }}>
+                <Search size={14} className="search-icon" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={handleSearchChange}
+                  onFocus={() => searchText && setShowSuggestions(true)}
+                  placeholder="상호 검색 (초성 가능)"
+                  style={{ width: '100%', padding: '6px 28px 6px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                />
+                {searchText && (
+                  <button onClick={handleClearSearch} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto', marginTop: '4px' }}>
+                  {suggestions.map(p => (
+                    <div key={p.id} onMouseDown={() => handleSelectSuggestion(p.name)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }} onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
+                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{p.type === '혼합' ? '매입매출처' : p.type} {p.manager && p.manager !== '-' ? `· ${p.manager}` : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: isMobileView ? '12px' : '0.8cm', paddingTop: '16px' }}>
-            {activeTab === '구분별' && (
-              <div className="partner-sub-filter" style={{ display: 'flex', gap: '16px', padding: '12px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', marginBottom: '16px', borderRadius: '8px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>거래처 구분:</span>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    {['전체', '매출처', '매입처', '매입매출처'].map((type) => (
-                      <label 
-                        key={type} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '6px', 
-                          fontSize: '0.9rem', 
-                          fontWeight: filterType === type ? 600 : 500,
-                          color: filterType === type ? '#2563eb' : '#475569',
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          transition: 'color 0.2s'
-                        }}
-                      >
-                        <input 
-                          type="radio" 
-                          name="filterType" 
-                          value={type} 
-                          checked={filterType === type} 
-                          onChange={(e) => setFilterType(e.target.value)} 
-                          style={{
-                            appearance: 'none',
-                            width: '16px',
-                            height: '16px',
-                            border: filterType === type ? '5px solid #2563eb' : '2px solid #cbd5e1',
-                            borderRadius: '50%',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            backgroundColor: '#fff'
-                          }}
-                        />
-                        {type}
-                      </label>
-                    ))}
-                  </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
+            {(filterType !== 'all' || filterManager !== 'all' || selectedPartnerName || clickManagerFilter) && (
+              <div style={{ padding: '6px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderRadius: '6px', fontSize: '0.75rem', color: '#166534' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800 }}>📌</span>
+                  {filterType !== 'all' && <span style={{ background: '#dcfce7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>구분: {filterType === 'hidden' ? '숨김' : filterType === 'newInMonth' ? '1개월신규' : filterType === 'noTransactionInMonth' ? '1개월미거래' : filterType}</span>}
+                  {filterManager !== 'all' && <span style={{ background: '#dcfce7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>담당: {filterManager}</span>}
+                  <span style={{ color: '#64748b' }}>({getFilteredPartners().length}건)</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '6px', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 500 }}>
-                  <span>💡 리스트의 행을 드래그하여 거래처 순서를 자유롭게 변경할 수 있습니다.</span>
-                </div>
-              </div>
-            )}
-
-            {activeTab === '담당별' && (
-              <div className="partner-sub-filter" style={{ display: 'flex', gap: '12px', padding: '12px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', marginBottom: '16px', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>담당자 선택:</span>
-                  <select value={filterManager} onChange={(e) => setFilterManager(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
-                    <option value="전체">전체 담당자</option>
-                    {safeStaffList.map(staff => <option key={staff.id} value={staff.name}>{staff.name}</option>)}
-                  </select>
-                </div>
+                <button 
+                  onClick={() => {
+                    setFilterType('all');
+                    setFilterManager('all');
+                    setSearchText('');
+                    setSelectedPartnerName(null);
+                    setClickManagerFilter(null);
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#15803d', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  초기화
+                </button>
               </div>
             )}
                         {isMobileView ? (
