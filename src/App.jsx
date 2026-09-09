@@ -1502,6 +1502,7 @@ function App() {
         qty: Number(updatedEntry.qty)
       };
       await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(id)), cleanEntry);
+      setInventoryTransferHistory(prev => prev.map(h => String(h.id) === String(id) ? { ...h, ...cleanEntry } : h));
 
       showToast('재고 이동 내역이 수정되었습니다.', 'success');
     } catch (err) {
@@ -4262,10 +4263,12 @@ function App() {
         inventory={inventory}
         onMoveStock={onMoveStock}
         onDeleteMoveStock={onDeleteMoveStock}
+        onUpdateMoveStock={onUpdateInventoryTransfer}
         historyData={inventoryTransferHistory}
         setHistoryData={setInventoryTransferHistory}
         salesOrders={salesOrders}
         salesInvoices={salesInvoices}
+        staffList={staffList}
         onOpenSalesInvoice={openSalesInvoice}
         onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
         purchaseInvoices={purchaseInvoices}
