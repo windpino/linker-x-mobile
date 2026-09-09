@@ -118,11 +118,12 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
-      // If isCloning is true, we treat it as a new registration by ignoring the original ID
+      // If isCloning is true, we treat it as a new registration by ignoring the original ID and docId
       if (isCloning) {
-        onSave({ ...formData, id: Date.now() });
+        const { _docId, ...cleanForm } = formData;
+        onSave({ ...cleanForm, id: Date.now() }, true);
       } else {
-        onSave(formData);
+        onSave(formData, false);
       }
     } else {
       onClose();
@@ -130,17 +131,20 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   };
 
   const handleCloneToNew = () => {
-    setFormData(prev => ({
-      ...prev,
-      id: undefined,
-      userId: '',
-      password: '',
-      name: '',
-      phone: '',
-      sequence: nextSequence || '',
-      address: '',
-      zone: ''
-    }));
+    setFormData(prev => {
+      const { _docId, ...rest } = prev;
+      return {
+        ...rest,
+        id: Date.now(),
+        userId: '',
+        password: '',
+        name: '',
+        phone: '',
+        sequence: nextSequence || '',
+        address: '',
+        zone: ''
+      };
+    });
     setIsCloning(true);
     setShowPassword(false);
   };

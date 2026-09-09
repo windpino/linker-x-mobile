@@ -26,7 +26,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     setIsRegistrationOpen(true);
   };
 
-  const handleSaveStaff = async (staffData) => {
+  const handleSaveStaff = async (staffData, isCloning = false) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
       return;
@@ -34,15 +34,17 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     try {
       const companyId = currentUser?.companyId || 'default';
       const trimmedUserId = staffData.userId ? String(staffData.userId).trim() : '';
+      const isNewStaff = isCloning || !editingStaff;
+      
       const targetDocId = trimmedUserId 
         ? `${companyId}_${trimmedUserId}` 
-        : (editingStaff?._docId || (staffData.id ? String(staffData.id) : `${companyId}_staff_${Date.now()}`));
+        : (!isNewStaff && editingStaff?._docId ? editingStaff._docId : `${companyId}_staff_${Date.now()}`);
       
       const finalData = {
-        ...(editingStaff || {}),
+        ...(isNewStaff ? {} : (editingStaff || {})),
         ...staffData,
         userId: trimmedUserId,
-        id: editingStaff?.id || staffData.id || Date.now(),
+        id: isNewStaff ? (staffData.id || Date.now()) : (editingStaff?.id || staffData.id || Date.now()),
         _docId: targetDocId,
         companyId,
         updatedAt: new Date().toISOString()
@@ -54,14 +56,14 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
       batch.set(staffDocRef, finalData, { merge: true });
 
-      // If existing _docId is different from targetDocId, delete the old doc
-      if (editingStaff?._docId && editingStaff._docId !== targetDocId) {
+      // If existing _docId is different from targetDocId and NOT a new/cloned staff, delete the old doc
+      if (!isNewStaff && editingStaff?._docId && editingStaff._docId !== targetDocId) {
         const oldStaffDocRef = doc(db, 'companies', companyId, 'staffList', editingStaff._docId);
         batch.delete(oldStaffDocRef);
       }
 
       // Also clean up any legacy raw numeric ID doc if it exists and differs
-      if (editingStaff?.id && String(editingStaff.id) !== targetDocId && !String(editingStaff.id).includes('_')) {
+      if (!isNewStaff && editingStaff?.id && String(editingStaff.id) !== targetDocId && !String(editingStaff.id).includes('_')) {
         const legacyDocRef = doc(db, 'companies', companyId, 'staffList', String(editingStaff.id));
         batch.delete(legacyDocRef);
       }
@@ -101,9 +103,10 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       if (setStaffList) {
         setStaffList(prev => {
           const filtered = (prev || []).filter(s => {
-            if (editingStaff?._docId && s._docId === editingStaff._docId) return false;
-            if (editingStaff?.id && s.id === editingStaff.id) return false;
+            if (!isNewStaff && editingStaff?._docId && s._docId === editingStaff._docId) return false;
+            if (!isNewStaff && editingStaff?.id && s.id === editingStaff.id) return false;
             if (trimmedUserId && s.userId === trimmedUserId) return false;
+            if (s._docId && s._docId === targetDocId) return false;
             return true;
           });
           return [...filtered, finalData];
@@ -167,15 +170,15 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
   };
 
   const sortStaffList = (list) => {
-    return [...list].sort((a, b) => {
+    return [...(list || [])].sort((a, b) => {
       const isAdminA = a.role === 'super_admin' || a.role === 'admin' || a.userId === 'admin' || a.jobTitle === '관리자' || a.jobTitle === '대표이사' || a.jobTitle === '대표';
       const isAdminB = b.role === 'super_admin' || b.role === 'admin' || b.userId === 'admin' || b.jobTitle === '관리자' || b.jobTitle === '대표이사' || b.jobTitle === '대표';
 
       if (isAdminA && !isAdminB) return -1;
       if (!isAdminA && isAdminB) return 1;
 
-      const seqA = a.sequence !== undefined && a.sequence !== null && a.sequence !== '' ? a.sequence : null;
-      const seqB = b.sequence !== undefined && b.sequence !== null && b.sequence !== '' ? b.sequence : null;
+      const seqA = a.sequence !== undefined && a.sequence !== null && String(a.sequence).trim() !== '' ? a.sequence : null;
+      const seqB = b.sequence !== undefined && b.sequence !== null && String(b.sequence).trim() !== '' ? b.sequence : null;
 
       if (seqA !== null && seqB !== null) {
         const numA = Number(seqA);
@@ -194,7 +197,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
 
       const nameA = a.name || '';
       const nameB = b.name || '';
-      return nameA.localeCompare(nameB, 'ko');
+      return String(nameA).localeCompare(String(nameB), 'ko');
     });
   };
 
@@ -278,8 +281,8 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
                 <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>등록된 직원이 없습니다.</div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>우측 상단의 '+ 직원 추가' 버튼을 눌러 직원을 등록하세요.</div>
               </div>
-            ) : filteredStaffList.map(staff => (
-              <div key={staff.id} style={{
+            ) : filteredStaffList.map((staff, index) => (
+              <div key={staff._docId || (staff.userId ? `user_${staff.userId}` : (staff.id ? `id_${staff.id}` : `staff_${index}`))} style={{
                 backgroundColor: '#ffffff',
                 border: '1px solid #e2e8f0',
                 borderRadius: '10px',

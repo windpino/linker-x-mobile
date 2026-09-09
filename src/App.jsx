@@ -921,16 +921,7 @@ function App() {
           const staffMap = new Map();
           data.forEach(s => {
             if (!s) return;
-            let matchKey = null;
-            if (s.userId && String(s.userId).trim()) {
-              matchKey = `user_${String(s.userId).trim()}`;
-            } else if (s._docId) {
-              matchKey = `doc_${s._docId}`;
-            } else if (s.id) {
-              matchKey = `id_${s.id}`;
-            } else {
-              matchKey = `raw_${Math.random()}`;
-            }
+            const matchKey = s._docId || (s.userId && String(s.userId).trim() ? `user_${String(s.userId).trim()}` : (s.id ? `id_${s.id}` : `raw_${Math.random()}`));
 
             const existing = staffMap.get(matchKey);
             if (!existing) {
@@ -3804,6 +3795,7 @@ function App() {
             if (data.regType === 'staff') {
               const newStaff = {
                 id: Date.now(),
+                _docId: compositeId,
                 userId: data.loginId,
                 password: data.password,
                 name: data.name,
