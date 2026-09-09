@@ -33,11 +33,12 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     }
     try {
       const companyId = currentUser?.companyId || 'default';
-      const docId = `${companyId}_${staffData.userId}`;
+      const docId = editingStaff?._docId || (staffData.userId ? `${companyId}_${staffData.userId}` : String(staffData.id || Date.now()));
       
       const finalData = {
+        ...(editingStaff || {}),
         ...staffData,
-        id: staffData.id || Date.now(),
+        id: editingStaff?.id || staffData.id || Date.now(),
         companyId,
         updatedAt: new Date().toISOString()
       };
@@ -46,7 +47,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
 
       // 1. Save staff doc
       const staffDocRef = doc(db, 'companies', companyId, 'staffList', docId);
-      batch.set(staffDocRef, finalData);
+      batch.set(staffDocRef, finalData, { merge: true });
 
       // 2. Bidirectional sync:
       // If this staff member has a warehouse assigned, set them as the manager of that warehouse
@@ -54,15 +55,26 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
         // Find the warehouse by name
         const warehouse = warehouses.find(w => w.name === staffData.warehouse);
         if (warehouse) {
-          const whDocRef = doc(db, 'companies', companyId, 'warehouses', String(warehouse.id));
-          batch.update(whDocRef, { manager: staffData.name });
+          const whDocId = warehouse._docId || String(warehouse.id);
+          const whDocRef = doc(db, 'companies', companyId, 'warehouses', whDocId);
+          batch.set(whDocRef, { manager: staffData.name, updatedAt: new Date().toISOString() }, { merge: true });
         }
 
         // Also, if they were previously the manager of a different warehouse, clear it.
         warehouses.forEach(w => {
+          const otherDocId = w._docId || String(w.id);
           if (w.name !== staffData.warehouse && w.manager === staffData.name) {
-            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', String(w.id));
-            batch.update(oldWhDocRef, { manager: '' });
+            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+          }
+        });
+      } else {
+        // If warehouse is unassigned/cleared, clear this staff from any warehouse where they were manager
+        warehouses.forEach(w => {
+          const otherDocId = w._docId || String(w.id);
+          if (w.manager === staffData.name) {
+            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
           }
         });
       }
@@ -71,12 +83,11 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Staff save error:', err);
-      alert('직원 정보 저장 중 오류가 발생했습니다: ' + err.message);
+      alert('직원 정보 저장 중 오류가 발생했습니다: ' + (err.message || ''));
     }
   };
 
-  const handleDeleteStaff = async (staffId) => {
-    console.log('handleDeleteStaff called with ID:', staffId);
+  const handleDeleteStaff = async (staffOrId) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
       return;
@@ -84,22 +95,54 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
     if (!window.confirm('정말 이 직원을 삭제하시겠습니까?')) return;
     try {
       const companyId = currentUser?.companyId || 'default';
-      const staff = staffList.find(s => String(s.id) === String(staffId));
+      const staff = typeof staffOrId === 'object' ? staffOrId : staffList.find(s => String(s.id) === String(staffOrId));
       
-      // Use _docId from sync if available, otherwise reconstruct from userId
-      const docId = staff?._docId || (staff?.userId ? `${companyId}_${staff.userId}` : String(staffId));
+      const docId = staff?._docId || (staff?.userId ? `${companyId}_${staff.userId}` : String(staffOrId));
       
-      console.log('Deleting document:', docId);
       await deleteDoc(doc(db, 'companies', companyId, 'staffList', docId));
       
-      // Secondary check: if it was a numeric ID in the new structure
-      if (staff?.id && String(staff.id) !== docId) {
-         await deleteDoc(doc(db, 'companies', companyId, 'staffList', String(staff.id)));
+      // If docId differs from staff.id and staff.id is present
+      if (staff?.id && String(staff.id) !== docId && !String(staff.id).includes('_')) {
+        try {
+          await deleteDoc(doc(db, 'companies', companyId, 'staffList', String(staff.id)));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Staff delete error:', err);
-      alert('직원 삭제 중 오류가 발생했습니다: ' + err.message);
+      alert('직원 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
     }
+  };
+
+  const sortStaffList = (list) => {
+    return [...list].sort((a, b) => {
+      const isAdminA = a.role === 'super_admin' || a.role === 'admin' || a.userId === 'admin' || a.jobTitle === '관리자' || a.jobTitle === '대표이사' || a.jobTitle === '대표';
+      const isAdminB = b.role === 'super_admin' || b.role === 'admin' || b.userId === 'admin' || b.jobTitle === '관리자' || b.jobTitle === '대표이사' || b.jobTitle === '대표';
+
+      if (isAdminA && !isAdminB) return -1;
+      if (!isAdminA && isAdminB) return 1;
+
+      const seqA = a.sequence !== undefined && a.sequence !== null && a.sequence !== '' ? a.sequence : null;
+      const seqB = b.sequence !== undefined && b.sequence !== null && b.sequence !== '' ? b.sequence : null;
+
+      if (seqA !== null && seqB !== null) {
+        const numA = Number(seqA);
+        const numB = Number(seqB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          if (numA !== numB) return numA - numB;
+        } else {
+          const comp = String(seqA).localeCompare(String(seqB), 'ko', { numeric: true });
+          if (comp !== 0) return comp;
+        }
+      } else if (seqA !== null && seqB === null) {
+        return -1;
+      } else if (seqA === null && seqB !== null) {
+        return 1;
+      }
+
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB, 'ko');
+    });
   };
 
   const handleExcelExport = () => {
@@ -112,20 +155,20 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       email: '이메일',
       memo: '메모'
     };
-    const formattedData = formatDataForExcel(staffList, columnMap);
+    const formattedData = formatDataForExcel(sortStaffList(staffList), columnMap);
     exportToExcel(formattedData, '직원명단');
   };
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredStaffList = staffList.filter(s => {
+  const filteredStaffList = sortStaffList(staffList.filter(s => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (s.name && s.name.toLowerCase().includes(term)) ||
            (s.phone && s.phone.includes(term)) ||
            (s.jobTitle && s.jobTitle.toLowerCase().includes(term)) ||
            (s.warehouse && s.warehouse.toLowerCase().includes(term));
-  });
+  }));
 
   return (
     <>
@@ -213,7 +256,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
                       <Edit2 size={12} /> 수정
                     </button>
                     <button 
-                      onClick={() => handleDeleteStaff(staff.id)} 
+                      onClick={() => handleDeleteStaff(staff)} 
                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
                     >
                       <Trash2 size={12} /> 삭제

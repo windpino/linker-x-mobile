@@ -33,27 +33,39 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
     }
     try {
       const companyId = currentUser?.companyId || 'default';
-      const whId = editingWarehouse ? String(editingWarehouse.id) : String(Date.now());
+      const docId = editingWarehouse?._docId || (editingWarehouse?.id ? String(editingWarehouse.id) : String(Date.now()));
+      const safeWhId = editingWarehouse?.id ?? (isNaN(Number(docId)) ? docId : Number(docId));
       
+      const isVeh = !!(editingWarehouse?.isVehicle || editingWarehouse?.vehicleId || String(docId).startsWith('wh_veh_') || editingWarehouse?.name?.startsWith('[차량]'));
+      const vId = editingWarehouse?.vehicleId || (String(docId).startsWith('wh_veh_') ? String(docId).replace('wh_veh_', '') : null);
+
       const finalData = {
+        ...(editingWarehouse || {}),
         ...whData,
-        id: Number(whId),
+        id: safeWhId,
+        color: whData.color || editingWarehouse?.color || '#3b82f6',
         companyId,
         updatedAt: new Date().toISOString()
       };
 
+      if (isVeh) {
+        finalData.isVehicle = true;
+        if (vId) finalData.vehicleId = isNaN(Number(vId)) ? vId : Number(vId);
+      }
+
       const batch = writeBatch(db);
 
       // 1. Save warehouse doc
-      const whDocRef = doc(db, 'companies', companyId, 'warehouses', whId);
-      batch.set(whDocRef, finalData);
+      const whDocRef = doc(db, 'companies', companyId, 'warehouses', docId);
+      batch.set(whDocRef, finalData, { merge: true });
 
       // If this warehouse is set as the main warehouse, disable isMain on all other warehouses
       if (whData.isMain) {
         warehouses.forEach(w => {
-          if (w.id !== Number(whId) && w.isMain) {
-            const otherWhDocRef = doc(db, 'companies', companyId, 'warehouses', String(w.id));
-            batch.update(otherWhDocRef, { isMain: false });
+          const otherDocId = w._docId || String(w.id);
+          if (otherDocId !== docId && w.isMain) {
+            const otherWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+            batch.set(otherWhDocRef, { isMain: false, updatedAt: new Date().toISOString() }, { merge: true });
           }
         });
       }
@@ -62,16 +74,17 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       if (whData.manager) {
         const staff = staffList.find(s => s.name === whData.manager);
         if (staff) {
-          const docId = staff._docId || `${companyId}_${staff.userId}`;
-          const staffDocRef = doc(db, 'companies', companyId, 'staffList', docId);
-          batch.update(staffDocRef, { warehouse: whData.name });
+          const staffDocId = staff._docId || (staff.userId ? `${companyId}_${staff.userId}` : String(staff.id));
+          const staffDocRef = doc(db, 'companies', companyId, 'staffList', staffDocId);
+          batch.set(staffDocRef, { warehouse: whData.name, updatedAt: new Date().toISOString() }, { merge: true });
         }
 
         // Also, if this staff member was previously the manager of another warehouse, clear it.
         warehouses.forEach(w => {
-          if (w.id !== Number(whId) && w.manager === whData.manager) {
-            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', String(w.id));
-            batch.update(oldWhDocRef, { manager: '' });
+          const otherDocId = w._docId || String(w.id);
+          if (otherDocId !== docId && w.manager === whData.manager) {
+            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
           }
         });
       }
@@ -80,11 +93,11 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Warehouse save error:', err);
-      alert('창고 정보 저장 중 오류가 발생했습니다.');
+      alert('창고 정보 저장 중 오류가 발생했습니다: ' + (err.message || ''));
     }
   };
 
-  const handleDeleteWarehouse = async (id) => {
+  const handleDeleteWarehouse = async (wh) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
       return;
@@ -92,10 +105,11 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     try {
       const companyId = currentUser?.companyId || 'default';
-      await deleteDoc(doc(db, 'companies', companyId, 'warehouses', String(id)));
+      const docId = typeof wh === 'object' ? (wh._docId || String(wh.id)) : String(wh);
+      await deleteDoc(doc(db, 'companies', companyId, 'warehouses', docId));
     } catch (err) {
       console.error('Warehouse delete error:', err);
-      alert('창고 삭제 중 오류가 발생했습니다.');
+      alert('창고 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
     }
   };
 
@@ -211,7 +225,7 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
                       <Edit2 size={12} /> 수정
                     </button>
                     <button 
-                      onClick={() => handleDeleteWarehouse(wh.id)} 
+                      onClick={() => handleDeleteWarehouse(wh)} 
                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
                     >
                       <Trash2 size={12} /> 삭제

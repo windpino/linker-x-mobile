@@ -778,6 +778,46 @@ function App() {
     window.location.reload();
   };
 
+  // 즉시 로컬 캐시 복원 (로그인 직후 Firebase 네트워크 지연 없이 0.1초 만에 직원/거래처/제품 등 표시)
+  React.useEffect(() => {
+    if (!currentUser || !currentUser.companyId || currentView === 'login' || currentView === 'super_admin') return;
+    const companyId = currentUser.companyId;
+
+    const loadCache = (key, setter) => {
+      try {
+        const cached = localStorage.getItem(`${key}_${companyId}`) || localStorage.getItem(key);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0)) {
+            setter(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn(`Failed to hydrate cache for ${key}:`, e);
+      }
+    };
+
+    loadCache('staffList', setStaffList);
+    loadCache('warehouses', setWarehouses);
+    loadCache('products', setProducts);
+    loadCache('categories', setCategories);
+    loadCache('partners', setPartners);
+    loadCache('accounts', setAccounts);
+    loadCache('schedules', setSchedules);
+    loadCache('purchaseInvoices', setPurchaseInvoices);
+    loadCache('purchaseOrders', setPurchaseOrders);
+    loadCache('salesInvoices', setSalesInvoices);
+    loadCache('salesOrders', setSalesOrders);
+    loadCache('expenses', setExpenses);
+    loadCache('inventory', setInventory);
+    loadCache('physicalInventory', setPhysicalInventory);
+    loadCache('inventoryAdjustments', setInventoryAdjustments);
+    loadCache('inventoryTransferHistory', setInventoryTransferHistory);
+    loadCache('specialPrices', setSpecialPrices);
+    loadCache('staffZones', setStaffZones);
+    loadCache('staffJobTitles', setStaffJobTitles);
+  }, [currentUser?.companyId, currentView]);
+
   // Firebase Real-time Sync with Data Isolation
   React.useEffect(() => {
     if (!currentUser || currentView === 'login' || currentView === 'super_admin') return;
@@ -2073,28 +2113,50 @@ function App() {
 
   React.useEffect(() => {
     try {
+      const companyId = currentUser?.companyId || 'default';
+      
+      const safeSetItem = (key, stateValue, colName) => {
+        if (Array.isArray(stateValue)) {
+          if (stateValue.length === 0 && !syncedCollections[colName]) {
+            const existing = localStorage.getItem(key) || localStorage.getItem(`${key}_${companyId}`);
+            if (existing && existing !== '[]') return;
+          }
+        } else if (stateValue && typeof stateValue === 'object') {
+          if (Object.keys(stateValue).length === 0 && !syncedCollections[colName]) {
+            const existing = localStorage.getItem(key) || localStorage.getItem(`${key}_${companyId}`);
+            if (existing && existing !== '{}') return;
+          }
+        }
+        localStorage.setItem(key, JSON.stringify(stateValue));
+        if (companyId !== 'default') {
+          localStorage.setItem(`${key}_${companyId}`, JSON.stringify(stateValue));
+        }
+      };
+
       // We still keep localStorage as a fallback/cache
-      localStorage.setItem('staffList', JSON.stringify(staffList));
-      localStorage.setItem('schedules', JSON.stringify(schedules));
-      localStorage.setItem('products', JSON.stringify(products));
-      localStorage.setItem('categories', JSON.stringify(categories));
-      localStorage.setItem('partners', JSON.stringify(partners));
-      localStorage.setItem('accounts', JSON.stringify(accounts));
-      localStorage.setItem('purchaseInvoices', JSON.stringify(purchaseInvoices));
-      localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
-      localStorage.setItem('warehouses', JSON.stringify(warehouses));
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
-      localStorage.setItem('expenses', JSON.stringify(expenses));
-      localStorage.setItem('licenseData', JSON.stringify(licenseData));
-      localStorage.setItem('dashboardConfig', JSON.stringify(dashboardConfig));
-      localStorage.setItem('scheduleTypes', JSON.stringify(scheduleTypes));
-      localStorage.setItem('inventory', JSON.stringify(inventory));
-      localStorage.setItem('physicalInventory', JSON.stringify(physicalInventory));
-      localStorage.setItem('inventoryAdjustments', JSON.stringify(inventoryAdjustments));
-      localStorage.setItem('inventoryTransferHistory', JSON.stringify(inventoryTransferHistory));
-      localStorage.setItem('staffZones', JSON.stringify(staffZones));
-      localStorage.setItem('staffJobTitles', JSON.stringify(staffJobTitles));
+      safeSetItem('staffList', staffList, 'staffList');
+      safeSetItem('schedules', schedules, 'schedules');
+      safeSetItem('products', products, 'products');
+      safeSetItem('categories', categories, 'categories');
+      safeSetItem('partners', partners, 'partners');
+      safeSetItem('accounts', accounts, 'accounts');
+      safeSetItem('purchaseInvoices', purchaseInvoices, 'purchaseInvoices');
+      safeSetItem('purchaseOrders', purchaseOrders, 'purchaseOrders');
+      safeSetItem('warehouses', warehouses, 'warehouses');
+      if (currentUser) {
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      }
+      safeSetItem('systemSettings', systemSettings, 'systemSettings');
+      safeSetItem('expenses', expenses, 'expenses');
+      safeSetItem('licenseData', licenseData, 'licenseData');
+      safeSetItem('dashboardConfig', dashboardConfig, 'dashboardConfig');
+      safeSetItem('scheduleTypes', scheduleTypes, 'scheduleTypes');
+      safeSetItem('inventory', inventory, 'inventory');
+      safeSetItem('physicalInventory', physicalInventory, 'physicalInventory');
+      safeSetItem('inventoryAdjustments', inventoryAdjustments, 'inventoryAdjustments');
+      safeSetItem('inventoryTransferHistory', inventoryTransferHistory, 'inventoryTransferHistory');
+      safeSetItem('staffZones', staffZones, 'staffZones');
+      safeSetItem('staffJobTitles', staffJobTitles, 'staffJobTitles');
       
       // Save single docs to Firebase (Throttle this in production!)
       const settingsToSync = { systemSettings, licenseData, dashboardConfig, favoriteMenus, staffZones, staffJobTitles };

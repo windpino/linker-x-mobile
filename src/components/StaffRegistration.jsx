@@ -47,7 +47,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     phone: '',
     sequence: isEditing ? '' : (nextSequence || ''),
     warehouse: mainWH,
-    jobTitle: isEditing ? (initialData.jobTitle || '사원') : (staffJobTitles[0] || '사원'),
+    jobTitle: isEditing ? (initialData.jobTitle || '사원') : (staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')),
     address: '',
     zone: '',
     viewAllInventoryMovements: false,
@@ -68,7 +68,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         phone: initialData.phone || '',
         sequence: initialData.sequence || '',
         warehouse: initialData.warehouse || mainWH,
-        jobTitle: initialData.jobTitle || (staffJobTitles[0] || '사원'),
+        jobTitle: initialData.jobTitle || (staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')),
         address: initialData.address || '',
         zone: initialData.zone || '',
         userId: initialData.userId || '', 
@@ -83,7 +83,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     } else {
       setFormData(prev => ({
         ...prev,
-        jobTitle: staffJobTitles[0] || '사원'
+        jobTitle: staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')
       }));
     }
   }, [initialData, mainWH, staffJobTitles]);

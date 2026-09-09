@@ -488,8 +488,12 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
       }
       // If a manager badge was clicked
       if (clickManagerFilter !== null) {
-        if (clickManagerFilter === '-') return partner.manager === '-' || !partner.manager;
-        return partner.manager === clickManagerFilter;
+        const pManagerNorm = (partner.manager || '').replace(/\s*\(.*?\)/g, '').trim();
+        const cManagerNorm = (clickManagerFilter || '').replace(/\s*\(.*?\)/g, '').trim();
+        if (cManagerNorm === '-' || cManagerNorm === '미지정') {
+          return !pManagerNorm || pManagerNorm === '-' || pManagerNorm === '미지정';
+        }
+        return pManagerNorm === cManagerNorm;
       }
       // Tab filter
       if (activeTab === '구분별') {
@@ -502,7 +506,15 @@ const PartnerManagement = ({ onClose, staffList = [], partners = [], setPartners
         }
       }
       if (activeTab === '담당별') {
-        if (filterManager !== '전체' && partner.manager !== filterManager) return false;
+        if (filterManager !== '전체') {
+          const pManagerNorm = (partner.manager || '').replace(/\s*\(.*?\)/g, '').trim();
+          const fManagerNorm = (filterManager || '').replace(/\s*\(.*?\)/g, '').trim();
+          if (fManagerNorm === '미지정' || fManagerNorm === '-') {
+            if (pManagerNorm && pManagerNorm !== '-' && pManagerNorm !== '미지정') return false;
+          } else {
+            if (pManagerNorm !== fManagerNorm) return false;
+          }
+        }
       }
       // Text search filter (no exact selection)
       if (searchText.trim()) {

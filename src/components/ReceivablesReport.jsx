@@ -34,6 +34,26 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('전체');
   const [filterManager, setFilterManager] = useState('전체');
+
+  // Unique Manager list derived from staffList + existing partners
+  const managerOptions = useMemo(() => {
+    const map = new Map();
+    (staffList || []).forEach(s => {
+      if (s && s.name && s.name.trim()) {
+        map.set(s.name.trim(), s.jobTitle || '직원');
+      }
+    });
+    (partners || []).forEach(p => {
+      if (p && p.manager && p.manager !== '-' && p.manager.trim()) {
+        const name = p.manager.trim();
+        if (!map.has(name)) {
+          map.set(name, '직원');
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([name, jobTitle]) => ({ name, jobTitle }));
+  }, [staffList, partners]);
+
   // Local editable settings: { [partnerId]: { grade: '1'|'2'|'3', promiseDate: string } }
   const [localSettings, setLocalSettings] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -171,9 +191,13 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
       })
       .filter(row => {
         if (filterManager === '전체') return true;
-        return row.manager === filterManager;
+        const pManager = (row.manager || '').trim();
+        if (filterManager === '미지정') {
+          return !pManager || pManager === '-' || pManager === '미지정';
+        }
+        return pManager === filterManager.trim();
       })
-      .filter(row => row.name?.includes(searchTerm));
+      .filter(row => (row.name || '').toLowerCase().includes((searchTerm || '').toLowerCase().trim()));
   }, [reportData, filterStatus, filterManager, searchTerm]);
 
   const handleExcelExport = () => {
@@ -319,9 +343,9 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
             >
               전체 담당자
             </button>
-            {staffList.map(staff => (
+            {managerOptions.map(staff => (
               <button 
-                key={staff.id}
+                key={staff.name}
                 onClick={() => setFilterManager(staff.name)}
                 style={{
                   padding: '4px 10px', borderRadius: '14px',
@@ -334,6 +358,18 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
                 {staff.name}
               </button>
             ))}
+            <button 
+              onClick={() => setFilterManager('미지정')}
+              style={{
+                padding: '4px 10px', borderRadius: '14px',
+                border: filterManager === '미지정' ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+                backgroundColor: filterManager === '미지정' ? '#3b82f6' : '#fff',
+                color: filterManager === '미지정' ? '#fff' : '#475569',
+                fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              미지정
+            </button>
           </div>
 
           {/* Search & Status Grid */}
