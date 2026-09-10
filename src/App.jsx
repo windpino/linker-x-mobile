@@ -71,9 +71,9 @@ import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import useDevice from './hooks/useDevice';
-import { playMenuClickSound } from './utils/audio';
 import { db } from './firebase';
-import { doc, onSnapshot, setDoc, collection, getDocs, getDoc, writeBatch, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
+import { safeSetDoc as setDoc, safeUpdateDoc as updateDoc, safeDeleteDoc as deleteDoc } from './utils/firestoreSafety';
 
 // ─────────────────────────────────────────────────────────
 // 자주 찾는 메뉴 전체 목록 (App 함수 외부에 한 번만 정의)
