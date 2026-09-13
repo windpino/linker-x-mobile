@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Users, Printer, Plus, Edit2, Trash2, Phone, User, FileText, Search, Settings, X, Grid } from 'lucide-react';
 import PartnerRegistration from './PartnerRegistration';
 import BulkEditor from './BulkEditor';
