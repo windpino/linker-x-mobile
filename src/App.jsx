@@ -863,6 +863,8 @@ function App() {
       if (snapshot.exists()) {
         setCompanySettings(snapshot.data());
       }
+    }, (err) => {
+      console.warn("Firestore company sync warning:", err?.message || err);
     });
     unsubscribes.push(companyUnsub);
     
@@ -959,6 +961,8 @@ function App() {
         localStorage.setItem(`${col.name}_${companyId}`, JSON.stringify(data));
         localStorage.setItem(`fb_synced_${col.name}_${companyId}`, 'true');
         setSyncedCollections(prev => ({ ...prev, [col.name]: true }));
+      }, (err) => {
+        console.warn(`Firestore collection ${col.name} sync warning:`, err?.message || err);
       });
       unsubscribes.push(unsub);
     });
@@ -995,6 +999,8 @@ function App() {
             localStorage.setItem(key, JSON.stringify(dataVal));
           }
         }
+      }, (err) => {
+        console.warn(`Firestore single doc ${sd.name} sync warning:`, err?.message || err);
       });
       unsubscribes.push(unsub);
     });
