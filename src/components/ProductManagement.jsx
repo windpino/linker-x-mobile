@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Package, Printer, Download, Search, Plus, Edit2, Trash2, Tag, Grid, Settings, Check, Save } from 'lucide-react';
+import { Package, Printer, Download, Search, Plus, Edit2, Trash2, Tag, Grid, Settings, Check, Save, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import ProductRegistration from './ProductRegistration';
 import ProductCategoryModal from './ProductCategoryModal';
@@ -81,6 +81,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
   const [selectedMediumId, setSelectedMediumId] = useState('전체');
   const [selectedSmallId, setSelectedSmallId] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
   
@@ -88,6 +89,11 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [editedStocks, setEditedStocks] = useState({});
+
+  const handleSearch = () => {
+    setHasSearched(true);
+    setCurrentPage(1);
+  };
 
   // Reset pagination to page 1 on filter/search change
   useEffect(() => {
@@ -303,6 +309,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
 
   // Memoize filtered products list
   const filteredProducts = useMemo(() => {
+    if (!hasSearched) return [];
     const term = searchTerm.trim().toLowerCase();
     
     return products.filter(p => {
@@ -334,7 +341,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
       
       return true;
     });
-  }, [products, searchTerm, allowedCategoryNames]);
+  }, [products, searchTerm, allowedCategoryNames, hasSearched]);
 
   // Slice to paginate products for 60fps DOM rendering performance
   const paginatedProducts = useMemo(() => {
@@ -434,28 +441,45 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
             </div>
 
             {/* Search Bar */}
-            <div style={{ position: 'relative', width: '100%' }}>
-              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input 
-                type="text" 
-                placeholder="상품명, 카테고리, 바코드 검색..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+            <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input 
+                  type="text" 
+                  placeholder="상품명, 카테고리, 바코드 검색..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearch();
+                  }}
+                  style={{
+                    width: '100%', padding: '8px 12px 8px 34px',
+                    borderRadius: '8px', border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={handleSearch}
                 style={{
-                  width: '100%', padding: '8px 12px 8px 34px',
-                  borderRadius: '8px', border: '1px solid #cbd5e1',
-                  fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box',
-                  backgroundColor: '#f8fafc'
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  padding: '0 14px', borderRadius: '8px', border: 'none',
+                  backgroundColor: '#3b82f6', color: 'white', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)'
                 }}
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
-                >
-                  <X size={14} />
-                </button>
-              )}
+              >
+                <Search size={14} strokeWidth={2.5} /> 검색
+              </button>
             </div>
 
             {/* Category Filters (2x2 Grid on Mobile) */}
@@ -468,6 +492,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                     setSelectedLargeId(e.target.value);
                     setSelectedMediumId('전체');
                     setSelectedSmallId('전체');
+                    setHasSearched(true);
                   }}
                   style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer' }}
                 >
@@ -486,6 +511,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                   onChange={(e) => {
                     setSelectedMediumId(e.target.value);
                     setSelectedSmallId('전체');
+                    setHasSearched(true);
                   }}
                   style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: selectedLargeId === '전체' ? '#94a3b8' : '#1e293b', outline: 'none', cursor: selectedLargeId === '전체' ? 'not-allowed' : 'pointer' }}
                 >
@@ -501,7 +527,10 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 <select
                   disabled={selectedMediumId === '전체'}
                   value={selectedSmallId}
-                  onChange={(e) => setSelectedSmallId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedSmallId(e.target.value);
+                    setHasSearched(true);
+                  }}
                   style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 600, color: selectedMediumId === '전체' ? '#94a3b8' : '#1e293b', outline: 'none', cursor: selectedMediumId === '전체' ? 'not-allowed' : 'pointer' }}
                 >
                   <option value="전체">전체</option>
@@ -652,13 +681,32 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                       backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', marginBottom: '2px'
                     }}>
-                      <Package size={22} color="#3b82f6" strokeWidth={2} />
+                      <Search size={22} color="#3b82f6" strokeWidth={2} />
                     </div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
-                      {searchTerm ? `'${searchTerm}' 검색 결과가 없습니다.` : '등록된 품목이 없습니다.'}
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>
+                      {!hasSearched ? '검색어를 입력하거나 검색 버튼을 눌러주세요' : (searchTerm ? `'${searchTerm}' 검색 결과가 없습니다.` : '조회된 품목이 없습니다.')}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                      상단의 '+ 품목 추가' 버튼으로<br />새로운 상품을 등록하고 관리하세요.
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      {!hasSearched ? (
+                        <button
+                          onClick={() => { setHasSearched(true); setCurrentPage(1); }}
+                          style={{
+                            marginTop: '6px',
+                            padding: '6px 14px',
+                            backgroundColor: '#3b82f6',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          전체 품목 조회하기
+                        </button>
+                      ) : (
+                        '상단의 \'+ 품목 추가\' 버튼으로 새로운 상품을 등록하고 관리하세요.'
+                      )}
                     </div>
                   </div>
                 )}
@@ -890,10 +938,10 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                     })}
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan="12" style={{ textAlign: 'center', padding: '60px 0', color: '#ef4444' }}>
-                        <Package size={48} style={{ opacity: 0.2, marginBottom: '12px', color: '#ef4444' }} />
+                      <td colSpan="12" style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
+                        <Search size={48} style={{ opacity: 0.2, marginBottom: '12px', color: '#3b82f6' }} />
                         <p style={{ fontWeight: 600 }}>
-                          {searchTerm ? `'${searchTerm}'에 해당하는 검색 결과가 없습니다.` : '등록된 품목이 없습니다.'}
+                          {!hasSearched ? '검색어를 입력하거나 검색 버튼을 눌러주세요.' : (searchTerm ? `'${searchTerm}'에 해당하는 검색 결과가 없습니다.` : '조회된 품목이 없습니다.')}
                         </p>
                       </td>
                     </tr>

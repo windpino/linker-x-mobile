@@ -125,10 +125,15 @@ const PartnerManagement = ({
   }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders]);
 
   // Search state
+  const [hasSearched, setHasSearched] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedPartnerName, setSelectedPartnerName] = useState(null); // null = no selection
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
+
+  const handleSearch = () => {
+    setHasSearched(true);
+  };
 
   // Default visible columns matching registration form order (with robust local storage parsing)
   const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -386,7 +391,8 @@ const PartnerManagement = ({
     setSelectedPartnerName(name);
     setSearchText(name);
     setShowSuggestions(false);
-    setClickManagerFilter(null); // clear manager filter when searching
+    setClickManagerFilter(null);
+    setHasSearched(true);
   };
 
   const handleClearSearch = () => {
@@ -516,6 +522,7 @@ const PartnerManagement = ({
   };
 
   const getFilteredPartners = () => {
+    if (!hasSearched) return [];
     return getSortedPartners().filter(partner => {
       // Logic for 'hidden' vs regular
       if (filterType === 'hidden' || filterType === '숨김') {
@@ -586,13 +593,14 @@ const PartnerManagement = ({
               <div className="partner-header-right" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', width: '100%' }}>
                 {/* [전체 거래처] 버튼 */}
                 <button 
-                  className={`btn-filter-all ${filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter ? 'active' : ''}`}
+                  className={`btn-filter-all ${hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter ? 'active' : ''}`}
                   onClick={() => {
                     setFilterType('all');
                     setFilterManager('all');
                     setSearchText('');
                     setSelectedPartnerName(null);
                     setClickManagerFilter(null);
+                    setHasSearched(true);
                   }}
                   style={{
                     padding: '6px 10px',
@@ -603,10 +611,10 @@ const PartnerManagement = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    border: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    backgroundColor: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#3b82f6' : '#fff',
-                    color: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#fff' : '#475569',
-                    boxShadow: (filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '0 2px 6px rgba(59,130,246,0.3)' : 'none',
+                    border: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                    backgroundColor: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#3b82f6' : '#fff',
+                    color: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#fff' : '#475569',
+                    boxShadow: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '0 2px 6px rgba(59,130,246,0.3)' : 'none',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -678,34 +686,62 @@ const PartnerManagement = ({
               </div>
             </div>
 
-            {/* 검색창 */}
-            <div ref={searchRef} style={{ position: 'relative', width: '100%', marginTop: '4px' }}>
-              <div className="partner-search" style={{ position: 'relative', width: '100%' }}>
-                <Search size={14} className="search-icon" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="text"
-                  value={searchText}
-                  onChange={handleSearchChange}
-                  onFocus={() => searchText && setShowSuggestions(true)}
-                  placeholder="상호 검색 (초성 가능)"
-                  style={{ width: '100%', padding: '6px 28px 6px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                />
-                {searchText && (
-                  <button onClick={handleClearSearch} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                    <X size={14} />
-                  </button>
+            {/* 검색창 및 검색 버튼 */}
+            <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
+              <div ref={searchRef} style={{ position: 'relative', flex: 1 }}>
+                <div className="partner-search" style={{ position: 'relative', width: '100%' }}>
+                  <Search size={14} className="search-icon" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={handleSearchChange}
+                    onFocus={() => searchText && setShowSuggestions(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setShowSuggestions(false);
+                        handleSearch();
+                      }
+                    }}
+                    placeholder="상호 검색 (초성 가능)"
+                    style={{ width: '100%', padding: '6px 28px 6px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                  />
+                  {searchText && (
+                    <button onClick={handleClearSearch} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto', marginTop: '4px' }}>
+                    {suggestions.map(p => (
+                      <div key={p.id} onMouseDown={() => handleSelectSuggestion(p.name)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }} onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{p.type === '혼합' ? '매입매출처' : p.type} {p.manager && p.manager !== '-' ? `· ${p.manager}` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto', marginTop: '4px' }}>
-                  {suggestions.map(p => (
-                    <div key={p.id} onMouseDown={() => handleSelectSuggestion(p.name)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }} onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
-                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{p.type === '혼합' ? '매입매출처' : p.type} {p.manager && p.manager !== '-' ? `· ${p.manager}` : ''}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={handleSearch}
+                style={{
+                  padding: '0 12px',
+                  backgroundColor: '#3b82f6',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Search size={13} /> 검색
+              </button>
             </div>
           </div>
 
@@ -732,48 +768,56 @@ const PartnerManagement = ({
                 </button>
               </div>
             )}
-                        {isMobileView ? (
+            {isMobileView ? (
               <div className="partner-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '4px' }}>
-                {getFilteredPartners().map((partner, index) => {
-                  const isMixed = partner.type === '혼합' || partner.type === '매입매출처';
-                  const displayType = isMixed ? '매입매출처' : partner.type;
-                  return (
-                    <div key={partner.id} style={{
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      position: 'relative'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ color: '#64748b', fontSize: '0.8rem' }}>#{partner.sequence || '-'}</span>
-                          <span>{partner.name}</span>
-                          <span className={partner.type === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px' }}>
-                            {displayType}
-                          </span>
+                {!hasSearched ? (
+                  <div style={{ textAlign: 'center', padding: '60px 16px', color: '#64748b', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', margin: '16px 0' }}>
+                    <Search size={36} color="#3b82f6" style={{ opacity: 0.3, margin: '0 auto 10px', display: 'block' }} />
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>거래처 검색</div>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>상호명 입력 후 <b>[검색]</b> 버튼을 눌러주세요.</div>
+                  </div>
+                ) : (
+                  getFilteredPartners().map((partner, index) => {
+                    const isMixed = partner.type === '혼합' || partner.type === '매입매출처';
+                    const displayType = isMixed ? '매입매출처' : partner.type;
+                    return (
+                      <div key={partner.id} style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>#{partner.sequence || '-'}</span>
+                            <span>{partner.name}</span>
+                            <span className={partner.type === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px' }}>
+                              {displayType}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button className="icon-btn" onClick={() => handleEditPartner(partner)} style={{ padding: '4px' }}><Edit2 size={16} /></button>
+                            <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }} style={{ padding: '4px' }}><Trash2 size={16} /></button>
+                            <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ padding: '2px 6px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><FileText size={12} /> 주문</button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button className="icon-btn" onClick={() => handleEditPartner(partner)} style={{ padding: '4px' }}><Edit2 size={16} /></button>
-                          <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }} style={{ padding: '4px' }}><Trash2 size={16} /></button>
-                          <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ padding: '2px 6px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><FileText size={12} /> 주문</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem', color: '#475569' }}>
+                          <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>대표자:</span>{partner.ceo || '-'}</div>
+                          <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>연락처:</span>{partner.phone || partner.mobile || '-'}</div>
+                          <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>담당자:</span>{partner.manager || '-'}</div>
+                          <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>미수금:</span>{formatAmount(partner.receivables)}원</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem', color: '#475569' }}>
-                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>대표자:</span>{partner.ceo || '-'}</div>
-                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>연락처:</span>{partner.phone || partner.mobile || '-'}</div>
-                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>담당자:</span>{partner.manager || '-'}</div>
-                        <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>미수금:</span>{formatAmount(partner.receivables)}원</div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {getFilteredPartners().length === 0 && (
+                    );
+                  })
+                )}
+                {hasSearched && getFilteredPartners().length === 0 && (
                   <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: '0.85rem' }}>
-                    {searchText ? `"${searchText}" 검색 결과가 없습니다.` : '거래처가 없습니다.'}
+                    {searchText ? `"${searchText}" 검색 결과가 없습니다.` : '검색 조건에 해당하는 거래처가 없습니다.'}
                   </div>
                 )}
               </div>
