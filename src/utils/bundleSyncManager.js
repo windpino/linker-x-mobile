@@ -1,0 +1,222 @@
+import { db } from '../firebase';
+import { doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+
+// Supported bundle collections
+export const BUNDLE_COLLECTIONS = [
+  'products',
+  'partners',
+  'warehouses',
+  'categories',
+  'staffList',
+  'schedules',
+  'accounts',
+  'vehicles',
+  'vehicleLogs',
+  'specialPrices',
+  'purchaseInvoices',
+  'purchaseOrders',
+  'salesInvoices',
+  'salesOrders',
+  'expenses',
+  'inventoryAdjustments',
+  'inventoryTransferHistory',
+  'actionLogs'
+];
+
+/**
+ * Get cached bundle from localStorage
+ */
+export const getLocalBundle = (companyId, colName) => {
+  try {
+    const raw = localStorage.getItem(`bundle_${colName}_${companyId}`) || localStorage.getItem(`${colName}_${companyId}`) || localStorage.getItem(colName);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : (parsed.list || []);
+  } catch (e) {
+    console.warn(`[BundleSync] Error reading local bundle for ${colName}:`, e);
+    return null;
+  }
+};
+
+/**
+ * Save bundle data and version to localStorage
+ */
+export const setLocalBundle = (companyId, colName, list, version = null) => {
+  try {
+    localStorage.setItem(`bundle_${colName}_${companyId}`, JSON.stringify(list));
+    localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(list));
+    if (version !== null) {
+      localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(version));
+    }
+  } catch (e) {
+    console.warn(`[BundleSync] Error caching bundle for ${colName}:`, e);
+  }
+};
+
+/**
+ * Get local bundle version
+ */
+export const getLocalVersion = (companyId, colName) => {
+  return Number(localStorage.getItem(`bundle_ver_${colName}_${companyId}`) || 0);
+};
+
+/**
+ * Fetch a single bundle document from Firestore
+ */
+export const fetchBundle = async (companyId, colName) => {
+  if (!companyId || !db) return [];
+  try {
+    const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
+    const snap = await getDoc(bundleDocRef);
+
+    if (snap.exists()) {
+      const data = snap.data();
+      const list = data.list || [];
+      const version = Number(data.version || 1);
+      setLocalBundle(companyId, colName, list, version);
+      return list;
+    }
+
+    // Fallback: Check legacy collection if bundle does not exist yet
+    const legacyColRef = collection(db, 'companies', companyId, colName);
+    const legacySnap = await getDocs(legacyColRef);
+
+    if (!legacySnap.empty) {
+      const list = legacySnap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      // Save as bundle on Firestore for future 1-read lookups
+      await setDoc(bundleDocRef, {
+        list: list,
+        version: 1,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Initialize syncState
+      const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+      await setDoc(syncStateRef, {
+        [colName]: { version: 1, updatedAt: new Date().toISOString() }
+      }, { merge: true });
+
+      setLocalBundle(companyId, colName, list, 1);
+      return list;
+    }
+
+    return [];
+  } catch (err) {
+    console.error(`[BundleSync] Fetch error for ${colName}:`, err);
+    return getLocalBundle(companyId, colName) || [];
+  }
+};
+
+/**
+ * Save whole list as bundle in a single write operation (Write count: 1)
+ */
+export const saveBundle = async (companyId, colName, list) => {
+  if (!companyId || !db) return;
+  try {
+    const cleanList = (list || []).map(item => {
+      const clean = { ...item };
+      delete clean._docId;
+      return clean;
+    });
+
+    const nextVer = getLocalVersion(companyId, colName) + 1;
+    const nowIso = new Date().toISOString();
+
+    // 1. Write Bundle Document
+    const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
+    await setDoc(bundleDocRef, {
+      list: cleanList,
+      version: nextVer,
+      updatedAt: nowIso
+    });
+
+    // 2. Update Live syncState Metadata
+    const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+    await setDoc(syncStateRef, {
+      [colName]: { version: nextVer, updatedAt: nowIso }
+    }, { merge: true });
+
+    // 3. Update local cache
+    setLocalBundle(companyId, colName, cleanList, nextVer);
+  } catch (err) {
+    console.error(`[BundleSync] Error saving bundle ${colName}:`, err);
+    throw err;
+  }
+};
+
+/**
+ * Upsert or Delete a single item inside the bundle (Write count: 1)
+ */
+export const saveBundleItem = async (companyId, colName, item, action = 'upsert') => {
+  if (!companyId) return;
+  const currentList = getLocalBundle(companyId, colName) || [];
+  let nextList = [];
+
+  const itemId = item.id || item._docId || item.userId || item.name;
+
+  if (action === 'delete') {
+    nextList = currentList.filter(existing => {
+      const exId = existing.id || existing._docId || existing.userId || existing.name;
+      return String(exId) !== String(itemId);
+    });
+  } else {
+    // Upsert (Add or Update)
+    let found = false;
+    nextList = currentList.map(existing => {
+      const exId = existing.id || existing._docId || existing.userId || existing.name;
+      if (String(exId) === String(itemId)) {
+        found = true;
+        return { ...existing, ...item, updatedAt: new Date().toISOString() };
+      }
+      return existing;
+    });
+
+    if (!found) {
+      nextList.push({ ...item, updatedAt: new Date().toISOString() });
+    }
+  }
+
+  await saveBundle(companyId, colName, nextList);
+  return nextList;
+};
+
+/**
+ * Main Realtime Sync Hook: Subscribes ONLY to metadata/syncState (1 Document Read!)
+ */
+export const listenBundleSyncState = (companyId, onBundleChange) => {
+  if (!companyId || !db) return () => {};
+
+  const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+
+  const unsubscribe = onSnapshot(syncStateRef, async (snapshot) => {
+    if (!snapshot.exists()) {
+      // If metadata document doesn't exist, trigger initial fetch
+      BUNDLE_COLLECTIONS.forEach(async (colName) => {
+        const list = await fetchBundle(companyId, colName);
+        if (onBundleChange) onBundleChange(colName, list);
+      });
+      return;
+    }
+
+    const syncData = snapshot.data() || {};
+
+    for (const colName of BUNDLE_COLLECTIONS) {
+      const serverColState = syncData[colName];
+      if (!serverColState) continue;
+
+      const serverVer = Number(serverColState.version || 0);
+      const localVer = getLocalVersion(companyId, colName);
+
+      // Only fetch from Firestore if local version is outdated!
+      if (serverVer > localVer || localVer === 0) {
+        console.log(`[BundleSync] 🔄 Syncing outdated bundle [${colName}] (Local v${localVer} -> Server v${serverVer})`);
+        const updatedList = await fetchBundle(companyId, colName);
+        if (onBundleChange) onBundleChange(colName, updatedList);
+      }
+    }
+  }, (err) => {
+    console.warn('[BundleSync] syncState listener warning:', err?.message || err);
+  });
+
+  return unsubscribe;
+};
