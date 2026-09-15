@@ -99,6 +99,26 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     };
   }, [isResizing]);
 
+  const [systemConfig, setSystemConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('systemConfig_useMissRing');
+      return { useMissRing: saved !== 'false' };
+    } catch {
+      return { useMissRing: true };
+    }
+  });
+
+  const handleToggleMissRing = async (enabled) => {
+    try {
+      setSystemConfig(prev => ({ ...prev, useMissRing: enabled }));
+      localStorage.setItem('systemConfig_useMissRing', String(enabled));
+      await setDoc(doc(db, 'settings', 'system_config'), { useMissRing: enabled }, { merge: true });
+    } catch (err) {
+      console.error('환경설정 저장 오류:', err);
+      alert('설정 저장 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
   useEffect(() => {
     const unsubCompanies = onSnapshot(collection(db, 'companies'), (snapshot) => {
       setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -117,6 +137,15 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         setAgencyCategories(docSnap.data().categories || []);
       } else {
         setAgencyCategories([]);
+      }
+    });
+    const unsubSystemConfig = onSnapshot(doc(db, 'settings', 'system_config'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSystemConfig(prev => ({ ...prev, ...data }));
+        if (data.useMissRing !== undefined) {
+          localStorage.setItem('systemConfig_useMissRing', String(data.useMissRing));
+        }
       }
     });
     const unsubMasterTypes = onSnapshot(collection(db, 'master_schedule_types'), async (snapshot) => {
@@ -164,6 +193,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       unsubNotices();
       unsubSchedules();
       unsubCategories();
+      unsubSystemConfig();
       unsubMasterTypes();
       unsubInquiries();
       unsubHomepageContent();
@@ -677,7 +707,8 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             { id: 'agencies', icon: Building2, label: '회원사 관리' },
             { id: 'cs', icon: MessageSquare, label: 'CS/상담 관리' },
             { id: 'notices', icon: Bell, label: '시스템 공지' },
-            { id: 'linkerx_home', icon: Globe, label: '링커엑스 홈페이지' }
+            { id: 'linkerx_home', icon: Globe, label: '링커엑스 홈페이지' },
+            { id: 'settings', icon: Settings, label: '환경설정' }
           ].map(item => (
             <button 
               key={item.id}
@@ -732,6 +763,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               {activeTab === 'cs' && '고객 지원 및 상담 내역'}
               {activeTab === 'notices' && '시스템 공지 사항'}
               {activeTab === 'linkerx_home' && '링커엑스 홈페이지'}
+              {activeTab === 'settings' && '시스템 환경설정 (Master Settings)'}
             </h1>
             
             {activeTab === 'agencies' && (
@@ -1919,7 +1951,93 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
+          {activeTab === 'settings' && (
+            <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
+              <div style={{ maxWidth: '920px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* 1. 미스링 AI 어시스턴트 설정 카드 */}
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                  padding: '28px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '44px', height: '44px', borderRadius: '12px',
+                        backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', color: '#3b82f6'
+                      }}>
+                        <span style={{ fontSize: '1.5rem' }}>🤖</span>
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                          미스링(Miss Ring) AI 어시스턴트 설정
+                        </h3>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                          전체 데스크톱 및 모바일 시스템에서의 미스링 AI 챗봇 비서 노출 및 사용 여부를 제어합니다.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <span style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      backgroundColor: (systemConfig.useMissRing !== false) ? '#dcfce7' : '#fee2e2',
+                      color: (systemConfig.useMissRing !== false) ? '#166534' : '#991b1b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span style={{
+                        width: '8px', height: '8px', borderRadius: '50%',
+                        backgroundColor: (systemConfig.useMissRing !== false) ? '#22c55e' : '#ef4444'
+                      }}></span>
+                      {(systemConfig.useMissRing !== false) ? '어시스턴트 활성화 (ON)' : '어시스턴트 비활성화 (OFF)'}
+                    </span>
+                  </div>
+
+                  {/* 체크박스 설정 영역 */}
+                  <div style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    padding: '20px'
+                  }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox"
+                        checked={systemConfig.useMissRing !== false}
+                        onChange={(e) => handleToggleMissRing(e.target.checked)}
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          cursor: 'pointer',
+                          marginTop: '2px',
+                          accentColor: '#3b82f6'
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#1e293b' }}>
+                          미스링 AI 어시스턴트 사용 여부
+                        </div>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: '#475569', lineHeight: 1.6 }}>
+                          • <b>체크 시</b>: 데스크톱 및 모바일 전 화면 우측 하단에 '미스링 AI 어시스턴트' 챗봇 버튼이 노출되어 사용자가 질문하거나 안내를 받을 수 있습니다.<br />
+                          • <b>체크 해제 시</b>: 전체 시스템에서 미스링 어시스턴트 챗봇이 비활성화(숨김)됩니다.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+              </div>
             </div>
           )}
         </div>
@@ -2413,7 +2531,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <ChatAssistant context={getSuperAdminContext()} />
+      {systemConfig.useMissRing !== false && <ChatAssistant context={getSuperAdminContext()} />}
       <PwaInstallPrompt />
     </div>
   );

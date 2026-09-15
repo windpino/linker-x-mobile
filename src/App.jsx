@@ -616,6 +616,28 @@ function App() {
     lastPaymentDate: null
   });
 
+  const [useMissRing, setUseMissRing] = useState(() => {
+    try {
+      const saved = localStorage.getItem('systemConfig_useMissRing');
+      return saved !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'system_config'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.useMissRing !== undefined) {
+          setUseMissRing(data.useMissRing !== false);
+          localStorage.setItem('systemConfig_useMissRing', String(data.useMissRing !== false));
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
+
   React.useEffect(() => {
     if (currentUser?.userId) {
       const favKey = `favoriteMenus_${currentUser.userId}`;
@@ -4836,7 +4858,7 @@ function App() {
           </div>
         </WindowModal>
       )}
-      <ChatAssistant context={getAgentContext()} />
+      {useMissRing && <ChatAssistant context={getAgentContext()} />}
       <PwaInstallPrompt />
     </div>
   );
