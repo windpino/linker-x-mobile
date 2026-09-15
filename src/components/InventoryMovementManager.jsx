@@ -73,6 +73,17 @@ const InventoryMovementManager = ({
   const filteredHistory = useMemo(() => {
     return historyData
       .filter(h => {
+        // 실사수정/실사조정으로 입력된 재고이동 내역은 목록에서 제외
+        const isPhysicalAdjustment = 
+          h.isPhysicalAdjustment || 
+          h.isAdjustment || 
+          h.adjustmentId ||
+          (typeof h.memo === 'string' && (h.memo.includes('실사') || h.memo.includes('재고조정'))) ||
+          (typeof h.from === 'string' && (h.from.includes('실사') || h.from.includes('재고조정'))) ||
+          (typeof h.to === 'string' && (h.to.includes('실사') || h.to.includes('재고조정'))) ||
+          (typeof h.description === 'string' && (h.description.includes('실사') || h.description.includes('재고조정')));
+        if (isPhysicalAdjustment) return false;
+
         if (h.date < filters.startDate || h.date > filters.endDate) return false;
         if (filters.fromWarehouse !== '전체' && h.from !== filters.fromWarehouse) return false;
         if (filters.toWarehouse !== '전체' && h.to !== filters.toWarehouse) return false;
@@ -89,14 +100,27 @@ const InventoryMovementManager = ({
         return true;
       })
       .sort((a, b) => b.id - a.id);
-  }, [historyData, filters]);
+  }, [historyData, filters, products]);
 
   const getWarehouseColor = (name) => {
     const wh = warehouses.find(w => w.name === name);
     return wh?.color || '#64748b';
   };
 
+  const isAutoLoadingTransfer = (record) => {
+    if (!record) return false;
+    if (record.memo === '상차(자동이동)') return true;
+    if (typeof record.memo === 'string' && record.memo.includes('상차')) return true;
+    if (record.salesOrderId) return true;
+    if (record.isAuto) return true;
+    return false;
+  };
+
   const handleEditClick = (record) => {
+    if (isAutoLoadingTransfer(record)) {
+      alert('상차(주문상차)로 이동된 재고 내역은 수주서/주문서에서만 관리할 수 있습니다.');
+      return;
+    }
     setEditingId(record.id);
     setEditForm({ ...record });
   };
@@ -348,9 +372,11 @@ const InventoryMovementManager = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{row.date}</span>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => handleEditClick(row)} style={{ padding: '3px 6px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', fontWeight: 700 }}>
-                        <Edit2 size={12} /> 수정
-                      </button>
+                      {!isAutoLoadingTransfer(row) && (
+                        <button onClick={() => handleEditClick(row)} style={{ padding: '3px 6px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', fontWeight: 700 }}>
+                          <Edit2 size={12} /> 수정
+                        </button>
+                      )}
                       <button onClick={() => handleDelete(row.id)} style={{ padding: '3px 6px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '4px', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', fontWeight: 700 }}>
                         <Trash2 size={12} /> 삭제
                       </button>

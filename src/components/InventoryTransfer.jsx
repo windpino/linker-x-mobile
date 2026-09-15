@@ -420,7 +420,7 @@ const InventoryTransfer = ({
   const deletableHistory = useMemo(() => {
     return recentHistory.filter(h => {
       const badge = getTransferBadge(h);
-      return badge.text === '창고이동' || badge.text === '주문상차';
+      return badge.text === '창고이동';
     });
   }, [recentHistory]);
 
@@ -1084,7 +1084,7 @@ const InventoryTransfer = ({
                     const badge = getTransferBadge(row);
                     const isNew = !!row.isNew;
                     const isModified = !!modifiedRows[row.id];
-                    const isEditableType = isNew || badge.text === '창고이동' || badge.text === '주문상차';
+                    const isEditableType = isNew || badge.text === '창고이동';
                     
                     const rowData = isNew 
                       ? (newRows.find(nr => nr.tempId === row.id) || row)
