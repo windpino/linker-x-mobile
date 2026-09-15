@@ -440,48 +440,6 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input 
-                  type="text" 
-                  placeholder="상품명, 카테고리, 바코드 검색..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSearch();
-                  }}
-                  style={{
-                    width: '100%', padding: '8px 12px 8px 34px',
-                    borderRadius: '8px', border: '1px solid #cbd5e1',
-                    fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box',
-                    backgroundColor: '#f8fafc'
-                  }}
-                />
-                {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm('')}
-                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              <button 
-                onClick={handleSearch}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                  padding: '0 14px', borderRadius: '8px', border: 'none',
-                  backgroundColor: '#3b82f6', color: 'white', fontSize: '0.8rem',
-                  fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)'
-                }}
-              >
-                <Search size={14} strokeWidth={2.5} /> 검색
-              </button>
-            </div>
-
             {/* Category Filters (2x2 Grid on Mobile) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
@@ -550,6 +508,48 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 }}
               >
                 <Plus size={13} strokeWidth={2.5} /> 카테고리 관리
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input 
+                  type="text" 
+                  placeholder="상품명, 카테고리, 바코드 검색..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearch();
+                  }}
+                  style={{
+                    width: '100%', padding: '8px 12px 8px 34px',
+                    borderRadius: '8px', border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={handleSearch}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  padding: '0 14px', borderRadius: '8px', border: 'none',
+                  backgroundColor: '#3b82f6', color: 'white', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)'
+                }}
+              >
+                <Search size={14} strokeWidth={2.5} /> 검색
               </button>
             </div>
 
