@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 
 // Supported bundle collections
 export const BUNDLE_COLLECTIONS = [
@@ -181,42 +181,65 @@ export const saveBundleItem = async (companyId, colName, item, action = 'upsert'
 };
 
 /**
- * Main Realtime Sync Hook: Subscribes ONLY to metadata/syncState (1 Document Read!)
+ * One-time Bundle Sync (새로고침 또는 창을 열 때 1회 호출):
+ * Reads syncState metadata document once, checks version difference, and fetches only updated bundles.
+ * Zero background snapshot listeners!
  */
-export const listenBundleSyncState = (companyId, onBundleChange) => {
-  if (!companyId || !db) return () => {};
+export const syncBundlesOnce = async (companyId, onBundleChange, targetCollections = BUNDLE_COLLECTIONS) => {
+  if (!companyId || !db) return;
+  try {
+    const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+    const snapshot = await getDoc(syncStateRef);
 
-  const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
-
-  const unsubscribe = onSnapshot(syncStateRef, async (snapshot) => {
     if (!snapshot.exists()) {
-      // If metadata document doesn't exist, trigger initial fetch
-      BUNDLE_COLLECTIONS.forEach(async (colName) => {
+      // Initial fetch if metadata doesn't exist yet
+      for (const colName of targetCollections) {
         const list = await fetchBundle(companyId, colName);
         if (onBundleChange) onBundleChange(colName, list);
-      });
+      }
       return;
     }
 
     const syncData = snapshot.data() || {};
+    const colsToCheck = targetCollections || BUNDLE_COLLECTIONS;
 
-    for (const colName of BUNDLE_COLLECTIONS) {
+    for (const colName of colsToCheck) {
       const serverColState = syncData[colName];
-      if (!serverColState) continue;
-
-      const serverVer = Number(serverColState.version || 0);
       const localVer = getLocalVersion(companyId, colName);
 
-      // Only fetch from Firestore if local version is outdated!
+      if (!serverColState) {
+        const localList = getLocalBundle(companyId, colName);
+        if (!localList || localList.length === 0) {
+          const list = await fetchBundle(companyId, colName);
+          if (onBundleChange) onBundleChange(colName, list);
+        }
+        continue;
+      }
+
+      const serverVer = Number(serverColState.version || 0);
+
+      // Only fetch from Firestore if local version is outdated or not present!
       if (serverVer > localVer || localVer === 0) {
         console.log(`[BundleSync] 🔄 Syncing outdated bundle [${colName}] (Local v${localVer} -> Server v${serverVer})`);
         const updatedList = await fetchBundle(companyId, colName);
         if (onBundleChange) onBundleChange(colName, updatedList);
+      } else {
+        const localList = getLocalBundle(companyId, colName);
+        if (localList && onBundleChange) {
+          onBundleChange(colName, localList);
+        }
       }
     }
-  }, (err) => {
-    console.warn('[BundleSync] syncState listener warning:', err?.message || err);
-  });
+  } catch (err) {
+    console.warn('[BundleSync] syncBundlesOnce error:', err?.message || err);
+  }
+};
 
-  return unsubscribe;
+/**
+ * Backward-compatibility wrapper (no-op unsubscribe, single fetch)
+ */
+export const listenBundleSyncState = (companyId, onBundleChange) => {
+  // Trigger single-time sync without background listener
+  syncBundlesOnce(companyId, onBundleChange);
+  return () => {};
 };

@@ -17,7 +17,7 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import { listenBundleSyncState, fetchBundle, saveBundle, saveBundleItem } from './utils/bundleSyncManager';
+import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem } from './utils/bundleSyncManager';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
 import InventoryTransfer from './components/InventoryTransfer';
@@ -852,130 +852,151 @@ function App() {
     loadCache('staffJobTitles', setStaffJobTitles);
   }, [currentUser?.companyId, currentView]);
 
-  // Firebase Real-time Sync with Data Isolation (Ultra-lightweight Bundle Sync)
+  // 1회 데이터 동기화 헬퍼 (자동 실시간 리스너 대신 새로고침/창 열림 시 1회 호출)
+  const syncCompanyDataOnce = React.useCallback(async (companyId) => {
+    if (!companyId || window.__isResettingData) return;
+    try {
+      // 1. Sync Company Settings (Logo, Theme, License - 1 Read)
+      const companySnap = await getDoc(doc(db, 'companies', companyId));
+      if (companySnap.exists()) {
+        setCompanySettings(companySnap.data());
+      }
+      
+      // 2. Ultra-lightweight Bundle Sync (metadata/syncState 1 Read -> download only modified bundles)
+      const setterMap = {
+        staffList: setStaffList,
+        schedules: setSchedules,
+        products: setProducts,
+        categories: setCategories,
+        partners: setPartners,
+        accounts: setAccounts,
+        purchaseInvoices: setPurchaseInvoices,
+        purchaseOrders: setPurchaseOrders,
+        salesInvoices: setSalesInvoices,
+        salesOrders: setSalesOrders,
+        warehouses: setWarehouses,
+        expenses: setExpenses,
+        inventoryAdjustments: setInventoryAdjustments,
+        inventoryTransferHistory: setInventoryTransferHistory,
+        specialPrices: setSpecialPrices
+      };
+
+      await syncBundlesOnce(companyId, (colName, data) => {
+        if (window.__isResettingData) return;
+        const setter = setterMap[colName];
+        if (setter) {
+          let processedData = data;
+          if (colName === 'partners') {
+            const partnerMap = new Map();
+            data.forEach(p => {
+              if (!p || !p.id) return;
+              partnerMap.set(String(p.id), p);
+            });
+            processedData = Array.from(partnerMap.values());
+          }
+          if (colName === 'products') {
+            const prodMap = new Map();
+            data.forEach(p => {
+              if (!p || !p.id) return;
+              prodMap.set(String(p.id), p);
+            });
+            processedData = Array.from(prodMap.values());
+          }
+          setter(processedData);
+
+          if (colName === 'staffList') {
+            setCurrentUser(prevUser => {
+              if (!prevUser || prevUser.role === 'super_admin' || prevUser.userId === 'admin') return prevUser;
+              const found = processedData.find(s => String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id));
+              if (found) {
+                const isDifferent = found.name !== prevUser.name ||
+                                    found.role !== prevUser.role ||
+                                    found.allowAllEditDelete !== prevUser.allowAllEditDelete ||
+                                    JSON.stringify(found.permissions) !== JSON.stringify(prevUser.permissions);
+                if (isDifferent) {
+                  const merged = { ...prevUser, ...found };
+                  localStorage.setItem('currentUser', JSON.stringify(merged));
+                  return merged;
+                }
+              }
+              return prevUser;
+            });
+          }
+          localStorage.setItem(colName, JSON.stringify(processedData));
+          localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(processedData));
+          setSyncedCollections(prev => ({ ...prev, [colName]: true }));
+        }
+      });
+
+      // 3. Single docs within company sub-collection (1 Read each)
+      const singleDocs = [
+        { name: 'systemSettings', setter: setSystemSettings },
+        { name: 'inventory', setter: setInventory },
+        { name: 'physicalInventory', setter: setPhysicalInventory },
+        { name: 'licenseData', setter: setLicenseData },
+        { name: 'dashboardConfig', setter: setDashboardConfig },
+        { name: 'favoriteMenus', setter: setFavoriteMenus },
+        { name: 'staffZones', setter: setStaffZones },
+        { name: 'staffJobTitles', setter: setStaffJobTitles }
+      ];
+
+      for (const sd of singleDocs) {
+        try {
+          let docRef;
+          if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser?.userId) {
+            docRef = doc(db, 'companies', companyId, 'userSettings', currentUser.userId + '_' + sd.name);
+          } else {
+            docRef = doc(db, 'companies', companyId, 'settings', sd.name);
+          }
+
+          const sSnap = await getDoc(docRef);
+          if (sSnap.exists()) {
+            const dataVal = sSnap.data().value;
+            sd.setter(dataVal);
+
+            if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser?.userId) {
+              const key = `${sd.name}_${currentUser.userId}`;
+              localStorage.setItem(key, JSON.stringify(dataVal));
+            }
+          }
+        } catch (e) {
+          console.warn(`Error fetching single doc ${sd.name}:`, e);
+        }
+      }
+    } catch (err) {
+      console.warn("One-time mobile data sync warning:", err?.message || err);
+    }
+  }, [currentUser]);
+
+  // 페이지 새로고침 / 앱 마운트 시 1회 동기화 (자동 실시간 리스너 없음)
   React.useEffect(() => {
     if (!currentUser || currentView === 'login' || currentView === 'super_admin') return;
-
-    const unsubscribes = [];
     const companyId = currentUser.companyId || 'default';
+    syncCompanyDataOnce(companyId);
+  }, [currentUser?.companyId, currentView, syncCompanyDataOnce]);
 
-    // 1. Sync Company Settings (Logo, Theme, License)
-    const companyUnsub = onSnapshot(doc(db, 'companies', companyId), (snapshot) => {
-      if (snapshot.exists()) {
-        setCompanySettings(snapshot.data());
-      }
-    }, (err) => {
-      console.warn("Firestore company sync warning:", err?.message || err);
-    });
-    unsubscribes.push(companyUnsub);
-    
-    // Ultra-lightweight Bundle Sync with Single Metadata Listener (99% Read/Write Reduction)
-    const setterMap = {
-      staffList: setStaffList,
-      schedules: setSchedules,
-      products: setProducts,
-      categories: setCategories,
-      partners: setPartners,
-      accounts: setAccounts,
-      purchaseInvoices: setPurchaseInvoices,
-      purchaseOrders: setPurchaseOrders,
-      salesInvoices: setSalesInvoices,
-      salesOrders: setSalesOrders,
-      warehouses: setWarehouses,
-      expenses: setExpenses,
-      inventoryAdjustments: setInventoryAdjustments,
-      inventoryTransferHistory: setInventoryTransferHistory,
-      specialPrices: setSpecialPrices
-    };
+  // 창(모달)을 새롭게 열 때 최신 수정된 데이터 1회 읽어오기
+  const isAnyWindowOpen = Boolean(
+    isWarehouseManagerOpen || isStaffManagerOpen || isInventoryTransferOpen ||
+    isPartnerManagerOpen || isProductManagerOpen || isAccountManagerOpen ||
+    isScheduleListOpen || isScheduleRegistrationOpen || isTypeManagementOpen ||
+    isPurchaseInvoiceOpen || isPurchaseOrderOpen || isSalesInvoiceOpen ||
+    isSalesOrderOpen || isOrderListOpen || isCashReportOpen || isSalesReportOpen ||
+    isOrderReportOpen || isInventoryReportOpen || isReceivablesReportOpen ||
+    isPayablesReportOpen || isRecentActivityModalOpen || isCashBookOpen ||
+    isExpenseRegistrationOpen || isStaffPerformanceReportOpen || isDataManagerOpen ||
+    isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen ||
+    isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
+    isLicenseOpen || isDashboardSettingsOpen || isFavoriteSettingsOpen ||
+    isInventoryAdjustmentOpen || isInventoryMismatchOpen || isTaxReportOpen ||
+    isPartnerSpecialPriceManagerOpen || isInventoryMovementManagerOpen
+  );
 
-    const unsubBundle = listenBundleSyncState(companyId, (colName, data) => {
-      if (window.__isResettingData) return;
-      const setter = setterMap[colName];
-      if (setter) {
-        let processedData = data;
-        if (colName === 'partners') {
-          const partnerMap = new Map();
-          data.forEach(p => {
-            if (!p || !p.id) return;
-            partnerMap.set(String(p.id), p);
-          });
-          processedData = Array.from(partnerMap.values());
-        }
-        if (colName === 'products') {
-          const prodMap = new Map();
-          data.forEach(p => {
-            if (!p || !p.id) return;
-            prodMap.set(String(p.id), p);
-          });
-          processedData = Array.from(prodMap.values());
-        }
-        setter(processedData);
-
-        if (colName === 'staffList') {
-          setCurrentUser(prevUser => {
-            if (!prevUser || prevUser.role === 'super_admin' || prevUser.userId === 'admin') return prevUser;
-            const found = processedData.find(s => String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id));
-            if (found) {
-              const isDifferent = found.name !== prevUser.name ||
-                                  found.role !== prevUser.role ||
-                                  found.allowAllEditDelete !== prevUser.allowAllEditDelete ||
-                                  JSON.stringify(found.permissions) !== JSON.stringify(prevUser.permissions);
-              if (isDifferent) {
-                const merged = { ...prevUser, ...found };
-                localStorage.setItem('currentUser', JSON.stringify(merged));
-                return merged;
-              }
-            }
-            return prevUser;
-          });
-        }
-        localStorage.setItem(colName, JSON.stringify(processedData));
-        localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(processedData));
-        setSyncedCollections(prev => ({ ...prev, [colName]: true }));
-      }
-    });
-    unsubscribes.push(unsubBundle);
-
-    // Sync single docs within company sub-collection or specific document
-    const singleDocs = [
-      { name: 'systemSettings', setter: setSystemSettings },
-      { name: 'inventory', setter: setInventory },
-      { name: 'physicalInventory', setter: setPhysicalInventory },
-      { name: 'licenseData', setter: setLicenseData },
-      { name: 'dashboardConfig', setter: setDashboardConfig },
-      { name: 'favoriteMenus', setter: setFavoriteMenus },
-      { name: 'staffZones', setter: setStaffZones },
-      { name: 'staffJobTitles', setter: setStaffJobTitles }
-    ];
-
-    singleDocs.forEach(sd => {
-      let docRef;
-      if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser.userId) {
-        docRef = doc(db, 'companies', companyId, 'userSettings', currentUser.userId + '_' + sd.name);
-      } else {
-        docRef = doc(db, 'companies', companyId, 'settings', sd.name);
-      }
-
-      const unsub = onSnapshot(docRef, (snapshot) => {
-        if (snapshot.metadata.hasPendingWrites) return; // 로컬 쓰기가 대기 중일 때는 리스너 덮어쓰기를 스킵하여 Race Condition 방어
-        
-        if (snapshot.exists()) {
-          const dataVal = snapshot.data().value;
-          sd.setter(dataVal);
-
-          if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser.userId) {
-            const key = `${sd.name}_${currentUser.userId}`;
-            localStorage.setItem(key, JSON.stringify(dataVal));
-          }
-        }
-      }, (err) => {
-        console.warn(`Firestore single doc ${sd.name} sync warning:`, err?.message || err);
-      });
-      unsubscribes.push(unsub);
-    });
-
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [currentUser?.companyId, currentUser?.userId, currentView]);
+  React.useEffect(() => {
+    if (isAnyWindowOpen && currentUser?.companyId) {
+      syncCompanyDataOnce(currentUser.companyId);
+    }
+  }, [isAnyWindowOpen, currentUser?.companyId, syncCompanyDataOnce]);
 
   React.useEffect(() => {
     const CLEANUP_VER = '20260509_v2';
