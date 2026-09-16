@@ -24,6 +24,12 @@ const PhysicalInventoryInput = ({
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
   const [categoryLarge, setCategoryLarge] = useState('전체');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'entered', 'empty', 'diff'
+
+  // Search triggered state
+  const [hasSearched, setHasSearched] = useState(Boolean(initialSearchTerm));
+  const [appliedWarehouse, setAppliedWarehouse] = useState(initialWarehouse || warehouses[0]?.name || '');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState(initialSearchTerm || '');
+  const [appliedCategoryLarge, setAppliedCategoryLarge] = useState('전체');
   
   const [editedCounts, setEditedCounts] = useState({});
   const [reasons, setReasons] = useState({});
@@ -31,21 +37,28 @@ const PhysicalInventoryInput = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
-    if (initialWarehouse) setSelectedWarehouse(initialWarehouse);
+    if (initialWarehouse) {
+      setSelectedWarehouse(initialWarehouse);
+      setAppliedWarehouse(initialWarehouse);
+    }
   }, [initialWarehouse]);
 
   useEffect(() => {
-    if (initialSearchTerm) setSearchTerm(initialSearchTerm);
+    if (initialSearchTerm) {
+      setSearchTerm(initialSearchTerm);
+      setAppliedSearchTerm(initialSearchTerm);
+      setHasSearched(true);
+    }
   }, [initialSearchTerm]);
 
   useEffect(() => {
-    const warehousePhys = physicalInventory[selectedWarehouse] || {};
+    const warehousePhys = physicalInventory[appliedWarehouse] || {};
     const newEdited = {};
     Object.keys(warehousePhys).forEach(prodName => {
       newEdited[prodName] = warehousePhys[prodName];
     });
     setEditedCounts(newEdited);
-  }, [selectedWarehouse, physicalInventory]);
+  }, [appliedWarehouse, physicalInventory]);
 
   const getBookStock = useCallback((productName, warehouseName) => {
     const currentBase = (inventory[warehouseName]?.[productName] || 0);
@@ -53,6 +66,13 @@ const PhysicalInventoryInput = ({
     const initial = product?.initialStock || 0;
     return initial + currentBase;
   }, [inventory, products]);
+
+  const handleSearch = () => {
+    setHasSearched(true);
+    setAppliedWarehouse(selectedWarehouse);
+    setAppliedSearchTerm(searchTerm.trim());
+    setAppliedCategoryLarge(categoryLarge);
+  };
 
   const uniqueProducts = useMemo(() => {
     const seenNames = new Set();
@@ -69,17 +89,19 @@ const PhysicalInventoryInput = ({
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return uniqueProducts.filter(p => {
-      if (categoryLarge !== '전체' && p.categoryLarge !== categoryLarge) return false;
+    if (!hasSearched) return [];
 
-      if (searchTerm) {
-        const matches = matchesInitialSound(p.name, searchTerm) ||
-          (p.abbreviation && matchesInitialSound(p.abbreviation, searchTerm)) ||
-          (p.singleBarcode && p.singleBarcode.includes(searchTerm));
+    return uniqueProducts.filter(p => {
+      if (appliedCategoryLarge !== '전체' && p.categoryLarge !== appliedCategoryLarge) return false;
+
+      if (appliedSearchTerm) {
+        const matches = matchesInitialSound(p.name, appliedSearchTerm) ||
+          (p.abbreviation && matchesInitialSound(p.abbreviation, appliedSearchTerm)) ||
+          (p.singleBarcode && p.singleBarcode.includes(appliedSearchTerm));
         if (!matches) return false;
       }
 
-      const bookStock = getBookStock(p.name, selectedWarehouse);
+      const bookStock = getBookStock(p.name, appliedWarehouse);
       const isEntered = editedCounts[p.name] !== undefined && editedCounts[p.name] !== '';
       const physicalStock = isEntered ? Number(editedCounts[p.name]) : bookStock;
       const diff = physicalStock - bookStock;
@@ -90,7 +112,7 @@ const PhysicalInventoryInput = ({
 
       return true;
     });
-  }, [uniqueProducts, categoryLarge, searchTerm, selectedWarehouse, getBookStock, editedCounts, statusFilter]);
+  }, [uniqueProducts, hasSearched, appliedCategoryLarge, appliedSearchTerm, appliedWarehouse, getBookStock, editedCounts, statusFilter]);
 
   const handleCountChange = (productName, val) => {
     if (val === '') {
@@ -99,16 +121,16 @@ const PhysicalInventoryInput = ({
         delete next[productName];
         return next;
       });
-      onUpdatePhysicalCount && onUpdatePhysicalCount(selectedWarehouse, productName, undefined);
+      onUpdatePhysicalCount && onUpdatePhysicalCount(appliedWarehouse, productName, undefined);
       return;
     }
     const num = Math.max(0, parseInt(val, 10) || 0);
     setEditedCounts(prev => ({ ...prev, [productName]: num }));
-    onUpdatePhysicalCount && onUpdatePhysicalCount(selectedWarehouse, productName, num);
+    onUpdatePhysicalCount && onUpdatePhysicalCount(appliedWarehouse, productName, num);
   };
 
   const handleQuickAdjust = (productName, delta) => {
-    const bookStock = getBookStock(productName, selectedWarehouse);
+    const bookStock = getBookStock(productName, appliedWarehouse);
     const current = editedCounts[productName] !== undefined && editedCounts[productName] !== '' 
       ? Number(editedCounts[productName]) 
       : bookStock;
@@ -127,27 +149,35 @@ const PhysicalInventoryInput = ({
       delete next[productName];
       return next;
     });
-    onUpdatePhysicalCount && onUpdatePhysicalCount(selectedWarehouse, productName, undefined);
+    onUpdatePhysicalCount && onUpdatePhysicalCount(appliedWarehouse, productName, undefined);
   };
 
   const handleFillAllWithBookStock = () => {
+    if (!hasSearched || filteredProducts.length === 0) {
+      alert('검색된 품목이 없습니다. 먼저 품목을 검색해 주세요.');
+      return;
+    }
     if (!window.confirm('현재 표시된 모든 품목의 실재고를 전산재고와 동일하게 채우시겠습니까?')) return;
     const newCounts = { ...editedCounts };
     filteredProducts.forEach(p => {
-      const bookStock = getBookStock(p.name, selectedWarehouse);
+      const bookStock = getBookStock(p.name, appliedWarehouse);
       newCounts[p.name] = bookStock;
-      onUpdatePhysicalCount && onUpdatePhysicalCount(selectedWarehouse, p.name, bookStock);
+      onUpdatePhysicalCount && onUpdatePhysicalCount(appliedWarehouse, p.name, bookStock);
     });
     setEditedCounts(newCounts);
     showSaveToast('전산재고 수량으로 실재고가 채워졌습니다.');
   };
 
   const handleClearAllCounts = () => {
+    if (!hasSearched || filteredProducts.length === 0) {
+      alert('검색된 품목이 없습니다. 먼저 품목을 검색해 주세요.');
+      return;
+    }
     if (!window.confirm('현재 표시된 품목의 실재고 입력값을 모두 초기화하시겠습니까?')) return;
     const newCounts = { ...editedCounts };
     filteredProducts.forEach(p => {
       delete newCounts[p.name];
-      onUpdatePhysicalCount && onUpdatePhysicalCount(selectedWarehouse, p.name, undefined);
+      onUpdatePhysicalCount && onUpdatePhysicalCount(appliedWarehouse, p.name, undefined);
     });
     setEditedCounts(newCounts);
     showSaveToast('실재고 입력값이 초기화되었습니다.');
@@ -163,7 +193,7 @@ const PhysicalInventoryInput = ({
   const handleApplyAdjustmentsToBook = () => {
     const adjustments = [];
     filteredProducts.forEach(p => {
-      const bookStock = getBookStock(p.name, selectedWarehouse);
+      const bookStock = getBookStock(p.name, appliedWarehouse);
       const isEntered = editedCounts[p.name] !== undefined && editedCounts[p.name] !== '';
       if (isEntered) {
         const physicalStock = Number(editedCounts[p.name]);
@@ -190,7 +220,7 @@ const PhysicalInventoryInput = ({
     }
 
     if (onSaveAdjustments) {
-      onSaveAdjustments(selectedWarehouse, adjustments);
+      onSaveAdjustments(appliedWarehouse, adjustments);
       setShowConfirmModal(false);
       showSaveToast(`총 ${adjustments.length}개 품목의 전산재고가 실재고로 반영되었습니다.`);
     }
@@ -206,7 +236,7 @@ const PhysicalInventoryInput = ({
     let diffItemsCount = 0;
 
     filteredProducts.forEach(p => {
-      const bookStock = getBookStock(p.name, selectedWarehouse);
+      const bookStock = getBookStock(p.name, appliedWarehouse);
       const isEntered = editedCounts[p.name] !== undefined && editedCounts[p.name] !== '';
       const physicalStock = isEntered ? Number(editedCounts[p.name]) : bookStock;
       const diff = physicalStock - bookStock;
@@ -231,7 +261,7 @@ const PhysicalInventoryInput = ({
       diffAmount,
       diffItemsCount
     };
-  }, [filteredProducts, editedCounts, getBookStock, selectedWarehouse]);
+  }, [filteredProducts, editedCounts, getBookStock, appliedWarehouse]);
 
   return (
     <WindowModal title="실재고 입력" onClose={onClose} width="98vw" height="92vh" contentPadding="0">
@@ -270,31 +300,43 @@ const PhysicalInventoryInput = ({
           </div>
 
           <div className="mobile-search-row">
-            <Search size={16} className="mobile-search-icon" />
-            <input 
-              type="text" 
-              placeholder="품목명, 바코드, 약칭 검색..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="mobile-search-input"
-            />
-            {searchTerm && (
-              <button 
-                type="button" 
-                onClick={() => setSearchTerm('')}
-                className="mobile-search-clear"
-              >
-                <X size={14} />
-              </button>
-            )}
+            <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+              <Search size={16} className="mobile-search-icon" />
+              <input 
+                type="text" 
+                placeholder="품목명, 바코드, 약칭..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearch();
+                }}
+                className="mobile-search-input"
+              />
+              {searchTerm && (
+                <button 
+                  type="button" 
+                  onClick={() => setSearchTerm('')}
+                  className="mobile-search-clear"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <button 
+              type="button"
+              onClick={handleSearch}
+              className="mobile-btn-search"
+            >
+              검색
+            </button>
           </div>
 
           <div className="mobile-tabs-row">
             {[
-              { id: 'all', label: `전체 (${summary.totalItems})` },
-              { id: 'entered', label: `입력 (${summary.enteredItems})` },
-              { id: 'empty', label: `미입력 (${summary.unenteredItems})` },
-              { id: 'diff', label: `차이 (${summary.diffItemsCount})` }
+              { id: 'all', label: `전체 (${hasSearched ? summary.totalItems : 0})` },
+              { id: 'entered', label: `입력 (${hasSearched ? summary.enteredItems : 0})` },
+              { id: 'empty', label: `미입력 (${hasSearched ? summary.unenteredItems : 0})` },
+              { id: 'diff', label: `차이 (${hasSearched ? summary.diffItemsCount : 0})` }
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -312,31 +354,41 @@ const PhysicalInventoryInput = ({
         <div className="mobile-phys-summary">
           <div className="mobile-summary-item">
             <span className="ms-lbl">입력완료</span>
-            <span className="ms-val blue">{summary.enteredItems}/{summary.totalItems}</span>
+            <span className="ms-val blue">{hasSearched ? `${summary.enteredItems}/${summary.totalItems}` : '-'}</span>
           </div>
           <div className="mobile-summary-item">
             <span className="ms-lbl">전산합계</span>
-            <span className="ms-val">{summary.totalBookQty.toLocaleString()}</span>
+            <span className="ms-val">{hasSearched ? summary.totalBookQty.toLocaleString() : '-'}</span>
           </div>
           <div className="mobile-summary-item">
             <span className="ms-lbl">실사합계</span>
-            <span className="ms-val purple">{summary.totalPhysicalQty.toLocaleString()}</span>
+            <span className="ms-val purple">{hasSearched ? summary.totalPhysicalQty.toLocaleString() : '-'}</span>
           </div>
-          <div className={`mobile-summary-item ${summary.diffQty !== 0 ? 'alert' : ''}`}>
+          <div className={`mobile-summary-item ${hasSearched && summary.diffQty !== 0 ? 'alert' : ''}`}>
             <span className="ms-lbl">차이수량</span>
-            <span className={`ms-val ${summary.diffQty > 0 ? 'blue' : summary.diffQty < 0 ? 'red' : ''}`}>
-              {summary.diffQty > 0 ? `+${summary.diffQty}` : summary.diffQty}
+            <span className={`ms-val ${!hasSearched ? '' : summary.diffQty > 0 ? 'blue' : summary.diffQty < 0 ? 'red' : ''}`}>
+              {!hasSearched ? '-' : summary.diffQty > 0 ? `+${summary.diffQty}` : summary.diffQty}
             </span>
           </div>
         </div>
 
         {/* 3. Items list */}
         <div className="mobile-phys-list">
-          {filteredProducts.length === 0 ? (
+          {!hasSearched ? (
+            <div className="mobile-empty-list" style={{ padding: '50px 16px' }}>
+              <Search size={32} color="#94a3b8" style={{ margin: '0 auto 10px auto', display: 'block' }} />
+              <div style={{ fontWeight: 800, color: '#334155', fontSize: '0.9rem', marginBottom: '4px' }}>
+                조건을 설정한 후 [검색] 버튼을 눌러주세요.
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                창고, 카테고리 또는 검색어를 입력하고 검색하시면 해당 품목이 나타납니다.
+              </div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="mobile-empty-list">조회된 품목이 없습니다.</div>
           ) : (
             filteredProducts.map((p, idx) => {
-              const bookStock = getBookStock(p.name, selectedWarehouse);
+              const bookStock = getBookStock(p.name, appliedWarehouse);
               const isEntered = editedCounts[p.name] !== undefined && editedCounts[p.name] !== '';
               const physicalVal = isEntered ? editedCounts[p.name] : '';
               const physicalStock = isEntered ? Number(editedCounts[p.name]) : bookStock;
@@ -428,6 +480,8 @@ const PhysicalInventoryInput = ({
               type="button" 
               className="btn-m-tool"
               onClick={handleFillAllWithBookStock}
+              disabled={!hasSearched || filteredProducts.length === 0}
+              style={{ opacity: (!hasSearched || filteredProducts.length === 0) ? 0.5 : 1 }}
             >
               <ClipboardCheck size={14} /> 자동채우기
             </button>
@@ -435,6 +489,8 @@ const PhysicalInventoryInput = ({
               type="button" 
               className="btn-m-tool"
               onClick={handleClearAllCounts}
+              disabled={!hasSearched || filteredProducts.length === 0}
+              style={{ opacity: (!hasSearched || filteredProducts.length === 0) ? 0.5 : 1 }}
             >
               <RefreshCw size={14} /> 초기화
             </button>
@@ -444,6 +500,8 @@ const PhysicalInventoryInput = ({
             type="button" 
             className="btn-m-apply"
             onClick={() => setShowConfirmModal(true)}
+            disabled={!hasSearched || summary.enteredItems === 0}
+            style={{ opacity: (!hasSearched || summary.enteredItems === 0) ? 0.5 : 1 }}
           >
             <Save size={16} /> 전산재고에 실재고 반영 ({summary.enteredItems}건)
           </button>
@@ -456,7 +514,7 @@ const PhysicalInventoryInput = ({
               <AlertTriangle size={32} color="#f59e0b" style={{ marginBottom: '8px' }} />
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 8px 0' }}>실재고 전산 반영 확인</h3>
               <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0 0 14px 0' }}>
-                <b>[{selectedWarehouse}]</b> 창고의 실재고 {summary.enteredItems}건을 전산재고에 최종 반영하시겠습니까?
+                <b>[{appliedWarehouse}]</b> 창고의 실재고 {summary.enteredItems}건을 전산재고에 최종 반영하시겠습니까?
               </p>
               
               <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '14px', textAlign: 'left' }}>

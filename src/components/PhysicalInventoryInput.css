@@ -50,9 +50,22 @@
 }
 
 .mobile-search-row {
-  position: relative;
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.mobile-btn-search {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  background-color: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  white-space: nowrap;
+  height: 34px;
+  cursor: pointer;
 }
 
 .mobile-search-icon {
