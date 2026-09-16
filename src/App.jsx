@@ -874,6 +874,7 @@ function App() {
     loadCache('inventoryAdjustments', setInventoryAdjustments);
     loadCache('inventoryTransferHistory', setInventoryTransferHistory);
     loadCache('specialPrices', setSpecialPrices);
+    loadCache('actionLogs', setActionLogs);
     loadCache('staffZones', setStaffZones);
     loadCache('staffJobTitles', setStaffJobTitles);
   }, [currentUser?.companyId, currentView]);
@@ -904,7 +905,8 @@ function App() {
         expenses: setExpenses,
         inventoryAdjustments: setInventoryAdjustments,
         inventoryTransferHistory: setInventoryTransferHistory,
-        specialPrices: setSpecialPrices
+        specialPrices: setSpecialPrices,
+        actionLogs: setActionLogs
       };
 
       await syncBundlesOnce(companyId, (colName, data) => {
@@ -1096,6 +1098,36 @@ function App() {
   const [inventoryAdjustments, setInventoryAdjustments] = useState(() => getInitialStateFromCache('inventoryAdjustments', []));
   const [inventoryTransferHistory, setInventoryTransferHistory] = useState(() => getInitialStateFromCache('inventoryTransferHistory', []));
   const [specialPrices, setSpecialPrices] = useState(() => getInitialStateFromCache('specialPrices', []));
+  const [actionLogs, setActionLogs] = useState(() => getInitialStateFromCache('actionLogs', []));
+
+  const logOperation = async ({ category, subCategory, title, detail, user, type, targetId, date, time }) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const now = new Date();
+      const logId = Date.now() + Math.random();
+      const logDate = date || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const logTime = time || now.toLocaleTimeString('ko-KR', { hour12: false });
+      const logEntry = {
+        id: logId,
+        targetId: targetId ? String(targetId) : null,
+        category: category || '전표등록',
+        subCategory: subCategory || '일반',
+        title: title || `${type || '작업'} 완료`,
+        detail: detail || '',
+        user: user || currentUser?.name || '시스템',
+        date: logDate,
+        time: logTime,
+        timestamp: Date.now(),
+        type: type || '등록',
+        companyId
+      };
+      await setDoc(doc(db, 'companies', companyId, 'actionLogs', String(logId)), logEntry);
+      setActionLogs(prev => [logEntry, ...prev]);
+      return logEntry;
+    } catch (err) {
+      console.error('Error logging operation:', err);
+    }
+  };
 
   const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null) => {
     try {
@@ -1119,21 +1151,37 @@ function App() {
       // 2. Add to Transfer History
       const product = products.find(p => p.name === productName);
       const historyId = Date.now() + Math.random();
+      const moveDate = customDate || getLocalDateStr();
+      const moveTime = new Date().toLocaleTimeString('ko-KR', { hour12: false });
       const newEntry = {
         id: historyId,
-        date: customDate || getLocalDateStr(),
+        date: moveDate,
         from,
         to,
         item: productName,
         spec: product?.spec || '',
         qty: Number(qty),
-        processedAt: new Date().toLocaleTimeString(),
+        processedAt: moveTime,
         operator: currentUser?.name || '시스템',
         memo: isAuto ? '상차(자동이동)' : '수동이동',
         salesOrderId: relatedOrderId ? String(relatedOrderId) : null,
         companyId
       };
       await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
+      setInventoryTransferHistory(prev => [newEntry, ...prev]);
+
+      // 3. 최근 처리 이력 로그 기록
+      await logOperation({
+        category: '이동',
+        subCategory: '재고이동',
+        type: '이동',
+        title: `재고이동 (${from} ➔ ${to})`,
+        detail: `품목: ${productName} (${qty}개${product?.spec ? `, 규격: ${product.spec}` : ''}) | 구분: ${isAuto ? '상차(자동이동)' : '수동이동'}`,
+        user: currentUser?.name || '시스템',
+        targetId: String(historyId),
+        date: moveDate,
+        time: moveTime
+      });
     } catch (err) { console.error(err); }
   };
 
@@ -1147,10 +1195,12 @@ function App() {
       const nextInv = { ...inventory };
       const batch = writeBatch(db);
       const ordersToUpdate = {};
+      const deletedRecords = [];
 
       for (const id of ids) {
         const record = inventoryTransferHistory.find(h => String(h.id) === String(id));
         if (!record) continue;
+        deletedRecords.push(record);
 
         const { from, to, item, qty, memo, date, salesOrderId } = record;
 
@@ -1208,6 +1258,19 @@ function App() {
 
       await batch.commit();
       setInventoryTransferHistory(prev => prev.filter(h => !ids.includes(String(h.id))));
+
+      // 4. 재고이동 삭제 이력 로그 기록 (건별 상세 기록)
+      for (const record of deletedRecords) {
+        await logOperation({
+          category: '삭제',
+          subCategory: '재고이동',
+          type: '삭제',
+          title: `재고이동 삭제 (${record.from || '출발'} ➔ ${record.to || '도착'})`,
+          detail: `품목: ${record.item} (${record.qty}개${record.spec ? `, 규격: ${record.spec}` : ''}) | 이동일자: ${record.date || '-'} | ${record.memo || '재고이동'} 취소 및 재고 원상 복구`,
+          user: currentUser?.name || '시스템',
+          targetId: String(record.id)
+        });
+      }
     } catch (err) {
       console.error('Error deleting move stock:', err);
     }
@@ -1255,6 +1318,17 @@ function App() {
       await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(id)), cleanEntry);
       setInventoryTransferHistory(prev => prev.map(h => String(h.id) === String(id) ? { ...h, ...cleanEntry } : h));
 
+      // 5. 재고이동 수정 로그 기록
+      await logOperation({
+        category: '변경',
+        subCategory: '재고이동',
+        type: '수정',
+        title: `재고이동 수정 (${record.from} ➔ ${record.to})`,
+        detail: `품목: ${record.item} | 수량 변경: ${record.qty}개 ➔ ${cleanEntry.qty}개 (이동일자: ${cleanEntry.date || record.date})`,
+        user: currentUser?.name || '시스템',
+        targetId: String(id)
+      });
+
       showToast('재고 이동 내역이 수정되었습니다.', 'success');
     } catch (err) {
       console.error(err);
@@ -1267,11 +1341,22 @@ function App() {
     try {
       const companyId = currentUser?.companyId || 'default';
       const batch = writeBatch(db);
+      const totalCount = inventoryTransferHistory.length;
       for (const h of inventoryTransferHistory) {
         batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(h.id)));
       }
       await batch.commit();
       setInventoryTransferHistory([]);
+
+      await logOperation({
+        category: '삭제',
+        subCategory: '재고이동',
+        type: '삭제',
+        title: '재고이동 전체 내역 삭제',
+        detail: `총 ${totalCount}건의 재고 이동 이력 일괄 삭제`,
+        user: currentUser?.name || '시스템'
+      });
+
       showToast('모든 이동 내역이 삭제되었습니다.', 'success');
     } catch (err) {
       console.error(err);
@@ -1389,6 +1474,18 @@ function App() {
       }
       
       await deleteDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
+      setSalesInvoices(prev => prev.filter(si => String(si.id) !== String(id)));
+
+      await logOperation({
+        category: '삭제',
+        subCategory: '매출전표',
+        type: '삭제',
+        title: `매출전표 삭제 (${targetInv?.partner || '미지정'})`,
+        detail: `출고 재고 원상 복구 및 전표 삭제 (전표일자: ${targetInv?.date || '-'}, 품목: ${(targetInv?.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'}, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
+        user: currentUser?.name || '시스템',
+        targetId: String(id)
+      });
+
       alert('매출전표가 삭제되었으며 실시간 재고에 복구되었습니다.');
     } catch (err) { console.error(err); }
   };
@@ -1446,6 +1543,19 @@ function App() {
       }
 
       await deleteDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)));
+      setSalesOrders(prev => prev.filter(so => String(so.id) !== String(id)));
+
+      const orderItemsSummary = (targetOrder?.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
+      await logOperation({
+        category: '삭제',
+        subCategory: '수주',
+        type: '삭제',
+        title: `수주서 삭제 (${targetOrder?.partner || '미지정'})`,
+        detail: `수주일자: ${targetOrder?.date || '-'} | 품목: ${orderItemsSummary} | 합계: ${(targetOrder?.totalPrice || targetOrder?.totalAmount || 0).toLocaleString()}원 | 상차 재고 원상 복구 및 수주서 삭제`,
+        user: currentUser?.name || '시스템',
+        targetId: String(id)
+      });
+
       alert('수주서가 삭제되었으며 상차 완료된 재고는 실시간으로 원상 복구되었습니다.');
     } catch (err) {
       console.error('Error deleting sales order:', err);
@@ -1502,6 +1612,18 @@ function App() {
       }
 
       await deleteDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)));
+      setPurchaseInvoices(prev => prev.filter(pi => String(pi.id) !== String(id)));
+
+      await logOperation({
+        category: '삭제',
+        subCategory: '매입전표',
+        type: '삭제',
+        title: `매입전표 삭제 (${targetInv?.partner || '미지정'})`,
+        detail: `입고 재고 원상 복구 및 전표 삭제 (전표일자: ${targetInv?.date || '-'}, 품목: ${(targetInv?.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'}, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
+        user: currentUser?.name || '시스템',
+        targetId: String(id)
+      });
+
       alert('매입전표가 삭제되었으며 실시간 창고 재고 및 매입 이력이 실시간으로 복구되었습니다.');
     } catch (err) {
       console.error('Error deleting purchase invoice:', err);
@@ -1585,6 +1707,22 @@ function App() {
         creator: invData.creator || currentUser?.name || '시스템'
       };
       await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)), finalData);
+      setPurchaseInvoices(prev => {
+        const idx = prev.findIndex(pi => String(pi.id) === String(id));
+        if (idx >= 0) { const next = [...prev]; next[idx] = finalData; return next; }
+        return [finalData, ...prev];
+      });
+
+      const isEditPurch = Boolean(invData.id && purchaseInvoices.some(pi => String(pi.id) === String(invData.id)));
+      await logOperation({
+        category: isEditPurch ? '변경' : '전표등록',
+        subCategory: '매입전표',
+        type: isEditPurch ? '수정' : '등록',
+        title: `매입전표 ${isEditPurch ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
+        detail: `전표일자: ${finalData.date} | 입고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
+        user: currentUser?.name || finalData.creator || '시스템',
+        targetId: String(id)
+      });
       
       if (isSilent) {
         setEditingPurchaseInvoice(finalData);
@@ -1756,6 +1894,22 @@ function App() {
         creator: invData.creator || currentUser?.name || '시스템'
       };
       await setDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)), finalData);
+      setSalesInvoices(prev => {
+        const idx = prev.findIndex(si => String(si.id) === String(id));
+        if (idx >= 0) { const next = [...prev]; next[idx] = finalData; return next; }
+        return [finalData, ...prev];
+      });
+
+      const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
+      await logOperation({
+        category: isEditSale ? '변경' : '전표등록',
+        subCategory: '매출전표',
+        type: isEditSale ? '수정' : '등록',
+        title: `매출전표 ${isEditSale ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
+        detail: `전표일자: ${finalData.date} | 출고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
+        user: currentUser?.name || finalData.creator || '시스템',
+        targetId: String(id)
+      });
       
       if (isSilent) {
         setEditingInvoice(finalData);
@@ -1967,6 +2121,57 @@ function App() {
     setMismatchInitialWarehouse(warehouse);
     setMismatchInitialSearchTerm(product);
     setIsInventoryMismatchOpen(true);
+  };
+
+  const handleDeleteActivityRecord = async (act) => {
+    if (!currentUser || (!currentUser.permissions?.deleteRecentActivity && !currentUser.allowAllEditDelete)) {
+      alert('이력 삭제 권한이 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('선택한 처리 이력 및 연계된 원본 데이터(전표/수주서/재고이동 등)를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)')) {
+      return;
+    }
+
+    const companyId = currentUser?.companyId || 'default';
+    const id = act.rawId;
+
+    try {
+      if (act.id.startsWith('sales-inv-')) {
+        await handleDeleteSalesInvoice(id);
+      } else if (act.id.startsWith('purch-inv-')) {
+        await handleDeletePurchaseInvoice(id);
+      } else if (act.id.startsWith('order-')) {
+        await handleDeleteSalesOrder(id);
+      } else if (act.id.startsWith('po-')) {
+        await deleteDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)));
+        setPurchaseOrders(prev => prev.filter(po => String(po.id) !== String(id)));
+        alert('발주서가 성공적으로 삭제되었습니다.');
+      } else if (act.id.startsWith('mov-')) {
+        await onDeleteMoveStock(id);
+        alert('재고이동 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
+      } else if (act.id.startsWith('adj-')) {
+        const adj = inventoryAdjustments.find(a => String(a.id) === String(id));
+        if (adj) {
+          const nextInv = { ...inventory };
+          const wh = adj.warehouse || warehouses[0]?.name || '창고';
+          if (!nextInv[wh]) nextInv[wh] = {};
+          nextInv[wh][adj.productName] = (nextInv[wh][adj.productName] || 0) - Number(adj.qty);
+          await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+          setInventory(nextInv);
+        }
+        await deleteDoc(doc(db, 'companies', companyId, 'inventoryAdjustments', String(id)));
+        setInventoryAdjustments(prev => prev.filter(a => String(a.id) !== String(id)));
+        alert('재고조정 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
+      } else if (act.id.startsWith('log-')) {
+        await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(id)));
+        setActionLogs(prev => prev.filter(log => String(log.id) !== String(id)));
+        alert('처리 기록이 성공적으로 삭제되었습니다.');
+      }
+    } catch (err) {
+      console.error('Error deleting activity record:', err);
+      alert('이력 삭제 중 오류가 발생했습니다: ' + err.message);
+    }
   };
 
   // 2. Effects for persistence
@@ -4245,8 +4450,26 @@ function App() {
           try {
             const companyId = currentUser?.companyId || 'default';
             const id = od.id || Date.now();
-            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), { ...od, id: Number(id), companyId });
+            const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
+            const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
+            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
+            setSalesOrders(prev => {
+              const idx = prev.findIndex(o => String(o.id) === String(id));
+              if (idx >= 0) { const next = [...prev]; next[idx] = fullOrder; return next; }
+              return [...prev, fullOrder];
+            });
             setEditingOrder(null);
+
+            const itemsSummary = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
+            await logOperation({
+              category: isEdit ? '변경' : '전표등록',
+              subCategory: '수주',
+              type: isEdit ? '수정' : '등록',
+              title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
+              detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
+              user: currentUser?.name || fullOrder.manager || '시스템',
+              targetId: String(id)
+            });
           } catch (err) { console.error(err); }
         }} 
         onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); openSalesInvoice(invData); }}
@@ -4273,9 +4496,27 @@ function App() {
             try {
               const companyId = currentUser?.companyId || 'default';
               const id = od.id || Date.now();
-              await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), { ...od, id: Number(id), companyId });
+              const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
+              const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
+              await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
+              setSalesOrders(prev => {
+                const idx = prev.findIndex(o => String(o.id) === String(id));
+                if (idx >= 0) { const next = [...prev]; next[idx] = fullOrder; return next; }
+                return [...prev, fullOrder];
+              });
               setEditingOrder(null);
               setOrderingPartner(null);
+
+              const itemsSummary2 = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
+              await logOperation({
+                category: isEdit ? '변경' : '전표등록',
+                subCategory: '수주',
+                type: isEdit ? '수정' : '등록',
+                title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
+                detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary2} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
+                user: currentUser?.name || fullOrder.manager || '시스템',
+                targetId: String(id)
+              });
             } catch (err) { console.error(err); }
           }}
           onTransferToInvoice={(invData) => { setOrderingPartner(null); openSalesInvoice(invData); }}
@@ -4828,9 +5069,12 @@ function App() {
           purchaseInvoices={purchaseInvoices}
           salesOrders={salesOrders}
           purchaseOrders={purchaseOrders}
-          inventoryMovements={inventoryMovements}
+          inventoryMovements={inventoryTransferHistory}
           inventoryAdjustments={inventoryAdjustments}
-          activityLogs={[]}
+          activityLogs={actionLogs}
+          staffList={staffList}
+          currentUser={currentUser}
+          onDeleteActivity={handleDeleteActivityRecord}
         />
       )}
       {showExitConfirmModal && (
