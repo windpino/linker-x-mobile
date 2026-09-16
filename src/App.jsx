@@ -55,6 +55,7 @@ import SettingsManager from './components/SettingsManager';
 import LicenseManager from './components/LicenseManager';
 import InventoryAdjustment from './components/InventoryAdjustment';
 import InventoryMismatch from './components/InventoryMismatch';
+import PhysicalInventoryInput from './components/PhysicalInventoryInput';
 import TaxReport from './components/TaxReport';
 import TaxInvoiceDocument from './components/TaxInvoiceDocument';
 import PartnerShoppingMall from './components/PartnerShoppingMall';
@@ -84,6 +85,7 @@ const ALL_FAVORITE_MENUS = [
   { id: 'warehouse',           name: '창고관리',        category: '기초자료등록',   emoji: '🏠' },
   { id: 'partner',             name: '거래처등록/관리',  category: '기초자료등록',   emoji: '🤝' },
   { id: 'product',             name: '품목등록/관리',    category: '기초자료등록',   emoji: '📦' },
+  { id: 'physical_inventory',  name: '실재고 입력',      category: '기초자료등록',   emoji: '📝' },
   { id: 'inventory_transfer',  name: '재고이동',        category: '기초자료등록',   emoji: '🚚' },
   { id: 'inventory_movement_manager', name: '재고 이동 현황 관리', category: '기초자료등록', emoji: '📋' },
   { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
@@ -126,6 +128,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
     warehouse:                  <Home size={size} />,
     partner:                    <UserPlus size={size} />,
     product:                    <Package size={size} />,
+    physical_inventory:         <ClipboardList size={size} />,
     inventory_transfer:         <History size={size} />,
     inventory_movement_manager: <List size={size} />,
     inventory_adjustment:       <Box size={size} />,
@@ -385,6 +388,7 @@ function App() {
   const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = useState(false);
   const [isFavoriteSettingsOpen, setIsFavoriteSettingsOpen] = useState(false);
   const [isInventoryAdjustmentOpen, setIsInventoryAdjustmentOpen] = useState(false);
+  const [isPhysicalInventoryOpen, setIsPhysicalInventoryOpen] = useState(false);
   const [isInventoryMismatchOpen, setIsInventoryMismatchOpen] = useState(false);
   const [mismatchInitialWarehouse, setMismatchInitialWarehouse] = useState('');
   const [mismatchInitialSearchTerm, setMismatchInitialSearchTerm] = useState('');
@@ -1010,7 +1014,7 @@ function App() {
     isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
     isLicenseOpen || isDashboardSettingsOpen || isFavoriteSettingsOpen ||
-    isInventoryAdjustmentOpen || isInventoryMismatchOpen || isTaxReportOpen ||
+    isInventoryAdjustmentOpen || isPhysicalInventoryOpen || isInventoryMismatchOpen || isTaxReportOpen ||
     isPartnerSpecialPriceManagerOpen || isInventoryMovementManagerOpen
   );
 
@@ -3747,6 +3751,7 @@ function App() {
           onOpenLicense={() => setIsLicenseOpen(true)}
           onOpenInventoryAdjustment={() => setIsInventoryAdjustmentOpen(true)}
           onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
+          onOpenPhysicalInventory={() => setIsPhysicalInventoryOpen(true)}
           onOpenTaxReport={() => setIsTaxReportOpen(true)}
           onOpenPartnerMall={() => setCurrentView('shopping')}
           onOpenPlatformManager={() => setCurrentView('super_admin')}
@@ -3776,6 +3781,7 @@ function App() {
               warehouse:                  () => setIsWarehouseManagerOpen(true),
               partner:                    () => setIsPartnerManagerOpen(true),
               product:                    () => setIsProductManagerOpen(true),
+              physical_inventory:         () => setIsPhysicalInventoryOpen(true),
               inventory_transfer:         () => openInventoryTransfer(),
               inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
               inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
@@ -4737,6 +4743,19 @@ function App() {
           warehouses={warehouses}
           currentUser={currentUser}
           onSave={handleSaveAdjustment}
+        />
+      )}
+      {isPhysicalInventoryOpen && (
+        <PhysicalInventoryInput 
+          onClose={() => setIsPhysicalInventoryOpen(false)}
+          products={products}
+          categories={categories}
+          warehouses={warehouses}
+          inventory={inventory}
+          currentUser={currentUser}
+          onSaveAdjustments={handleSaveStocktakeAdjustments}
+          physicalInventory={physicalInventory}
+          onUpdatePhysicalCount={handleUpdatePhysicalCount}
         />
       )}
       {isInventoryMismatchOpen && (

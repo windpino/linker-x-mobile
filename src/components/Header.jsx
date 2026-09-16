@@ -13,7 +13,7 @@ const Header = ({
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
-  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch,
+  onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenPhysicalInventory,
   onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -190,6 +190,13 @@ const Header = ({
       keywords: '경비등록 비용처리 지출결의',
     },
     // 재고관리
+    {
+      title: '실재고 입력',
+      category: '재고관리',
+      action: onOpenPhysicalInventory,
+      perm: hasPerm('재고이동') || hasPerm('재고보고서'),
+      keywords: '실재고입력 재고실사 실사 재고입력 실재고',
+    },
     {
       title: '재고이동',
       category: '재고관리',
@@ -551,6 +558,7 @@ const Header = ({
               { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
             ]},
             { id: 'inventory', label: '재고관리', items: [
+              { perm: true, label: '실재고 입력', action: onOpenPhysicalInventory },
               { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
               { perm: hasPerm('재고이동'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
               { perm: true, label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
