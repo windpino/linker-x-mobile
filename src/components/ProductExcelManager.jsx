@@ -19,7 +19,7 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
     categoryLarge: '', categoryMedium: '', categorySmall: '',
     name: '', abbreviation: '', singleBarcode: '', boxBarcode: '',
     spec: '', innerQty: '', taxType: '', purchasePrice: '', salesPrice: '',
-    optimalStock: '', memo: ''
+    initialStock: '', optimalStock: '', memo: ''
   });
   const [previewProducts, setPreviewProducts] = useState([]);
   const fileInputRef = useRef(null);
@@ -33,6 +33,8 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
     { key: 'spec', label: '규격', required: false },
     { key: 'purchasePrice', label: '매입가', required: false },
     { key: 'salesPrice', label: '매출가', required: false },
+    { key: 'initialStock', label: '기초재고', required: false },
+    { key: 'optimalStock', label: '적정재고', required: false },
     { key: 'singleBarcode', label: '낱개바코드', required: false },
     { key: 'innerQty', label: '내품수량', required: false },
     { key: 'memo', label: '상품설명', required: false },
@@ -51,6 +53,7 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
     { field: 'taxType', header: '과세구분', width: '80px' },
     { field: 'purchasePrice', header: '매입가', width: '100px', type: 'number' },
     { field: 'salesPrice', header: '매출가', width: '100px', type: 'number' },
+    { field: 'initialStock', header: '기초재고', width: '100px', type: 'number' },
     { field: 'optimalStock', header: '적정재고', width: '100px', type: 'number' },
     { field: 'memo', header: '상품설명', width: '200px' }
   ];
@@ -103,6 +106,7 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
           taxType: guess(['과세', '면세', 'tax']),
           purchasePrice: guess(['매입가', '구매가', 'purchase']),
           salesPrice: guess(['매출가', '판매가', 'sales']),
+          initialStock: guess(['기초재고', '초기재고', '이월재고', '기초']),
           optimalStock: guess(['적정재고', '재고']),
           memo: guess(['메모', '비고', 'memo']),
         });
@@ -143,6 +147,7 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
         taxType: getVal(colOf('taxType')) || '과세',
         purchasePrice: parseNum(getVal(colOf('purchasePrice'))),
         salesPrice: parseNum(getVal(colOf('salesPrice'))),
+        initialStock: parseNum(getVal(colOf('initialStock'))),
         optimalStock: parseNum(getVal(colOf('optimalStock'))),
         memo: getVal(colOf('memo')),
       });
@@ -192,11 +197,12 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
       spec: '규격',
       purchasePrice: '매입가',
       salesPrice: '매출가',
+      initialStock: '기초재고',
+      optimalStock: '적정재고',
       singleBarcode: '낱개바코드',
       boxBarcode: '박스바코드',
       innerQty: '내품수량',
       taxType: '과세구분',
-      optimalStock: '적정재고',
       memo: '상품설명'
     };
     const formattedData = formatDataForExcel(products, columnMap);

@@ -42,6 +42,7 @@ const PRODUCT_COLUMNS = [
   { field: 'salesPriceSingle', header: '매출가(낱개)', type: 'number', width: 120 },
   { field: 'salesPriceBox', header: '매출가(박스)', type: 'number', width: 120 },
   { field: 'stock', header: '현재고', type: 'number', width: 100 },
+  { field: 'initialStock', header: '기초재고', type: 'number', width: 100 },
   { field: 'optimalStock', header: '적정재고', type: 'number', width: 100 },
   { field: 'safeStock', header: '안전재고', type: 'number', width: 100 },
   { field: 'singleBarcode', header: '낱개바코드', type: 'string', width: 150 },
