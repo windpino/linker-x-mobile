@@ -1474,7 +1474,9 @@ function App() {
       }
       
       await deleteDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
-      setSalesInvoices(prev => prev.filter(si => String(si.id) !== String(id)));
+      const nextSalesInvoices = salesInvoices.filter(si => String(si.id) !== String(id));
+      setSalesInvoices(nextSalesInvoices);
+      await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
 
       await logOperation({
         category: '삭제',
@@ -1566,13 +1568,17 @@ function App() {
       await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       setInventory(nextInv);
 
-      // 4. 주문서 문서 삭제
+      // 4. 주문서 문서 삭제 및 번들 동기화
       await deleteDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)));
-      setSalesOrders(prev => prev.filter(so => String(so.id) !== String(id)));
+      const nextSalesOrders = salesOrders.filter(so => String(so.id) !== String(id));
+      setSalesOrders(nextSalesOrders);
+      await saveBundle(companyId, 'salesOrders', nextSalesOrders);
 
-      // 5. 로컬 재고이동 이력 상태에서도 삭제 반영
+      // 5. 로컬 재고이동 이력 상태에서도 삭제 반영 및 번들 동기화
       if (deletedIds.size > 0) {
-        setInventoryTransferHistory(prev => prev.filter(h => !deletedIds.has(String(h.id))));
+        const nextTransfers = inventoryTransferHistory.filter(h => !deletedIds.has(String(h.id)));
+        setInventoryTransferHistory(nextTransfers);
+        await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
       }
 
       // 6. 감사 로그 기록
@@ -1648,7 +1654,9 @@ function App() {
       }
 
       await deleteDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)));
-      setPurchaseInvoices(prev => prev.filter(pi => String(pi.id) !== String(id)));
+      const nextPurchaseInvoices = purchaseInvoices.filter(pi => String(pi.id) !== String(id));
+      setPurchaseInvoices(nextPurchaseInvoices);
+      await saveBundle(companyId, 'purchaseInvoices', nextPurchaseInvoices);
 
       await logOperation({
         category: '삭제',
@@ -1743,11 +1751,17 @@ function App() {
         creator: invData.creator || currentUser?.name || '시스템'
       };
       await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)), finalData);
-      setPurchaseInvoices(prev => {
-        const idx = prev.findIndex(pi => String(pi.id) === String(id));
-        if (idx >= 0) { const next = [...prev]; next[idx] = finalData; return next; }
-        return [finalData, ...prev];
-      });
+      const nextPurchaseInvoices = (() => {
+        const idx = purchaseInvoices.findIndex(pi => String(pi.id) === String(id));
+        if (idx >= 0) { const next = [...purchaseInvoices]; next[idx] = finalData; return next; }
+        return [finalData, ...purchaseInvoices];
+      })();
+      setPurchaseInvoices(nextPurchaseInvoices);
+      await saveBundle(companyId, 'purchaseInvoices', nextPurchaseInvoices);
+
+      const nextTransfers = [...inventoryTransferHistory.filter(h => String(h.purchaseInvoiceId) !== String(id)), ...newHistoryEntries];
+      setInventoryTransferHistory(nextTransfers);
+      await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
 
       const isEditPurch = Boolean(invData.id && purchaseInvoices.some(pi => String(pi.id) === String(invData.id)));
       await logOperation({
@@ -1930,11 +1944,17 @@ function App() {
         creator: invData.creator || currentUser?.name || '시스템'
       };
       await setDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)), finalData);
-      setSalesInvoices(prev => {
-        const idx = prev.findIndex(si => String(si.id) === String(id));
-        if (idx >= 0) { const next = [...prev]; next[idx] = finalData; return next; }
-        return [finalData, ...prev];
-      });
+      const nextSalesInvoices = (() => {
+        const idx = salesInvoices.findIndex(si => String(si.id) === String(id));
+        if (idx >= 0) { const next = [...salesInvoices]; next[idx] = finalData; return next; }
+        return [finalData, ...salesInvoices];
+      })();
+      setSalesInvoices(nextSalesInvoices);
+      await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
+
+      const nextTransfers = [...inventoryTransferHistory.filter(h => String(h.salesInvoiceId) !== String(id)), ...newHistoryEntries];
+      setInventoryTransferHistory(nextTransfers);
+      await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
 
       const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
       await logOperation({
@@ -2181,7 +2201,9 @@ function App() {
         await handleDeleteSalesOrder(id);
       } else if (act.id.startsWith('po-')) {
         await deleteDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)));
-        setPurchaseOrders(prev => prev.filter(po => String(po.id) !== String(id)));
+        const nextPOs = purchaseOrders.filter(po => String(po.id) !== String(id));
+        setPurchaseOrders(nextPOs);
+        await saveBundle(companyId, 'purchaseOrders', nextPOs);
         alert('발주서가 성공적으로 삭제되었습니다.');
       } else if (act.id.startsWith('mov-')) {
         await onDeleteMoveStock(id);
@@ -2197,11 +2219,15 @@ function App() {
           setInventory(nextInv);
         }
         await deleteDoc(doc(db, 'companies', companyId, 'inventoryAdjustments', String(id)));
-        setInventoryAdjustments(prev => prev.filter(a => String(a.id) !== String(id)));
+        const nextAdjs = inventoryAdjustments.filter(a => String(a.id) !== String(id));
+        setInventoryAdjustments(nextAdjs);
+        await saveBundle(companyId, 'inventoryAdjustments', nextAdjs);
         alert('재고조정 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
       } else if (act.id.startsWith('log-')) {
         await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(id)));
-        setActionLogs(prev => prev.filter(log => String(log.id) !== String(id)));
+        const nextLogs = actionLogs.filter(log => String(log.id) !== String(id));
+        setActionLogs(nextLogs);
+        await saveBundle(companyId, 'actionLogs', nextLogs);
         alert('처리 기록이 성공적으로 삭제되었습니다.');
       }
     } catch (err) {
@@ -2266,12 +2292,15 @@ function App() {
       safeSetItem('physicalInventory', physicalInventory, 'physicalInventory');
       safeSetItem('inventoryAdjustments', inventoryAdjustments, 'inventoryAdjustments');
       safeSetItem('inventoryTransferHistory', inventoryTransferHistory, 'inventoryTransferHistory');
+      safeSetItem('salesInvoices', salesInvoices, 'salesInvoices');
+      safeSetItem('salesOrders', salesOrders, 'salesOrders');
       safeSetItem('staffZones', staffZones, 'staffZones');
       safeSetItem('staffJobTitles', staffJobTitles, 'staffJobTitles');
+      safeSetItem('actionLogs', actionLogs, 'actionLogs');
     } catch (e) {
       console.warn('Storage sync failed:', e);
     }
-  }, [staffList, schedules, products, categories, partners, accounts, purchaseInvoices, purchaseOrders, warehouses, currentUser, systemSettings, expenses, licenseData, dashboardConfig, scheduleTypes, inventory, physicalInventory, inventoryAdjustments, favoriteMenus, staffZones, staffJobTitles]);
+  }, [staffList, schedules, products, categories, partners, accounts, purchaseInvoices, purchaseOrders, salesInvoices, salesOrders, warehouses, currentUser, systemSettings, expenses, licenseData, dashboardConfig, scheduleTypes, inventory, physicalInventory, inventoryAdjustments, inventoryTransferHistory, actionLogs, favoriteMenus, staffZones, staffJobTitles]);
 
   // Handle toggling menu favorites from window modals
   React.useEffect(() => {
@@ -3812,59 +3841,81 @@ function App() {
     );
   }
 
-  const handleMallOrder = (items) => {
-    // Find existing pending order for this partner today
-    const today = new Date().toISOString().split('T')[0];
-    const existingOrder = salesOrders.find(o => 
-      o.partner === currentUser.name && 
-      o.date === today && 
-      o.status === '주문대기'
-    );
+  const handleMallOrder = async (items) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const today = new Date().toISOString().split('T')[0];
+      const existingOrder = salesOrders.find(o => 
+        o.partner === currentUser.name && 
+        o.date === today && 
+        o.status === '주문대기'
+      );
 
-    const newItems = items.map(item => ({
-      name: item.product.name,
-      qty: item.qty,
-      loaded: false
-    }));
+      const newItems = items.map(item => ({
+        name: item.product.name,
+        qty: item.qty,
+        loaded: false
+      }));
 
-    if (existingOrder) {
-      // Merge items into existing order
-      const mergedItems = [...(existingOrder.items || []), ...newItems];
-      const newItemsText = mergedItems.map(i => `${i.name}${i.qty}`).join(' ');
-      const additionalAmount = items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0);
-      
-      setSalesOrders(prev => prev.map(o => 
-        o.id === existingOrder.id 
-          ? { ...o, items: mergedItems, itemsText: newItemsText, totalAmount: o.totalAmount + additionalAmount } 
-          : o
-      ));
-      alert('기존 수주서에 품목이 추가되었습니다.');
-      showToast(`${currentUser.name} 거래처의 수주가 추가되었습니다!`, 'success');
-    } else {
-      // Create new order
-      const newOrder = {
-        id: Date.now(),
-        date: today,
-        partner: currentUser.name,
-        manager: currentUser.manager && currentUser.manager !== '-' ? currentUser.manager : '알 수 없음',
-        outWarehouse: warehouses.find(w => w.isMain)?.name || 
-                      warehouses.find(w => w.name.includes('메인'))?.name || 
-                      warehouses.find(w => w.name.includes('main'))?.name || 
-                      warehouses[0]?.name || 
-                      '메인창고', 
-        inWarehouse: currentUser.warehouse && currentUser.warehouse !== '-' ? currentUser.warehouse : '동명',
-        items: newItems,
-        itemsText: newItems.map(i => `${i.name}${i.qty}`).join(' '),
-        status: '주문대기',
-        totalAmount: items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0),
-        memo: '거래처 직접 수주 (MALL)',
-        companyId: currentUser.companyId || 'default'
-      };
-      
-      const companyId = currentUser.companyId || 'default';
-      setDoc(doc(db, 'companies', companyId, 'salesOrders', String(newOrder.id)), newOrder);
-      alert('수주가 정상적으로 접수되었습니다.');
-      showToast(`${currentUser.name} 거래처의 신규 수주가 도착했습니다!`, 'success');
+      if (existingOrder) {
+        // Merge items into existing order
+        const mergedItems = [...(existingOrder.items || []), ...newItems];
+        const newItemsText = mergedItems.map(i => `${i.name}${i.qty}`).join(' ');
+        const additionalAmount = items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0);
+        
+        const updatedOrder = {
+          ...existingOrder,
+          items: mergedItems,
+          itemsText: newItemsText,
+          totalAmount: (existingOrder.totalAmount || 0) + additionalAmount,
+          totalPrice: (existingOrder.totalPrice || existingOrder.totalAmount || 0) + additionalAmount,
+          updatedAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(existingOrder.id)), updatedOrder);
+        const nextOrders = salesOrders.map(o => o.id === existingOrder.id ? updatedOrder : o);
+        setSalesOrders(nextOrders);
+        await saveBundle(companyId, 'salesOrders', nextOrders);
+
+        alert('기존 수주서에 품목이 추가되었습니다.');
+        showToast(`${currentUser.name} 거래처의 수주가 추가되었습니다!`, 'success');
+      } else {
+        // Create new order
+        const orderId = Date.now();
+        const newOrder = {
+          id: orderId,
+          date: today,
+          partner: currentUser.name,
+          manager: currentUser.manager && currentUser.manager !== '-' ? currentUser.manager : '알 수 없음',
+          outWarehouse: warehouses.find(w => w.isMain)?.name || 
+                        warehouses.find(w => w.name.includes('메인'))?.name || 
+                        warehouses.find(w => w.name.includes('main'))?.name || 
+                        warehouses[0]?.name || 
+                        '메인창고', 
+          inWarehouse: currentUser.warehouse && currentUser.warehouse !== '-' ? currentUser.warehouse : '동명',
+          items: newItems,
+          itemsText: newItems.map(i => `${i.name}${i.qty}`).join(' '),
+          status: '주문대기',
+          totalAmount: items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0),
+          totalPrice: items.reduce((acc, item) => acc + (item.product.salesPriceSingle || item.product.salesPrice || 0) * item.qty, 0),
+          totalQty: newItems.reduce((acc, item) => acc + item.qty, 0),
+          memo: '거래처 직접 수주 (MALL)',
+          companyId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(orderId)), newOrder);
+        const nextOrders = [...salesOrders, newOrder];
+        setSalesOrders(nextOrders);
+        await saveBundle(companyId, 'salesOrders', nextOrders);
+
+        alert('수주가 정상적으로 접수되었습니다.');
+        showToast(`${currentUser.name} 거래처의 신규 수주가 도착했습니다!`, 'success');
+      }
+    } catch (err) {
+      console.error('handleMallOrder error:', err);
+      alert('수주 접수 중 오류가 발생했습니다.');
     }
   };
 
@@ -3884,8 +3935,17 @@ function App() {
           }
         }}
         onOrder={handleMallOrder}
-        onUpdateOrder={(id, data) => setSalesOrders(prev => prev.map(o => o.id === id ? { ...o, ...data } : o))}
-        onDeleteOrder={(id) => setSalesOrders(prev => prev.filter(o => o.id !== id))}
+        onUpdateOrder={async (id, data) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            const cleanData = { ...data, updatedAt: new Date().toISOString() };
+            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), cleanData, { merge: true });
+            const nextOrders = salesOrders.map(o => o.id === id ? { ...o, ...cleanData } : o);
+            setSalesOrders(nextOrders);
+            await saveBundle(companyId, 'salesOrders', nextOrders);
+          } catch (e) { console.error('Error updating order:', e); }
+        }}
+        onDeleteOrder={handleDeleteSalesOrder}
         companyName={companySettings?.name || currentUser?.companyName || systemSettings.company?.name || '회원사'}
       />
     );
@@ -3901,30 +3961,6 @@ function App() {
         setCurrentView('login');
       }} 
     />;
-  }
-
-  if (currentView === 'shopping') {
-    return (
-      <PartnerShoppingMall 
-        products={products}
-        categories={categories}
-        systemSettings={systemSettings}
-        salesOrders={salesOrders}
-        currentUser={currentUser || { name: '미로그인', role: 'partner' }}
-        onLogout={() => {
-          if (currentUser && currentUser.role !== 'partner') {
-            setCurrentView('dashboard');
-          } else {
-            setCurrentUser(null);
-            setCurrentView('login');
-          }
-        }}
-        onOrder={handleMallOrder}
-        onUpdateOrder={(id, data) => setSalesOrders(prev => prev.map(o => o.id === id ? { ...o, ...data } : o))}
-        onDeleteOrder={(id) => setSalesOrders(prev => prev.filter(o => o.id !== id))}
-        companyName={companySettings?.name || currentUser?.companyName || systemSettings.company?.name || '회원사'}
-      />
-    );
   }
 
   if (currentView === 'super_admin') {
@@ -4489,11 +4525,13 @@ function App() {
             const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
             const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
             await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-            setSalesOrders(prev => {
-              const idx = prev.findIndex(o => String(o.id) === String(id));
-              if (idx >= 0) { const next = [...prev]; next[idx] = fullOrder; return next; }
-              return [...prev, fullOrder];
-            });
+            const nextSalesOrders = (() => {
+              const idx = salesOrders.findIndex(o => String(o.id) === String(id));
+              if (idx >= 0) { const next = [...salesOrders]; next[idx] = fullOrder; return next; }
+              return [fullOrder, ...salesOrders];
+            })();
+            setSalesOrders(nextSalesOrders);
+            await saveBundle(companyId, 'salesOrders', nextSalesOrders);
             setEditingOrder(null);
 
             const itemsSummary = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -4535,11 +4573,13 @@ function App() {
               const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
               const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
               await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-              setSalesOrders(prev => {
-                const idx = prev.findIndex(o => String(o.id) === String(id));
-                if (idx >= 0) { const next = [...prev]; next[idx] = fullOrder; return next; }
-                return [...prev, fullOrder];
-              });
+              const nextSalesOrders = (() => {
+                const idx = salesOrders.findIndex(o => String(o.id) === String(id));
+                if (idx >= 0) { const next = [...salesOrders]; next[idx] = fullOrder; return next; }
+                return [fullOrder, ...salesOrders];
+              })();
+              setSalesOrders(nextSalesOrders);
+              await saveBundle(companyId, 'salesOrders', nextSalesOrders);
               setEditingOrder(null);
               setOrderingPartner(null);
 
@@ -4576,6 +4616,9 @@ function App() {
           try {
             const companyId = currentUser?.companyId || 'default';
             await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), updates, { merge: true });
+            const nextOrders = salesOrders.map(o => String(o.id) === String(id) ? { ...o, ...updates } : o);
+            setSalesOrders(nextOrders);
+            await saveBundle(companyId, 'salesOrders', nextOrders);
           } catch (err) { console.error(err); }
         }}
         inventory={inventory}
