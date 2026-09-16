@@ -948,7 +948,6 @@ const PartnerManagement = ({
                             return (
                               <td key={colId} style={baseStyle}>
                                 <span className={value === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                                  <User size={12} style={{ marginRight: '4px', flexShrink: 0 }} />
                                   {displayValue}
                                 </span>
                               </td>
