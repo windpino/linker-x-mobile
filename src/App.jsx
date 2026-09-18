@@ -1820,7 +1820,9 @@ function App() {
   };
 
   const handleSaveSalesInvoice = async (invData, isSilent = false) => {
-    if (invData.id) {
+    if (!invData) return null;
+    const isEdit = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
+    if (isEdit) {
       const targetInv = salesInvoices.find(si => String(si.id) === String(invData.id));
       if (!checkWritePermission(targetInv?.creator)) {
         alert('수정/삭제 권한이 없습니다 (본인이 작성한 매출전표만 수정 가능).');
@@ -1833,8 +1835,8 @@ function App() {
       const now = new Date();
       const nextInv = { ...inventory };
       
-      const oldInv = editingInvoice || salesInvoices.find(si => String(si.id) === String(id));
-      if (oldInv) {
+      const oldInv = isEdit ? (salesInvoices.find(si => String(si.id) === String(id)) || (editingInvoice?.id === id ? editingInvoice : null)) : null;
+      if (oldInv && Array.isArray(oldInv.items) && oldInv.items.length > 0) {
         const oldWH = oldInv.warehouse;
         const mainWH = warehouses.find(w => w.isMain)?.name || 
                        warehouses.find(w => w.name.includes('메인'))?.name || 
@@ -1845,8 +1847,9 @@ function App() {
         if (nextInv[oldWH]) {
           const whInv = { ...nextInv[oldWH] };
           
-          for (const item of oldInv.items) {
-            whInv[item.name] = (whInv[item.name] || 0) + item.qty;
+          for (const item of (oldInv.items || [])) {
+            const itemQty = Number(item.qty) || 0;
+            whInv[item.name] = (whInv[item.name] || 0) + itemQty;
             
             if (oldWH !== mainWH) {
               const match = [...inventoryTransferHistory]
@@ -1887,7 +1890,7 @@ function App() {
         }
       }
       
-      const targetWH = invData.warehouse;
+      const targetWH = invData.warehouse || warehouses[0]?.name || '메인창고';
       if (!nextInv[targetWH]) nextInv[targetWH] = {};
       const whInv = { ...nextInv[targetWH] };
       const processedTime = now.toLocaleTimeString('ko-KR', { hour12: false });
@@ -1898,44 +1901,54 @@ function App() {
                      warehouses[0]?.name || 
                      '메인창고';
 
+      const itemsList = Array.isArray(invData.items) ? invData.items : [];
       const newHistoryEntries = [];
 
-      for (const item of invData.items) {
-        whInv[item.name] = (whInv[item.name] || 0) - item.qty;
+      for (const item of itemsList) {
+        const itemQty = Number(item.qty) || 0;
         
-        // ─── 상차(자동이동) 처리: 메인창고에 재고가 있는 양까지만 자동이동 ───
+        // ─── 상차(자동이동) 처리: targetWH에 부족한 수량만큼만 메인창고에서 자동이동 ───
         if (targetWH !== mainWH) {
           const product = products.find(p => p.name === item.name);
-          const initialStock = product ? (Number(product.initialStock) || 0) : 0;
-          const mainWHChanges = nextInv[mainWH]?.[item.name] || 0;
-          const mainWHStock = initialStock + mainWHChanges;
+          const initialStock = (product && product.warehouse === targetWH) ? (Number(product.initialStock) || 0) : 0;
+          const currentTargetStock = initialStock + (whInv[item.name] || 0);
           
-          const transferQty = Math.max(0, Math.min(item.qty, mainWHStock));
+          const deficit = Math.max(0, itemQty - currentTargetStock);
           
-          if (transferQty > 0) {
-            if (!nextInv[mainWH]) nextInv[mainWH] = {};
-            nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) - transferQty;
-            whInv[item.name] = (whInv[item.name] || 0) + transferQty;
+          if (deficit > 0) {
+            const mainInitialStock = (product && (product.warehouse === mainWH || (!product.warehouse && mainWH.includes('메인')))) ? (Number(product.initialStock) || 0) : 0;
+            const mainWHChanges = nextInv[mainWH]?.[item.name] || 0;
+            const mainWHStock = mainInitialStock + mainWHChanges;
             
-            const autoTransferId = Date.now() + Math.random();
-            const autoEntry = {
-              id: autoTransferId,
-              date: invData.date,
-              from: mainWH,
-              to: targetWH,
-              item: item.name,
-              spec: item.spec || '-',
-              qty: transferQty,
-              processedAt: processedTime,
-              operator: currentUser?.name || '시스템',
-              memo: '상차(자동이동)',
-              salesInvoiceId: String(id),
-              companyId
-            };
-            await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(autoTransferId)), autoEntry);
-            newHistoryEntries.push(autoEntry);
+            const transferQty = Math.max(0, Math.min(deficit, mainWHStock));
+            
+            if (transferQty > 0) {
+              if (!nextInv[mainWH]) nextInv[mainWH] = {};
+              nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) - transferQty;
+              whInv[item.name] = (whInv[item.name] || 0) + transferQty;
+              
+              const autoTransferId = Date.now() + Math.random();
+              const autoEntry = {
+                id: autoTransferId,
+                date: invData.date,
+                from: mainWH,
+                to: targetWH,
+                item: item.name,
+                spec: item.spec || '-',
+                qty: transferQty,
+                processedAt: processedTime,
+                operator: currentUser?.name || '시스템',
+                memo: '상차(자동이동)',
+                salesInvoiceId: String(id),
+                companyId
+              };
+              await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(autoTransferId)), autoEntry);
+              newHistoryEntries.push(autoEntry);
+            }
           }
         }
+        
+        whInv[item.name] = (whInv[item.name] || 0) - itemQty;
         
         // [매출] 출고 이력 추가
         const historyId = Date.now() + Math.random();

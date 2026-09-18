@@ -214,8 +214,10 @@ const OrderList = ({
     // Send to invoice
     onTransferToInvoice({
       ...order,
+      id: Date.now(),
       orderId: order.id,
       salesOrderId: order.id,
+      warehouse: order.inWarehouse || order.outWarehouse || '본사창고',
       items: invoiceItems,
       receivedAmount: 0,
       payments: { cash: 0, account: 0, card: 0, bill: 0 },

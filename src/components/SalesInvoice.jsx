@@ -118,11 +118,13 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       return;
     }
     // Calculate initial cash based on total amount minus other payments
-    const others = (invoiceData.payments.account || 0) + (invoiceData.payments.card || 0) + (invoiceData.payments.bill || 0);
-    const initialCash = Math.max(0, totalAmount - (invoiceData.discount || 0) - others);
+    const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+    const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+    const others = (invoiceData.payments?.account || 0) + (invoiceData.payments?.card || 0) + (invoiceData.payments?.bill || 0);
+    const initialCash = Math.max(0, currentTotal - (invoiceData.discount || 0) - others);
 
     setTempPaymentState({
-      payments: { ...invoiceData.payments, cash: initialCash },
+      payments: { ...(invoiceData.payments || { cash: 0, account: 0, card: 0, bill: 0 }), cash: initialCash },
       discount: invoiceData.discount || 0
     });
     setIsPaymentModalOpen(true);
@@ -131,11 +133,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   useEffect(() => {
     if (editingInvoice) {
       const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(editingInvoice.id));
-      let nextData = { ...editingInvoice };
+      let nextData = { ...editingInvoice, items: editingInvoice.items || [] };
       
       if (!isAlreadySaved) {
         nextData = {
           ...editingInvoice,
+          items: editingInvoice.items || [],
           manager: currentUser?.name || editingInvoice.manager || '',
           warehouse: userWH || editingInvoice.warehouse || '',
           creator: currentUser?.name || editingInvoice.creator || '시스템'
@@ -169,22 +172,29 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     }
   }, [salesInvoices, invoiceData.id, invoiceData.partner, invoiceData.date, editingInvoice]);
 
+  const isEditingExistingSavedInvoice = Boolean(
+    editingInvoice && 
+    salesInvoices.some(si => String(si.id) === String(editingInvoice.id))
+  );
+
   // Calculate previous outstanding balance for the current partner
   const getPreviousBalance = () => {
     if (!invoiceData.partner || !currentPartner) return 0;
     const currentReceivables = Number(currentPartner.receivables) || 0;
-    if (editingInvoice) {
-      const oldTotal = editingInvoice.items.reduce((sum, item) => sum + item.total, 0);
-      const oldOutstanding = oldTotal - (editingInvoice.receivedAmount || 0) - (editingInvoice.discount || 0);
+    if (isEditingExistingSavedInvoice && editingInvoice && Array.isArray(editingInvoice.items)) {
+      const oldTotal = editingInvoice.items.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+      const oldOutstanding = oldTotal - (Number(editingInvoice.receivedAmount) || 0) - (Number(editingInvoice.discount) || 0);
       return currentReceivables - oldOutstanding;
     }
     return currentReceivables;
   };
 
   const previousBalance = getPreviousBalance();
-  const totalAmount = invoiceData.items.reduce((sum, item) => sum + item.total, 0);
-  const finalBalance = previousBalance + totalAmount - invoiceData.receivedAmount - (invoiceData.discount || 0);
-  const outstandingBalance = totalAmount - invoiceData.receivedAmount - (invoiceData.discount || 0);
+  const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+  const totalAmount = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+  const totalQty = currentItems.reduce((sum, item) => sum + (Number(item?.qty) || 0), 0);
+  const finalBalance = previousBalance + totalAmount - (Number(invoiceData.receivedAmount) || 0) - (Number(invoiceData.discount) || 0);
+  const outstandingBalance = totalAmount - (Number(invoiceData.receivedAmount) || 0) - (Number(invoiceData.discount) || 0);
 
   const handleClearAllItems = () => {
     if (!window.confirm('품목전체를 삭제하시겠습니까?')) return;
