@@ -1478,6 +1478,37 @@ function App() {
       setSalesInvoices(nextSalesInvoices);
       await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
 
+      // 삭제된 매출전표와 연결된 수주서(salesOrders)가 있을 경우 상태를 '대기'로 복원
+      const linkedOrders = salesOrders.filter(so => 
+        String(so.salesInvoiceId) === String(id) || 
+        (targetInv && (String(targetInv.salesOrderId) === String(so.id) || String(targetInv.orderId) === String(so.id)))
+      );
+
+      if (linkedOrders.length > 0) {
+        let nextSalesOrders = [...salesOrders];
+        for (const linkedOrder of linkedOrders) {
+          await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(linkedOrder.id)), {
+            status: '대기',
+            isCompleted: false,
+            salesInvoiceId: null,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          nextSalesOrders = nextSalesOrders.map(so => 
+            String(so.id) === String(linkedOrder.id) ? { ...so, status: '대기', isCompleted: false, salesInvoiceId: null } : so
+          );
+        }
+        setSalesOrders(nextSalesOrders);
+        await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+
+        const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
+        const updatedCache = curCache.map(so => {
+          const match = linkedOrders.find(lo => String(lo.id) === String(so.id));
+          return match ? { ...so, status: '대기', isCompleted: false, salesInvoiceId: null } : so;
+        });
+        localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
+      }
+
       await logOperation({
         category: '삭제',
         subCategory: '매출전표',
@@ -1955,6 +1986,44 @@ function App() {
       const nextTransfers = [...inventoryTransferHistory.filter(h => String(h.salesInvoiceId) !== String(id)), ...newHistoryEntries];
       setInventoryTransferHistory(nextTransfers);
       await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
+
+      // 매출전표 발행 시 연결된 수주서(salesOrders)의 상태를 '완료'로 자동 업데이트
+      const matchingOrderId = invData.orderId || invData.salesOrderId;
+      const orderToUpdate = matchingOrderId 
+        ? salesOrders.find(so => String(so.id) === String(matchingOrderId))
+        : salesOrders.find(so => 
+            so.partner === finalData.partner && 
+            so.date === finalData.date && 
+            so.status !== '완료' && 
+            !so.isCompleted &&
+            !so.salesInvoiceId
+          );
+
+      if (orderToUpdate) {
+        const updatedOrder = {
+          ...orderToUpdate,
+          status: '완료',
+          isCompleted: true,
+          salesInvoiceId: String(id),
+          updatedAt: now.toISOString()
+        };
+        await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
+          status: '완료',
+          isCompleted: true,
+          salesInvoiceId: String(id),
+          updatedAt: now.toISOString()
+        }, { merge: true });
+
+        const nextSalesOrders = salesOrders.map(so => 
+          String(so.id) === String(orderToUpdate.id) ? updatedOrder : so
+        );
+        setSalesOrders(nextSalesOrders);
+        await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+
+        const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
+        const updatedCache = curCache.map(so => String(so.id) === String(orderToUpdate.id) ? updatedOrder : so);
+        localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
+      }
 
       const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
       await logOperation({
@@ -4603,6 +4672,7 @@ function App() {
       {isOrderListOpen && <OrderList 
         onClose={() => { setIsOrderListOpen(false); setOrderListSelectedStaff('all'); }} 
         salesOrders={salesOrders} 
+        salesInvoices={salesInvoices}
         products={products}
         selectedDate={selectedDate} 
         staffList={staffList} 

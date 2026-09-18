@@ -5,6 +5,7 @@ import WindowModal from './WindowModal';
 const OrderList = ({ 
   onClose, 
   salesOrders = [], 
+  salesInvoices = [],
   selectedDate, 
   staffList = [], 
   products = [], 
@@ -39,17 +40,39 @@ const OrderList = ({
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'waiting', 'completed'
   
   const dateStr = (() => {
     const d = selectedDate || new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
+
+  const isOrderCompleted = React.useCallback((o) => {
+    if (o.status === '완료' || o.status === '배송완료' || o.isCompleted === true) return true;
+    if (o.salesInvoiceId) return true;
+    if ((salesInvoices || []).some(inv => 
+      String(inv.salesOrderId) === String(o.id) || 
+      String(inv.orderId) === String(o.id) ||
+      (inv.partner === o.partner && inv.date === o.date)
+    )) return true;
+    return false;
+  }, [salesInvoices]);
   
   // Filter orders by date and selected staff
-  const filteredOrders = salesOrders.filter(o => {
+  const staffOrders = salesOrders.filter(o => {
     const isToday = o.date === dateStr;
     const matchesStaff = selectedStaff === 'all' || o.manager === selectedStaff;
     return isToday && matchesStaff;
+  });
+
+  const totalOrderCount = staffOrders.length;
+  const completedOrderCount = staffOrders.filter(isOrderCompleted).length;
+  const waitingOrderCount = staffOrders.filter(o => !isOrderCompleted(o) && o.status !== '취소').length;
+
+  const filteredOrders = staffOrders.filter(o => {
+    if (statusFilter === 'waiting') return !isOrderCompleted(o) && o.status !== '취소';
+    if (statusFilter === 'completed') return isOrderCompleted(o);
+    return true;
   });
 
   const calculateCategoryTotals = () => {
@@ -191,6 +214,8 @@ const OrderList = ({
     // Send to invoice
     onTransferToInvoice({
       ...order,
+      orderId: order.id,
+      salesOrderId: order.id,
       items: invoiceItems,
       receivedAmount: 0,
       payments: { cash: 0, account: 0, card: 0, bill: 0 },
@@ -445,13 +470,69 @@ const OrderList = ({
         {/* Right Column - Orders List (Hidden on Mobile when summary tab is active) */}
         {(!isMobileView || activeTab === 'list') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {!isMobileView && (
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isMobileView ? '#fff' : 'inherit' }}>
-                <ShoppingCart size={18} color="#3b82f6" />
-                {selectedStaff === 'all' ? '전체 수주 목록' : `${selectedStaff}님의 수주 목록`}
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 400 }}>({filteredOrders.length})</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              {!isMobileView && (
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isMobileView ? '#fff' : 'inherit' }}>
+                  <ShoppingCart size={18} color="#3b82f6" />
+                  {selectedStaff === 'all' ? '전체 수주 목록' : `${selectedStaff}님의 수주 목록`}
+                </div>
+              )}
+              
+              {/* Status Filter Buttons */}
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: isMobileView ? '100%' : 'auto' }}>
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  style={{
+                    flex: isMobileView ? 1 : 'none',
+                    padding: '6px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: statusFilter === 'all' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor: statusFilter === 'all' ? '#3b82f6' : '#1e293b',
+                    color: statusFilter === 'all' ? '#ffffff' : '#94a3b8'
+                  }}
+                >
+                  전체 ({totalOrderCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('waiting')}
+                  style={{
+                    flex: isMobileView ? 1 : 'none',
+                    padding: '6px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: statusFilter === 'waiting' ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor: statusFilter === 'waiting' ? '#f59e0b' : '#1e293b',
+                    color: statusFilter === 'waiting' ? '#ffffff' : '#94a3b8'
+                  }}
+                >
+                  대기 ({waitingOrderCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('completed')}
+                  style={{
+                    flex: isMobileView ? 1 : 'none',
+                    padding: '6px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: statusFilter === 'completed' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor: statusFilter === 'completed' ? '#10b981' : '#1e293b',
+                    color: statusFilter === 'completed' ? '#ffffff' : '#94a3b8'
+                  }}
+                >
+                  완료 ({completedOrderCount})
+                </button>
               </div>
-            )}
+            </div>
 
             <div style={{ 
               display: 'flex', 
@@ -486,6 +567,34 @@ const OrderList = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isMobileView ? '#94a3b8' : '#64748b' }}>{oIdx + 1}.</span>
                           <div style={{ fontWeight: 800, fontSize: isMobileView ? '1rem' : '1.1rem', color: isMobileView ? '#fff' : '#1e293b' }}>{order.partner}</div>
+                          {isOrderCompleted(order) ? (
+                            <span style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 800, 
+                              backgroundColor: isMobileView ? 'rgba(16,185,129,0.18)' : '#ecfdf5', 
+                              color: '#10b981', 
+                              border: '1px solid rgba(16,185,129,0.35)', 
+                              padding: '2px 7px', 
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}>
+                              <CheckCircle2 size={11} /> 완료
+                            </span>
+                          ) : (
+                            <span style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 800, 
+                              backgroundColor: isMobileView ? 'rgba(245,158,11,0.18)' : '#fffbeb', 
+                              color: '#f59e0b', 
+                              border: '1px solid rgba(245,158,11,0.35)', 
+                              padding: '2px 7px', 
+                              borderRadius: '6px' 
+                            }}>
+                              대기
+                            </span>
+                          )}
                           {order.memo?.includes('MALL') && (
                             <span style={{ 
                               fontSize: '0.6rem', 

@@ -315,6 +315,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
     onTransferToInvoice({
       ...orderData,
+      orderId: orderData.id,
+      salesOrderId: orderData.id,
       items,
       receivedAmount: 0,
       payments: { cash: 0, account: 0, card: 0, bill: 0 },
