@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Printer, Search, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info } from 'lucide-react';
+import { ShoppingCart, Printer, Search, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
-const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, salesOrders = [], currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
+const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, onDeleteOrder, salesOrders = [], currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = true;
 
@@ -645,6 +645,20 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               <span>합계: <strong style={{ color: themeColor, fontSize: '1rem' }}>{parsedTotalPrice.toLocaleString()}원</strong></span>
             </div>
             <div className="so-mobile-actions">
+              {editingOrder && onDeleteOrder && (
+                <button 
+                  className="so-btn-save" 
+                  onClick={() => {
+                    if (window.confirm('이 수주서를 삭제하시겠습니까?\n연결된 상차/창고 이동 내역도 함께 삭제되고 재고가 원상 복구됩니다.')) {
+                      onDeleteOrder(orderData.id);
+                      onClose();
+                    }
+                  }} 
+                  style={{ backgroundColor: '#ef4444' }}
+                >
+                  <Trash2 size={16} /> 삭제
+                </button>
+              )}
               <button className="so-btn-transfer" onClick={handleTransferToInvoice}>
                 <FileText size={16} /> 전표로 전송
               </button>

@@ -181,8 +181,8 @@ const OrderList = ({
   };
 
   const handleTransferCheckedItems = (order) => {
-    const allItems = parseOrderItems(order.itemsText);
-    const checkedItems = allItems.filter((_, idx) => processedItems[`${order.id}-${idx}`]);
+    const allItems = order.items || parseOrderItems(order.itemsText);
+    const checkedItems = allItems.filter((item, idx) => processedItems[`${order.id}-${idx}`] || item.loaded);
 
     if (checkedItems.length === 0) {
       alert('체크박스(창고 이동)가 확인된 품목이 없습니다.');
@@ -191,7 +191,7 @@ const OrderList = ({
 
     const invoiceItems = checkedItems.map((item, idx) => {
       const product = products.find(p => p.name === item.name);
-      const price = product?.salesPrice || 0;
+      const price = item.price !== undefined ? item.price : (product?.salesPrice || 0);
       const isTaxFree = product?.taxType === '면세';
       const itemTotal = item.qty * price;
       const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
@@ -207,7 +207,9 @@ const OrderList = ({
         taxType: product?.taxType || '과세',
         supplyValue: itemSupplyValue,
         tax: itemTax,
-        total: itemTotal
+        total: itemTotal,
+        outWarehouse: item.outWarehouse || order.outWarehouse || '본사창고',
+        inWarehouse: item.inWarehouse || order.inWarehouse || '차량'
       };
     });
 
@@ -224,9 +226,6 @@ const OrderList = ({
       discount: 0
     });
 
-    // 원본 주문 유지 (주문 삭제 및 항목 삭제 로직 제거)
-    // - 체크박스(상차) 여부만 유지되고, 원본 텍스트나 주문 자체는 보존됨.
-    
     // Clear processed states for this order
     setProcessedItems(prev => {
       const next = { ...prev };
