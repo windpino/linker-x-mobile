@@ -328,6 +328,7 @@ function App() {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [isSalesLedgerOpen, setIsSalesLedgerOpen] = useState(false);
   const [isSalesInvoiceListOpen, setIsSalesInvoiceListOpen] = useState(false);
+  const [salesInvoiceListInitialDate, setSalesInvoiceListInitialDate] = useState(null);
 
   const [activeSalesModal, setActiveSalesModal] = useState(null);
   const openSalesInvoice = (invoice = null) => {
@@ -336,6 +337,7 @@ function App() {
     setActiveSalesModal('invoice');
   };
   const openSalesInvoiceList = () => {
+    setSalesInvoiceListInitialDate(null);
     setIsSalesInvoiceListOpen(true);
     setActiveSalesModal('invoice_list');
   };
@@ -2479,6 +2481,82 @@ function App() {
     }
   };
 
+  const handleActivityAction = (act) => {
+    if (!act) return;
+    const sub = String(act.subCategory || '');
+    const cat = String(act.category || '');
+    const title = String(act.title || '');
+    const type = String(act.type || '');
+    const targetId = act.targetId || act.rawId || act.id;
+
+    // 1. 매출전표 (전표등록 / 변경 / 삭제)
+    if (sub.includes('매출') || title.includes('매출')) {
+      const inv = (salesInvoices || []).find(si => String(si.id) === String(targetId));
+      openSalesInvoice(inv || null);
+      return;
+    }
+
+    // 2. 매입전표 (전표등록 / 변경 / 삭제)
+    if (sub.includes('매입') || title.includes('매입')) {
+      const inv = (purchaseInvoices || []).find(pi => String(pi.id) === String(targetId));
+      openPurchaseInvoice(inv || null);
+      return;
+    }
+
+    // 3. 수주서 (전표등록 / 변경 / 삭제)
+    if (sub.includes('수주') || title.includes('수주')) {
+      const ord = (salesOrders || []).find(so => String(so.id) === String(targetId));
+      setEditingOrder(ord || null);
+      if (typeof setOrderingPartner === 'function') setOrderingPartner(null);
+      setIsSalesOrderOpen(true);
+      return;
+    }
+
+    // 4. 발주서 (전표등록 / 변경 / 삭제)
+    if (sub.includes('발주') || title.includes('발주')) {
+      setIsPurchaseOrderOpen(true);
+      return;
+    }
+
+    // 5. 재고이동 (이동 / 변경 / 삭제)
+    if (sub.includes('이동') || cat.includes('이동') || title.includes('이동')) {
+      const moveDate = act.date || (typeof act.displayDate === 'string' && act.displayDate !== '-' ? act.displayDate : null);
+      openInventoryTransfer(moveDate);
+      return;
+    }
+
+    // 6. 재고조정 (조정 / 변경 / 삭제)
+    if (sub.includes('조정') || cat.includes('조정') || title.includes('조정') || title.includes('실사')) {
+      if (typeof setIsInventoryAdjustmentOpen === 'function') {
+        setIsInventoryAdjustmentOpen(true);
+      }
+      return;
+    }
+
+    // 7. 거래처 (변경 / 삭제 / 등록)
+    if (sub.includes('거래처') || title.includes('거래처')) {
+      if (typeof setIsPartnerManagerOpen === 'function') {
+        setIsPartnerManagerOpen(true);
+      }
+      return;
+    }
+
+    // 8. 품목 (변경 / 삭제 / 등록)
+    if (sub.includes('품목') || title.includes('품목')) {
+      if (typeof setIsProductManagerOpen === 'function') {
+        setIsProductManagerOpen(true);
+      }
+      return;
+    }
+
+    // 기본 fallback
+    if (cat.includes('전표') || type === '등록') {
+      openSalesInvoice(null);
+    } else if (cat.includes('이동')) {
+      openInventoryTransfer(act.date || null);
+    }
+  };
+
   // Drag and Drop Handlers
   const [draggedWidgetId, setDraggedWidgetId] = useState(null);
 
@@ -3084,6 +3162,8 @@ function App() {
             (salesInvoices || []).forEach(inv => {
               activities.push({
                 id: `sales-inv-${inv.id}`,
+                rawId: inv.id,
+                targetId: inv.id,
                 category: '전표등록',
                 subCategory: '매출전표',
                 title: `매출전표 등록 (${inv.partner || '미지정'})`,
@@ -3094,13 +3174,15 @@ function App() {
                 type: '등록',
                 badgeBg: '#eff6ff',
                 badgeColor: '#2563eb',
-                action: () => setIsSalesInvoiceListOpen(true)
+                action: () => openSalesInvoice(inv)
               });
             });
 
             (purchaseInvoices || []).forEach(inv => {
               activities.push({
                 id: `purch-inv-${inv.id}`,
+                rawId: inv.id,
+                targetId: inv.id,
                 category: '전표등록',
                 subCategory: '매입전표',
                 title: `매입전표 등록 (${inv.partner || '미지정'})`,
@@ -3111,13 +3193,15 @@ function App() {
                 type: '등록',
                 badgeBg: '#eff6ff',
                 badgeColor: '#2563eb',
-                action: () => setIsPurchaseLedgerOpen(true)
+                action: () => openPurchaseInvoice(inv)
               });
             });
 
             (salesOrders || []).forEach(ord => {
               activities.push({
                 id: `order-${ord.id}`,
+                rawId: ord.id,
+                targetId: ord.id,
                 category: '전표등록',
                 subCategory: '수주',
                 title: `수주 등록 (${ord.partner || '미지정'})`,
@@ -3128,13 +3212,15 @@ function App() {
                 type: '등록',
                 badgeBg: '#f0fdf4',
                 badgeColor: '#16a34a',
-                action: () => setIsOrderListOpen(true)
+                action: () => { setEditingOrder(ord); setOrderingPartner(null); setIsSalesOrderOpen(true); }
               });
             });
 
             (purchaseOrders || []).forEach(po => {
               activities.push({
                 id: `po-${po.id}`,
+                rawId: po.id,
+                targetId: po.id,
                 category: '전표등록',
                 subCategory: '발주',
                 title: `발주 등록 (${po.partner || '미지정'})`,
@@ -3145,13 +3231,15 @@ function App() {
                 type: '등록',
                 badgeBg: '#f0fdf4',
                 badgeColor: '#16a34a',
-                action: () => setIsPurchaseLedgerOpen(true)
+                action: () => setIsPurchaseOrderOpen(true)
               });
             });
 
             (inventoryTransferHistory || []).forEach(mov => {
               activities.push({
                 id: `mov-${mov.id}`,
+                rawId: mov.id,
+                targetId: mov.id,
                 category: '이동',
                 subCategory: '재고이동',
                 title: `재고이동 (${mov.from || '출발'}➔${mov.to || '도착'})`,
@@ -3162,13 +3250,15 @@ function App() {
                 type: '이동',
                 badgeBg: '#fdf4ff',
                 badgeColor: '#c026d3',
-                action: () => setIsInventoryMovementManagerOpen(true)
+                action: () => openInventoryTransfer(mov.date || null)
               });
             });
 
             (inventoryAdjustments || []).forEach(adj => {
               activities.push({
                 id: `adj-${adj.id}`,
+                rawId: adj.id,
+                targetId: adj.id,
                 category: '변경',
                 subCategory: '재고조정',
                 title: `재고조정 (${adj.productName || '품목'})`,
@@ -3181,6 +3271,26 @@ function App() {
                 badgeColor: '#ea580c',
                 action: () => setIsInventoryAdjustmentOpen && setIsInventoryAdjustmentOpen(true)
               });
+            });
+
+            (actionLogs || []).forEach(log => {
+              const actItem = {
+                id: `log-${log.id}`,
+                rawId: log.id,
+                targetId: log.targetId,
+                category: log.category || '삭제',
+                subCategory: log.subCategory || '수주',
+                title: log.title || '처리 내역',
+                detail: log.detail || '',
+                user: log.user || '시스템',
+                date: log.date || new Date().toISOString().split('T')[0],
+                timestamp: log.timestamp || log.id || Date.now(),
+                type: log.type || '삭제',
+                badgeBg: log.type === '수정' || log.type === '변경' ? '#fff7ed' : '#fee2e2',
+                badgeColor: log.type === '수정' || log.type === '변경' ? '#ea580c' : '#dc2626'
+              };
+              actItem.action = () => handleActivityAction(actItem);
+              activities.push(actItem);
             });
 
             // Sort most recent first
@@ -3435,7 +3545,7 @@ function App() {
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>현금입금</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>현금</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cashTotal.toLocaleString()}원</span>
                   </div>
 
@@ -3448,7 +3558,7 @@ function App() {
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>계좌입금</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>계좌</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{accountTotal.toLocaleString()}원</span>
                   </div>
 
@@ -3461,7 +3571,7 @@ function App() {
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>카드입금</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>카드</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cardTotal.toLocaleString()}원</span>
                   </div>
 
@@ -3474,7 +3584,7 @@ function App() {
                     borderRadius: '6px',
                     border: '1px solid #e2e8f0'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>어음입금</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>어음</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{billTotal.toLocaleString()}원</span>
                   </div>
                 </div>
@@ -4277,7 +4387,9 @@ function App() {
               onOpenTypeManagement={() => setIsTypeManagementOpen(true)}
               onOpenSalesInvoiceListForDate={(date) => {
                 setSelectedDate(date);
+                setSalesInvoiceListInitialDate(format(date, 'yyyy-MM-dd'));
                 setIsSalesInvoiceListOpen(true);
+                setActiveSalesModal('invoice_list');
               }}
               onOpenOrderListForDate={(date) => {
                 setSelectedDate(date);
@@ -4526,7 +4638,11 @@ function App() {
       />}
 
       {isSalesInvoiceListOpen && <SalesInvoiceList
-        onClose={() => setIsSalesInvoiceListOpen(false)}
+        onClose={() => {
+          setIsSalesInvoiceListOpen(false);
+          setSalesInvoiceListInitialDate(null);
+        }}
+        initialDate={salesInvoiceListInitialDate}
         salesInvoices={salesInvoices}
         products={products}
         onOpenInvoice={(inv) => openSalesInvoice(inv)}
@@ -5201,6 +5317,7 @@ function App() {
           staffList={staffList}
           currentUser={currentUser}
           onDeleteActivity={handleDeleteActivityRecord}
+          onOpenActivity={handleActivityAction}
         />
       )}
       {showExitConfirmModal && (

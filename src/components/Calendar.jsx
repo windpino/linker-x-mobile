@@ -296,7 +296,10 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
 
           const dayPurchaseOrders = (purchaseOrders || []).filter(o => o.date === format(d, 'yyyy-MM-dd'));
           const dayPurchaseInvoices = (purchaseInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd'));
-          const daySalesInvoices = (salesInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd') && (isAdmin || inv.creator === currentUser?.name));
+          const dayAllSalesInvoices = (salesInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd') && (isAdmin || inv.creator === currentUser?.name));
+          const isDepositSlip = (inv) => Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
+          const daySalesInvoices = dayAllSalesInvoices.filter(inv => !isDepositSlip(inv));
+          const dayDepositSlips = dayAllSalesInvoices.filter(inv => isDepositSlip(inv));
           const dayTransfers = (inventoryTransferHistory || []).filter(h => h.date === format(d, 'yyyy-MM-dd'));
 
           // 각 일정/내역별 점(Dot) 색상 목록 생성
@@ -314,6 +317,10 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           // 3. 매출
           daySalesInvoices.forEach(inv => {
             dayDots.push({ id: `dot-si-${inv.id}`, color: '#be185d' });
+          });
+          // 3-1. 입금전표
+          dayDepositSlips.forEach(inv => {
+            dayDots.push({ id: `dot-dep-${inv.id}`, color: '#0d9488' });
           });
           // 4. 발주
           dayPurchaseOrders.forEach(po => {
@@ -447,21 +454,38 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           });
         });
 
-        // 3. 매출전표 필터링
+        // 3. 매출전표 및 입금전표 필터링
         const selectedSalesInvoices = (salesInvoices || []).filter(inv => inv.date === selectedDayStr && (isAdmin || inv.creator === currentUser?.name));
         selectedSalesInvoices.forEach(inv => {
-          selectedDayItems.push({
-            uniqueId: `list-si-${inv.id}`,
-            tag: '매출',
-            title: `${inv.partnerName} 매출전표`,
-            subtitle: `합계: ${(inv.totalAmount || 0).toLocaleString()}원 | 작성자: ${inv.creator || '시스템'}`,
-            time: '',
-            color: '#be185d',
-            bgColor: '#fdf2f8',
-            onClick: () => {
-              if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(selectedDate);
-            }
-          });
+          const isDeposit = Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
+          const partnerTitle = inv.partner || inv.partnerName || '거래처';
+          if (isDeposit) {
+            selectedDayItems.push({
+              uniqueId: `list-dep-${inv.id}`,
+              tag: '입금전표',
+              title: `${partnerTitle} 입금전표`,
+              subtitle: `입금액: ${(inv.receivedAmount || 0).toLocaleString()}원${inv.memo && inv.memo !== '입금전표' ? ` (${inv.memo})` : ''} | 작성자: ${inv.creator || '시스템'}`,
+              time: '',
+              color: '#0f766e',
+              bgColor: '#f0fdfa',
+              onClick: () => {
+                if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(selectedDate);
+              }
+            });
+          } else {
+            selectedDayItems.push({
+              uniqueId: `list-si-${inv.id}`,
+              tag: '매출',
+              title: `${partnerTitle} 매출전표`,
+              subtitle: `합계: ${(inv.totalAmount || 0).toLocaleString()}원 | 작성자: ${inv.creator || '시스템'}`,
+              time: '',
+              color: '#be185d',
+              bgColor: '#fdf2f8',
+              onClick: () => {
+                if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(selectedDate);
+              }
+            });
+          }
         });
 
         // 4. 발주 필터링

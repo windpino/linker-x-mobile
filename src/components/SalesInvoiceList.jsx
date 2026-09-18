@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BookOpen, Printer, Download, Search, Wallet, CreditCard, Landmark, FileText, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
@@ -94,6 +94,14 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
   const [selectedStaff, setSelectedStaff] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    if (initialDate) {
+      setStartDate(initialDate);
+      setEndDate(initialDate);
+      setFilter('');
+    }
+  }, [initialDate]);
+
   const filterOptions = ['1주일', '한달', '상반기', '하반기', '1년'];
 
   // Collect unique creators from invoices and staff list for filter dropdown
@@ -117,16 +125,17 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
       if (creatorName !== selectedStaff) return false;
     }
 
-    // 3. Search term filter (by partner name or item name)
+    // 3. Search term filter (by partner name, item name, or deposit slip memo)
     const matchesSearch = !searchTerm || 
-                          inv.partner.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          matchesInitialSound(inv.partner, searchTerm) ||
-                          inv.items.some(item => {
+                          (inv.partner && inv.partner.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                          (inv.partner && matchesInitialSound(inv.partner, searchTerm)) ||
+                          (Array.isArray(inv.items) && inv.items.some(item => {
                             const term = searchTerm.toLowerCase();
-                            if (item.name.toLowerCase().includes(term)) return true;
+                            if (item.name && item.name.toLowerCase().includes(term)) return true;
                             const product = products && products.find(p => p.name === item.name);
                             return product && product.abbreviation && product.abbreviation.toLowerCase().includes(term);
-                          });
+                          })) ||
+                          (inv.memo && inv.memo.toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesSearch;
   });

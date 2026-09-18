@@ -59,13 +59,21 @@ const RecentActivityModal = ({
   activityLogs = [],
   staffList = [],
   currentUser = null,
-  onDeleteActivity = () => {}
+  onDeleteActivity = () => {},
+  onOpenActivity = null
 }) => {
   const [activeCategory, setActiveCategory] = useState('전체');
   const [selectedStaff, setSelectedStaff] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const canDelete = currentUser?.permissions?.deleteRecentActivity === true || currentUser?.allowAllEditDelete === true;
+
+  const handleItemClick = (act) => {
+    if (onOpenActivity) {
+      onOpenActivity(act);
+      onClose();
+    }
+  };
 
   // 1. Gather all activity logs into a unified timeline
   const allActivities = useMemo(() => {
@@ -115,6 +123,7 @@ const RecentActivityModal = ({
       list.push({
         id: `log-${log.id || idx}`,
         rawId: log.id || idx,
+        targetId: log.targetId || null,
         category: log.category || category,
         subCategory: log.subCategory || '전표',
         title: log.title || log.action || `${type} 처리 완료`,
@@ -139,6 +148,7 @@ const RecentActivityModal = ({
       list.push({
         id: `sales-inv-${inv.id}`,
         rawId: inv.id,
+        targetId: inv.id,
         category: '전표등록',
         subCategory: '매출전표',
         title: `매출전표 등록 - ${inv.partner || '미지정 거래처'}`,
@@ -163,6 +173,7 @@ const RecentActivityModal = ({
       list.push({
         id: `purch-inv-${inv.id}`,
         rawId: inv.id,
+        targetId: inv.id,
         category: '전표등록',
         subCategory: '매입전표',
         title: `매입전표 등록 - ${inv.partner || '미지정 거래처'}`,
@@ -187,6 +198,7 @@ const RecentActivityModal = ({
       list.push({
         id: `order-${ord.id}`,
         rawId: ord.id,
+        targetId: ord.id,
         category: '전표등록',
         subCategory: '수주',
         title: `수주서 등록 - ${ord.partner || '미지정 거래처'}`,
@@ -211,6 +223,7 @@ const RecentActivityModal = ({
       list.push({
         id: `po-${po.id}`,
         rawId: po.id,
+        targetId: po.id,
         category: '전표등록',
         subCategory: '발주',
         title: `발주서 등록 - ${po.partner || '미지정 거래처'}`,
@@ -245,6 +258,7 @@ const RecentActivityModal = ({
       list.push({
         id: `mov-${mov.id}`,
         rawId: mov.id,
+        targetId: mov.id,
         category: '이동',
         subCategory: '재고이동',
         title: `재고이동: ${mov.from || mov.fromWarehouse || '출발'} ➔ ${mov.to || mov.toWarehouse || '도착'}`,
@@ -268,6 +282,7 @@ const RecentActivityModal = ({
       list.push({
         id: `adj-${adj.id}`,
         rawId: adj.id,
+        targetId: adj.id,
         category: '변경',
         subCategory: '재고조정',
         title: `재고 손실/조정 - ${adj.productName || '품목'}`,
@@ -541,7 +556,17 @@ const RecentActivityModal = ({
                 </tr>
               ) : (
                 filteredActivities.map((act) => (
-                  <tr key={act.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }} className="hover:bg-slate-50">
+                  <tr 
+                    key={act.id} 
+                    onClick={() => handleItemClick(act)}
+                    style={{ 
+                      borderBottom: '1px solid #f1f5f9', 
+                      transition: 'background-color 0.15s',
+                      cursor: onOpenActivity ? 'pointer' : 'default'
+                    }} 
+                    className="hover:bg-slate-50"
+                    title={onOpenActivity ? '클릭 시 해당 등록/처리 창으로 이동합니다' : undefined}
+                  >
                     <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                       <span style={{
                         display: 'inline-block',
