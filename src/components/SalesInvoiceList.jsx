@@ -136,24 +136,29 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
     acc.account += inv.payments?.account || 0;
     acc.card += inv.payments?.card || 0;
     acc.bill += inv.payments?.bill || 0;
-    acc.totalSales += inv.items.reduce((sum, i) => sum + i.total, 0);
+    const invSales = (inv.items && inv.items.length > 0) ? inv.items.reduce((sum, i) => sum + (Number(i.total) || 0), 0) : (Number(inv.totalAmount) || 0);
+    acc.totalSales += invSales;
     acc.totalReceived += inv.receivedAmount || 0;
-    acc.totalBalance += (inv.items.reduce((sum, i) => sum + i.total, 0) - (inv.receivedAmount || 0) - (inv.discount || 0));
+    acc.totalBalance += (invSales - (inv.receivedAmount || 0) - (inv.discount || 0));
     return acc;
   }, { cash: 0, account: 0, card: 0, bill: 0, totalSales: 0, totalReceived: 0, totalBalance: 0 });
 
   const handleExcelExport = () => {
-    const dataToExport = filteredInvoices.map(inv => ({
-      '날짜': inv.date,
-      '거래처': inv.partner,
-      '발행자': inv.creator || '시스템',
-      '품목명': inv.items[0]?.name + (inv.items.length > 1 ? ` 외 ${inv.items.length - 1}건` : ''),
-      '수량': inv.items.reduce((sum, i) => sum + i.qty, 0),
-      '매출액': inv.items.reduce((sum, i) => sum + i.total, 0),
-      '입금액': inv.receivedAmount,
-      '할인액': inv.discount || 0,
-      '미수잔액': (inv.items.reduce((sum, i) => sum + i.total, 0) - inv.receivedAmount - (inv.discount || 0))
-    }));
+    const dataToExport = filteredInvoices.map(inv => {
+      const isDepositOnly = !inv.items || inv.items.length === 0;
+      const invSales = !isDepositOnly ? inv.items.reduce((sum, i) => sum + i.total, 0) : (Number(inv.totalAmount) || 0);
+      return {
+        '날짜': inv.date,
+        '거래처': inv.partner,
+        '발행자': inv.creator || '시스템',
+        '품목명': !isDepositOnly ? (inv.items[0]?.name + (inv.items.length > 1 ? ` 외 ${inv.items.length - 1}건` : '')) : `[입금전표] ${inv.memo || ''}`,
+        '수량': !isDepositOnly ? inv.items.reduce((sum, i) => sum + i.qty, 0) : 0,
+        '매출액': invSales,
+        '입금액': inv.receivedAmount || 0,
+        '할인액': inv.discount || 0,
+        '미수잔액': (invSales - (inv.receivedAmount || 0) - (inv.discount || 0))
+      };
+    });
     exportToExcel(dataToExport, '매출전표내역_목록');
   };
 
@@ -381,7 +386,8 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
             <tbody>
               {filteredInvoices?.length > 0 ? (
                 filteredInvoices.map(inv => {
-                  const invTotal = inv.items.reduce((sum, i) => sum + i.total, 0);
+                  const isDepositOnly = !inv.items || inv.items.length === 0;
+                  const invTotal = !isDepositOnly ? inv.items.reduce((sum, i) => sum + i.total, 0) : (Number(inv.totalAmount) || 0);
                   const invBalance = invTotal - (inv.receivedAmount || 0) - (inv.discount || 0);
                   return (
                     <tr 
@@ -393,8 +399,18 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
                       <td>{inv.date}</td>
                       <td style={{ fontWeight: 600 }}>{inv.partner}</td>
                       <td className="text-center" style={{ color: '#64748b', fontSize: '0.85rem' }}>{inv.creator || '시스템'}</td>
-                      <td>{inv.items[0]?.name} {inv.items.length > 1 ? `외 ${inv.items.length - 1}건` : ''}</td>
-                      <td className="text-center">{inv.items.reduce((sum, i) => sum + i.qty, 0).toLocaleString()}</td>
+                      <td>
+                        {!isDepositOnly ? (
+                          `${inv.items[0]?.name} ${inv.items.length > 1 ? `외 ${inv.items.length - 1}건` : ''}`
+                        ) : (
+                          <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            💰 입금전표 {inv.memo && inv.memo !== '입금전표' ? `(${inv.memo})` : ''}
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-center">
+                        {!isDepositOnly ? inv.items.reduce((sum, i) => sum + i.qty, 0).toLocaleString() : '-'}
+                      </td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{invTotal.toLocaleString()}</td>
                       <td style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>{(inv.receivedAmount || 0).toLocaleString()}</td>
                       <td style={{ textAlign: 'right', color: '#ef4444' }}>{(inv.discount || 0).toLocaleString()}</td>

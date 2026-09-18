@@ -113,6 +113,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
   const openPaymentModal = () => {
+    if (!invoiceData.partner) {
+      alert('거래처를 먼저 선택해주세요.');
+      return;
+    }
     // Calculate initial cash based on total amount minus other payments
     const others = (invoiceData.payments.account || 0) + (invoiceData.payments.card || 0) + (invoiceData.payments.bill || 0);
     const initialCash = Math.max(0, totalAmount - (invoiceData.discount || 0) - others);
@@ -1173,8 +1177,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Wallet color="#10b981" /> 입금 처리
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', fontWeight: 800 }}>
+                  <Wallet color="#10b981" />
+                  {invoiceData.items.length === 0 ? '💰 입금전표 발행 (수금/입금 입력)' : '매출 입금/수금 입력'}
                 </h3>
                 <button onClick={() => setIsPaymentModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                   <X size={20} />
@@ -1182,8 +1187,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               </div>
 
               <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>미결제 잔액</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>{totalAmount.toLocaleString()}원</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>
+                  {invoiceData.items.length === 0 ? '이전 미수금 잔액' : '전표 합계금액'}
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: invoiceData.items.length === 0 ? '#ef4444' : '#1e293b' }}>
+                  {invoiceData.items.length === 0 ? `${previousBalance.toLocaleString()}원` : `${totalAmount.toLocaleString()}원`}
+                </div>
               </div>
 
               <div style={{ display: 'grid', gap: '12px' }}>
@@ -1222,23 +1231,37 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
                 <button 
                   className="btn-primary" 
-                  style={{ flex: 1, backgroundColor: '#10b981' }}
-                  onClick={() => {
+                  style={{ flex: 1, backgroundColor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={async () => {
+                    if (!invoiceData.partner) {
+                      alert('거래처를 먼저 선택해주세요.');
+                      return;
+                    }
                     const totalReceived = Object.values(tempPaymentState.payments).reduce((a, b) => a + b, 0);
+                    const discountAmount = tempPaymentState.discount || 0;
+                    if (invoiceData.items.length === 0 && totalReceived <= 0 && discountAmount <= 0) {
+                      alert('입금액 또는 할인 금액을 1원 이상 입력해주세요.');
+                      return;
+                    }
+                    const isDepositOnly = invoiceData.items.length === 0;
                     const updatedInvoice = { 
                       ...invoiceData, 
                       payments: tempPaymentState.payments, 
-                      discount: tempPaymentState.discount,
-                      receivedAmount: totalReceived 
+                      discount: discountAmount,
+                      receivedAmount: totalReceived,
+                      totalAmount: invoiceData.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0),
+                      isDepositOnly: isDepositOnly,
+                      memo: isDepositOnly ? (invoiceData.memo || '입금전표') : (invoiceData.memo || '')
                     };
                     setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
-                      handleAutoSave(updatedInvoice); // 입금 정보 실시간 저장
-                    }
                     setIsPaymentModalOpen(false);
+                    await handleAutoSave(updatedInvoice);
+                    if (isDepositOnly) {
+                      alert(`[입금전표] ${invoiceData.partner} 거래처에 입금(${totalReceived.toLocaleString()}원)이 정상적으로 발행 및 저장되었습니다.`);
+                    }
                   }}
                 >
-                  확인
+                  {invoiceData.items.length === 0 ? '💰 입금전표 발행 / 저장' : '수금 정보 저장'}
                 </button>
               </div>
             </div>
