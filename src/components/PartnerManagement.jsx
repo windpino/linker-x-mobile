@@ -26,7 +26,8 @@ const PartnerManagement = ({
   salesOrders = [],
   purchaseOrders = [],
   initialFilterType = 'all',
-  initialFilterManager = 'all'
+  initialFilterManager = 'all',
+  logOperation
 }) => {
   const isMobileView = true;
   const [colWidths, setColWidths] = useState({
@@ -267,6 +268,19 @@ const PartnerManagement = ({
       setPartners(withNewSequences);
       await savePartnerSequences(withNewSequences, finalData.id);
 
+      if (logOperation) {
+        const isEdit = Boolean(editingPartner);
+        await logOperation({
+          category: isEdit ? '수정' : '등록',
+          subCategory: '거래처',
+          type: isEdit ? '수정' : '등록',
+          title: isEdit ? `거래처 수정 (${finalData.name})` : `거래처 등록 (${finalData.name})`,
+          detail: `거래처명: ${finalData.name} | 대표: ${finalData.ceo || '-'} | 담당자: ${finalData.manager || '-'} | 유형: ${finalData.type || '매출처'}`,
+          user: currentUser?.name || '시스템',
+          targetId: String(finalData.id)
+        });
+      }
+
       alert(editingPartner ? '거래처 정보가 수정되었습니다.' : '신규 거래처가 등록되었습니다.');
       setIsRegistrationOpen(false);
     } catch (err) {
@@ -310,6 +324,18 @@ const PartnerManagement = ({
         const withNewSequences = autoAssignSequences(remainingPartners);
         await savePartnerSequences(withNewSequences);
         setPartners(withNewSequences);
+
+        if (logOperation) {
+          await logOperation({
+            category: '삭제',
+            subCategory: '거래처',
+            type: '삭제',
+            title: `거래처 삭제 (${partner?.name || id})`,
+            detail: `거래처명: ${partner?.name || '-'} | 담당자: ${partner?.manager || '-'}`,
+            user: currentUser?.name || '시스템',
+            targetId: String(id)
+          });
+        }
 
       } catch (err) {
         console.error('Partner delete error:', err);

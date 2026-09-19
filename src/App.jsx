@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { playMenuClickSound } from './utils/audio';
 import Header from './components/Header';
 import DashboardBanner from './components/DashboardBanner';
 import Calendar from './components/Calendar';
@@ -225,7 +226,17 @@ function App() {
   };
 
   const [selectedDate, setSelectedDate] = useState(new Date()); 
-  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser')) || null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+        return JSON.parse(savedUser) || null;
+      }
+    } catch (e) {
+      console.warn('Failed to parse currentUser from localStorage:', e);
+    }
+    return null;
+  });
   const [staffList, setStaffList] = useState(() => getInitialStateFromCache('staffList', []));
 
   const checkWritePermission = (docCreator = null, isMasterData = false) => {
@@ -625,11 +636,17 @@ function App() {
   }, []);
 
   const [favoriteMenus, setFavoriteMenus] = useState(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    const key = user?.userId ? `favoriteMenus_${user.userId}` : 'favoriteMenus';
-    const saved = JSON.parse(localStorage.getItem(key));
-    if (saved && Array.isArray(saved)) {
-      return saved.slice(0, 7);
+    try {
+      const savedUser = localStorage.getItem('currentUser');
+      const user = (savedUser && savedUser !== 'undefined' && savedUser !== 'null') ? JSON.parse(savedUser) : null;
+      const key = user?.userId ? `favoriteMenus_${user.userId}` : 'favoriteMenus';
+      const rawSaved = localStorage.getItem(key);
+      const saved = (rawSaved && rawSaved !== 'undefined' && rawSaved !== 'null') ? JSON.parse(rawSaved) : null;
+      if (saved && Array.isArray(saved)) {
+        return saved.slice(0, 7);
+      }
+    } catch (e) {
+      console.warn('Failed to parse favoriteMenus:', e);
     }
     return [
       'sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense'
@@ -637,22 +654,38 @@ function App() {
   });
   
   const [dashboardConfig, setDashboardConfig] = useState(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    const key = user?.userId ? `dashboardConfig_${user.userId}` : 'dashboardConfig';
-    const saved = JSON.parse(localStorage.getItem(key));
-    if (saved && saved.widgets) {
-      return { ...saved, widgets: saved.widgets.filter(id => id !== 'Calendar') };
+    try {
+      const savedUser = localStorage.getItem('currentUser');
+      const user = (savedUser && savedUser !== 'undefined' && savedUser !== 'null') ? JSON.parse(savedUser) : null;
+      const key = user?.userId ? `dashboardConfig_${user.userId}` : 'dashboardConfig';
+      const rawSaved = localStorage.getItem(key);
+      const saved = (rawSaved && rawSaved !== 'undefined' && rawSaved !== 'null') ? JSON.parse(rawSaved) : null;
+      if (saved && saved.widgets) {
+        return { ...saved, widgets: saved.widgets.filter(id => id !== 'Calendar') };
+      }
+      if (saved) return saved;
+    } catch (e) {
+      console.warn('Failed to parse dashboardConfig:', e);
     }
-    return saved || {
+    return {
       widgets: ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses']
     };
   });
   
-  const [licenseData, setLicenseData] = useState(() => JSON.parse(localStorage.getItem('licenseData')) || {
-    expiryDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 1 month free
-    plan: '무료 체험판',
-    isLockedOnExpiry: false,
-    lastPaymentDate: null
+  const [licenseData, setLicenseData] = useState(() => {
+    try {
+      const raw = localStorage.getItem('licenseData');
+      if (raw && raw !== 'undefined' && raw !== 'null') {
+        const parsed = JSON.parse(raw);
+        if (parsed) return parsed;
+      }
+    } catch (e) {}
+    return {
+      expiryDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 1 month free
+      plan: '무료 체험판',
+      isLockedOnExpiry: false,
+      lastPaymentDate: null
+    };
   });
 
   const [useMissRing, setUseMissRing] = useState(() => {
@@ -682,17 +715,27 @@ function App() {
       const favKey = `favoriteMenus_${currentUser.userId}`;
       const configKey = `dashboardConfig_${currentUser.userId}`;
       
-      const savedFavs = JSON.parse(localStorage.getItem(favKey));
-      if (savedFavs && Array.isArray(savedFavs)) {
-        setFavoriteMenus(savedFavs.slice(0, 7));
-      } else {
+      try {
+        const rawFavs = localStorage.getItem(favKey);
+        const savedFavs = (rawFavs && rawFavs !== 'undefined' && rawFavs !== 'null') ? JSON.parse(rawFavs) : null;
+        if (savedFavs && Array.isArray(savedFavs)) {
+          setFavoriteMenus(savedFavs.slice(0, 7));
+        } else {
+          setFavoriteMenus(['sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense']);
+        }
+      } catch (e) {
         setFavoriteMenus(['sales_order', 'partner', 'product', 'warehouse', 'staff', 'account', 'expense']);
       }
       
-      const savedConfig = JSON.parse(localStorage.getItem(configKey));
-      if (savedConfig) {
-        setDashboardConfig(savedConfig);
-      } else {
+      try {
+        const rawConfig = localStorage.getItem(configKey);
+        const savedConfig = (rawConfig && rawConfig !== 'undefined' && rawConfig !== 'null') ? JSON.parse(rawConfig) : null;
+        if (savedConfig) {
+          setDashboardConfig(savedConfig);
+        } else {
+          setDashboardConfig({ widgets: ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses'] });
+        }
+      } catch (e) {
         setDashboardConfig({ widgets: ['Schedule', 'Inventory', 'Sales', 'Purchase', 'Partners', 'Warehouses'] });
       }
     }
@@ -700,17 +743,26 @@ function App() {
 
   const [showLicenseAlert, setShowLicenseAlert] = useState(false);
   
-  const [systemSettings, setSystemSettings] = useState(() => JSON.parse(localStorage.getItem('systemSettings')) || {
-    company: { name: '', bizNum: '', ceo: '', type: '', address: '', tel: '', email: '' },
-    display: { darkMode: false, soundEffects: true, realTimeUpdate: true },
-    transaction: { defaultVat: 10, decimalPlaces: 0, autoNumbering: true },
-    salesInvoice: { warnNoStock: true },
-    language: '한국어 (Korean)',
-    timezone: '(GMT+09:00) Seoul',
-    theme: {
-      primaryColor: '#3b82f6',
-      logoUrl: null
-    }
+  const [systemSettings, setSystemSettings] = useState(() => {
+    try {
+      const raw = localStorage.getItem('systemSettings');
+      if (raw && raw !== 'undefined' && raw !== 'null') {
+        const parsed = JSON.parse(raw);
+        if (parsed) return parsed;
+      }
+    } catch (e) {}
+    return {
+      company: { name: '', bizNum: '', ceo: '', type: '', address: '', tel: '', email: '' },
+      display: { darkMode: false, soundEffects: true, realTimeUpdate: true },
+      transaction: { defaultVat: 10, decimalPlaces: 0, autoNumbering: true },
+      salesInvoice: { warnNoStock: true },
+      language: '한국어 (Korean)',
+      timezone: '(GMT+09:00) Seoul',
+      theme: {
+        primaryColor: '#3b82f6',
+        logoUrl: null
+      }
+    };
   });
 
   const [companySettings, setCompanySettings] = useState(null);
@@ -733,7 +785,15 @@ function App() {
     }
   }, []);
 
-  const [expenses, setExpenses] = useState(() => JSON.parse(localStorage.getItem('expenses')) || []);
+  const [expenses, setExpenses] = useState(() => {
+    try {
+      const raw = localStorage.getItem('expenses');
+      if (raw && raw !== 'undefined' && raw !== 'null') {
+        return JSON.parse(raw) || [];
+      }
+    } catch (e) {}
+    return [];
+  });
   const [agencyCategories, setAgencyCategories] = useState(['본사', '직영점', '대리점']);
 
   const [staffZones, setStaffZones] = useState(() => {
@@ -1046,7 +1106,7 @@ function App() {
     isPurchaseInvoiceOpen || isPurchaseOrderOpen || isSalesInvoiceOpen ||
     isSalesOrderOpen || isOrderListOpen || isCashReportOpen || isSalesReportOpen ||
     isOrderReportOpen || isInventoryReportOpen || isReceivablesReportOpen ||
-    isPayablesReportOpen || isRecentActivityModalOpen || isCashBookOpen ||
+    isRecentActivityModalOpen || isCashBookOpen ||
     isExpenseRegistrationOpen || isStaffPerformanceReportOpen || isDataManagerOpen ||
     isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
@@ -1066,18 +1126,22 @@ function App() {
     const isCleaned = localStorage.getItem('system_cleaned_ver');
     
     if (isCleaned !== CLEANUP_VER) {
-      // Filter out unwanted schedule types from existing data
-      const currentTypes = JSON.parse(localStorage.getItem('scheduleTypes')) || [];
-      const unwanted = ['기타', '지시사항', 'TestType', '011', 'to'];
-      const filteredTypes = currentTypes.filter(t => !unwanted.includes(t));
-      
-      if (filteredTypes.length === 0) filteredTypes.push('일반');
-      localStorage.setItem('scheduleTypes', JSON.stringify(filteredTypes));
-      
-      // Clear any other suspected remnants but keep core data
-      // For a truly clean state before "Fishing Portal", we can clear specific keys
-      localStorage.removeItem('fishing_portal_data'); 
-      localStorage.removeItem('catch_reports');
+      try {
+        // Filter out unwanted schedule types from existing data
+        const rawTypes = localStorage.getItem('scheduleTypes');
+        const currentTypes = (rawTypes && rawTypes !== 'undefined' && rawTypes !== 'null') ? JSON.parse(rawTypes) : [];
+        const unwanted = ['기타', '지시사항', 'TestType', '011', 'to'];
+        const filteredTypes = Array.isArray(currentTypes) ? currentTypes.filter(t => !unwanted.includes(t)) : [];
+        
+        if (filteredTypes.length === 0) filteredTypes.push('일반');
+        localStorage.setItem('scheduleTypes', JSON.stringify(filteredTypes));
+        
+        // Clear any other suspected remnants but keep core data
+        localStorage.removeItem('fishing_portal_data'); 
+        localStorage.removeItem('catch_reports');
+      } catch (e) {
+        console.warn('Cleanup version migration error:', e);
+      }
       
       localStorage.setItem('system_cleaned_ver', CLEANUP_VER);
       window.location.reload();
@@ -1826,6 +1890,25 @@ function App() {
         return null;
       }
     }
+
+    const hasItems = Array.isArray(invData.items) && invData.items.length > 0;
+    const hasReceived = (Number(invData.receivedAmount) || 0) > 0;
+    const hasPaymentList = Array.isArray(invData.paymentList) && invData.paymentList.length > 0;
+    const hasPayments = Boolean(invData.payments && (
+      (Number(invData.payments.cash) || 0) > 0 ||
+      (Number(invData.payments.account) || 0) > 0 ||
+      (Number(invData.payments.card) || 0) > 0 ||
+      (Number(invData.payments.bill) || 0) > 0
+    ));
+
+    // 품목도 없고 수금액도 0원이고 결제내역도 전혀 없는 빈 껍데기 전표는 저장하지 않고, 기존 전표면 자동 삭제 처리
+    if (!hasItems && !hasReceived && !hasPaymentList && !hasPayments) {
+      if (invData.id && salesInvoices.some(si => String(si.id) === String(invData.id))) {
+        await handleDeleteSalesInvoice(invData.id);
+      }
+      return null;
+    }
+
     try {
       const companyId = currentUser?.companyId || 'default';
       const id = invData.id || Date.now();
@@ -2570,6 +2653,22 @@ function App() {
     if (sub.includes('거래처') || title.includes('거래처')) {
       if (typeof setIsPartnerManagerOpen === 'function') {
         setIsPartnerManagerOpen(true);
+      }
+      return;
+    }
+
+    // 7-1. 창고 (등록 / 수정 / 삭제)
+    if (sub.includes('창고') || title.includes('창고')) {
+      if (typeof setIsWarehouseManagerOpen === 'function') {
+        setIsWarehouseManagerOpen(true);
+      }
+      return;
+    }
+
+    // 7-2. 직원 (등록 / 수정 / 삭제)
+    if (sub.includes('직원') || title.includes('직원')) {
+      if (typeof setIsStaffManagerOpen === 'function') {
+        setIsStaffManagerOpen(true);
       }
       return;
     }
@@ -3319,8 +3418,8 @@ function App() {
                 date: log.date || new Date().toISOString().split('T')[0],
                 timestamp: log.timestamp || log.id || Date.now(),
                 type: log.type || '삭제',
-                badgeBg: log.type === '수정' || log.type === '변경' ? '#fff7ed' : '#fee2e2',
-                badgeColor: log.type === '수정' || log.type === '변경' ? '#ea580c' : '#dc2626'
+                badgeBg: log.type === '등록' ? '#f0fdf4' : (log.type === '수정' || log.type === '변경' ? '#fff7ed' : '#fee2e2'),
+                badgeColor: log.type === '등록' ? '#16a34a' : (log.type === '수정' || log.type === '변경' ? '#ea580c' : '#dc2626')
               };
               actItem.action = () => handleActivityAction(actItem);
               activities.push(actItem);
@@ -4457,8 +4556,8 @@ function App() {
           onDeleteAllTransfers={onDeleteAllTransfers}
         />
       )}
-      {isWarehouseManagerOpen && <WarehouseManagement onClose={() => setIsWarehouseManagerOpen(false)} warehouses={warehouses} setWarehouses={setWarehouses} currentUser={currentUser} staffList={staffList} />}
-      {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} />}
+      {isWarehouseManagerOpen && <WarehouseManagement onClose={() => setIsWarehouseManagerOpen(false)} warehouses={warehouses} setWarehouses={setWarehouses} currentUser={currentUser} staffList={staffList} logOperation={logOperation} />}
+      {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} logOperation={logOperation} />}
       {isInventoryTransferOpen && <InventoryTransfer 
         onClose={() => { setIsInventoryTransferOpen(false); setInventoryTransferInitialDate(null); }} 
         currentUser={currentUser} 
@@ -4495,6 +4594,7 @@ function App() {
           salesOrders={salesOrders}
           purchaseOrders={purchaseOrders}
           initialFilterType={partnerInitialFilter}
+          logOperation={logOperation}
         />
       )}
       {isProductManagerOpen && <ProductManagement onClose={() => setIsProductManagerOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} onOpenBulk={() => setIsProductBulkOpen(true)} currentUser={currentUser} />}

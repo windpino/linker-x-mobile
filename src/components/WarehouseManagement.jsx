@@ -1,13 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Box, Printer, Download, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Box, Printer, Download, Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import WindowModal from './WindowModal';
 import WarehouseRegistration from './WarehouseRegistration';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
-import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './Warehouse.css';
 
-const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentUser, staffList = [] }) => {
+const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentUser, staffList = [], logOperation }) => {
   const hasWritePermission = () => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
     return currentUser?.allowAllEditDelete === true;
@@ -15,6 +16,48 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
 
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState(null);
+
+  // 컴포넌트 마운트 시 Firestore warehouses 컬렉션에서 원격 데이터를 직접 조회하여 누락된 창고 자동 동기화
+  useEffect(() => {
+    let isMounted = true;
+    const syncFirestoreWarehouses = async () => {
+      try {
+        const companyId = currentUser?.companyId || 'default';
+        if (!companyId || !db) return;
+        const colRef = collection(db, 'companies', companyId, 'warehouses');
+        const snap = await getDocs(colRef);
+        if (!snap.empty && isMounted) {
+          const remoteList = snap.docs.map(d => ({
+            ...d.data(),
+            _docId: d.id,
+            id: d.data().id ?? (isNaN(Number(d.id)) ? d.id : Number(d.id))
+          }));
+
+          const mergedMap = new Map();
+          (warehouses || []).forEach(w => {
+            const key = String(w._docId || w.id || w.name);
+            mergedMap.set(key, w);
+          });
+          remoteList.forEach(w => {
+            const key = String(w._docId || w.id || w.name);
+            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...w });
+          });
+
+          const mergedList = Array.from(mergedMap.values());
+          if (mergedList.length !== warehouses.length || JSON.stringify(mergedList) !== JSON.stringify(warehouses)) {
+            if (setWarehouses) setWarehouses(mergedList);
+            await saveBundle(companyId, 'warehouses', mergedList);
+            localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(mergedList));
+          }
+        }
+      } catch (err) {
+        console.warn('Auto sync warehouses failed:', err);
+      }
+    };
+
+    syncFirestoreWarehouses();
+    return () => { isMounted = false; };
+  }, [currentUser?.companyId]);
 
   const handleToggleMainWarehouse = async (targetWh) => {
     if (!hasWritePermission()) {
@@ -41,6 +84,17 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       }
 
       await batch.commit();
+
+      const nextWarehouses = warehouses.map(w => {
+        const isTarget = String(w._docId || w.id) === String(targetDocId);
+        if (isTarget) return { ...w, isMain: nextIsMain };
+        if (nextIsMain) return { ...w, isMain: false };
+        return w;
+      });
+
+      if (setWarehouses) setWarehouses(nextWarehouses);
+      await saveBundle(companyId, 'warehouses', nextWarehouses);
+      localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(nextWarehouses));
     } catch (err) {
       console.error('Toggle main warehouse error:', err);
       alert('메인창고 설정 중 오류가 발생했습니다: ' + (err.message || ''));
@@ -101,7 +155,16 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
         });
       }
 
-      // 2. Sync Staff's default warehouse if manager is set
+      // 2. If this warehouse is linked to a vehicle, also sync color to vehicles collection
+      if (isVeh && vId) {
+        const vehicleDocRef = doc(db, 'companies', companyId, 'vehicles', String(vId));
+        batch.set(vehicleDocRef, {
+          color: whData.color || '#3b82f6',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      // 3. Sync Staff's default warehouse if manager is set
       if (whData.manager) {
         const staff = staffList.find(s => s.name === whData.manager);
         if (staff) {
@@ -121,6 +184,35 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       }
 
       await batch.commit();
+
+      // 상태 및 번들 동기화 반영
+      const isNew = !editingWarehouse && !warehouses.some(w => String(w._docId || w.id) === String(docId));
+      let nextWarehouses = isNew
+        ? [...warehouses, { ...finalData, _docId: docId }]
+        : warehouses.map(w => String(w._docId || w.id) === String(docId) ? { ...w, ...finalData, _docId: docId } : w);
+
+      if (whData.isMain) {
+        nextWarehouses = nextWarehouses.map(w =>
+          String(w._docId || w.id) === String(docId) ? { ...w, isMain: true } : { ...w, isMain: false }
+        );
+      }
+
+      if (setWarehouses) setWarehouses(nextWarehouses);
+      await saveBundle(companyId, 'warehouses', nextWarehouses);
+      localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(nextWarehouses));
+
+      if (logOperation) {
+        await logOperation({
+          category: isNew ? '등록' : '수정',
+          subCategory: '창고',
+          type: isNew ? '등록' : '수정',
+          title: isNew ? `창고 등록 (${finalData.name})` : `창고 수정 (${finalData.name})`,
+          detail: `창고명: ${finalData.name} | 담당자: ${finalData.manager || '-'} | 주소: ${finalData.address || '-'}`,
+          user: currentUser?.name || '시스템',
+          targetId: String(docId)
+        });
+      }
+
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Warehouse save error:', err);
@@ -138,6 +230,23 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       const companyId = currentUser?.companyId || 'default';
       const docId = typeof wh === 'object' ? (wh._docId || String(wh.id)) : String(wh);
       await deleteDoc(doc(db, 'companies', companyId, 'warehouses', docId));
+
+      const nextWarehouses = warehouses.filter(w => String(w._docId || w.id) !== String(docId));
+      if (setWarehouses) setWarehouses(nextWarehouses);
+      await saveBundle(companyId, 'warehouses', nextWarehouses);
+      localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(nextWarehouses));
+
+      if (logOperation) {
+        await logOperation({
+          category: '삭제',
+          subCategory: '창고',
+          type: '삭제',
+          title: `창고 삭제 (${wh.name || '창고'})`,
+          detail: `창고명: ${wh.name || '-'} | 담당자: ${wh.manager || '-'}`,
+          user: currentUser?.name || '시스템',
+          targetId: String(docId)
+        });
+      }
     } catch (err) {
       console.error('Warehouse delete error:', err);
       alert('창고 삭제 중 오류가 발생했습니다: ' + (err.message || ''));

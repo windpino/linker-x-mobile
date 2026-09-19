@@ -564,9 +564,21 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   };
 
   const handleDeletePaymentSlip = async (slipId) => {
-    if (!window.confirm('해당 수금전표 내역을 삭제하시겠습니까?')) return;
+    if (!window.confirm('해당 입금/수금 전표 내역을 삭제하시겠습니까?')) return;
     const currentList = Array.isArray(invoiceData.paymentList) ? invoiceData.paymentList : [];
     const nextList = currentList.filter(p => p.id !== slipId);
+
+    const hasNoItems = !invoiceData.items || invoiceData.items.length === 0;
+
+    // 품목도 없고(입금전표), 남은 입금내역도 전혀 없다면 -> 전표 자체를 완전 삭제 처리!
+    if (hasNoItems && nextList.length === 0) {
+      if (invoiceData.id && onDeleteInvoice) {
+        await onDeleteInvoice(invoiceData.id);
+      }
+      alert('입금전표가 완전히 삭제되었습니다.');
+      onClose && onClose();
+      return;
+    }
 
     const aggregatedPayments = {
       cash: nextList.reduce((sum, p) => sum + (p.cash || 0), 0),
@@ -1726,6 +1738,36 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             onClick={() => window.print()}
           >
             <Printer size={13} /> 인쇄
+          </button>
+
+          <button 
+            className="btn-primary" 
+            style={{ 
+              backgroundColor: '#ef4444', 
+              color: 'white', 
+              padding: '8px 14px', 
+              fontSize: '0.8rem', 
+              borderRadius: '6px', 
+              fontWeight: 700, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              margin: 0
+            }} 
+            onClick={async () => {
+              const typeName = isDepositOnly ? '입금전표' : '매출전표';
+              if (!window.confirm(`현재 ${typeName}를 완전히 삭제하시겠습니까?`)) return;
+              if (invoiceData.id && onDeleteInvoice) {
+                await onDeleteInvoice(invoiceData.id);
+                alert(`${typeName}가 정상적으로 삭제되었습니다.`);
+                onClose && onClose();
+              } else {
+                onClose && onClose();
+              }
+            }}
+            title={isDepositOnly ? "입금전표 완전 삭제" : "매출전표 완전 삭제"}
+          >
+            <Trash2 size={13} /> {isDepositOnly ? '입금전표 삭제' : '전표 삭제'}
           </button>
         </div>
       </WindowModal>

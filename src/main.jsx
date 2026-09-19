@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 // ─────────────────────────────────────────────────────────
 // 모바일 뷰포트 높이 보정 (주소창 포함/제외 차이 해결)
@@ -20,6 +21,8 @@ window.addEventListener('orientationchange', () => {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

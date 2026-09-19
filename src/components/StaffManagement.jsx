@@ -7,7 +7,7 @@ import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import './Staff.css';
 
-const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], currentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles }) => {
+const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], currentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles, logOperation }) => {
   const hasWritePermission = () => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
     return currentUser?.allowAllEditDelete === true;
@@ -100,6 +100,18 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
 
       await batch.commit();
 
+      if (logOperation) {
+        await logOperation({
+          category: isNewStaff ? '등록' : '수정',
+          subCategory: '직원',
+          type: isNewStaff ? '등록' : '수정',
+          title: `직원 ${isNewStaff ? '등록' : '수정'}: ${finalData.name || '직원'}`,
+          detail: `직원명: ${finalData.name || '-'} | 직책: ${finalData.jobTitle || '-'} | 창고: ${finalData.warehouse || '-'} | 아이디: ${finalData.userId || '-'}`,
+          user: currentUser?.name || '관리자',
+          targetId: String(finalData.id || targetDocId)
+        });
+      }
+
       if (setStaffList) {
         setStaffList(prev => {
           const filtered = (prev || []).filter(s => {
@@ -153,6 +165,18 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
       });
 
       await batch.commit();
+
+      if (logOperation) {
+        await logOperation({
+          category: '삭제',
+          subCategory: '직원',
+          type: '삭제',
+          title: `직원 삭제: ${staff?.name || '직원'}`,
+          detail: `직원명: ${staff?.name || '-'} | 직책: ${staff?.jobTitle || '-'} | 창고: ${staff?.warehouse || '-'} | 아이디: ${staff?.userId || '-'}`,
+          user: currentUser?.name || '관리자',
+          targetId: String(staff?.id || staffOrId)
+        });
+      }
 
       if (setStaffList) {
         setStaffList(prev => (prev || []).filter(s => {

@@ -297,8 +297,20 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
           const dayPurchaseOrders = (purchaseOrders || []).filter(o => o.date === format(d, 'yyyy-MM-dd'));
           const dayPurchaseInvoices = (purchaseInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd'));
           const dayAllSalesInvoices = (salesInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd') && (isAdmin || inv.creator === currentUser?.name));
-          const isDepositSlip = (inv) => Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
-          const daySalesInvoices = dayAllSalesInvoices.filter(inv => !isDepositSlip(inv));
+          const isDepositSlip = (inv) => {
+            const isDepType = Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
+            if (!isDepType) return false;
+            const hasReceived = (Number(inv?.receivedAmount) || 0) > 0;
+            const hasPaymentList = Array.isArray(inv?.paymentList) && inv.paymentList.length > 0;
+            const hasPayments = Boolean(inv?.payments && (
+              (Number(inv.payments.cash) || 0) > 0 ||
+              (Number(inv.payments.account) || 0) > 0 ||
+              (Number(inv.payments.card) || 0) > 0 ||
+              (Number(inv.payments.bill) || 0) > 0
+            ));
+            return hasReceived || hasPaymentList || hasPayments;
+          };
+          const daySalesInvoices = dayAllSalesInvoices.filter(inv => Array.isArray(inv?.items) && inv.items.length > 0 && !inv?.isDepositOnly);
           const dayDepositSlips = dayAllSalesInvoices.filter(inv => isDepositSlip(inv));
           const dayTransfers = (inventoryTransferHistory || []).filter(h => h.date === format(d, 'yyyy-MM-dd'));
 
@@ -458,8 +470,18 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
         const selectedSalesInvoices = (salesInvoices || []).filter(inv => inv.date === selectedDayStr && (isAdmin || inv.creator === currentUser?.name));
         selectedSalesInvoices.forEach(inv => {
           const isDeposit = Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
+          const hasReceived = (Number(inv?.receivedAmount) || 0) > 0;
+          const hasPaymentList = Array.isArray(inv?.paymentList) && inv.paymentList.length > 0;
+          const hasPayments = Boolean(inv?.payments && (
+            (Number(inv.payments.cash) || 0) > 0 ||
+            (Number(inv.payments.account) || 0) > 0 ||
+            (Number(inv.payments.card) || 0) > 0 ||
+            (Number(inv.payments.bill) || 0) > 0
+          ));
+          const hasItems = Array.isArray(inv?.items) && inv.items.length > 0;
           const partnerTitle = inv.partner || inv.partnerName || '거래처';
-          if (isDeposit) {
+
+          if (isDeposit && (hasReceived || hasPaymentList || hasPayments)) {
             selectedDayItems.push({
               uniqueId: `list-dep-${inv.id}`,
               tag: '입금전표',
@@ -476,7 +498,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
                 }
               }
             });
-          } else {
+          } else if (hasItems && !inv?.isDepositOnly) {
             selectedDayItems.push({
               uniqueId: `list-si-${inv.id}`,
               tag: '매출',

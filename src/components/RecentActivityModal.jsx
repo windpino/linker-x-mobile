@@ -331,7 +331,7 @@ const RecentActivityModal = ({
   const filteredActivities = useMemo(() => {
     return allActivities.filter(item => {
       // Category Filter
-      if (activeCategory === '전표등록' && item.category !== '전표등록' && item.type !== '등록') return false;
+      if ((activeCategory === '등록' || activeCategory === '전표등록') && item.category !== '전표등록' && item.category !== '등록' && item.type !== '등록') return false;
       if (activeCategory === '변경' && item.category !== '변경' && item.type !== '변경' && item.type !== '수정' && item.type !== '조정') return false;
       if (activeCategory === '이동' && item.category !== '이동' && item.type !== '이동') return false;
       if (activeCategory === '삭제' && item.category !== '삭제' && item.type !== '삭제') return false;
@@ -374,7 +374,7 @@ const RecentActivityModal = ({
     exportToExcel(exportData, `최근처리현황보고서${staffSuffix}`);
   };
 
-  const categories = ['전체', '전표등록', '변경', '이동', '삭제'];
+  const categories = ['전체', '등록', '변경', '이동', '삭제'];
 
   return (
     <WindowModal title="최근 처리 현황 보고서" onClose={onClose} width="1100px">
