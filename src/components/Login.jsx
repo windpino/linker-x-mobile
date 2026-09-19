@@ -25,39 +25,54 @@ const Login = ({ onLogin, onNavigateToSignup, onFindAgency, prefilledAgencyId, o
       return;
     }
 
-    const isAutoSave = localStorage.getItem('autoSaveLogin') === 'true';
-    const isAutoLogin = localStorage.getItem('autoLogin') === 'true';
-    setAutoSave(isAutoSave);
-    setAutoLogin(isAutoLogin);
+    try {
+      const isAutoSave = localStorage.getItem('autoSaveLogin') === 'true';
+      const isAutoLogin = localStorage.getItem('autoLogin') === 'true';
+      setAutoSave(isAutoSave);
+      setAutoLogin(isAutoLogin);
 
-    if (isAutoSave) {
-      const savedAgencyInput = localStorage.getItem('savedAgencyInput');
-      const savedAgencyPw = localStorage.getItem('savedAgencyPw');
-      if (savedAgencyInput) setAgencyInput(savedAgencyInput);
-      if (savedAgencyPw) setAgencyPassword(savedAgencyPw);
+      if (isAutoSave) {
+        const savedAgencyInput = localStorage.getItem('savedAgencyInput');
+        const savedAgencyPw = localStorage.getItem('savedAgencyPw');
+        if (savedAgencyInput) setAgencyInput(savedAgencyInput);
+        if (savedAgencyPw) setAgencyPassword(savedAgencyPw);
 
-      const savedAgency = localStorage.getItem('savedAgency');
-      if (savedAgency) {
-        const agency = JSON.parse(savedAgency);
-        setSelectedAgency(agency);
-        setStep(2);
-        
-        const savedEmail = localStorage.getItem('savedLoginId');
-        const savedPw = localStorage.getItem('savedLoginPw');
-        if (savedEmail) setEmail(savedEmail);
-        if (savedPw) setPassword(savedPw);
+        const savedAgency = localStorage.getItem('savedAgency');
+        if (savedAgency && savedAgency !== 'undefined' && savedAgency !== 'null') {
+          let agency = null;
+          try {
+            agency = JSON.parse(savedAgency);
+          } catch (pe) {
+            console.warn('Failed to parse savedAgency:', pe);
+          }
+          if (agency) {
+            setSelectedAgency(agency);
+            setStep(2);
+            
+            const savedEmail = localStorage.getItem('savedLoginId');
+            const savedPw = localStorage.getItem('savedLoginPw');
+            if (savedEmail) setEmail(savedEmail);
+            if (savedPw) setPassword(savedPw);
 
-        // Auto Login Trigger
-        if (isAutoLogin && savedAgencyInput && savedAgencyPw && savedEmail && savedPw) {
-          const performAutoLogin = async () => {
-            const agencyData = await onFindAgency(savedAgencyInput, savedAgencyPw);
-            if (agencyData) {
-              await onLogin(savedEmail, savedPw, agencyData.id);
+            // Auto Login Trigger
+            if (isAutoLogin && savedAgencyInput && savedAgencyPw && savedEmail && savedPw) {
+              const performAutoLogin = async () => {
+                try {
+                  const agencyData = await onFindAgency(savedAgencyInput, savedAgencyPw);
+                  if (agencyData) {
+                    await onLogin(savedEmail, savedPw, agencyData.id);
+                  }
+                } catch (loginErr) {
+                  console.warn('Auto login failed:', loginErr);
+                }
+              };
+              performAutoLogin();
             }
-          };
-          performAutoLogin();
+          }
         }
       }
+    } catch (storageErr) {
+      console.warn('Error reading login credentials from localStorage:', storageErr);
     }
   }, []);
 

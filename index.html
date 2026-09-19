@@ -1,51 +1,225 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Link X - 물류관리 시스템 (Mobile)</title>
     
-    <!-- Tailwind CSS Play CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PWA Web Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Mobile App Customizations -->
-    <meta name="theme-color" content="#0f172a" />
+    <!-- Mobile App Customizations & Dark Theme Background -->
+    <meta name="theme-color" content="#0b0f19" />
     <meta name="mobile-web-app-capable" content="yes" />
     
-    <!-- iOS Specific Standalone Settings (Hides Safari navigation bar) -->
+    <!-- iOS Specific Standalone Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Link X" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- PWA Web Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #0b0f19;
+        color: #f1f5f9;
+        font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        width: 100%;
+        overflow-x: hidden;
+      }
+      #root {
+        min-height: 100vh;
+        width: 100%;
+        background-color: #0b0f19;
+      }
+      /* Fallback Loading Skeleton */
+      .app-initial-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .loader-spinner {
+        width: 42px;
+        height: 42px;
+        border: 3px solid rgba(59, 130, 246, 0.2);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .loader-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px 0;
+      }
+      .loader-desc {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin: 0;
+      }
+      /* Global Emergency Error Box */
+      .app-error-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .error-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 20px;
+        margin-top: 16px;
+        background-color: #3b82f6;
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        width: 100%;
+        max-width: 260px;
+      }
+      .error-btn-secondary {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 8px;
+      }
+    </style>
+
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Global Early Error Catcher to prevent White Screen on network/script failures -->
+    <script>
+      (function() {
+        function showFatalError(msg, detail) {
+          var root = document.getElementById('root');
+          if (!root) return;
+          // Only show fallback if root is empty or still showing the initial loader
+          if (!root.dataset.rendered) {
+            root.innerHTML = 
+              '<div class="app-error-box">' +
+                '<div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:18px;border:1px solid rgba(239,68,68,0.3);font-size:28px;">⚠️</div>' +
+                '<h2 style="font-size:1.2rem;font-weight:800;margin:0 0 8px 0;color:#ffffff;">화면을 불러오지 못했습니다</h2>' +
+                '<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 20px 0;line-height:1.5;max-width:300px;">' +
+                  '최신 버전 업데이트 반영 중 일시적인 캐시 충돌이 발생했습니다. 아래 버튼을 눌러 캐시를 초기화해 주세요.' +
+                '</p>' +
+                '<button class="error-btn" onclick="window.__hardResetApp()">' +
+                  '⚡ 캐시 초기화 후 재접속' +
+                '</button>' +
+                '<button class="error-btn error-btn-secondary" onclick="window.location.reload(true)">' +
+                  '🔄 단순 새로고침' +
+                '</button>' +
+                (detail ? '<div style="margin-top:24px;text-align:left;max-width:320px;font-size:0.7rem;color:#f87171;background:#1e293b;padding:10px;border-radius:6px;word-break:break-all;">' + detail + '</div>' : '') +
+              '</div>';
+          }
+        }
+
+        window.__hardResetApp = function() {
+          try {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(r) { r.unregister(); });
+              });
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(keys) {
+                keys.forEach(function(k) { caches.delete(k); });
+              });
+            }
+            // Clear broken cache keys
+            var preservedUser = localStorage.getItem('currentUser');
+            var preservedAutoSave = localStorage.getItem('autoSaveLogin');
+            var preservedAgency = localStorage.getItem('savedAgencyInput');
+            var preservedId = localStorage.getItem('savedLoginId');
+            
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            if (preservedUser) localStorage.setItem('currentUser', preservedUser);
+            if (preservedAutoSave) localStorage.setItem('autoSaveLogin', preservedAutoSave);
+            if (preservedAgency) localStorage.setItem('savedAgencyInput', preservedAgency);
+            if (preservedId) localStorage.setItem('savedLoginId', preservedId);
+          } catch(e) {}
+          window.location.href = window.location.origin + window.location.pathname + '?t=' + Date.now();
+        };
+
+        window.addEventListener('error', function(e) {
+          console.error('Global Window Error:', e);
+          // If a script fails to load (e.g. index-XXXX.js 404), trigger error UI
+          if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+            showFatalError('리소스 로드 실패', '자바스크립트/스타일 번들을 불러오지 못했습니다. 네트워크 상태를 확인하시거나 캐시를 초기화해 주세요.');
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          console.warn('Global Unhandled Rejection:', e.reason);
+        });
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-initial-loader">
+        <div class="loader-spinner"></div>
+        <h1 class="loader-title">Link X ERP</h1>
+        <p class="loader-desc">모바일 시스템을 안전하게 시작하는 중...</p>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker & Old Cache Purge Script (Prevents White Screen on mobile) -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          if (window.location.hostname === 'localhost') {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-              for (let registration of registrations) {
-                registration.unregister().then(success => {
+      (function() {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (var i = 0; i < registrations.length; i++) {
+                registrations[i].unregister().then(function(success) {
                   if (success) {
-                    console.log('Development Service worker unregistered.');
-                    window.location.reload();
+                    console.log('Old Service Worker successfully unregistered.');
                   }
                 });
               }
+            }).catch(function(err) {
+              console.warn('SW unregister error:', err);
             });
-          } else {
-            navigator.serviceWorker.register('/sw.js')
-              .then(reg => console.log('Service worker registered successfully:', reg.scope))
-              .catch(err => console.error('Service worker registration failed:', err));
-          }
-        });
-      }
+
+            // Purge any stale cache storage from previous versions
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                for (var i = 0; i < names.length; i++) {
+                  caches.delete(names[i]);
+                }
+              }).catch(function(err) {
+                console.warn('Caches delete error:', err);
+              });
+            }
+          });
+        }
+      })();
     </script>
   </body>
 </html>

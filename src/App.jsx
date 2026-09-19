@@ -305,8 +305,16 @@ function App() {
         localStorage.setItem('scheduleTypes', JSON.stringify(typesList));
       } catch (err) {
         console.error("Error fetching schedule types from Firestore:", err);
-        const local = JSON.parse(localStorage.getItem('scheduleTypes')) || [];
-        setScheduleTypes(local);
+        let local = [];
+        try {
+          const raw = localStorage.getItem('scheduleTypes');
+          if (raw && raw !== 'undefined' && raw !== 'null') {
+            local = JSON.parse(raw) || [];
+          }
+        } catch (parseErr) {
+          console.warn('Failed to parse scheduleTypes from cache:', parseErr);
+        }
+        setScheduleTypes(Array.isArray(local) ? local : []);
       }
     };
 
@@ -441,14 +449,26 @@ function App() {
   const [isTaxReportOpen, setIsTaxReportOpen] = useState(false);
   const [isResizeLocked, setIsResizeLocked] = useState(true);
   const [isDashboardLocked, setIsDashboardLocked] = useState(() => {
-    const saved = localStorage.getItem('isDashboardLocked');
-    return saved === null ? true : saved === 'true';
+    try {
+      const saved = localStorage.getItem('isDashboardLocked');
+      return saved === null ? true : saved === 'true';
+    } catch (e) {
+      return true;
+    }
   });
   
   React.useEffect(() => {
-    localStorage.setItem('isDashboardLocked', isDashboardLocked);
+    try {
+      localStorage.setItem('isDashboardLocked', isDashboardLocked);
+    } catch (e) {}
   }, [isDashboardLocked]);
-  const [calendarHeight, setCalendarHeight] = useState(() => Number(localStorage.getItem('calendarHeight')) || 550);
+  const [calendarHeight, setCalendarHeight] = useState(() => {
+    try {
+      return Number(localStorage.getItem('calendarHeight')) || 550;
+    } catch (e) {
+      return 550;
+    }
+  });
   const [toast, setToast] = useState({ message: '', type: '' });
 
   const showToast = (message, type = 'info') => {
@@ -2400,10 +2420,12 @@ function App() {
 
   // 2. Effects for persistence
   React.useEffect(() => {
-    if (localStorage.getItem('savedLoginId') === 'windpino') {
-      localStorage.removeItem('savedLoginId');
-      localStorage.removeItem('savedLoginPw');
-    }
+    try {
+      if (localStorage.getItem('savedLoginId') === 'windpino') {
+        localStorage.removeItem('savedLoginId');
+        localStorage.removeItem('savedLoginPw');
+      }
+    } catch (e) {}
   }, []);
 
   React.useEffect(() => {
