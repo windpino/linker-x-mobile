@@ -109,6 +109,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
   // Auto-save logic removed as per user request
 
+  const isDepositOnly = Boolean(
+    invoiceData?.isDepositOnly ||
+    (!invoiceData?.items?.length && (invoiceData?.receivedAmount > 0 || invoiceData?.memo === '입금전표' || invoiceData?.type === 'deposit'))
+  );
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
@@ -117,14 +122,20 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       alert('거래처를 먼저 선택해주세요.');
       return;
     }
-    // Calculate initial cash based on total amount minus other payments
     const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
     const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
     const others = (invoiceData.payments?.account || 0) + (invoiceData.payments?.card || 0) + (invoiceData.payments?.bill || 0);
-    const initialCash = Math.max(0, currentTotal - (invoiceData.discount || 0) - others);
+    const initialCash = isDepositOnly
+      ? (invoiceData.payments?.cash || 0)
+      : Math.max(0, currentTotal - (invoiceData.discount || 0) - others);
 
     setTempPaymentState({
-      payments: { ...(invoiceData.payments || { cash: 0, account: 0, card: 0, bill: 0 }), cash: initialCash },
+      payments: {
+        cash: initialCash,
+        account: invoiceData.payments?.account || 0,
+        card: invoiceData.payments?.card || 0,
+        bill: invoiceData.payments?.bill || 0
+      },
       discount: invoiceData.discount || 0
     });
     setIsPaymentModalOpen(true);
@@ -133,23 +144,42 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   useEffect(() => {
     if (editingInvoice) {
       const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(editingInvoice.id));
-      let nextData = { ...editingInvoice, items: editingInvoice.items || [] };
+      const isDep = Boolean(
+        editingInvoice.isDepositOnly || 
+        (!editingInvoice.items?.length && (editingInvoice.receivedAmount > 0 || editingInvoice.memo === '입금전표' || editingInvoice.type === 'deposit'))
+      );
+      let nextData = { 
+        ...editingInvoice, 
+        items: editingInvoice.items || [],
+        payments: editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 },
+        isDepositOnly: isDep,
+        memo: isDep ? (editingInvoice.memo || '입금전표') : (editingInvoice.memo || '')
+      };
       
       if (!isAlreadySaved) {
         nextData = {
-          ...editingInvoice,
-          items: editingInvoice.items || [],
+          ...nextData,
           manager: currentUser?.name || editingInvoice.manager || '',
           warehouse: userWH || editingInvoice.warehouse || '',
           creator: currentUser?.name || editingInvoice.creator || '시스템'
         };
-        setInvoiceData(nextData);
-      } else {
-        setInvoiceData(nextData);
+      }
+      setInvoiceData(nextData);
+
+      if (isDep && editingInvoice.partner) {
+        setTempPaymentState({
+          payments: {
+            cash: editingInvoice.payments?.cash || 0,
+            account: editingInvoice.payments?.account || 0,
+            card: editingInvoice.payments?.card || 0,
+            bill: editingInvoice.payments?.bill || 0
+          },
+          discount: editingInvoice.discount || 0
+        });
+        setIsPaymentModalOpen(true);
       }
 
       if (editingInvoice.autoSave && !isAlreadySaved) {
-        // Trigger auto-save immediately to DB
         setTimeout(() => {
           const saveCopy = { ...nextData };
           delete saveCopy.autoSave;
@@ -622,7 +652,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           font-size: 0.82rem !important;
         }
       `}</style>
-      <WindowModal title="매출전표" onClose={onClose} width="1100px" zIndex={zIndex} desktopOnly={true}>
+      <WindowModal title={isDepositOnly ? "💰 입금전표 발행" : "매출전표"} onClose={onClose} width="1100px" zIndex={zIndex} desktopOnly={true}>
         {/* 매출전표 본문 영역 - 가로 스크롤 래퍼 */}
         <div className="sales-invoice-scroll-wrapper" style={{ marginTop: '10px' }}>
         <div className="sales-invoice-inner">
@@ -1228,7 +1258,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     <label style={{ color: item.color }}>{item.label}</label>
                     <input
                       type="text"
-                      value={tempPaymentState.payments[item.id] ? tempPaymentState.payments[item.id].toLocaleString() : ''}
+                      value={tempPaymentState?.payments?.[item.id] ? tempPaymentState.payments[item.id].toLocaleString() : ''}
                       onChange={(e) => handlePaymentChange(item.id, e.target.value, tempPaymentState, setTempPaymentState)}
                       placeholder="0"
                       onFocus={(e) => e.target.select()}
@@ -1247,31 +1277,34 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       alert('거래처를 먼저 선택해주세요.');
                       return;
                     }
-                    const totalReceived = Object.values(tempPaymentState.payments).reduce((a, b) => a + b, 0);
-                    const discountAmount = tempPaymentState.discount || 0;
-                    if (invoiceData.items.length === 0 && totalReceived <= 0 && discountAmount <= 0) {
+                    const paymentsObj = tempPaymentState?.payments || { cash: 0, account: 0, card: 0, bill: 0 };
+                    const totalReceived = Object.values(paymentsObj).reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
+                    const discountAmount = Number(tempPaymentState?.discount) || 0;
+                    const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+                    if (items.length === 0 && totalReceived <= 0 && discountAmount <= 0) {
                       alert('입금액 또는 할인 금액을 1원 이상 입력해주세요.');
                       return;
                     }
-                    const isDepositOnly = invoiceData.items.length === 0;
+                    const isDep = items.length === 0 || invoiceData.isDepositOnly;
                     const updatedInvoice = { 
                       ...invoiceData, 
-                      payments: tempPaymentState.payments, 
+                      items: items,
+                      payments: { ...paymentsObj }, 
                       discount: discountAmount,
                       receivedAmount: totalReceived,
-                      totalAmount: invoiceData.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0),
-                      isDepositOnly: isDepositOnly,
-                      memo: isDepositOnly ? (invoiceData.memo || '입금전표') : (invoiceData.memo || '')
+                      totalAmount: items.reduce((sum, item) => sum + (Number(item?.total) || 0), 0),
+                      isDepositOnly: isDep,
+                      memo: isDep ? (invoiceData.memo || '입금전표') : (invoiceData.memo || '')
                     };
                     setInvoiceData(updatedInvoice);
                     setIsPaymentModalOpen(false);
                     await handleAutoSave(updatedInvoice);
-                    if (isDepositOnly) {
+                    if (isDep) {
                       alert(`[입금전표] ${invoiceData.partner} 거래처에 입금(${totalReceived.toLocaleString()}원)이 정상적으로 발행 및 저장되었습니다.`);
                     }
                   }}
                 >
-                  {invoiceData.items.length === 0 ? '💰 입금전표 발행 / 저장' : '수금 정보 저장'}
+                  {(!invoiceData.items || invoiceData.items.length === 0) ? '💰 입금전표 발행 / 저장' : '수금 정보 저장'}
                 </button>
               </div>
             </div>

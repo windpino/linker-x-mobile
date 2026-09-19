@@ -4,7 +4,7 @@ import { playMenuClickSound } from '../utils/audio';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths, startOfDay, isWithinInterval } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOrder, onOpenDashboardSettings, isDashboardLocked, onToggleDashboardLock, schedules = [], salesOrders = [], salesInvoices = [], purchaseOrders = [], purchaseInvoices = [], inventoryTransferHistory = [], staffList = [], currentUser, onOpenOrderListForDate, onOpenSalesInvoiceListForDate, onOpenPurchaseLedgerForDate, onOpenInventoryTransferForDate, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [], onToggleScheduleType, onOpenTypeManagement }) => {
+const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOrder, onOpenDashboardSettings, isDashboardLocked, onToggleDashboardLock, schedules = [], salesOrders = [], salesInvoices = [], purchaseOrders = [], purchaseInvoices = [], inventoryTransferHistory = [], staffList = [], currentUser, onOpenOrderListForDate, onOpenSalesInvoiceListForDate, onOpenDepositSlip, onOpenPurchaseLedgerForDate, onOpenInventoryTransferForDate, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [], onToggleScheduleType, onOpenTypeManagement }) => {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const [showTypeFilter, setShowTypeFilter] = useState(false);
   const typeFilterRef = useRef(null);
@@ -469,7 +469,11 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
               color: '#0f766e',
               bgColor: '#f0fdfa',
               onClick: () => {
-                if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(selectedDate);
+                if (onOpenDepositSlip) {
+                  onOpenDepositSlip(inv);
+                } else if (onOpenSalesInvoiceListForDate) {
+                  onOpenSalesInvoiceListForDate(selectedDate);
+                }
               }
             });
           } else {

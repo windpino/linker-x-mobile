@@ -336,6 +336,39 @@ function App() {
     setIsSalesInvoiceOpen(true);
     setActiveSalesModal('invoice');
   };
+  const openDepositSlip = (slipOrDate = null) => {
+    let invoice = null;
+    if (slipOrDate && slipOrDate.id) {
+      invoice = {
+        ...slipOrDate,
+        items: slipOrDate.items || [],
+        isDepositOnly: true,
+        memo: slipOrDate.memo || '입금전표',
+        payments: slipOrDate.payments || { cash: 0, account: 0, card: 0, bill: 0 }
+      };
+    } else {
+      const dateStr = (slipOrDate && slipOrDate.date)
+        ? slipOrDate.date
+        : (slipOrDate instanceof Date ? format(slipOrDate, 'yyyy-MM-dd') : format(selectedDate || new Date(), 'yyyy-MM-dd'));
+      invoice = {
+        id: Date.now(),
+        date: dateStr,
+        partner: '',
+        warehouse: warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '창고',
+        manager: currentUser?.name || staffList[0]?.name || '',
+        items: [],
+        receivedAmount: 0,
+        payments: { cash: 0, account: 0, card: 0, bill: 0 },
+        discount: 0,
+        creator: currentUser?.name || '시스템',
+        isDepositOnly: true,
+        memo: '입금전표'
+      };
+    }
+    setEditingInvoice(invoice);
+    setIsSalesInvoiceOpen(true);
+    setActiveSalesModal('invoice');
+  };
   const openSalesInvoiceList = () => {
     setSalesInvoiceListInitialDate(null);
     setIsSalesInvoiceListOpen(true);
@@ -4390,6 +4423,9 @@ function App() {
                 setSalesInvoiceListInitialDate(format(date, 'yyyy-MM-dd'));
                 setIsSalesInvoiceListOpen(true);
                 setActiveSalesModal('invoice_list');
+              }}
+              onOpenDepositSlip={(slipOrDate) => {
+                openDepositSlip(slipOrDate);
               }}
               onOpenOrderListForDate={(date) => {
                 setSelectedDate(date);
