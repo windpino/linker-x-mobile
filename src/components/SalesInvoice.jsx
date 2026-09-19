@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X } from 'lucide-react';
+import { format } from 'date-fns';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
@@ -88,26 +89,61 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     window.addEventListener('mouseup', onUp);
   }, [colWidths]);
 
-  const [invoiceData, setInvoiceData] = useState(() => editingInvoice ? { ...editingInvoice } : {
-    id: Date.now(), // Give it an ID immediately for tracking
-    date: (() => {
-      const d = selectedDate || new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })(),
-    partner: '',
-    warehouse: userWH,
-    manager: currentUser?.name || staffList[0]?.name || '',
-    items: [],
-    receivedAmount: 0,
-    payments: { cash: 0, account: 0, card: 0, bill: 0 },
-    discount: 0,
-    creator: currentUser?.name || '시스템'
+  const getInitialPaymentList = (inv) => {
+    if (Array.isArray(inv?.paymentList) && inv.paymentList.length > 0) {
+      return inv.paymentList;
+    }
+    const hasPayment = (Number(inv?.receivedAmount) > 0) || (Number(inv?.discount) > 0) ||
+      (inv?.payments && (inv.payments.cash > 0 || inv.payments.account > 0 || inv.payments.card > 0 || inv.payments.bill > 0));
+    if (hasPayment) {
+      return [{
+        id: inv?.id ? Number(inv.id) : Date.now(),
+        date: inv?.date || format(new Date(), 'yyyy-MM-dd'),
+        cash: Number(inv?.payments?.cash) || 0,
+        account: Number(inv?.payments?.account) || 0,
+        card: Number(inv?.payments?.card) || 0,
+        bill: Number(inv?.payments?.bill) || 0,
+        totalAmount: Number(inv?.receivedAmount) || 0,
+        discount: Number(inv?.discount) || 0,
+        memo: inv?.memo || (inv?.isDepositOnly ? '입금전표' : '수금'),
+        createdAt: inv?.createdAt || new Date().toISOString(),
+        creator: inv?.creator || '시스템'
+      }];
+    }
+    return [];
+  };
+
+  const [invoiceData, setInvoiceData] = useState(() => {
+    if (editingInvoice) {
+      const initialPayments = editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 };
+      const initialPaymentList = getInitialPaymentList(editingInvoice);
+      return {
+        ...editingInvoice,
+        items: editingInvoice.items || [],
+        payments: initialPayments,
+        paymentList: initialPaymentList
+      };
+    }
+    return {
+      id: Date.now(),
+      date: (() => {
+        const d = selectedDate || new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })(),
+      partner: '',
+      warehouse: userWH,
+      manager: currentUser?.name || staffList[0]?.name || '',
+      items: [],
+      receivedAmount: 0,
+      payments: { cash: 0, account: 0, card: 0, bill: 0 },
+      paymentList: [],
+      discount: 0,
+      creator: currentUser?.name || '시스템'
+    };
   });
 
   const currentPartner = partners.find(p => p.name === invoiceData.partner);
   const hideAmount = currentPartner?.hideAmountInInvoice || false;
-
-  // Auto-save logic removed as per user request
 
   const isDepositOnly = Boolean(
     invoiceData?.isDepositOnly ||
@@ -115,28 +151,49 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   );
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [editingPaymentSlipId, setEditingPaymentSlipId] = useState(null);
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
-  const openPaymentModal = () => {
+  const openPaymentModal = (slipToEdit = null) => {
     if (!invoiceData.partner) {
       alert('거래처를 먼저 선택해주세요.');
       return;
     }
+    if (slipToEdit) {
+      setEditingPaymentSlipId(slipToEdit.id);
+      setTempPaymentState({
+        date: slipToEdit.date || invoiceData.date,
+        payments: {
+          cash: slipToEdit.cash || 0,
+          account: slipToEdit.account || 0,
+          card: slipToEdit.card || 0,
+          bill: slipToEdit.bill || 0
+        },
+        discount: slipToEdit.discount || 0,
+        memo: slipToEdit.memo || ''
+      });
+      setIsPaymentModalOpen(true);
+      return;
+    }
+
+    setEditingPaymentSlipId(null);
     const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
     const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
-    const others = (invoiceData.payments?.account || 0) + (invoiceData.payments?.card || 0) + (invoiceData.payments?.bill || 0);
-    const initialCash = isDepositOnly
-      ? (invoiceData.payments?.cash || 0)
-      : Math.max(0, currentTotal - (invoiceData.discount || 0) - others);
+    const currentPaid = Number(invoiceData.receivedAmount) || 0;
+    const currentDiscount = Number(invoiceData.discount) || 0;
+    const unpaid = Math.max(0, currentTotal - currentPaid - currentDiscount);
+    const initialCash = isDepositOnly ? 0 : unpaid;
 
     setTempPaymentState({
+      date: invoiceData.date || format(new Date(), 'yyyy-MM-dd'),
       payments: {
         cash: initialCash,
-        account: invoiceData.payments?.account || 0,
-        card: invoiceData.payments?.card || 0,
-        bill: invoiceData.payments?.bill || 0
+        account: 0,
+        card: 0,
+        bill: 0
       },
-      discount: invoiceData.discount || 0
+      discount: 0,
+      memo: isDepositOnly ? '입금전표' : '수금'
     });
     setIsPaymentModalOpen(true);
   };
@@ -148,10 +205,13 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         editingInvoice.isDepositOnly || 
         (!editingInvoice.items?.length && (editingInvoice.receivedAmount > 0 || editingInvoice.memo === '입금전표' || editingInvoice.type === 'deposit'))
       );
+      const initialPayments = editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 };
+      const initialPaymentList = getInitialPaymentList(editingInvoice);
       let nextData = { 
         ...editingInvoice, 
         items: editingInvoice.items || [],
-        payments: editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 },
+        payments: initialPayments,
+        paymentList: initialPaymentList,
         isDepositOnly: isDep,
         memo: isDep ? (editingInvoice.memo || '입금전표') : (editingInvoice.memo || '')
       };
@@ -167,14 +227,17 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       setInvoiceData(nextData);
 
       if (isDep && editingInvoice.partner) {
+        setEditingPaymentSlipId(initialPaymentList[0]?.id || null);
         setTempPaymentState({
+          date: editingInvoice.date || format(new Date(), 'yyyy-MM-dd'),
           payments: {
             cash: editingInvoice.payments?.cash || 0,
             account: editingInvoice.payments?.account || 0,
             card: editingInvoice.payments?.card || 0,
             bill: editingInvoice.payments?.bill || 0
           },
-          discount: editingInvoice.discount || 0
+          discount: editingInvoice.discount || 0,
+          memo: editingInvoice.memo || '입금전표'
         });
         setIsPaymentModalOpen(true);
       }
@@ -389,6 +452,141 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     if (saved && saved.id) {
       setInvoiceData(saved);
     }
+  };
+
+  const handleSavePaymentModal = async () => {
+    if (!invoiceData.partner) {
+      alert('거래처를 먼저 선택해주세요.');
+      return;
+    }
+    const paymentsObj = tempPaymentState?.payments || { cash: 0, account: 0, card: 0, bill: 0 };
+    const slipCash = Number(paymentsObj.cash) || 0;
+    const slipAccount = Number(paymentsObj.account) || 0;
+    const slipCard = Number(paymentsObj.card) || 0;
+    const slipBill = Number(paymentsObj.bill) || 0;
+    const slipTotal = slipCash + slipAccount + slipCard + slipBill;
+    const slipDiscount = Number(tempPaymentState?.discount) || 0;
+    const slipDate = tempPaymentState?.date || invoiceData.date;
+    const slipMemo = tempPaymentState?.memo || (isDepositOnly ? '입금전표' : '수금');
+
+    if (slipTotal <= 0 && slipDiscount <= 0) {
+      alert('수금액 또는 할인 금액을 1원 이상 입력해주세요.');
+      return;
+    }
+
+    const currentList = Array.isArray(invoiceData.paymentList) ? [...invoiceData.paymentList] : [];
+    let nextList = [];
+
+    if (editingPaymentSlipId) {
+      nextList = currentList.map(item => {
+        if (item.id === editingPaymentSlipId) {
+          return {
+            ...item,
+            date: slipDate,
+            cash: slipCash,
+            account: slipAccount,
+            card: slipCard,
+            bill: slipBill,
+            totalAmount: slipTotal,
+            discount: slipDiscount,
+            memo: slipMemo,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return item;
+      });
+      if (!nextList.some(item => item.id === editingPaymentSlipId)) {
+        nextList.push({
+          id: editingPaymentSlipId,
+          date: slipDate,
+          cash: slipCash,
+          account: slipAccount,
+          card: slipCard,
+          bill: slipBill,
+          totalAmount: slipTotal,
+          discount: slipDiscount,
+          memo: slipMemo,
+          createdAt: new Date().toISOString(),
+          creator: currentUser?.name || '시스템'
+        });
+      }
+    } else {
+      const newSlip = {
+        id: Date.now(),
+        date: slipDate,
+        cash: slipCash,
+        account: slipAccount,
+        card: slipCard,
+        bill: slipBill,
+        totalAmount: slipTotal,
+        discount: slipDiscount,
+        memo: slipMemo,
+        createdAt: new Date().toISOString(),
+        creator: currentUser?.name || '시스템'
+      };
+      nextList = [...currentList, newSlip];
+    }
+
+    const aggregatedPayments = {
+      cash: nextList.reduce((sum, p) => sum + (p.cash || 0), 0),
+      account: nextList.reduce((sum, p) => sum + (p.account || 0), 0),
+      card: nextList.reduce((sum, p) => sum + (p.card || 0), 0),
+      bill: nextList.reduce((sum, p) => sum + (p.bill || 0), 0),
+    };
+    const aggregatedReceived = nextList.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    const aggregatedDiscount = nextList.reduce((sum, p) => sum + (p.discount || 0), 0);
+    const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+    const isDep = currentItems.length === 0 || invoiceData.isDepositOnly;
+
+    const updatedInvoice = {
+      ...invoiceData,
+      items: currentItems,
+      paymentList: nextList,
+      payments: aggregatedPayments,
+      receivedAmount: aggregatedReceived,
+      discount: aggregatedDiscount,
+      totalAmount: currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0),
+      isDepositOnly: isDep,
+      memo: isDep ? (invoiceData.memo || '입금전표') : (invoiceData.memo || '')
+    };
+
+    setInvoiceData(updatedInvoice);
+    setIsPaymentModalOpen(false);
+    setEditingPaymentSlipId(null);
+
+    await handleAutoSave(updatedInvoice);
+
+    if (isDep) {
+      alert(`[입금전표] ${invoiceData.partner} 거래처에 입금(${slipTotal.toLocaleString()}원)이 정상적으로 발행 및 저장되었습니다.`);
+    } else {
+      alert(`[수금전표] ${invoiceData.partner} 거래처에 수금(${slipTotal.toLocaleString()}원)이 정상적으로 등록되었습니다.`);
+    }
+  };
+
+  const handleDeletePaymentSlip = async (slipId) => {
+    if (!window.confirm('해당 수금전표 내역을 삭제하시겠습니까?')) return;
+    const currentList = Array.isArray(invoiceData.paymentList) ? invoiceData.paymentList : [];
+    const nextList = currentList.filter(p => p.id !== slipId);
+
+    const aggregatedPayments = {
+      cash: nextList.reduce((sum, p) => sum + (p.cash || 0), 0),
+      account: nextList.reduce((sum, p) => sum + (p.account || 0), 0),
+      card: nextList.reduce((sum, p) => sum + (p.card || 0), 0),
+      bill: nextList.reduce((sum, p) => sum + (p.bill || 0), 0),
+    };
+    const aggregatedReceived = nextList.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    const aggregatedDiscount = nextList.reduce((sum, p) => sum + (p.discount || 0), 0);
+
+    const updatedInvoice = {
+      ...invoiceData,
+      paymentList: nextList,
+      payments: aggregatedPayments,
+      receivedAmount: aggregatedReceived,
+      discount: aggregatedDiscount,
+    };
+
+    setInvoiceData(updatedInvoice);
+    await handleAutoSave(updatedInvoice);
   };
 
   const handleAddItem = () => {
@@ -1151,7 +1349,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             </div>
 
             {/* 결제 요약 (아래쪽으로 이사하여 수평 및 수직 정돈) */}
-            <div className="invoice-summary-card" style={{ width: '100%', maxWidth: 'none', margin: '8px 0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="invoice-summary-card" style={{ width: '100%', maxWidth: 'none', margin: '8px 0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 24px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 800, color: themeColor }}>
                   <BookOpen size={16} /> 결제 요약
@@ -1171,6 +1369,121 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     {invoiceData.payments.account > 0 && <span>계좌: {invoiceData.payments.account.toLocaleString()}원</span>}
                     {invoiceData.payments.card > 0 && <span>카드: {invoiceData.payments.card.toLocaleString()}원</span>}
                     {invoiceData.payments.bill > 0 && <span>어음: {invoiceData.payments.bill.toLocaleString()}원</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* 수금전표 내역 목록 */}
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Wallet size={14} color="#10b981" /> 수금전표 내역 ({Array.isArray(invoiceData.paymentList) ? invoiceData.paymentList.length : 0}건)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openPaymentModal(null)}
+                    style={{
+                      backgroundColor: '#10b981',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '5px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 1px 3px rgba(16, 185, 129, 0.2)'
+                    }}
+                  >
+                    <Plus size={13} /> 추가 수금
+                  </button>
+                </div>
+
+                {Array.isArray(invoiceData.paymentList) && invoiceData.paymentList.length > 0 ? (
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', overflowX: 'auto', backgroundColor: '#ffffff' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', borderBottom: '1px solid #cbd5e1' }}>
+                          <th style={{ padding: '5px 6px', textAlign: 'center', width: '30px' }}>No</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'center', width: '80px' }}>수금일자</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'left' }}>결제수단별 금액</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'right', width: '90px' }}>수금액</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'right', width: '70px' }}>할인</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'left', width: '90px' }}>비고</th>
+                          <th style={{ padding: '5px 6px', textAlign: 'center', width: '80px' }}>관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoiceData.paymentList.map((slip, pIdx) => (
+                          <tr key={slip.id || pIdx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: pIdx % 2 === 1 ? '#fafafa' : '#fff' }}>
+                            <td style={{ padding: '5px 6px', textAlign: 'center', color: '#64748b' }}>{pIdx + 1}</td>
+                            <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 600, color: '#334155' }}>{slip.date || invoiceData.date}</td>
+                            <td style={{ padding: '5px 6px' }}>
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                {(slip.cash || 0) > 0 && (
+                                  <span style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 4px', borderRadius: '3px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                    현금 {(slip.cash || 0).toLocaleString()}원
+                                  </span>
+                                )}
+                                {(slip.account || 0) > 0 && (
+                                  <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 4px', borderRadius: '3px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                    계좌 {(slip.account || 0).toLocaleString()}원
+                                  </span>
+                                )}
+                                {(slip.card || 0) > 0 && (
+                                  <span style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 4px', borderRadius: '3px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                    카드 {(slip.card || 0).toLocaleString()}원
+                                  </span>
+                                )}
+                                {(slip.bill || 0) > 0 && (
+                                  <span style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '1px 4px', borderRadius: '3px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                    어음 {(slip.bill || 0).toLocaleString()}원
+                                  </span>
+                                )}
+                                {!slip.cash && !slip.account && !slip.card && !slip.bill && (
+                                  <span style={{ color: '#94a3b8' }}>-</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 800, color: '#059669' }}>
+                              {(slip.totalAmount || 0).toLocaleString()}원
+                            </td>
+                            <td style={{ padding: '5px 6px', textAlign: 'right', color: (slip.discount || 0) > 0 ? '#ef4444' : '#94a3b8', fontWeight: (slip.discount || 0) > 0 ? 700 : 400 }}>
+                              {(slip.discount || 0) > 0 ? `-${(slip.discount || 0).toLocaleString()}원` : '-'}
+                            </td>
+                            <td style={{ padding: '5px 6px', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={slip.memo || ''}>
+                              {slip.memo || '-'}
+                            </td>
+                            <td style={{ padding: '5px 6px', textAlign: 'center' }}>
+                              <div style={{ display: 'inline-flex', gap: '3px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openPaymentModal(slip)}
+                                  style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '2px 5px', borderRadius: '3px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700, color: '#2563eb' }}
+                                  title="수금전표 수정"
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePaymentSlip(slip.id)}
+                                  style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '2px 5px', borderRadius: '3px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700, color: '#dc2626' }}
+                                  title="수금전표 삭제"
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '6px 0' }}>
+                    등록된 수금 내역이 없습니다. (상단 '추가 수금' 또는 하단 '수금' 버튼을 클릭하여 수금전표를 등록하세요.)
                   </div>
                 )}
               </div>
@@ -1213,98 +1526,105 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             alignItems: 'center', justifyContent: 'center'
           }}>
             <div style={{
-              background: 'white', borderRadius: '16px', width: '400px',
-              padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+              background: 'white', borderRadius: '16px', width: '420px', maxWidth: '92vw',
+              padding: '20px 22px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', fontWeight: 800 }}>
                   <Wallet color="#10b981" />
-                  {invoiceData.items.length === 0 ? '💰 입금전표 발행 (수금/입금 입력)' : '매출 입금/수금 입력'}
+                  {editingPaymentSlipId 
+                    ? '✏️ 수금전표 수정' 
+                    : (invoiceData.items.length === 0 ? '💰 입금전표 발행 (수금/입금 입력)' : '💰 수금전표 발행 (수금 입력)')}
                 </h3>
-                <button onClick={() => setIsPaymentModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                <button onClick={() => { setIsPaymentModalOpen(false); setEditingPaymentSlipId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                   <X size={20} />
                 </button>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '3px' }}>
                   {invoiceData.items.length === 0 ? '이전 미수금 잔액' : '전표 합계금액'}
                 </div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: invoiceData.items.length === 0 ? '#ef4444' : '#1e293b' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: invoiceData.items.length === 0 ? '#ef4444' : '#1e293b' }}>
                   {invoiceData.items.length === 0 ? `${previousBalance.toLocaleString()}원` : `${totalAmount.toLocaleString()}원`}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ color: '#ef4444', fontWeight: 700 }}>현장 할인 (D.C)</label>
-                  <input
-                    type="text"
-                    value={tempPaymentState.discount ? tempPaymentState.discount.toLocaleString() : ''}
-                    onChange={(e) => handlePaymentChange('discount', e.target.value, tempPaymentState, setTempPaymentState)}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                    style={{ fontSize: '1rem', fontWeight: 700, color: '#ef4444', backgroundColor: '#fff5f5', textAlign: 'right' }}
-                  />
-                </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', margin: '4px 0' }}></div>
-                {[
-                  { id: 'card', label: '카드 입금', color: '#ef4444' },
-                  { id: 'account', label: '계좌 이체', color: themeColor },
-                  { id: 'bill', label: '어음 입금', color: '#f59e0b' },
-                  { id: 'cash', label: '현금 입금 (차액 자동)', color: '#10b981' },
-                ].map(item => (
-                  <div key={item.id} className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ color: item.color }}>{item.label}</label>
-                    <input
-                      type="text"
-                      value={tempPaymentState?.payments?.[item.id] ? tempPaymentState.payments[item.id].toLocaleString() : ''}
-                      onChange={(e) => handlePaymentChange(item.id, e.target.value, tempPaymentState, setTempPaymentState)}
-                      placeholder="0"
-                      onFocus={(e) => e.target.select()}
-                      style={{ fontSize: '1rem', fontWeight: 600, textAlign: 'right' }}
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 700, display: 'block', marginBottom: '4px' }}>수금 일자</label>
+                    <input 
+                      type="date"
+                      value={tempPaymentState.date || invoiceData.date}
+                      onChange={(e) => setTempPaymentState({ ...tempPaymentState, date: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem' }}
                     />
                   </div>
-                ))}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700, display: 'block', marginBottom: '4px' }}>현장 할인 (D.C)</label>
+                    <input
+                      type="text"
+                      value={tempPaymentState.discount ? tempPaymentState.discount.toLocaleString() : ''}
+                      onChange={(e) => handlePaymentChange('discount', e.target.value, tempPaymentState, setTempPaymentState)}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ef4444', backgroundColor: '#fff5f5', textAlign: 'right' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }}></div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {[
+                    { id: 'cash', label: '현금 수금', color: '#047857' },
+                    { id: 'account', label: '계좌 이체', color: themeColor },
+                    { id: 'card', label: '카드 결제', color: '#ef4444' },
+                    { id: 'bill', label: '어음 수금', color: '#f59e0b' },
+                  ].map(item => (
+                    <div key={item.id} className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.78rem', color: item.color, fontWeight: 700, display: 'block', marginBottom: '4px' }}>{item.label}</label>
+                      <input
+                        type="text"
+                        value={tempPaymentState?.payments?.[item.id] ? tempPaymentState.payments[item.id].toLocaleString() : ''}
+                        onChange={(e) => handlePaymentChange(item.id, e.target.value, tempPaymentState, setTempPaymentState)}
+                        placeholder="0"
+                        onFocus={(e) => e.target.select()}
+                        style={{ fontSize: '0.95rem', fontWeight: 600, textAlign: 'right' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>수금 비고 / 메모</label>
+                  <input 
+                    type="text"
+                    value={tempPaymentState.memo || ''}
+                    placeholder="예: 1차 수금, 무통장입금 등"
+                    onChange={(e) => setTempPaymentState({ ...tempPaymentState, memo: e.target.value })}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 600, fontSize: '0.85rem' }}
+                  />
+                </div>
               </div>
 
-              <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
+              <div style={{ marginTop: '20px', display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button"
+                  onClick={() => { setIsPaymentModalOpen(false); setEditingPaymentSlipId(null); }}
+                  style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#64748b', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  취소
+                </button>
                 <button 
                   className="btn-primary" 
-                  style={{ flex: 1, backgroundColor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  onClick={async () => {
-                    if (!invoiceData.partner) {
-                      alert('거래처를 먼저 선택해주세요.');
-                      return;
-                    }
-                    const paymentsObj = tempPaymentState?.payments || { cash: 0, account: 0, card: 0, bill: 0 };
-                    const totalReceived = Object.values(paymentsObj).reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
-                    const discountAmount = Number(tempPaymentState?.discount) || 0;
-                    const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
-                    if (items.length === 0 && totalReceived <= 0 && discountAmount <= 0) {
-                      alert('입금액 또는 할인 금액을 1원 이상 입력해주세요.');
-                      return;
-                    }
-                    const isDep = items.length === 0 || invoiceData.isDepositOnly;
-                    const updatedInvoice = { 
-                      ...invoiceData, 
-                      items: items,
-                      payments: { ...paymentsObj }, 
-                      discount: discountAmount,
-                      receivedAmount: totalReceived,
-                      totalAmount: items.reduce((sum, item) => sum + (Number(item?.total) || 0), 0),
-                      isDepositOnly: isDep,
-                      memo: isDep ? (invoiceData.memo || '입금전표') : (invoiceData.memo || '')
-                    };
-                    setInvoiceData(updatedInvoice);
-                    setIsPaymentModalOpen(false);
-                    await handleAutoSave(updatedInvoice);
-                    if (isDep) {
-                      alert(`[입금전표] ${invoiceData.partner} 거래처에 입금(${totalReceived.toLocaleString()}원)이 정상적으로 발행 및 저장되었습니다.`);
-                    }
-                  }}
+                  style={{ flex: 2, backgroundColor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 700 }}
+                  onClick={handleSavePaymentModal}
                 >
-                  {(!invoiceData.items || invoiceData.items.length === 0) ? '💰 입금전표 발행 / 저장' : '수금 정보 저장'}
+                  {editingPaymentSlipId 
+                    ? '수금전표 수정 완료' 
+                    : (invoiceData.items.length === 0 ? '💰 입금전표 발행 / 저장' : '수금전표 발행 / 저장')}
                 </button>
               </div>
             </div>
@@ -1384,9 +1704,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               gap: '5px',
               margin: 0
             }} 
-            onClick={openPaymentModal}
+            onClick={() => openPaymentModal(null)}
           >
-            <Wallet size={13} /> 입금
+            <Wallet size={13} /> 수금
           </button>
           
           <button 
