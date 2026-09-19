@@ -3538,54 +3538,54 @@ function App() {
                 }}>
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     padding: '6px 10px',
                     backgroundColor: '#f8fafc',
                     borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
+                    gap: '2px'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>현금</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cashTotal.toLocaleString()}원</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>현금입금</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{cashTotal.toLocaleString()}원</span>
                   </div>
 
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     padding: '6px 10px',
                     backgroundColor: '#f8fafc',
                     borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
+                    gap: '2px'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>계좌</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{accountTotal.toLocaleString()}원</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>계좌입금</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{accountTotal.toLocaleString()}원</span>
                   </div>
 
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     padding: '6px 10px',
                     backgroundColor: '#f8fafc',
                     borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
+                    gap: '2px'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>카드</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{cardTotal.toLocaleString()}원</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>카드입금</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{cardTotal.toLocaleString()}원</span>
                   </div>
 
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     padding: '6px 10px',
                     backgroundColor: '#f8fafc',
                     borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
+                    gap: '2px'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>어음</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{billTotal.toLocaleString()}원</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>어음입금</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{billTotal.toLocaleString()}원</span>
                   </div>
                 </div>
               </div>
