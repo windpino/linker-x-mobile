@@ -105,7 +105,9 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
   const filteredWarehouses = warehouses.filter(w => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
+    const assignedStaff = staffList.filter(s => s.warehouse === w.name).map(s => s.name.toLowerCase()).join(' ');
     return (w.name && w.name.toLowerCase().includes(term)) ||
+           assignedStaff.includes(term) ||
            (w.manager && w.manager.toLowerCase().includes(term)) ||
            (w.address && w.address.toLowerCase().includes(term)) ||
            (w.memo && w.memo.toLowerCase().includes(term));
@@ -164,25 +166,6 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
         }, { merge: true });
       }
 
-      // 3. Sync Staff's default warehouse if manager is set
-      if (whData.manager) {
-        const staff = staffList.find(s => s.name === whData.manager);
-        if (staff) {
-          const staffDocId = staff._docId || (staff.userId ? `${companyId}_${staff.userId}` : String(staff.id));
-          const staffDocRef = doc(db, 'companies', companyId, 'staffList', staffDocId);
-          batch.set(staffDocRef, { warehouse: whData.name, updatedAt: new Date().toISOString() }, { merge: true });
-        }
-
-        // Also, if this staff member was previously the manager of another warehouse, clear it.
-        warehouses.forEach(w => {
-          const otherDocId = w._docId || String(w.id);
-          if (otherDocId !== docId && w.manager === whData.manager) {
-            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
-          }
-        });
-      }
-
       await batch.commit();
 
       // 상태 및 번들 동기화 반영
@@ -207,7 +190,7 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
           subCategory: '창고',
           type: isNew ? '등록' : '수정',
           title: isNew ? `창고 등록 (${finalData.name})` : `창고 수정 (${finalData.name})`,
-          detail: `창고명: ${finalData.name} | 담당자: ${finalData.manager || '-'} | 주소: ${finalData.address || '-'}`,
+          detail: `창고명: ${finalData.name} | 주소: ${finalData.address || '-'}`,
           user: currentUser?.name || '시스템',
           targetId: String(docId)
         });
@@ -381,9 +364,11 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem' }}>
-                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>담당:</span>
-                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{wh.manager || '미지정'}</span>
+                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>기본지정:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {staffList.filter(s => s.warehouse === wh.name).map(s => s.name).join(', ') || wh.manager || '미지정'}
+                    </span>
                   </div>
                   <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <span style={{ color: '#94a3b8', fontWeight: 600 }}>주소:</span>

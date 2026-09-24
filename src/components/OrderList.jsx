@@ -27,15 +27,18 @@ const OrderList = ({
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const canSelectOtherStaff = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
   const [selectedStaff, setSelectedStaff] = useState(() => {
-    if (initialSelectedStaff) return initialSelectedStaff;
-    return canSelectOtherStaff ? 'all' : (currentUser?.name || 'all');
+    if (initialSelectedStaff && initialSelectedStaff !== 'all') return initialSelectedStaff;
+    if (currentUser?.name) return currentUser.name;
+    return initialSelectedStaff || 'all';
   });
 
   React.useEffect(() => {
-    if (initialSelectedStaff) {
+    if (initialSelectedStaff && initialSelectedStaff !== 'all') {
       setSelectedStaff(initialSelectedStaff);
+    } else if (currentUser?.name) {
+      setSelectedStaff(currentUser.name);
     }
-  }, [initialSelectedStaff]);
+  }, [initialSelectedStaff, currentUser?.name]);
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
@@ -61,7 +64,7 @@ const OrderList = ({
   // Filter orders by date and selected staff
   const staffOrders = salesOrders.filter(o => {
     const isToday = o.date === dateStr;
-    const matchesStaff = selectedStaff === 'all' || o.manager === selectedStaff;
+    const matchesStaff = selectedStaff === 'all' || o.manager === selectedStaff || (!o.manager && o.creator === selectedStaff);
     return isToday && matchesStaff;
   });
 
@@ -311,6 +314,9 @@ const OrderList = ({
                 }}
               >
                 {canSelectOtherStaff && <option value="all" style={{ backgroundColor: '#1e293b', color: '#fff' }}>전체 직원</option>}
+                {currentUser?.name && !staffList.some(s => s.name === currentUser.name) && (
+                  <option value={currentUser.name} style={{ backgroundColor: '#1e293b', color: '#fff' }}>{currentUser.name}</option>
+                )}
                 {staffList.filter(s => canSelectOtherStaff || s.name === currentUser?.name).map(s => (
                   <option key={s.id} value={s.name} style={{ backgroundColor: '#1e293b', color: '#fff' }}>{s.name}</option>
                 ))}
@@ -349,6 +355,9 @@ const OrderList = ({
                 }}
               >
                 {canSelectOtherStaff && <option value="all">전체 직원</option>}
+                {currentUser?.name && !staffList.some(s => s.name === currentUser.name) && (
+                  <option value={currentUser.name}>{currentUser.name}</option>
+                )}
                 {staffList.filter(s => canSelectOtherStaff || s.name === currentUser?.name).map(s => (
                   <option key={s.id} value={s.name}>{s.name}</option>
                 ))}

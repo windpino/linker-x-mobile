@@ -63,6 +63,7 @@ import PartnerShoppingMall from './components/PartnerShoppingMall';
 import WindowModal from './components/WindowModal';
 import PartnerSpecialPriceManager from './components/PartnerSpecialPriceManager'; // Import Special Price Manager
 import InventoryMovementManager from './components/InventoryMovementManager';
+import { getStaffWarehouse } from './utils/warehouseUtils';
 import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
@@ -369,12 +370,14 @@ function App() {
       const dateStr = (slipOrDate && slipOrDate.date)
         ? slipOrDate.date
         : (slipOrDate instanceof Date ? format(slipOrDate, 'yyyy-MM-dd') : format(selectedDate || new Date(), 'yyyy-MM-dd'));
+      const initialManager = currentUser?.name || staffList[0]?.name || '';
+      const initialWarehouse = getStaffWarehouse(initialManager, staffList, warehouses, currentUser);
       invoice = {
         id: Date.now(),
         date: dateStr,
         partner: '',
-        warehouse: warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '창고',
-        manager: currentUser?.name || staffList[0]?.name || '',
+        warehouse: initialWarehouse,
+        manager: initialManager,
         items: [],
         receivedAmount: 0,
         payments: { cash: 0, account: 0, card: 0, bill: 0 },
@@ -400,7 +403,12 @@ function App() {
   const [isSalesOrderOpen, setIsSalesOrderOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [isOrderListOpen, setIsOrderListOpen] = useState(false);
-  const [orderListSelectedStaff, setOrderListSelectedStaff] = useState('all');
+  const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => currentUser?.name || 'all');
+
+  const openOrderList = (staffName = null) => {
+    setOrderListSelectedStaff(staffName || currentUser?.name || 'all');
+    setIsOrderListOpen(true);
+  };
   const [isCashReportOpen, setIsCashReportOpen] = useState(false);
   const [cashReportTab, setCashReportTab] = useState('결산');
 
@@ -1054,6 +1062,7 @@ function App() {
               if (found) {
                 const isDifferent = found.name !== prevUser.name ||
                                     found.role !== prevUser.role ||
+                                    found.warehouse !== prevUser.warehouse ||
                                     found.allowAllEditDelete !== prevUser.allowAllEditDelete ||
                                     JSON.stringify(found.permissions) !== JSON.stringify(prevUser.permissions);
                 if (isDifferent) {
@@ -4317,7 +4326,7 @@ function App() {
           onOpenSalesInvoiceList={openSalesInvoiceList}
           onOpenSalesLedger={openSalesLedger}
           onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
-          onOpenOrderList={() => setIsOrderListOpen(true)}
+          onOpenOrderList={openOrderList}
           onOpenCashReport={openCashReport}
           onOpenSalesReport={() => setIsSalesReportOpen(true)}
           onOpenOrderReport={() => setIsOrderReportOpen(true)}
@@ -4381,7 +4390,7 @@ function App() {
               sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
               sales_ledger:               () => setIsSalesLedgerOpen(true),
               sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
-              order_list:                 () => setIsOrderListOpen(true),
+              order_list:                 () => openOrderList(),
               account:                    () => setIsAccountManagerOpen(true),
               cash_report_1:              () => openCashReport('결산'),
               cash_report_2:              () => openCashReport('일자별'),
@@ -4550,7 +4559,7 @@ function App() {
               }}
               onOpenOrderListForDate={(date) => {
                 setSelectedDate(date);
-                setIsOrderListOpen(true);
+                openOrderList();
               }}
               onOpenPurchaseLedgerForDate={(date) => {
                 setSelectedDate(date);
@@ -4579,7 +4588,7 @@ function App() {
         />
       )}
       {isWarehouseManagerOpen && <WarehouseManagement onClose={() => setIsWarehouseManagerOpen(false)} warehouses={warehouses} setWarehouses={setWarehouses} currentUser={currentUser} staffList={staffList} logOperation={logOperation} />}
-      {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} logOperation={logOperation} />}
+      {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} setCurrentUser={setCurrentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} logOperation={logOperation} />}
       {isInventoryTransferOpen && <InventoryTransfer 
         onClose={() => { setIsInventoryTransferOpen(false); setInventoryTransferInitialDate(null); }} 
         currentUser={currentUser} 
@@ -4865,7 +4874,7 @@ function App() {
           } catch (err) { console.error(err); }
         }} 
         onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); openSalesInvoice(invData); }}
-        onOpenOrderList={() => { setIsOrderListOpen(true); }}
+        onOpenOrderList={openOrderList}
         currentUser={currentUser} 
         staffList={staffList} 
         warehouses={warehouses} 
@@ -4915,13 +4924,13 @@ function App() {
             } catch (err) { console.error(err); }
           }}
           onTransferToInvoice={(invData) => { setOrderingPartner(null); openSalesInvoice(invData); }}
-          onOpenOrderList={() => { setOrderingPartner(null); setIsOrderListOpen(true); }}
+          onOpenOrderList={() => { setOrderingPartner(null); openOrderList(); }}
           onDeleteOrder={handleDeleteSalesOrder}
         />
       )}
 
       {isOrderListOpen && <OrderList 
-        onClose={() => { setIsOrderListOpen(false); setOrderListSelectedStaff('all'); }} 
+        onClose={() => { setIsOrderListOpen(false); setOrderListSelectedStaff(currentUser?.name || 'all'); }} 
         salesOrders={salesOrders} 
         salesInvoices={salesInvoices}
         products={products}

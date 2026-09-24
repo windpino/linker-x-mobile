@@ -168,10 +168,10 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
             </div>
           </div>
           <div className="staff-input-group" style={{ flex: 1 }}>
-            <label>아이디 <span className="required">*</span></label>
+            <label>아이디 {(!isEditing || isCloning) && <span className="required">*</span>}</label>
             <div className="staff-input-wrapper">
               <User size={16} className="staff-input-icon" />
-              <input type="text" name="userId" value={formData.userId} onChange={handleChange} placeholder="로그인 아이디" className="staff-input" required autoComplete="off" />
+              <input type="text" name="userId" value={formData.userId} onChange={handleChange} placeholder="로그인 아이디" className="staff-input" required={!isEditing && !isCloning} autoComplete="off" />
             </div>
           </div>
           <div className="staff-input-group">
@@ -286,19 +286,31 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         </div>
 
         <div className="staff-input-group">
-          <label>기본 창고 <span className="required">*</span></label>
+          <label>기본 창고 / 차량 창고 <span className="required">*</span></label>
           <div className="staff-input-wrapper select-wrapper">
             <Building2 size={16} className="staff-input-icon" />
-            <select name="warehouse" value={formData.warehouse} onChange={handleChange} className="staff-input staff-select">
+            <select name="warehouse" value={formData.warehouse || ''} onChange={handleChange} className="staff-input staff-select">
+              <option value="">기본 창고 선택 안 함</option>
               {warehouses.length > 0 ? (
-                warehouses.map(wh => (
-                  <option key={wh.id} value={wh.name}>{wh.name}</option>
-                ))
+                warehouses.map(wh => {
+                  const isVeh = wh.isVehicle || wh.name?.includes('차량');
+                  return (
+                    <option key={wh.id} value={wh.name}>
+                      {wh.name}{isVeh ? ' [차량]' : ''}{wh.isMain ? ' (메인)' : ''}
+                    </option>
+                  );
+                })
               ) : (
                 <option value="본사">본사</option>
               )}
+              {formData.warehouse && !warehouses.some(w => w.name === formData.warehouse) && (
+                <option value={formData.warehouse}>{formData.warehouse}</option>
+              )}
             </select>
           </div>
+          <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+            * 해당 직원이 수주 및 매출전표 발행 시 기본 출고 창고(차량 또는 창고)로 자동 지정됩니다.
+          </span>
         </div>
 
         {/* Additional Permissions */}

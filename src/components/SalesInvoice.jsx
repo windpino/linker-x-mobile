@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
+import { getStaffWarehouse } from '../utils/warehouseUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 import { db } from '../firebase';
@@ -16,17 +17,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                  warehouses[0]?.name || 
                  '메인창고';
   
-  // Resolve user's assigned warehouse safely, fallback to mainWH
-  const userWH = (() => {
-    const rawWH = (currentUser?.warehouse && currentUser.warehouse !== '-')
-      ? currentUser.warehouse
-      : (staffList.find(s => s.name === currentUser?.name)?.warehouse);
-    
-    if (rawWH && warehouses.some(w => w.name === rawWH)) {
-      return rawWH;
-    }
-    return mainWH;
-  })();
+  // Resolve user's assigned warehouse (vehicle or warehouse) safely
+  const userWH = getStaffWarehouse(currentUser?.name, staffList, warehouses, currentUser);
 
   const staffWH = currentUser?.warehouse || (staffList.find(s => s.name === currentUser?.name)?.warehouse) || '통영';
 
@@ -217,10 +209,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       };
       
       if (!isAlreadySaved) {
+        const targetMgr = currentUser?.name || editingInvoice.manager || '';
         nextData = {
           ...nextData,
-          manager: currentUser?.name || editingInvoice.manager || '',
-          warehouse: userWH || editingInvoice.warehouse || '',
+          manager: targetMgr,
+          warehouse: editingInvoice.warehouse || getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
           creator: currentUser?.name || editingInvoice.creator || '시스템'
         };
       }
@@ -932,9 +925,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     boxSizing: 'border-box'
                   }}
                 >
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.name}>{w.name}</option>
-                  ))}
+                  {warehouses.map(w => {
+                    const isVeh = w.isVehicle || w.name?.includes('차량');
+                    return (
+                      <option key={w.id} value={w.name}>
+                        {w.name}{isVeh ? ' [차량]' : ''}
+                      </option>
+                    );
+                  })}
                   {invoiceData.warehouse && !warehouses.some(w => w.name === invoiceData.warehouse) && (
                     <option value={invoiceData.warehouse}>{invoiceData.warehouse}</option>
                   )}
@@ -947,9 +945,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   value={invoiceData.manager} 
                   onChange={(e) => {
                     const newManager = e.target.value;
+                    const nextWH = getStaffWarehouse(newManager, staffList, warehouses, currentUser);
                     const updatedInvoice = {
                       ...invoiceData,
                       manager: newManager,
+                      warehouse: nextWH || invoiceData.warehouse,
                       creator: currentUser?.name || invoiceData.creator || '시스템'
                     };
                     setInvoiceData(updatedInvoice);
@@ -1035,14 +1035,15 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                         setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
                         handleAutoSave(latestInvoice);
                       } else {
+                        const targetMgr = currentUser?.name || prev.manager;
                         setInvoiceData(prev => ({ 
                           ...prev, 
                           id: Date.now(), 
                           partner: partner.name, 
-                          manager: currentUser?.name || prev.manager,
-                          warehouse: userWH,
+                          manager: targetMgr,
+                          warehouse: getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
                           items: [], 
-                          receivedAmount: 0,
+                          receivedAmount: 0, 
                           creator: currentUser?.name || '시스템'
                         }));
                         setCurrentIndex(0);

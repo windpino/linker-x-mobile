@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, MapPin, FileText, Edit, User } from 'lucide-react';
+import { Box, MapPin, FileText, Edit } from 'lucide-react';
 import WindowModal from './WindowModal';
 
 const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] }) => {
@@ -11,8 +11,7 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
     address: '',
     memo: '',
     isMain: false,
-    color: '#3b82f6', // Default blue
-    manager: ''
+    color: '#3b82f6' // Default blue
   });
 
   const PRESET_COLORS = [
@@ -33,8 +32,7 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
         address: initialData.address || '',
         memo: initialData.memo || '',
         isMain: initialData.isMain || false,
-        color: initialData.color || '#3b82f6',
-        manager: initialData.manager || ''
+        color: initialData.color || '#3b82f6'
       });
     }
   }, [initialData]);
@@ -103,26 +101,6 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
                 title={c.name}
               />
             ))}
-          </div>
-        </div>
-
-        <div className="wh-input-group">
-          <label>담당자</label>
-          <div className="wh-input-wrapper select-wrapper">
-            <User size={16} className="wh-input-icon" />
-            <select 
-              name="manager" 
-              value={formData.manager} 
-              onChange={handleChange} 
-              className="wh-input wh-select"
-            >
-              <option value="">담당자 선택 안 함</option>
-              {staffList.map(staff => (
-                <option key={staff.id} value={staff.name}>
-                  {staff.name} {staff.jobTitle ? `(${staff.jobTitle})` : ''}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 

@@ -4,17 +4,71 @@ import WindowModal from './WindowModal';
 import StaffRegistration from './StaffRegistration';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
-import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './Staff.css';
 
-const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], currentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles, logOperation }) => {
+const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [], currentUser, setCurrentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles, logOperation }) => {
   const hasWritePermission = () => {
-    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
-    return currentUser?.allowAllEditDelete === true;
+    if (!currentUser) return true;
+    if (
+      currentUser.role === 'super_admin' || 
+      currentUser.role === 'admin' || 
+      currentUser.userId === 'admin' ||
+      currentUser.jobTitle === '관리자' ||
+      currentUser.jobTitle === '대표' ||
+      currentUser.jobTitle === '대표이사' ||
+      currentUser.allowAllEditDelete === true ||
+      currentUser.permissions?.['직원관리'] === true
+    ) return true;
+    return false;
   };
 
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+
+  // 컴포넌트 마운트 시 Firestore staffList 컬렉션에서 원격 데이터를 직접 조회하여 누락/변경된 직원 자동 동기화
+  useEffect(() => {
+    let isMounted = true;
+    const syncFirestoreStaff = async () => {
+      try {
+        const companyId = currentUser?.companyId || 'default';
+        if (!companyId || !db) return;
+        const colRef = collection(db, 'companies', companyId, 'staffList');
+        const snap = await getDocs(colRef);
+        if (!snap.empty && isMounted) {
+          const remoteList = snap.docs.map(d => ({
+            ...d.data(),
+            _docId: d.id,
+            id: d.data().id ?? (isNaN(Number(d.id)) ? d.id : Number(d.id))
+          }));
+
+          const mergedMap = new Map();
+          (staffList || []).forEach(s => {
+            const key = String(s._docId || s.userId || s.id || s.name);
+            mergedMap.set(key, s);
+          });
+          remoteList.forEach(s => {
+            const key = String(s._docId || s.userId || s.id || s.name);
+            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...s });
+          });
+
+          const mergedList = Array.from(mergedMap.values());
+          if (mergedList.length !== staffList.length || JSON.stringify(mergedList) !== JSON.stringify(staffList)) {
+            if (setStaffList) setStaffList(mergedList);
+            await saveBundle(companyId, 'staffList', mergedList);
+            localStorage.setItem(`staffList_${companyId}`, JSON.stringify(mergedList));
+            localStorage.setItem('staffList', JSON.stringify(mergedList));
+          }
+        }
+      } catch (err) {
+        console.warn('Auto sync staff failed:', err);
+      }
+    };
+
+    syncFirestoreStaff();
+    return () => { isMounted = false; };
+  }, [currentUser?.companyId]);
 
   const handleOpenRegistration = () => {
     setEditingStaff(null);
@@ -68,37 +122,37 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
         batch.delete(legacyDocRef);
       }
 
-      // 2. Bidirectional sync:
-      // If this staff member has a warehouse assigned, set them as the manager of that warehouse
-      if (staffData.warehouse) {
-        // Find the warehouse by name
-        const warehouse = warehouses.find(w => w.name === staffData.warehouse);
-        if (warehouse) {
-          const whDocId = warehouse._docId || String(warehouse.id);
-          const whDocRef = doc(db, 'companies', companyId, 'warehouses', whDocId);
-          batch.set(whDocRef, { manager: staffData.name, updatedAt: new Date().toISOString() }, { merge: true });
-        }
-
-        // Also, if they were previously the manager of a different warehouse, clear it.
-        warehouses.forEach(w => {
-          const otherDocId = w._docId || String(w.id);
-          if (w.name !== staffData.warehouse && w.manager === staffData.name) {
-            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
-          }
-        });
-      } else {
-        // If warehouse is unassigned/cleared, clear this staff from any warehouse where they were manager
-        warehouses.forEach(w => {
-          const otherDocId = w._docId || String(w.id);
-          if (w.manager === staffData.name) {
-            const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-            batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
-          }
-        });
-      }
-
       await batch.commit();
+
+      // Reliable matching helper to filter out the old staff
+      const isSameStaff = (s) => {
+        if (editingStaff?._docId && s._docId && String(s._docId) === String(editingStaff._docId)) return true;
+        if (editingStaff?.id !== undefined && editingStaff?.id !== null && s.id !== undefined && s.id !== null && String(s.id) === String(editingStaff.id)) return true;
+        if (editingStaff?.userId && s.userId && String(s.userId) === String(editingStaff.userId)) return true;
+        if (trimmedUserId && s.userId && String(s.userId) === String(trimmedUserId)) return true;
+        if (targetDocId && s._docId && String(s._docId) === String(targetDocId)) return true;
+        if (editingStaff?.name && s.name && s.name === editingStaff.name && (!editingStaff?.phone || s.phone === editingStaff.phone)) return true;
+        return false;
+      };
+
+      const currentList = staffList || [];
+      const filtered = isNewStaff ? currentList : currentList.filter(s => !isSameStaff(s));
+      const nextStaffList = [...filtered, finalData];
+
+      if (setStaffList) setStaffList(nextStaffList);
+      await saveBundle(companyId, 'staffList', nextStaffList);
+      localStorage.setItem(`staffList_${companyId}`, JSON.stringify(nextStaffList));
+      localStorage.setItem('staffList', JSON.stringify(nextStaffList));
+
+      if (currentUser && (
+        (trimmedUserId && currentUser.userId === trimmedUserId) ||
+        (finalData.name && currentUser.name === finalData.name) ||
+        (editingStaff?.id && String(currentUser.id) === String(editingStaff.id))
+      )) {
+        const updatedUser = { ...currentUser, ...finalData };
+        if (setCurrentUser) setCurrentUser(updatedUser);
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      }
 
       if (logOperation) {
         await logOperation({
@@ -112,19 +166,7 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
         });
       }
 
-      if (setStaffList) {
-        setStaffList(prev => {
-          const filtered = (prev || []).filter(s => {
-            if (!isNewStaff && editingStaff?._docId && s._docId === editingStaff._docId) return false;
-            if (!isNewStaff && editingStaff?.id && s.id === editingStaff.id) return false;
-            if (trimmedUserId && s.userId === trimmedUserId) return false;
-            if (s._docId && s._docId === targetDocId) return false;
-            return true;
-          });
-          return [...filtered, finalData];
-        });
-      }
-
+      alert(isNewStaff ? '신규 직원이 등록되었습니다.' : '직원 정보가 수정되었습니다.');
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Staff save error:', err);
@@ -155,16 +197,21 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
         }
       });
 
-      // 담당 창고가 있다면 창고 관리자 해제
-      warehouses.forEach(w => {
-        const otherDocId = w._docId || String(w.id);
-        if (staff?.name && w.manager === staff.name) {
-          const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-          batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
-        }
-      });
-
       await batch.commit();
+
+      const isTargetStaff = (s) => {
+        if (staff?._docId && s._docId && String(s._docId) === String(staff._docId)) return true;
+        if (staff?.id !== undefined && staff?.id !== null && s.id !== undefined && s.id !== null && String(s.id) === String(staff.id)) return true;
+        if (staff?.userId && s.userId && String(s.userId) === String(staff.userId)) return true;
+        if (typeof staffOrId === 'string' && (String(s.id) === staffOrId || s._docId === staffOrId)) return true;
+        return false;
+      };
+
+      const nextStaffList = (staffList || []).filter(s => !isTargetStaff(s));
+      if (setStaffList) setStaffList(nextStaffList);
+      await saveBundle(companyId, 'staffList', nextStaffList);
+      localStorage.setItem(`staffList_${companyId}`, JSON.stringify(nextStaffList));
+      localStorage.setItem('staffList', JSON.stringify(nextStaffList));
 
       if (logOperation) {
         await logOperation({
@@ -176,16 +223,6 @@ const StaffManagement = ({ onClose, staffList, setStaffList, warehouses = [], cu
           user: currentUser?.name || '관리자',
           targetId: String(staff?.id || staffOrId)
         });
-      }
-
-      if (setStaffList) {
-        setStaffList(prev => (prev || []).filter(s => {
-          if (staff?._docId && s._docId === staff._docId) return false;
-          if (staff?.id && s.id === staff.id) return false;
-          if (staff?.userId && s.userId === staff.userId) return false;
-          if (typeof staffOrId === 'string' && String(s.id) === staffOrId) return false;
-          return true;
-        }));
       }
     } catch (err) {
       console.error('Staff delete error:', err);

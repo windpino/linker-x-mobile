@@ -3,6 +3,7 @@ import { ShoppingCart, Printer, Search, Save, Package, RefreshCw, FileText, List
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import { getStaffWarehouse } from '../utils/warehouseUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
@@ -16,6 +17,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                  warehouses[0]?.name || 
                  '메인창고';
   const staffWH = currentUser?.warehouse || (staffList.find(s => s.name === currentUser?.name)?.warehouse) || '통영';
+
+  const defaultManager = currentUser?.name || (initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
+  const defaultOutWH = getStaffWarehouse(defaultManager, staffList, warehouses, currentUser);
 
   const themeColor = propThemeColor || '#3b82f6';
 
@@ -32,9 +36,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     })(),
     partner: initialPartner ? initialPartner.name : '',
-    outWarehouse: mainWH,
+    outWarehouse: defaultOutWH,
     inWarehouse: staffWH,
-    manager: currentUser?.name || (initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (staffList.length > 0 ? staffList[0].name : '알 수 없음')),
+    manager: defaultManager,
     itemsText: '',
     memo: ''
   });
@@ -57,6 +61,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       if (editingOrder) {
         setOrderData({ ...editingOrder });
       } else {
+        const nextMgr = initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
+        const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
         setOrderData({
           id: Date.now(),
           date: (() => {
@@ -64,9 +70,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           })(),
           partner: initialPartner ? initialPartner.name : '',
-          outWarehouse: mainWH,
+          outWarehouse: nextOutWH,
           inWarehouse: staffWH,
-          manager: initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음')),
+          manager: nextMgr,
           itemsText: '',
           memo: ''
         });
@@ -315,6 +321,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
     onTransferToInvoice({
       ...orderData,
+      warehouse: orderData.outWarehouse,
       orderId: orderData.id,
       salesOrderId: orderData.id,
       items,
@@ -375,6 +382,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
           <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={() => {
+              const newMgr = currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음');
+              const newOutWH = getStaffWarehouse(newMgr, staffList, warehouses, currentUser);
               setOrderData({
                 id: Date.now(),
                 date: (() => {
@@ -382,9 +391,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 })(),
                 partner: orderData.partner,
-                outWarehouse: mainWH,
+                outWarehouse: newOutWH,
                 inWarehouse: staffWH,
-                manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
+                manager: newMgr,
                 itemsText: '',
                 memo: ''
               });
@@ -441,7 +450,19 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     </div>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>담당자</label>
-                      <select value={orderData.manager} onChange={(e) => setOrderData({...orderData, manager: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
+                      <select 
+                        value={orderData.manager} 
+                        onChange={(e) => {
+                          const nextMgr = e.target.value;
+                          const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+                          setOrderData(prev => ({
+                            ...prev,
+                            manager: nextMgr,
+                            outWarehouse: nextOutWH || prev.outWarehouse
+                          }));
+                        }} 
+                        style={{ padding: '6px', fontSize: '0.8rem' }}
+                      >
                         <option value="알 수 없음">선택안함</option>
                         {staffList.map(s => (
                           <option key={s.id} value={s.name}>{s.name}</option>
@@ -451,17 +472,33 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>출고 창고</label>
                       <select value={orderData.outWarehouse} onChange={(e) => setOrderData({...orderData, outWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
-                        {warehouses.map(wh => (
-                          <option key={wh.id} value={wh.name}>{wh.name}</option>
-                        ))}
+                        {warehouses.map(wh => {
+                          const isVeh = wh.isVehicle || wh.name?.includes('차량');
+                          return (
+                            <option key={wh.id} value={wh.name}>
+                              {wh.name}{isVeh ? ' [차량]' : ''}
+                            </option>
+                          );
+                        })}
+                        {orderData.outWarehouse && !warehouses.some(w => w.name === orderData.outWarehouse) && (
+                          <option value={orderData.outWarehouse}>{orderData.outWarehouse}</option>
+                        )}
                       </select>
                     </div>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>입고 창고</label>
                       <select value={orderData.inWarehouse} onChange={(e) => setOrderData({...orderData, inWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
-                        {warehouses.map(wh => (
-                          <option key={wh.id} value={wh.name}>{wh.name}</option>
-                        ))}
+                        {warehouses.map(wh => {
+                          const isVeh = wh.isVehicle || wh.name?.includes('차량');
+                          return (
+                            <option key={wh.id} value={wh.name}>
+                              {wh.name}{isVeh ? ' [차량]' : ''}
+                            </option>
+                          );
+                        })}
+                        {orderData.inWarehouse && !warehouses.some(w => w.name === orderData.inWarehouse) && (
+                          <option value={orderData.inWarehouse}>{orderData.inWarehouse}</option>
+                        )}
                       </select>
                     </div>
                   </div>
