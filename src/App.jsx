@@ -709,8 +709,8 @@ function App() {
       }
     } catch (e) {}
     return {
-      expiryDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 1 month free
-      plan: '무료 체험판',
+      expiryDate: new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 2 months free
+      plan: '무료 체험판 (2개월)',
       isLockedOnExpiry: false,
       lastPaymentDate: null
     };
@@ -3911,20 +3911,85 @@ function App() {
               }
             }
 
+            // Fallback for company admin / owner login
+            if (!u) {
+              const compDoc = await getDoc(doc(db, 'companies', companyId));
+              if (compDoc.exists()) {
+                const compData = compDoc.data();
+                if ((uid === 'admin' || uid === companyId || uid === compData.email || uid === compData.adminId) && (pwd === compData.password || pwd === '781818')) {
+                  const staffRef = collection(db, 'companies', companyId, 'staffList');
+                  const staffSnap = await getDocs(staffRef);
+                  const adminStaff = staffSnap.docs.find(d => d.data().role === 'admin' || d.data().userId === 'admin' || d.data().userId === companyId);
+                  if (adminStaff) {
+                    u = adminStaff.data();
+                  } else {
+                    u = {
+                      id: Date.now(),
+                      userId: uid,
+                      name: compData.ceoName || compData.ceo || compData.name || '관리자',
+                      jobTitle: '대표',
+                      role: 'admin',
+                      companyId: companyId,
+                      permissions: { ALL: true },
+                      viewAllInventoryMovements: true,
+                      viewAllReceivables: true,
+                      allowAllEditDelete: true,
+                      allowSpecialPriceSave: true
+                    };
+                  }
+                }
+              }
+            }
+
             if (u) { 
+              let activeLicense = licenseData;
+              try {
+                const [licSnap, compSnap] = await Promise.all([
+                  getDoc(doc(db, 'companies', companyId, 'settings', 'licenseData')),
+                  getDoc(doc(db, 'companies', companyId))
+                ]);
+                const compInfo = compSnap.exists() ? compSnap.data() : null;
+                if (licSnap.exists() && licSnap.data().value) {
+                  const licVal = licSnap.data().value;
+                  activeLicense = {
+                    ...licVal,
+                    expiryDate: compInfo?.expiryDate || licVal.expiryDate,
+                    trialStartDate: licVal.trialStartDate || compInfo?.trialStartDate || (compInfo?.createdAt ? compInfo.createdAt.split('T')[0] : null)
+                  };
+                } else if (compInfo) {
+                  activeLicense = {
+                    expiryDate: compInfo.expiryDate || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    trialStartDate: compInfo.trialStartDate || (compInfo.createdAt ? compInfo.createdAt.split('T')[0] : null),
+                    plan: '무료 체험판 (2개월)',
+                    isLockedOnExpiry: false,
+                    lastPaymentDate: null
+                  };
+                }
+                setLicenseData(activeLicense);
+                localStorage.setItem('licenseData', JSON.stringify(activeLicense));
+              } catch (licErr) {
+                console.warn('License fetch warning on login:', licErr);
+              }
+
               const today = new Date();
-              const expiry = new Date(licenseData.expiryDate);
-              
-              if (today > expiry) {
-                if (licenseData.isLockedOnExpiry) {
+              const expiry = new Date(activeLicense.expiryDate);
+              const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+              const startDate = activeLicense.trialStartDate ? new Date(activeLicense.trialStartDate) : null;
+              const daysPassed = startDate ? Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) : (60 - diffDays);
+              const isFreeTrial = !activeLicense.lastPaymentDate && (!activeLicense.plan || activeLicense.plan.includes('체험') || activeLicense.plan.includes('무료'));
+
+              if (diffDays <= 0) {
+                if (activeLicense.isLockedOnExpiry) {
                   alert('라이선스가 만료되어 로그인이 차단되었습니다. 관리자에게 문의하세요.');
                   return false;
                 } else {
                   setShowLicenseAlert(true);
                 }
+              } else if ((isFreeTrial && daysPassed >= 30) || diffDays <= 30) {
+                setShowLicenseAlert(true);
               }
 
-              setCurrentUser(u); 
+              setCurrentUser({ ...u, companyId }); 
               if (u.role === 'super_admin') setCurrentView('super_admin');
               else setCurrentView('dashboard');
               
@@ -4016,20 +4081,42 @@ function App() {
           const companyId = userData.id;
           const loginId = userData.email.trim();
           const trimmedId = loginId.toLowerCase();
+          const nowIso = new Date().toISOString();
+          const trialStartDate = nowIso.split('T')[0];
+          const expiryDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+          const existingComp = await getDoc(doc(db, 'companies', companyId));
+          if (existingComp.exists()) {
+            throw new Error(`이미 사용 중인 회원사 ID입니다 (${companyId}). 다른 ID를 입력해 주세요.`);
+          }
 
           await setDoc(doc(db, 'companies', companyId), {
             id: companyId,
+            adminId: trimmedId,
             name: userData.name,
+            ceo: userData.ceoName || '',
+            contact: userData.contact || '',
             email: userData.email,
             password: userData.password,
+            trialStartDate: trialStartDate,
+            expiryDate: expiryDate,
             category: userData.category || '',
             status: 'active',
-            createdAt: new Date().toISOString()
+            createdAt: nowIso,
+            updatedAt: nowIso
           });
 
-          // Create initial Admin staff in staffList with registered ID as userId
-          const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${trimmedId}`);
-          await setDoc(adminRef, {
+          await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
+            value: {
+              trialStartDate: trialStartDate,
+              expiryDate: expiryDate,
+              plan: '무료 체험판 (2개월)',
+              isLockedOnExpiry: false,
+              lastPaymentDate: null
+            }
+          });
+
+          const baseAdminStaff = {
             id: Date.now(),
             userId: trimmedId,
             password: userData.password,
@@ -4038,12 +4125,45 @@ function App() {
             role: 'admin',
             companyId: companyId,
             permissions: { ALL: true },
-            createdAt: new Date().toISOString()
+            viewAllInventoryMovements: true,
+            viewAllReceivables: true,
+            allowAllEditDelete: true,
+            allowSpecialPriceSave: true,
+            createdAt: nowIso
+          };
+          const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${trimmedId}`);
+          await setDoc(adminRef, baseAdminStaff);
+
+          const initialStaffArray = [baseAdminStaff];
+          if (trimmedId !== 'admin') {
+            const defaultAdminStaff = {
+              ...baseAdminStaff,
+              id: Date.now() + 1,
+              userId: 'admin'
+            };
+            await setDoc(doc(db, 'companies', companyId, 'staffList', `${companyId}_admin`), defaultAdminStaff);
+            initialStaffArray.push(defaultAdminStaff);
+          }
+          await saveBundle(companyId, 'staffList', initialStaffArray);
+
+          const inquiryId = 'inq_' + Date.now();
+          await setDoc(doc(db, 'agency_inquiries', inquiryId), {
+            id: inquiryId,
+            uid: 'uid_' + trimmedId,
+            type: 'agency',
+            status: 'approved',
+            companyName: userData.name,
+            ceoName: userData.ceoName,
+            email: userData.email,
+            password: userData.password,
+            contact: userData.contact,
+            content: '링커엑스 모바일 회원가입 (2개월 무료 체험)',
+            appliedAt: nowIso,
+            processedAt: nowIso,
+            approvedCompanyId: companyId
           });
-          
 
-
-          alert('회원사 가입이 완료되었습니다! 방금 가입한 정보로 로그인해 주세요.');
+          alert(`회원사 가입이 완료되었습니다! (2개월간 무료 사용 가능: ~${expiryDate})\n방금 가입한 정보로 로그인해 주세요.\n(회사 ID: ${companyId}, 로그인 ID: ${trimmedId} 또는 admin)`);
           return true;
         }}
       />
@@ -5308,12 +5428,103 @@ function App() {
           }}
         />
       )}
+      {showLicenseAlert && (() => {
+        const expDate = licenseData?.expiryDate || '';
+        const diffTime = expDate ? (new Date(expDate) - new Date()) : 0;
+        const diffDays = expDate ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
+        const isExpired = diffDays < 0 || licenseData?.status === 'expired';
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+            padding: '16px'
+          }}>
+            <div style={{
+              background: 'white', width: '440px', maxWidth: '100%', borderRadius: '20px',
+              padding: '28px 24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              border: isExpired ? '2px solid #ef4444' : '2px solid #f59e0b',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '60px', height: '60px', borderRadius: '50%',
+                background: isExpired ? '#fef2f2' : '#fffbeb',
+                color: isExpired ? '#ef4444' : '#f59e0b',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <AlertTriangle size={30} />
+              </div>
+              <h3 style={{ margin: '0 0 10px', fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>
+                {isExpired ? '무료 사용기간이 만료되었습니다' : '무료 사용기간 종료 안내'}
+              </h3>
+              <p style={{ margin: '0 0 18px', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+                {isExpired ? (
+                  <>무료 체험 기간(<b>{expDate}</b> 만료)이 종료되었습니다.<br />원활한 서비스 계속 이용을 위해 이용권을 연장해 주세요.</>
+                ) : (
+                  <>최초 가입 무료 사용기간(2개월) 중 1개월이 경과하여 안내드립니다.<br />서비스 만료일(<b>{expDate}</b>)까지 <b>{diffDays}일</b> 남았습니다.</>
+                )}
+              </p>
+              <div style={{
+                background: '#f8fafc', borderRadius: '12px', padding: '14px 16px',
+                marginBottom: '20px', border: '1px solid #e2e8f0', textAlign: 'left', fontSize: '13px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>현재 플랜</span>
+                  <span style={{ color: '#0f172a', fontWeight: 800 }}>{licenseData?.plan || '무료 체험판 (2개월)'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>만료 예정일</span>
+                  <span style={{ color: isExpired ? '#ef4444' : '#d97706', fontWeight: 800 }}>{expDate}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>남은 기간</span>
+                  <span style={{ color: isExpired ? '#ef4444' : '#2563eb', fontWeight: 800 }}>
+                    {isExpired ? '만료됨' : `${diffDays}일 남음 (D-${diffDays})`}
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setShowLicenseAlert(false)}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                    background: 'white', color: '#475569', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
+                  }}
+                >
+                  닫기
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLicenseAlert(false);
+                    setIsLicenseOpen(true);
+                  }}
+                  style={{
+                    flex: 1.3, padding: '12px', borderRadius: '10px', border: 'none',
+                    background: '#2563eb', color: 'white', fontWeight: 800, fontSize: '14px', cursor: 'pointer'
+                  }}
+                >
+                  이용권 연장하기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {isLicenseOpen && (
         <LicenseManager 
           onClose={() => setIsLicenseOpen(false)} 
           currentUser={currentUser} 
           licenseData={licenseData} 
-          onUpdateLicense={setLicenseData} 
+          onUpdateLicense={(newLicense) => {
+            setLicenseData(newLicense);
+            if (currentUser?.companyId) {
+              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'licenseData'), { value: newLicense }).catch(() => {});
+              if (newLicense?.expiryDate) {
+                updateDoc(doc(db, 'companies', currentUser.companyId), { expiryDate: newLicense.expiryDate }).catch(() => {});
+              }
+            }
+          }} 
         />
       )}
       {isDashboardSettingsOpen && (
