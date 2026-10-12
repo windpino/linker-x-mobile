@@ -262,29 +262,21 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     console.log('--- START DELETION PROCESS ---', companyId);
     
     try {
-      // 1. Delete the company record FIRST
-      await deleteDoc(doc(db, 'companies', companyId));
-      
-      // 2. Cleanup associated data
-      const collectionsToClean = [
+      // 1. 회원사 관련 모든 하위 서브컬렉션 목록
+      const subCollectionsToClean = [
         'staffList', 'schedules', 'products', 'categories', 'partners', 
         'accounts', 'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 
         'salesOrders', 'warehouses', 'vehicles', 'vehicleLogs', 'expenses',
         'inventoryAdjustments', 'inventoryTransferHistory', 'specialPrices',
-        'actionLogs', 'schedule_types', 'settings', 'userSettings', 'bundles',
-        'metadata', 'csConsultations', 'payments', 'cs_history'
+        'actionLogs', 'schedule_types', 'settings', 'userSettings', 'userDashboardConfig',
+        'bundles', 'metadata', 'csConsultations', 'payments'
       ];
 
-      for (const collName of collectionsToClean) {
+      // 1-1. 각 하위 서브컬렉션 문서 일괄 삭제 (500개씩 batch delete)
+      for (const collName of subCollectionsToClean) {
         try {
-          let q;
-          if (collName === 'cs_history') {
-            q = query(collection(db, 'cs_history'), where('companyId', '==', companyId));
-          } else {
-            // Target the sub-collection directly
-            q = collection(db, 'companies', companyId, collName);
-          }
-          const snapshot = await getDocs(q);
+          const colRef = collection(db, 'companies', companyId, collName);
+          const snapshot = await getDocs(colRef);
           if (!snapshot.empty) {
             const docs = snapshot.docs;
             for (let i = 0; i < docs.length; i += 500) {
@@ -294,25 +286,59 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               await batch.commit();
             }
           }
-        } catch (e) { console.warn(`Cleanup failed: ${collName}`, e); }
+        } catch (e) {
+          console.warn(`Subcollection cleanup failed for [${collName}]:`, e);
+        }
       }
 
-      // 3. Cleanup settings
+      // 2. 루트 컬렉션 중 companyId를 참조하는 관련 데이터 정리 (cs_history, agency_inquiries, settings_${companyId})
       try {
-        const settingsSnap = await getDocs(collection(db, `settings_${companyId}`));
-        if (!settingsSnap.empty) {
+        const csQuery = query(collection(db, 'cs_history'), where('companyId', '==', companyId));
+        const csSnap = await getDocs(csQuery);
+        if (!csSnap.empty) {
           const batch = writeBatch(db);
-          settingsSnap.docs.forEach(d => batch.delete(d.ref));
+          csSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      } catch (e) {
+        console.warn('cs_history cleanup failed:', e);
+      }
+
+      try {
+        const inqQuery = query(collection(db, 'agency_inquiries'), where('approvedCompanyId', '==', companyId));
+        const inqSnap = await getDocs(inqQuery);
+        if (!inqSnap.empty) {
+          const batch = writeBatch(db);
+          inqSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      } catch (e) {
+        console.warn('agency_inquiries cleanup failed:', e);
+      }
+
+      try {
+        const legacySettingsSnap = await getDocs(collection(db, `settings_${companyId}`));
+        if (!legacySettingsSnap.empty) {
+          const batch = writeBatch(db);
+          legacySettingsSnap.docs.forEach(d => batch.delete(d.ref));
           await batch.commit();
         }
       } catch (e) {}
 
-      // 4. Local storage
-      Object.keys(localStorage).forEach(key => {
-        if (key.includes(companyId)) localStorage.removeItem(key);
-      });
+      // 3. 메인 회원사 문서 삭제 (companies/{companyId})
+      await deleteDoc(doc(db, 'companies', companyId));
+
+      // 4. 로컬 스토리지에 남아있는 회원사 관련 캐시 완전 파기
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes(companyId)) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {}
       
-      console.log('--- DELETION COMPLETE ---');
+      console.log('--- DELETION COMPLETE FOR COMPANY ---', companyId);
+      alert(`[${companyName}] 회원사의 모든 데이터가 파이어베이스에서 완전히 삭제되었습니다.`);
       setDeletingAgency(null);
       setDeleteConfirmIdInput('');
     } catch (err) {
