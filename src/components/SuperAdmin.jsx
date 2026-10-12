@@ -316,6 +316,34 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         console.warn('agency_inquiries cleanup failed:', e);
       }
 
+      // users 컬렉션 내 해당 회원사 계정 문서 정리 (uid_${companyId} 및 companyId 일치 문서)
+      try {
+        const userBatch = writeBatch(db);
+        let hasUserDocs = false;
+
+        // 1. 문서 ID가 uid_${companyId} 인 경우 직접 삭제
+        const directUserRef = doc(db, 'users', `uid_${companyId}`);
+        const directUserSnap = await getDoc(directUserRef);
+        if (directUserSnap.exists()) {
+          userBatch.delete(directUserRef);
+          hasUserDocs = true;
+        }
+
+        // 2. companyId 필드가 일치하는 문서 검색 삭제
+        const userQuery = query(collection(db, 'users'), where('companyId', '==', companyId));
+        const userSnap = await getDocs(userQuery);
+        if (!userSnap.empty) {
+          userSnap.docs.forEach(d => userBatch.delete(d.ref));
+          hasUserDocs = true;
+        }
+
+        if (hasUserDocs) {
+          await userBatch.commit();
+        }
+      } catch (e) {
+        console.warn('users cleanup failed:', e);
+      }
+
       try {
         const legacySettingsSnap = await getDocs(collection(db, `settings_${companyId}`));
         if (!legacySettingsSnap.empty) {
