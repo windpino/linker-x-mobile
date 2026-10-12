@@ -79,9 +79,17 @@ const RecentActivityModal = ({
   const allActivities = useMemo(() => {
     const list = [];
     const loggedTargetIds = new Set();
+    const activeCompanyId = currentUser?.companyId;
+
+    const isSameCompany = (item) => {
+      if (!item) return false;
+      if (!activeCompanyId) return true;
+      if (item.companyId && item.companyId !== activeCompanyId) return false;
+      return true;
+    };
 
     // 1) Action / Activity Logs (Permanent Audit History)
-    activityLogs.forEach((log, idx) => {
+    activityLogs.filter(isSameCompany).forEach((log, idx) => {
       if (log.targetId) {
         loggedTargetIds.add(`${log.targetId}_${log.type || '등록'}`);
       }
@@ -141,7 +149,7 @@ const RecentActivityModal = ({
     });
 
     // 2) Fallback for active Sales Invoices (if not already logged)
-    salesInvoices.forEach(inv => {
+    salesInvoices.filter(isSameCompany).forEach(inv => {
       if (loggedTargetIds.has(`${inv.id}_등록`)) return;
       const dt = extractDateTime(inv);
       const itemsSummary = (inv.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -166,7 +174,7 @@ const RecentActivityModal = ({
     });
 
     // 3) Fallback for active Purchase Invoices (if not already logged)
-    purchaseInvoices.forEach(inv => {
+    purchaseInvoices.filter(isSameCompany).forEach(inv => {
       if (loggedTargetIds.has(`${inv.id}_등록`)) return;
       const dt = extractDateTime(inv);
       const itemsSummary = (inv.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -191,7 +199,7 @@ const RecentActivityModal = ({
     });
 
     // 4) Fallback for active Sales Orders (if not already logged)
-    salesOrders.forEach(ord => {
+    salesOrders.filter(isSameCompany).forEach(ord => {
       if (loggedTargetIds.has(`${ord.id}_등록`)) return;
       const dt = extractDateTime(ord);
       const itemsSummary = (ord.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -216,7 +224,7 @@ const RecentActivityModal = ({
     });
 
     // 5) Purchase Orders
-    purchaseOrders.forEach(po => {
+    purchaseOrders.filter(isSameCompany).forEach(po => {
       if (loggedTargetIds.has(`${po.id}_등록`)) return;
       const dt = extractDateTime(po);
       const itemsSummary = (po.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -241,7 +249,7 @@ const RecentActivityModal = ({
     });
 
     // 6) Inventory Movements
-    inventoryMovements.forEach(mov => {
+    inventoryMovements.filter(isSameCompany).forEach(mov => {
       if (loggedTargetIds.has(`${mov.id}_이동`) || loggedTargetIds.has(`${mov.id}_등록`)) return;
       const isPhysicalAdjustment = 
         mov.isPhysicalAdjustment || 
@@ -276,7 +284,7 @@ const RecentActivityModal = ({
     });
 
     // 7) Inventory Adjustments
-    inventoryAdjustments.forEach(adj => {
+    inventoryAdjustments.filter(isSameCompany).forEach(adj => {
       if (loggedTargetIds.has(`${adj.id}_조정`) || loggedTargetIds.has(`${adj.id}_등록`)) return;
       const dt = extractDateTime(adj);
       list.push({
@@ -301,7 +309,7 @@ const RecentActivityModal = ({
 
     // Sort by timestamp descending (most recent first)
     return list.sort((a, b) => Number(b.numericTimestamp) - Number(a.numericTimestamp));
-  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, inventoryMovements, inventoryAdjustments, activityLogs]);
+  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, inventoryMovements, inventoryAdjustments, activityLogs, currentUser?.companyId]);
 
   // Extract unique staff members from staffList and activity data
   const staffOptions = useMemo(() => {

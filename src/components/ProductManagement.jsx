@@ -6,6 +6,7 @@ import ProductCategoryModal from './ProductCategoryModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './Product.css';
 
 const DEFAULT_COLUMNS = {
@@ -151,8 +152,11 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
       if (!product) return;
       
       const companyId = currentUser?.companyId || 'default';
-      const updatedProduct = { ...product, [field]: value, updatedAt: new Date().toISOString() };
+      const updatedProduct = { ...product, [field]: value, companyId, updatedAt: new Date().toISOString() };
       await setDoc(doc(db, 'companies', companyId, 'products', String(id)), updatedProduct, { merge: true });
+      const nextProducts = products.map(p => String(p.id) === String(id) ? updatedProduct : p);
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
     } catch (err) {
       console.error('Product inline update error:', err);
       alert('품목 정보 수정 중 오류가 발생했습니다.');
@@ -184,20 +188,26 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
     try {
       const companyId = currentUser?.companyId || 'default';
       const batch = writeBatch(db);
+      const updatedMap = new Map();
       
       Object.entries(editedStocks).forEach(([id, changes]) => {
-        const product = products.find(p => p.id === Number(id));
+        const product = products.find(p => String(p.id) === String(id));
         if (!product) return;
         
         const updatedProduct = { 
           ...product, 
-          ...changes, 
+          ...changes,
+          companyId,
           updatedAt: new Date().toISOString() 
         };
+        updatedMap.set(String(id), updatedProduct);
         batch.set(doc(db, 'companies', companyId, 'products', String(id)), updatedProduct, { merge: true });
       });
       
       await batch.commit();
+      const nextProducts = products.map(p => updatedMap.get(String(p.id)) || p);
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
       setEditedStocks({});
       alert('재고 수량 변경사항이 성공적으로 저장되었습니다.');
     } catch (err) {
@@ -226,6 +236,11 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
       const productId = editingProduct ? String(editingProduct.id) : String(Date.now());
       const finalData = { ...productData, id: Number(productId), companyId, updatedAt: new Date().toISOString() };
       await setDoc(doc(db, 'companies', companyId, 'products', productId), finalData);
+      const nextProducts = editingProduct
+        ? products.map(p => String(p.id) === productId ? finalData : p)
+        : [...products, finalData];
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
       alert(editingProduct ? '품목 정보가 수정되었습니다.' : '신규 품목이 등록되었습니다.');
       setIsRegistrationOpen(false);
     } catch (err) {
@@ -243,6 +258,9 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
     try {
       const companyId = currentUser?.companyId || 'default';
       await deleteDoc(doc(db, 'companies', companyId, 'products', String(id)));
+      const nextProducts = products.filter(p => String(p.id) !== String(id));
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
     } catch (err) {
       console.error('Product delete error:', err);
       alert('품목 삭제 중 오류가 발생했습니다.');

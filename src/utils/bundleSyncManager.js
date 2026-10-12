@@ -24,14 +24,36 @@ export const BUNDLE_COLLECTIONS = [
 ];
 
 /**
+ * Filter bundle list strictly for the target companyId
+ */
+export const filterBundleListForCompany = (companyId, colName, rawList) => {
+  if (!Array.isArray(rawList) || !companyId) return [];
+  const targetId = String(companyId);
+  const requiresName = ['products', 'categories', 'partners', 'warehouses'].includes(colName);
+
+  return rawList.filter(item => {
+    if (!item || typeof item !== 'object') return false;
+    if (requiresName && (!item.name || !String(item.name).trim())) return false;
+    
+    // Strict isolation: An item without companyId is legacy and ONLY belongs to 'no1dmkr'
+    if (!item.companyId) {
+      return targetId === 'no1dmkr';
+    }
+    return String(item.companyId) === targetId;
+  });
+};
+
+/**
  * Get cached bundle from localStorage
  */
 export const getLocalBundle = (companyId, colName) => {
+  if (!companyId) return null;
   try {
-    const raw = localStorage.getItem(`bundle_${colName}_${companyId}`) || localStorage.getItem(`${colName}_${companyId}`) || localStorage.getItem(colName);
+    const raw = localStorage.getItem(`bundle_${colName}_${companyId}`) || localStorage.getItem(`${colName}_${companyId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : (parsed.list || []);
+    const list = Array.isArray(parsed) ? parsed : (parsed.list || parsed.items || []);
+    return filterBundleListForCompany(companyId, colName, list);
   } catch (e) {
     console.warn(`[BundleSync] Error reading local bundle for ${colName}:`, e);
     return null;
@@ -71,7 +93,8 @@ export const fetchBundle = async (companyId, colName) => {
 
     if (snap.exists()) {
       const data = snap.data();
-      const list = data.list || [];
+      const rawList = data.list || data.items || [];
+      const list = filterBundleListForCompany(companyId, colName, rawList);
       const version = Number(data.version || 1);
       setLocalBundle(companyId, colName, list, version);
       return list;
@@ -82,7 +105,8 @@ export const fetchBundle = async (companyId, colName) => {
     const legacySnap = await getDocs(legacyColRef);
 
     if (!legacySnap.empty) {
-      const list = legacySnap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      const rawList = legacySnap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      const list = filterBundleListForCompany(companyId, colName, rawList);
       // Save as bundle on Firestore for future 1-read lookups
       await setDoc(bundleDocRef, {
         list: list,
@@ -100,6 +124,7 @@ export const fetchBundle = async (companyId, colName) => {
       return list;
     }
 
+    setLocalBundle(companyId, colName, [], 0);
     return [];
   } catch (err) {
     console.error(`[BundleSync] Fetch error for ${colName}:`, err);
@@ -208,11 +233,8 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       const localVer = getLocalVersion(companyId, colName);
 
       if (!serverColState) {
-        const localList = getLocalBundle(companyId, colName);
-        if (!localList || localList.length === 0) {
-          const list = await fetchBundle(companyId, colName);
-          if (onBundleChange) onBundleChange(colName, list);
-        }
+        const list = await fetchBundle(companyId, colName);
+        if (onBundleChange) onBundleChange(colName, list);
         continue;
       }
 
@@ -225,8 +247,11 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
         if (onBundleChange) onBundleChange(colName, updatedList);
       } else {
         const localList = getLocalBundle(companyId, colName);
-        if (localList && onBundleChange) {
+        if (localList !== null && onBundleChange) {
           onBundleChange(colName, localList);
+        } else {
+          const updatedList = await fetchBundle(companyId, colName);
+          if (onBundleChange) onBundleChange(colName, updatedList);
         }
       }
     }

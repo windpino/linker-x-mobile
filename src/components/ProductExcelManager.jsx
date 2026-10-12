@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './ExcelManager.css';
 
 const ProductExcelManager = ({ onClose, products = [], setProducts, categories = [], setCategories, currentUser }) => {
@@ -165,19 +166,23 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
     try {
       const companyId = currentUser?.companyId || 'default';
       const batch = writeBatch(db);
-      newOnes.forEach(productData => {
+      const savedNewOnes = newOnes.map(productData => {
         const productId = String(productData.id || Date.now() + Math.random());
         const finalData = {
           ...productData,
+          id: productData.id || productId,
           companyId,
           updatedAt: new Date().toISOString()
         };
         batch.set(doc(db, 'companies', companyId, 'products', productId), finalData);
+        return finalData;
       });
       await batch.commit();
 
-      setProducts([...products, ...newOnes]);
-      alert(`✅ 품목 ${newOnes.length}건이 파이어베이스에 성공적으로 등록되었습니다! (중복 ${previewProducts.length - newOnes.length}건 제외)`);
+      const nextProducts = [...products, ...savedNewOnes];
+      setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
+      alert(`✅ 품목 ${savedNewOnes.length}건이 파이어베이스에 성공적으로 등록되었습니다! (중복 ${previewProducts.length - savedNewOnes.length}건 제외)`);
       setStep('main');
     } catch (err) {
       console.error('Import products error:', err);
@@ -221,29 +226,33 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
           try {
             const companyId = currentUser?.companyId || 'default';
             const batch = writeBatch(db);
-            d.forEach(productData => {
+            const formattedData = d.map(productData => {
               const productId = String(productData.id || Date.now() + Math.random());
               const finalData = {
                 ...productData,
+                id: productData.id || productId,
                 companyId,
                 updatedAt: new Date().toISOString()
               };
               batch.set(doc(db, 'companies', companyId, 'products', productId), finalData);
+              return finalData;
             });
             await batch.commit();
+            await saveBundle(companyId, 'products', formattedData);
 
             // Sync with Products
-            setProducts(d); 
+            setProducts(formattedData); 
             
             // Sync new categories with master list
             if (setCategories && categories) {
               const currentCatNames = new Set(categories.map(c => c.name));
-              const newCats = [...new Set(d.map(p => p.category))].filter(name => name && !currentCatNames.has(name));
+              const newCats = [...new Set(formattedData.map(p => p.category))].filter(name => name && !currentCatNames.has(name));
               
               if (newCats.length > 0) {
                 const newCatEntries = newCats.map(name => ({
                   id: Date.now() + Math.random(),
                   name,
+                  companyId,
                   memo: '품목 일괄 편집을 통해 자동 등록됨'
                 }));
                 
@@ -257,8 +266,9 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
                   });
                 });
                 await catBatch.commit();
-                
-                setCategories(prev => [...prev, ...newCatEntries]);
+                const nextCategories = [...categories, ...newCatEntries];
+                setCategories(nextCategories);
+                await saveBundle(companyId, 'categories', nextCategories);
               }
             }
             alert('✅ 품목 일괄 편집 사항이 파이어베이스에 성공적으로 저장되었습니다.');

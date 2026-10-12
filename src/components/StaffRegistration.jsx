@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy, Trash2, Plus, X } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const MENU_PERMISSIONS = [
   {
@@ -66,7 +68,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         ...initialData,
         name: initialData.name || '',
         phone: initialData.phone || '',
-        sequence: initialData.sequence || '',
+        sequence: initialData.sequence !== undefined && initialData.sequence !== null ? initialData.sequence : '',
         warehouse: initialData.warehouse || mainWH,
         jobTitle: initialData.jobTitle || (staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')),
         address: initialData.address || '',
@@ -81,12 +83,25 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         permissions: initialData.permissions || {}
       });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        jobTitle: staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')
-      }));
+      setFormData({
+        userId: '',
+        password: '',
+        name: '',
+        phone: '',
+        sequence: nextSequence || '',
+        warehouse: mainWH,
+        jobTitle: staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원'),
+        address: '',
+        zone: '',
+        viewAllInventoryMovements: false,
+        allowSpecialPriceSave: false,
+        allowAllEditDelete: false,
+        viewOtherWarehouseOrders: false,
+        viewRecentActivity: false,
+        permissions: {}
+      });
     }
-  }, [initialData, mainWH, staffJobTitles]);
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -118,12 +133,23 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
-      // If isCloning is true, we treat it as a new registration by ignoring the original ID and docId
       if (isCloning) {
+        if (!formData.userId || !formData.userId.trim()) {
+          alert('아이디를 입력해주세요.');
+          return;
+        }
+        if (!formData.password || !formData.password.trim()) {
+          alert('비밀번호를 입력해주세요.');
+          return;
+        }
         const { _docId, ...cleanForm } = formData;
         onSave({ ...cleanForm, id: Date.now() }, true);
       } else {
-        onSave(formData, false);
+        const payload = {
+          ...formData,
+          password: formData.password || initialData?.password || ''
+        };
+        onSave(payload, false);
       }
     } else {
       onClose();
@@ -171,11 +197,11 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
             <label>아이디 {(!isEditing || isCloning) && <span className="required">*</span>}</label>
             <div className="staff-input-wrapper">
               <User size={16} className="staff-input-icon" />
-              <input type="text" name="userId" value={formData.userId} onChange={handleChange} placeholder="로그인 아이디" className="staff-input" required={!isEditing && !isCloning} autoComplete="off" />
+              <input type="text" name="userId" value={formData.userId} onChange={handleChange} placeholder="로그인 아이디" className="staff-input" required={!isEditing || isCloning} autoComplete="off" />
             </div>
           </div>
           <div className="staff-input-group">
-            <label>패스워드 <span className="required">*</span></label>
+            <label>패스워드 {(!isEditing || isCloning) && <span className="required">*</span>}</label>
             <div className="staff-input-wrapper">
               <Lock size={16} className="staff-input-icon" />
               <input 
@@ -183,9 +209,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                 name="password" 
                 value={formData.password} 
                 onChange={handleChange} 
-                placeholder="로그인 비밀번호" 
+                placeholder={isEditing && !isCloning ? "변경 시 새 비밀번호 입력" : "로그인 비밀번호"} 
                 className="staff-input pr-10" 
-                required={!isEditing} 
+                required={!isEditing || isCloning} 
                 autoComplete="new-password"
               />
               <button 
@@ -447,14 +473,34 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         <CategoryManagerModal 
           title="담당구역 및 지역 관리"
           items={staffZones}
-          onAdd={(newZone) => {
+          onAdd={async (newZone) => {
             const nextZones = [...staffZones, newZone];
             setStaffZones(nextZones);
+            setFormData(prev => ({ ...prev, zone: newZone }));
+            const companyId = currentUser?.companyId || 'default';
+            localStorage.setItem(`staffZones_${companyId}`, JSON.stringify(nextZones));
+            localStorage.setItem('staffZones', JSON.stringify(nextZones));
+            try {
+              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), { value: nextZones, updatedAt: new Date().toISOString() }, { merge: true });
+            } catch (e) {
+              console.warn('Failed to save staffZones:', e);
+            }
           }}
-          onDelete={(zoneToDelete) => {
+          onDelete={async (zoneToDelete) => {
             if (window.confirm(`'${zoneToDelete}' 지역을 삭제하시겠습니까?`)) {
               const nextZones = staffZones.filter(z => z !== zoneToDelete);
               setStaffZones(nextZones);
+              if (formData.zone === zoneToDelete) {
+                setFormData(prev => ({ ...prev, zone: '' }));
+              }
+              const companyId = currentUser?.companyId || 'default';
+              localStorage.setItem(`staffZones_${companyId}`, JSON.stringify(nextZones));
+              localStorage.setItem('staffZones', JSON.stringify(nextZones));
+              try {
+                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), { value: nextZones, updatedAt: new Date().toISOString() }, { merge: true });
+              } catch (e) {
+                console.warn('Failed to save staffZones:', e);
+              }
             }
           }}
           onClose={() => setMgmtModalType(null)}
@@ -465,14 +511,34 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         <CategoryManagerModal 
           title="직책 관리"
           items={staffJobTitles}
-          onAdd={(newTitle) => {
+          onAdd={async (newTitle) => {
             const nextTitles = [...staffJobTitles, newTitle];
             setStaffJobTitles(nextTitles);
+            setFormData(prev => ({ ...prev, jobTitle: newTitle }));
+            const companyId = currentUser?.companyId || 'default';
+            localStorage.setItem(`staffJobTitles_${companyId}`, JSON.stringify(nextTitles));
+            localStorage.setItem('staffJobTitles', JSON.stringify(nextTitles));
+            try {
+              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), { value: nextTitles, updatedAt: new Date().toISOString() }, { merge: true });
+            } catch (e) {
+              console.warn('Failed to save staffJobTitles:', e);
+            }
           }}
-          onDelete={(titleToDelete) => {
+          onDelete={async (titleToDelete) => {
             if (window.confirm(`'${titleToDelete}' 직책을 삭제하시겠습니까?`)) {
               const nextTitles = staffJobTitles.filter(t => t !== titleToDelete);
               setStaffJobTitles(nextTitles);
+              if (formData.jobTitle === titleToDelete) {
+                setFormData(prev => ({ ...prev, jobTitle: nextTitles[0] || '사원' }));
+              }
+              const companyId = currentUser?.companyId || 'default';
+              localStorage.setItem(`staffJobTitles_${companyId}`, JSON.stringify(nextTitles));
+              localStorage.setItem('staffJobTitles', JSON.stringify(nextTitles));
+              try {
+                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), { value: nextTitles, updatedAt: new Date().toISOString() }, { merge: true });
+              } catch (e) {
+                console.warn('Failed to save staffJobTitles:', e);
+              }
             }
           }}
           onClose={() => setMgmtModalType(null)}

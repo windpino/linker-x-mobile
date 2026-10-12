@@ -10,6 +10,7 @@ import {
 import ScheduleTypeManagement from './ScheduleTypeManagement';
 import ChatAssistant from './ChatAssistant';
 import PwaInstallPrompt from './PwaInstallPrompt';
+import { saveBundle } from '../utils/bundleSyncManager';
 
 const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const [activeTab, setActiveTab] = useState('schedules');
@@ -51,6 +52,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   const [originalAgencyId, setOriginalAgencyId] = useState(null);
   const [deletingAgency, setDeletingAgency] = useState(null); // { id, name }
+  const [deleteConfirmIdInput, setDeleteConfirmIdInput] = useState('');
   const [deletingNotice, setDeletingNotice] = useState(null); // { id, title }
   const [deletingCs, setDeletingCs] = useState(null); // { id, companyName }
   const [deletingSchedule, setDeletingSchedule] = useState(null); // { id, title }
@@ -251,6 +253,10 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const handleDeleteCompany = async () => {
     if (!deletingAgency) return;
     const { id: companyId, name: companyName } = deletingAgency;
+    if (deleteConfirmIdInput.trim() !== String(companyId)) {
+      alert(`삭제를 진행하려면 회원사 메인 ID [${companyId}]를 정확히 입력해 주세요.`);
+      return;
+    }
     
     setIsDeleting(true);
     console.log('--- START DELETION PROCESS ---', companyId);
@@ -263,9 +269,10 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       const collectionsToClean = [
         'staffList', 'schedules', 'products', 'categories', 'partners', 
         'accounts', 'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 
-        'salesOrders', 'warehouses', 'expenses', 'inventoryAdjustments', 
-        'inventoryTransferHistory', 'specialPrices', 'schedule_types', 
-        'settings', 'cs_history'
+        'salesOrders', 'warehouses', 'vehicles', 'vehicleLogs', 'expenses',
+        'inventoryAdjustments', 'inventoryTransferHistory', 'specialPrices',
+        'actionLogs', 'schedule_types', 'settings', 'userSettings', 'bundles',
+        'metadata', 'csConsultations', 'payments', 'cs_history'
       ];
 
       for (const collName of collectionsToClean) {
@@ -307,6 +314,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       
       console.log('--- DELETION COMPLETE ---');
       setDeletingAgency(null);
+      setDeleteConfirmIdInput('');
     } catch (err) {
       console.error('Delete error:', err);
       alert('삭제 중 오류가 발생했습니다: ' + err.message);
@@ -319,52 +327,114 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const handleSaveAgency = async () => {
     if (!agencyForm.id || !agencyForm.name || !agencyForm.password) return alert('필수 항목을 입력하세요.');
     try {
+      const companyId = agencyForm.id.trim();
+      const nowIso = new Date().toISOString();
+      const trialStartDate = (agencyForm.createdAt || nowIso).split('T')[0];
+      const defaultExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const expiryDate = agencyForm.expiryDate || defaultExpiry;
+      const adminUserId = (agencyForm.email || companyId || 'admin').trim().toLowerCase();
+
       // Check for duplicate ID if it's a NEW agency
       if (!originalAgencyId) {
-        const checkSnap = await getDoc(doc(db, 'companies', agencyForm.id));
+        const checkSnap = await getDoc(doc(db, 'companies', companyId));
         if (checkSnap.exists()) {
           return alert('이미 존재하는 회사 ID입니다. 다른 ID를 사용해 주세요.');
         }
       }
 
+      const companyPayload = {
+        ...agencyForm,
+        id: companyId,
+        adminId: adminUserId,
+        loginId: adminUserId,
+        contact: agencyForm.managerContact || agencyForm.contact || '',
+        managerContact: agencyForm.managerContact || agencyForm.contact || '',
+        trialStartDate: agencyForm.trialStartDate || trialStartDate,
+        expiryDate: expiryDate,
+        category: agencyForm.category || '회원사',
+        status: agencyForm.status || 'active',
+        updatedAt: nowIso,
+        createdAt: agencyForm.createdAt || nowIso
+      };
+
       // If ID changed during edit, move the document
-      if (originalAgencyId && originalAgencyId !== agencyForm.id) {
-        if (!confirm(`아이디를 [${originalAgencyId}]에서 [${agencyForm.id}](으)로 변경하시겠습니까?\n기존 아이디의 데이터가 새 아이디로 연결됩니다.`)) return;
+      if (originalAgencyId && originalAgencyId !== companyId) {
+        if (!confirm(`아이디를 [${originalAgencyId}]에서 [${companyId}](으)로 변경하시겠습니까?\n기존 아이디의 데이터가 새 아이디로 연결됩니다.`)) return;
         
         // 1. Create new doc
-        await setDoc(doc(db, 'companies', agencyForm.id), {
-          ...agencyForm,
-          updatedAt: new Date().toISOString(),
-          createdAt: agencyForm.createdAt || new Date().toISOString()
-        });
+        await setDoc(doc(db, 'companies', companyId), companyPayload);
         
         // 2. Delete old doc
         await deleteDoc(doc(db, 'companies', originalAgencyId));
-        console.log(`Agency ID migrated from ${originalAgencyId} to ${agencyForm.id}`);
+        console.log(`Agency ID migrated from ${originalAgencyId} to ${companyId}`);
       } else {
-        await setDoc(doc(db, 'companies', agencyForm.id), {
-          ...agencyForm,
-          updatedAt: new Date().toISOString(),
-          createdAt: agencyForm.createdAt || new Date().toISOString()
-        }, { merge: true });
+        await setDoc(doc(db, 'companies', companyId), companyPayload, { merge: true });
       }
+
+      // Sync licenseData inside companies/{companyId}/settings/licenseData
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
+        value: {
+          trialStartDate: companyPayload.trialStartDate,
+          expiryDate: expiryDate,
+          plan: '무료 체험판 (2개월)',
+          isLockedOnExpiry: false,
+          lastPaymentDate: null
+        }
+      }, { merge: true });
       
-      // Create admin staff if new
-      const adminUserId = (agencyForm.email || agencyForm.id || 'admin').trim().toLowerCase();
-      const adminRef = doc(db, 'companies', agencyForm.id, 'staffList', `${agencyForm.id}_${adminUserId}`);
+      // Create admin staff & bundle inside companies/{companyId} if new
+      const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
       const adminSnap = await getDoc(adminRef);
       if (!adminSnap.exists()) {
-        await setDoc(adminRef, {
+        const baseAdminStaff = {
           id: Date.now(),
           userId: adminUserId,
           password: agencyForm.password || '123456',
-          name: agencyForm.ceo || agencyForm.name, // 회사명/대표명
-          jobTitle: '대표', // 대표 직급
+          name: agencyForm.ceo || agencyForm.name || '관리자',
+          jobTitle: '대표',
           role: 'admin',
-          companyId: agencyForm.id,
+          companyId: companyId,
           permissions: { ALL: true },
-          createdAt: new Date().toISOString()
-        });
+          viewAllInventoryMovements: true,
+          viewAllReceivables: true,
+          allowAllEditDelete: true,
+          allowSpecialPriceSave: true,
+          createdAt: nowIso
+        };
+        await setDoc(adminRef, baseAdminStaff);
+
+        const initialStaffArray = [baseAdminStaff];
+        await saveBundle(companyId, 'staffList', initialStaffArray);
+
+        // 신규 회원사 데이터 독립 보장: 모든 번들 컬렉션을 빈 배열로 명시적 초기화하여 기존 회원사(동명크릴 등) 데이터 상속을 원천 차단
+        const emptyBundleCollections = [
+          'products', 'partners', 'categories', 'accounts', 'schedules',
+          'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 'salesOrders',
+          'vehicles', 'vehicleLogs', 'expenses', 'inventoryAdjustments',
+          'inventoryTransferHistory', 'specialPrices', 'actionLogs'
+        ];
+        for (const col of emptyBundleCollections) {
+          await saveBundle(companyId, col, []);
+        }
+
+        // 기본 메인 창고 1개 자동 생성
+        const defaultWarehouse = {
+          id: Date.now(),
+          name: '기본창고',
+          location: '',
+          manager: agencyForm.ceo || agencyForm.name || '관리자',
+          contact: agencyForm.managerContact || agencyForm.contact || '',
+          memo: '기본 생성 창고',
+          isMain: true,
+          companyId: companyId,
+          createdAt: nowIso
+        };
+        await saveBundle(companyId, 'warehouses', [defaultWarehouse]);
+        await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), defaultWarehouse);
+
+        // 재고 설정 초기화
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {} });
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {} });
       }
       
       alert(originalAgencyId ? '회원사 정보가 수정되었습니다.' : '신규 회원사가 등록되었습니다.');
@@ -580,12 +650,12 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   };
 
   const handleApproveInquiry = async (inquiry) => {
-    if (!window.confirm(`[${inquiry.companyName}] 대리점 가입 신청을 승인하시겠습니까?\n승인 시 즉시 회원사로 등록되며 관리자 계정이 생성됩니다.`)) return;
+    if (!window.confirm(`[${inquiry.companyName}] 회원사 가입 신청을 승인하시겠습니까?\n승인 시 즉시 회원사로 등록되며 관리자 계정이 생성됩니다.`)) return;
     try {
       const email = inquiry.email || '';
-      let baseId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      let baseId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
       if (!baseId) {
-        baseId = inquiry.companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        baseId = inquiry.companyName.toLowerCase().replace(/[^a-z0-9_]/g, '');
       }
       if (!baseId) {
         baseId = 'agency';
@@ -603,34 +673,91 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         }
       }
 
+      const nowIso = new Date().toISOString();
+      const trialStartDate = nowIso.split('T')[0];
+      const expiryDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const adminUserId = (inquiry.email || 'admin').trim().toLowerCase();
+
       const companyData = {
         id: companyId,
+        uid: inquiry.uid || `uid_${adminUserId}`,
+        adminId: adminUserId,
+        loginId: adminUserId,
         name: inquiry.companyName,
         ceo: inquiry.ceoName,
         email: inquiry.email,
         password: inquiry.password,
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        trialStartDate: trialStartDate,
+        expiryDate: expiryDate,
         status: 'active',
+        contact: inquiry.contact,
         managerContact: inquiry.contact,
-        category: inquiry.category || '유통업',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        category: inquiry.category || '회원사',
+        createdAt: nowIso,
+        updatedAt: nowIso
       };
       await setDoc(doc(db, 'companies', companyId), companyData);
 
-      const adminUserId = (inquiry.email || 'admin').trim().toLowerCase();
-      const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
-      await setDoc(adminRef, {
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
+        value: {
+          trialStartDate: trialStartDate,
+          expiryDate: expiryDate,
+          plan: '무료 체험판 (2개월)',
+          isLockedOnExpiry: false,
+          lastPaymentDate: null
+        }
+      });
+
+      const baseAdminStaff = {
         id: Date.now(),
         userId: adminUserId,
         password: inquiry.password,
-        name: inquiry.ceoName,
+        name: inquiry.ceoName || '관리자',
         jobTitle: '대표',
         role: 'admin',
         companyId: companyId,
         permissions: { ALL: true },
-        createdAt: new Date().toISOString()
-      });
+        viewAllInventoryMovements: true,
+        viewAllReceivables: true,
+        allowAllEditDelete: true,
+        allowSpecialPriceSave: true,
+        createdAt: nowIso
+      };
+      const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
+      await setDoc(adminRef, baseAdminStaff);
+
+      const initialStaffArray = [baseAdminStaff];
+      await saveBundle(companyId, 'staffList', initialStaffArray);
+
+      // 신규 회원사 데이터 독립 보장: 모든 번들 컬렉션을 빈 배열로 명시적 초기화하여 기존 회원사(동명크릴 등) 데이터 상속을 원천 차단
+      const emptyBundleCollections = [
+        'products', 'partners', 'categories', 'accounts', 'schedules',
+        'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 'salesOrders',
+        'vehicles', 'vehicleLogs', 'expenses', 'inventoryAdjustments',
+        'inventoryTransferHistory', 'specialPrices', 'actionLogs'
+      ];
+      for (const col of emptyBundleCollections) {
+        await saveBundle(companyId, col, []);
+      }
+
+      // 기본 메인 창고 1개 자동 생성
+      const defaultWarehouse = {
+        id: Date.now(),
+        name: '기본창고',
+        location: '',
+        manager: inquiry.ceoName || inquiry.companyName || '관리자',
+        contact: inquiry.contact || '',
+        memo: '기본 생성 창고',
+        isMain: true,
+        companyId: companyId,
+        createdAt: nowIso
+      };
+      await saveBundle(companyId, 'warehouses', [defaultWarehouse]);
+      await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), defaultWarehouse);
+
+      // 재고 설정 초기화
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {} });
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {} });
 
       await setDoc(doc(db, 'agency_inquiries', inquiry.id), {
         ...inquiry,
@@ -639,7 +766,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         processedAt: new Date().toISOString()
       });
 
-      alert(`[${inquiry.companyName}] 대리점 가입 승인이 완료되었습니다!\n발급된 회사 ID: ${companyId}\n관리자 ID: ${adminUserId}`);
+      alert(`[${inquiry.companyName}] 회원사 가입 승인이 완료되었습니다!\n발급된 회사 ID: ${companyId}\n관리자 ID: ${adminUserId}`);
     } catch (err) {
       console.error('Approve error:', err);
       alert('승인 처리 실패: ' + err.message);
@@ -954,7 +1081,10 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                               <Edit2 size={14} color="#64748b" />
                             </button>
                             <button 
-                              onClick={() => setDeletingAgency({ id: c.id, name: c.name })}
+                              onClick={() => {
+                                setDeleteConfirmIdInput('');
+                                setDeletingAgency({ id: c.id, name: c.name });
+                              }}
                               style={{ padding: '6px 12px', border: '1px solid #fee2e2', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer' }}
                               title="회원사 삭제"
                             >
@@ -2151,26 +2281,78 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       {/* Deletion Confirm Modal */}
       {deletingAgency && (
         <div className="sa-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 11000 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '420px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '440px', maxWidth: '92vw', padding: '40px 28px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Trash2 size={40} color="#ef4444" />
             </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>회원사 영구 삭제</h2>
-            <p style={{ color: '#64748b', lineHeight: 1.6, marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>회원사 영구 삭제 (2중 확인)</h2>
+            <p style={{ color: '#64748b', lineHeight: 1.6, marginBottom: '20px', fontSize: '0.92rem' }}>
               <strong style={{ color: '#0f172a' }}>[{deletingAgency.name}]</strong> 회원사와 관련된 모든 데이터를 삭제하시겠습니까?<br/>이 작업은 절대로 되돌릴 수 없습니다.
             </p>
+
+            <div style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px', textAlign: 'left' }}>
+              <div style={{ fontSize: '0.82rem', color: '#be123c', fontWeight: 700, marginBottom: '8px' }}>
+                안전 확인: 삭제할 회사의 메인 ID를 아래에 입력해 주세요.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #fda4af', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>대상 메인 ID</span>
+                <code style={{ fontSize: '0.9rem', fontWeight: 800, color: '#e11d48', letterSpacing: '0.3px' }}>{deletingAgency.id}</code>
+              </div>
+              <input
+                type="text"
+                value={deleteConfirmIdInput}
+                onChange={(e) => setDeleteConfirmIdInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isDeleting && deleteConfirmIdInput.trim() === String(deletingAgency.id)) {
+                    handleDeleteCompany();
+                  }
+                }}
+                placeholder={`"${deletingAgency.id}" 입력`}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '8px',
+                  border: deleteConfirmIdInput.trim() === String(deletingAgency.id) ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  textAlign: 'center'
+                }}
+              />
+            </div>
             
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                disabled={isDeleting}
+                disabled={isDeleting || deleteConfirmIdInput.trim() !== String(deletingAgency.id)}
                 onClick={handleDeleteCompany} 
-                style={{ flex: 1, padding: '14px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: isDeleting ? 'not-allowed' : 'pointer', opacity: isDeleting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  backgroundColor: deleteConfirmIdInput.trim() === String(deletingAgency.id) ? '#ef4444' : '#cbd5e1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  cursor: (isDeleting || deleteConfirmIdInput.trim() !== String(deletingAgency.id)) ? 'not-allowed' : 'pointer',
+                  opacity: isDeleting ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
               >
-                {isDeleting ? '데이터 정리 중...' : '네, 삭제하겠습니다'}
+                {isDeleting ? '데이터 정리 중...' : '네, 영구 삭제합니다'}
               </button>
               <button 
                 disabled={isDeleting}
-                onClick={() => setDeletingAgency(null)} 
+                onClick={() => {
+                  setDeletingAgency(null);
+                  setDeleteConfirmIdInput('');
+                }} 
                 style={{ flex: 1, padding: '14px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}
               >
                 취소

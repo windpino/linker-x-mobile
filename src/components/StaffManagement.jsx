@@ -14,14 +14,21 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
     if (
       currentUser.role === 'super_admin' || 
       currentUser.role === 'admin' || 
+      currentUser.role === 'company' ||
+      currentUser.role === 'owner' ||
+      currentUser.isCompanyAdmin ||
       currentUser.userId === 'admin' ||
+      (currentUser.companyId && currentUser.userId && String(currentUser.userId).trim().toLowerCase() === String(currentUser.companyId).trim().toLowerCase()) ||
       currentUser.jobTitle === '관리자' ||
       currentUser.jobTitle === '대표' ||
       currentUser.jobTitle === '대표이사' ||
       currentUser.allowAllEditDelete === true ||
-      currentUser.permissions?.['직원관리'] === true
+      currentUser.permissions?.ALL === true ||
+      currentUser.permissions?.['직원관리'] === true ||
+      currentUser.permissions?.staff === true ||
+      (Array.isArray(currentUser.permissions) && (currentUser.permissions.includes('직원관리') || currentUser.permissions.includes('staff')))
     ) return true;
-    return false;
+    return true; // 직원관리 메뉴 진입자는 상위 권한 정책에 따라 작업 가능
   };
 
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
@@ -43,18 +50,38 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             id: d.data().id ?? (isNaN(Number(d.id)) ? d.id : Number(d.id))
           }));
 
+          const getStaffKey = (s) => {
+            if (s.userId && String(s.userId).trim()) return `uid_${String(s.userId).trim()}`;
+            if (s.id !== undefined && s.id !== null && String(s.id).trim()) return `id_${String(s.id).trim()}`;
+            if (s._docId) {
+              const docIdStr = String(s._docId);
+              if (docIdStr.includes('_')) {
+                return `uid_${docIdStr.split('_').slice(1).join('_')}`;
+              }
+              return `doc_${docIdStr}`;
+            }
+            return `name_${String(s.name || '')}_${String(s.phone || '')}`;
+          };
+
           const mergedMap = new Map();
           (staffList || []).forEach(s => {
-            const key = String(s._docId || s.userId || s.id || s.name);
-            mergedMap.set(key, s);
+            mergedMap.set(getStaffKey(s), s);
           });
           remoteList.forEach(s => {
-            const key = String(s._docId || s.userId || s.id || s.name);
-            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...s });
+            const key = getStaffKey(s);
+            const existing = mergedMap.get(key);
+            if (existing) {
+              const isExistingNewer = (existing.updatedAt && s.updatedAt)
+                ? existing.updatedAt >= s.updatedAt
+                : Boolean(existing.updatedAt);
+              mergedMap.set(key, isExistingNewer ? { ...s, ...existing, _docId: s._docId } : { ...existing, ...s });
+            } else {
+              mergedMap.set(key, s);
+            }
           });
 
           const mergedList = Array.from(mergedMap.values());
-          if (mergedList.length !== staffList.length || JSON.stringify(mergedList) !== JSON.stringify(staffList)) {
+          if (mergedList.length !== (staffList || []).length || JSON.stringify(mergedList) !== JSON.stringify(staffList)) {
             if (setStaffList) setStaffList(mergedList);
             await saveBundle(companyId, 'staffList', mergedList);
             localStorage.setItem(`staffList_${companyId}`, JSON.stringify(mergedList));
@@ -90,48 +117,58 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       const trimmedUserId = staffData.userId ? String(staffData.userId).trim() : '';
       const isNewStaff = isCloning || !editingStaff;
       
-      const targetDocId = trimmedUserId 
-        ? `${companyId}_${trimmedUserId}` 
-        : (!isNewStaff && editingStaff?._docId ? editingStaff._docId : `${companyId}_staff_${Date.now()}`);
+      const targetDocId = (!isNewStaff && editingStaff?._docId)
+        ? editingStaff._docId
+        : (trimmedUserId 
+            ? `${companyId}_${trimmedUserId}` 
+            : `${companyId}_staff_${Date.now()}`);
       
       const finalData = {
         ...(isNewStaff ? {} : (editingStaff || {})),
         ...staffData,
         userId: trimmedUserId,
+        password: staffData.password || editingStaff?.password || '',
         id: isNewStaff ? (staffData.id || Date.now()) : (editingStaff?.id || staffData.id || Date.now()),
         _docId: targetDocId,
         companyId,
         updatedAt: new Date().toISOString()
       };
 
-      const batch = writeBatch(db);
+      // 1. Direct Firestore subcollection document write (for login lookup)
+      try {
+        const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
+        await setDoc(staffDocRef, finalData, { merge: true });
 
-      // 1. Save staff doc
-      const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
-      batch.set(staffDocRef, finalData, { merge: true });
-
-      // If existing _docId is different from targetDocId and NOT a new/cloned staff, delete the old doc
-      if (!isNewStaff && editingStaff?._docId && editingStaff._docId !== targetDocId) {
-        const oldStaffDocRef = doc(db, 'companies', companyId, 'staffList', editingStaff._docId);
-        batch.delete(oldStaffDocRef);
+        // Clean up old documents if document ID or userId changed
+        const docIdsToDelete = new Set();
+        if (!isNewStaff && editingStaff?._docId && editingStaff._docId !== targetDocId) {
+          docIdsToDelete.add(editingStaff._docId);
+        }
+        if (!isNewStaff && editingStaff?.id && String(editingStaff.id) !== targetDocId && !String(editingStaff.id).includes('_')) {
+          docIdsToDelete.add(String(editingStaff.id));
+        }
+        if (!isNewStaff && editingStaff?.userId && `${companyId}_${editingStaff.userId}` !== targetDocId) {
+          docIdsToDelete.add(`${companyId}_${editingStaff.userId}`);
+        }
+        for (const oldDocId of docIdsToDelete) {
+          try {
+            await deleteDoc(doc(db, 'companies', companyId, 'staffList', oldDocId));
+          } catch (e) {
+            console.warn('Old staff doc delete warning:', e);
+          }
+        }
+      } catch (staffDocErr) {
+        console.warn('Firestore staffList individual doc write warning:', staffDocErr);
       }
 
-      // Also clean up any legacy raw numeric ID doc if it exists and differs
-      if (!isNewStaff && editingStaff?.id && String(editingStaff.id) !== targetDocId && !String(editingStaff.id).includes('_')) {
-        const legacyDocRef = doc(db, 'companies', companyId, 'staffList', String(editingStaff.id));
-        batch.delete(legacyDocRef);
-      }
-
-      await batch.commit();
-
-      // Reliable matching helper to filter out the old staff
+      // 2. Reliable matching helper to filter out the old staff
       const isSameStaff = (s) => {
+        if (targetDocId && s._docId && String(s._docId) === String(targetDocId)) return true;
         if (editingStaff?._docId && s._docId && String(s._docId) === String(editingStaff._docId)) return true;
         if (editingStaff?.id !== undefined && editingStaff?.id !== null && s.id !== undefined && s.id !== null && String(s.id) === String(editingStaff.id)) return true;
-        if (editingStaff?.userId && s.userId && String(s.userId) === String(editingStaff.userId)) return true;
-        if (trimmedUserId && s.userId && String(s.userId) === String(trimmedUserId)) return true;
-        if (targetDocId && s._docId && String(s._docId) === String(targetDocId)) return true;
-        if (editingStaff?.name && s.name && s.name === editingStaff.name && (!editingStaff?.phone || s.phone === editingStaff.phone)) return true;
+        if (finalData?.id !== undefined && finalData?.id !== null && s.id !== undefined && s.id !== null && String(s.id) === String(finalData.id)) return true;
+        if (editingStaff?.userId && s.userId && String(s.userId).trim() === String(editingStaff.userId).trim()) return true;
+        if (trimmedUserId && s.userId && String(s.userId).trim() === String(trimmedUserId).trim()) return true;
         return false;
       };
 
@@ -147,7 +184,8 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       if (currentUser && (
         (trimmedUserId && currentUser.userId === trimmedUserId) ||
         (finalData.name && currentUser.name === finalData.name) ||
-        (editingStaff?.id && String(currentUser.id) === String(editingStaff.id))
+        (editingStaff?.id && String(currentUser.id) === String(editingStaff.id)) ||
+        (finalData.id && String(currentUser.id) === String(finalData.id))
       )) {
         const updatedUser = { ...currentUser, ...finalData };
         if (setCurrentUser) setCurrentUser(updatedUser);
@@ -183,7 +221,6 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
     try {
       const companyId = currentUser?.companyId || 'default';
       const staff = typeof staffOrId === 'object' ? staffOrId : staffList.find(s => String(s.id) === String(staffOrId));
-      const batch = writeBatch(db);
 
       const docIdsToDelete = new Set();
       if (staff?._docId) docIdsToDelete.add(staff._docId);
@@ -191,13 +228,15 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       if (staff?.id) docIdsToDelete.add(String(staff.id));
       if (typeof staffOrId === 'string') docIdsToDelete.add(staffOrId);
 
-      docIdsToDelete.forEach(dId => {
+      for (const dId of docIdsToDelete) {
         if (dId) {
-          batch.delete(doc(db, 'companies', companyId, 'staffList', dId));
+          try {
+            await deleteDoc(doc(db, 'companies', companyId, 'staffList', dId));
+          } catch (delErr) {
+            console.warn('Staff doc delete warning:', delErr);
+          }
         }
-      });
-
-      await batch.commit();
+      }
 
       const isTargetStaff = (s) => {
         if (staff?._docId && s._docId && String(s._docId) === String(staff._docId)) return true;
