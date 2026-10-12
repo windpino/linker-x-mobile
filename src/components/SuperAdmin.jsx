@@ -386,19 +386,39 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
       const adminSnap = await getDoc(adminRef);
       if (!adminSnap.exists()) {
+        // 모든 메뉴 접근 권한 체크박스 활성화 맵 생성
+        const allMenuPermissions = {
+          '재고이동': true, '직원관리': true, '창고관리': true, '차량관리': true, 
+          '거래처등록': true, '거래처관리': true, '품목등록': true, '품목관리': true, '특별단가관리': true,
+          '매입전표': true, '매입원장': true, '발주': true,
+          '매출전표': true, '매출전표내역': true, '매출원장': true, '수주': true,
+          '계좌관리': true, '입출금보고서': true, '금전출납부': true, '경비출금': true,
+          '일정': true, '매출보고서': true, '재고보고서': true, '전표수정/삭제 보고서': true, '직원 실적 보고서': true, '최근 처리 현황': true,
+          '데이터 전체 저장/불러오기': true, '거래처 엑셀파일로 저장/불러오기': true, '품목 엑셀파일로 저장/불러오기': true, '매출처원장 저장/불러오기': true, '매입처원장 저장/불러오기': true, '구글스프레드시트 연동': true,
+          '환경설정': true, '정품등록': true,
+          ALL: true
+        };
+
+        const staffPhone = agencyForm.managerContact || agencyForm.contact || '';
+
         const baseAdminStaff = {
           id: Date.now(),
           userId: adminUserId,
           password: agencyForm.password || '123456',
           name: agencyForm.ceo || agencyForm.name || '관리자',
+          phone: staffPhone,
           jobTitle: '대표',
           role: 'admin',
           companyId: companyId,
-          permissions: { ALL: true },
+          permissions: allMenuPermissions,
           viewAllInventoryMovements: true,
           viewAllReceivables: true,
           allowAllEditDelete: true,
           allowSpecialPriceSave: true,
+          viewOtherWarehouseOrders: true,
+          viewRecentActivity: true,
+          deleteRecentActivity: true,
+          restrictPartnerSearch: false,
           createdAt: nowIso
         };
         await setDoc(adminRef, baseAdminStaff);
@@ -708,19 +728,37 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         }
       });
 
+      // 모든 메뉴 접근 권한 체크박스 활성화 맵 생성
+      const allMenuPermissions = {
+        '재고이동': true, '직원관리': true, '창고관리': true, '차량관리': true, 
+        '거래처등록': true, '거래처관리': true, '품목등록': true, '품목관리': true, '특별단가관리': true,
+        '매입전표': true, '매입원장': true, '발주': true,
+        '매출전표': true, '매출전표내역': true, '매출원장': true, '수주': true,
+        '계좌관리': true, '입출금보고서': true, '금전출납부': true, '경비출금': true,
+        '일정': true, '매출보고서': true, '재고보고서': true, '전표수정/삭제 보고서': true, '직원 실적 보고서': true, '최근 처리 현황': true,
+        '데이터 전체 저장/불러오기': true, '거래처 엑셀파일로 저장/불러오기': true, '품목 엑셀파일로 저장/불러오기': true, '매출처원장 저장/불러오기': true, '매입처원장 저장/불러오기': true, '구글스프레드시트 연동': true,
+        '환경설정': true, '정품등록': true,
+        ALL: true
+      };
+
       const baseAdminStaff = {
         id: Date.now(),
         userId: adminUserId,
         password: inquiry.password,
         name: inquiry.ceoName || '관리자',
+        phone: inquiry.contact || '',
         jobTitle: '대표',
         role: 'admin',
         companyId: companyId,
-        permissions: { ALL: true },
+        permissions: allMenuPermissions,
         viewAllInventoryMovements: true,
         viewAllReceivables: true,
         allowAllEditDelete: true,
         allowSpecialPriceSave: true,
+        viewOtherWarehouseOrders: true,
+        viewRecentActivity: true,
+        deleteRecentActivity: true,
+        restrictPartnerSearch: false,
         createdAt: nowIso
       };
       const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
