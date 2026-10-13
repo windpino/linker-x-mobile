@@ -23,6 +23,31 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
 
   const themeColor = propThemeColor || '#f97316';
 
+  const isRepresentative = (user) => {
+    if (!user) return false;
+    return user.role === 'admin' || 
+           user.role === 'super_admin' || 
+           user.role === 'representative' || 
+           user.role === 'ceo' ||
+           user.userId === 'admin' ||
+           user.jobTitle === '대표' || 
+           user.jobTitle === '대표자' || 
+           user.jobTitle === '대표이사' ||
+           user.permissions?.ALL === true;
+  };
+
+  const isRep = isRepresentative(currentUser);
+  const canViewPrice = isRep || Boolean(
+    currentUser?.permissions?.['상품금액노출'] || 
+    currentUser?.permissions?.['발주_상품금액노출'] || 
+    currentUser?.showPurchasePrice
+  );
+
+  // 기본적으로 대표자 외에는 모두 가리기로 기본 설정
+  const [showAmount, setShowAmount] = useState(() => {
+    return isRep;
+  });
+
   const [orderData, setOrderData] = useState({
     id: Date.now(),
     date: new Date().toISOString().split('T')[0],
@@ -474,8 +499,39 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
 
           {(!isMobileView || activeMobileTab === 'preview') && (
             <div className="so-pane-right">
-              <div className="so-preview-header">
+              <div className="so-preview-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3>실시간 발주 내역 ({parsedItems.length}건)</h3>
+                <label 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    color: canViewPrice ? '#334155' : '#94a3b8',
+                    cursor: canViewPrice ? 'pointer' : 'not-allowed',
+                    userSelect: 'none',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: showAmount ? '#fff7ed' : '#f1f5f9',
+                    border: showAmount ? '1px solid #fed7aa' : '1px solid #e2e8f0',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={!canViewPrice ? "직원관리의 '상품금액노출' 권한이 필요합니다. (대표자 외 기본 가리기)" : "발주 품목 금액 및 총액 표시/가리기"}
+                >
+                  <input 
+                    type="checkbox"
+                    checked={showAmount}
+                    disabled={!canViewPrice}
+                    onChange={(e) => {
+                      if (canViewPrice) {
+                        setShowAmount(e.target.checked);
+                      }
+                    }}
+                    style={{ margin: 0, cursor: canViewPrice ? 'pointer' : 'not-allowed' }}
+                  />
+                  <span>금액 표시 {!canViewPrice && '(권한필요)'}</span>
+                </label>
               </div>
               
               <div className="so-preview-table-container">
@@ -491,8 +547,8 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                         <th>품목명</th>
                         <th>규격</th>
                         <th style={{ textAlign: 'right' }}>수량</th>
-                        <th style={{ textAlign: 'right' }}>단가</th>
-                        <th style={{ textAlign: 'right' }}>금액</th>
+                        {showAmount && <th style={{ textAlign: 'right' }}>단가</th>}
+                        {showAmount && <th style={{ textAlign: 'right' }}>금액</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -501,8 +557,8 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                           <td style={{ fontWeight: 600 }}>{item.name}</td>
                           <td style={{ color: '#64748b', fontSize: '0.85rem' }}>{item.spec}</td>
                           <td style={{ textAlign: 'right', fontWeight: 600, color: themeColor }}>{item.qty.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{item.price.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{item.total.toLocaleString()}</td>
+                          {showAmount && <td style={{ textAlign: 'right' }}>{item.price.toLocaleString()}</td>}
+                          {showAmount && <td style={{ textAlign: 'right', fontWeight: 600 }}>{item.total.toLocaleString()}</td>}
                         </tr>
                       ))}
                     </tbody>
@@ -515,10 +571,17 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                   <span>총 발주 수량</span>
                   <span className="so-summary-value">{parsedTotalQty.toLocaleString()} <small>개</small></span>
                 </div>
-                <div className="so-summary-row total">
-                  <span>총 발주 금액</span>
-                  <span className="so-summary-value highlight">{parsedTotalPrice.toLocaleString()} <small>원</small></span>
-                </div>
+                {showAmount ? (
+                  <div className="so-summary-row total">
+                    <span>총 발주 금액</span>
+                    <span className="so-summary-value highlight">{parsedTotalPrice.toLocaleString()} <small>원</small></span>
+                  </div>
+                ) : (
+                  <div className="so-summary-row total" style={{ opacity: 0.75 }}>
+                    <span>총 발주 금액</span>
+                    <span className="so-summary-value" style={{ fontSize: '0.9rem', color: '#94a3b8' }}>비공개</span>
+                  </div>
+                )}
               </div>
 
               <div className="so-action-buttons">

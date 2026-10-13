@@ -44,6 +44,20 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   const isEditing = !!initialData;
   const titleText = isEditing ? "직원 정보 수정" : "신규 직원 등록";
   
+  const isRepTitle = (title) => {
+    return title === '대표' || title === '대표자' || title === '대표이사';
+  };
+
+  const isRepUser = (user) => {
+    if (!user) return false;
+    return user.role === 'admin' || 
+           user.role === 'super_admin' || 
+           user.userId === 'admin' || 
+           isRepTitle(user.jobTitle) ||
+           user.role === 'representative' || 
+           user.role === 'ceo';
+  };
+
   const [showPassword, setShowPassword] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [formData, setFormData] = useState({
@@ -62,6 +76,15 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     viewOtherWarehouseOrders: false,
     viewRecentActivity: false,
     deleteRecentActivity: false,
+    showPurchasePrice: isEditing ? (
+      initialData?.showPurchasePrice !== undefined 
+        ? Boolean(initialData.showPurchasePrice) 
+        : (initialData?.permissions?.['상품금액노출'] !== undefined 
+            ? Boolean(initialData.permissions['상품금액노출']) 
+            : (initialData?.permissions?.['발주_상품금액노출'] !== undefined 
+                ? Boolean(initialData.permissions['발주_상품금액노출']) 
+                : isRepUser(initialData)))
+    ) : false,
     permissions: {} // { '재고이동': true, ... }
   });
 
@@ -69,6 +92,15 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
 
   useEffect(() => {
     if (initialData) {
+      const isTargetRep = isRepUser(initialData);
+      const initialShowPrice = initialData.showPurchasePrice !== undefined 
+        ? Boolean(initialData.showPurchasePrice) 
+        : (initialData.permissions?.['상품금액노출'] !== undefined 
+            ? Boolean(initialData.permissions['상품금액노출']) 
+            : (initialData.permissions?.['발주_상품금액노출'] !== undefined 
+                ? Boolean(initialData.permissions['발주_상품금액노출']) 
+                : isTargetRep));
+
       setFormData({
         ...initialData,
         name: initialData.name || '',
@@ -86,6 +118,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         viewOtherWarehouseOrders: initialData.viewOtherWarehouseOrders || false,
         viewRecentActivity: Boolean(initialData.viewRecentActivity || initialData.permissions?.viewRecentActivity || initialData.permissions?.['최근 처리 현황']),
         deleteRecentActivity: Boolean(initialData.deleteRecentActivity || initialData.permissions?.deleteRecentActivity || initialData.permissions?.['최근 처리 이력 삭제 권한']),
+        showPurchasePrice: initialShowPrice,
         permissions: initialData.permissions || {}
       });
     } else {
@@ -105,6 +138,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         viewOtherWarehouseOrders: false,
         viewRecentActivity: false,
         deleteRecentActivity: false,
+        showPurchasePrice: false,
         permissions: {}
       });
     }
@@ -112,6 +146,19 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'jobTitle') {
+      const isRep = isRepTitle(value);
+      setFormData(prev => ({
+        ...prev,
+        jobTitle: value,
+        showPurchasePrice: isRep ? true : prev.showPurchasePrice,
+        permissions: {
+          ...prev.permissions,
+          ...(isRep ? { '상품금액노출': true, '발주_상품금액노출': true } : {})
+        }
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -153,13 +200,22 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         formData.permissions?.['최근 처리 현황']
       );
 
+      const isShowPurchasePrice = Boolean(
+        formData.showPurchasePrice || 
+        formData.permissions?.['상품금액노출'] || 
+        formData.permissions?.['발주_상품금액노출']
+      );
+
       const enrichedPermissions = {
         ...(formData.permissions || {}),
         deleteRecentActivity: isDeleteActivity,
         '최근 처리 이력 삭제 권한': isDeleteActivity,
         viewRecentActivity: isViewActivity,
         '최근 처리 현황': isViewActivity,
-        '최근 처리 현황 권한': isViewActivity
+        '최근 처리 현황 권한': isViewActivity,
+        '상품금액노출': isShowPurchasePrice,
+        '발주_상품금액노출': isShowPurchasePrice,
+        showPurchasePrice: isShowPurchasePrice
       };
 
       if (isCloning) {
@@ -174,6 +230,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         const { _docId, ...cleanForm } = formData;
         onSave({ 
           ...cleanForm, 
+          showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
           viewRecentActivity: isViewActivity,
           permissions: enrichedPermissions,
@@ -182,6 +239,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
       } else {
         const payload = {
           ...formData,
+          showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
           viewRecentActivity: isViewActivity,
           password: formData.password || initialData?.password || '',
@@ -452,16 +510,69 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                   </div>
                   
                   <div className="menu-items-grid">
-                    {group.items.map(item => (
-                      <label key={item} className="checkbox-label item-label">
-                        <input 
-                          type="checkbox" 
-                          checked={formData.permissions[item] || false} 
-                          onChange={(e) => handlePermissionChange(item, e.target.checked)} 
-                        />
-                        <span className="item-text">{item}</span>
-                      </label>
-                    ))}
+                    {group.items.map(item => {
+                      if (item === '발주') {
+                        return (
+                          <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <label className="checkbox-label item-label" style={{ margin: 0 }}>
+                              <input 
+                                type="checkbox" 
+                                checked={formData.permissions[item] || false} 
+                                onChange={(e) => handlePermissionChange(item, e.target.checked)} 
+                              />
+                              <span className="item-text">{item}</span>
+                            </label>
+                            <label 
+                              style={{ 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '4px', 
+                                padding: '2px 8px', 
+                                background: formData.showPurchasePrice ? '#fff7ed' : '#f8fafc', 
+                                border: formData.showPurchasePrice ? '1px solid #fed7aa' : '1px solid #cbd5e1', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer',
+                                fontSize: '0.78rem',
+                                color: formData.showPurchasePrice ? '#c2410c' : '#64748b',
+                                fontWeight: 700,
+                                userSelect: 'none',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title="발주 등록 시 품목 단가, 금액 및 총액 노출 여부 (대표자 외 기본 가리기)"
+                            >
+                              <input 
+                                type="checkbox" 
+                                checked={Boolean(formData.showPurchasePrice || formData.permissions?.['상품금액노출'] || formData.permissions?.['발주_상품금액노출'])} 
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    showPurchasePrice: checked,
+                                    permissions: {
+                                      ...prev.permissions,
+                                      '상품금액노출': checked,
+                                      '발주_상품금액노출': checked
+                                    }
+                                  }));
+                                }} 
+                                style={{ margin: 0, cursor: 'pointer' }}
+                              />
+                              <span>상품금액노출</span>
+                            </label>
+                          </div>
+                        );
+                      }
+                      return (
+                        <label key={item} className="checkbox-label item-label">
+                          <input 
+                            type="checkbox" 
+                            checked={formData.permissions[item] || false} 
+                            onChange={(e) => handlePermissionChange(item, e.target.checked)} 
+                          />
+                          <span className="item-text">{item}</span>
+                        </label>
+                      );
+                    })}
                     {group.category === '매출/수주관리' && (
                       <label className="checkbox-label item-label" style={{ gridColumn: 'span 2', color: '#2563eb', fontWeight: 'bold', borderTop: '1px dotted #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
                         <input 
