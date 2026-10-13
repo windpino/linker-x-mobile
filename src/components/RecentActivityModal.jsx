@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { History, Printer, Download, Search, Calendar, Trash2, Users, X, Clock } from 'lucide-react';
+import { History, Printer, Download, Search, Calendar, Trash2, Users, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 
@@ -72,6 +72,24 @@ const RecentActivityModal = ({
   const [dateFilter, setDateFilter] = useState('');
   const [selectedActIds, setSelectedActIds] = useState([]);
   const [localRetentionPeriod, setLocalRetentionPeriod] = useState(retentionPeriod || 'none');
+
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const shiftDate = (days) => {
+    const baseStr = dateFilter || getTodayStr();
+    const parts = baseStr.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      d.setDate(d.getDate() + days);
+      const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      setDateFilter(nextStr);
+    } else {
+      setDateFilter(getTodayStr());
+    }
+  };
 
   useEffect(() => {
     if (retentionPeriod) {
@@ -534,17 +552,92 @@ const RecentActivityModal = ({
 
           {/* Date & Search Filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#ffffff', padding: '4px 8px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <Calendar size={14} color="#64748b" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#ffffff', padding: '3px 6px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+              <button
+                type="button"
+                onClick={() => shiftDate(-1)}
+                title="하루 전 (이전일)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              <Calendar size={14} color="#64748b" style={{ marginLeft: '2px' }} />
               <input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                style={{ border: 'none', background: 'transparent', fontSize: '0.78rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'transparent', fontSize: '0.78rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer', padding: '2px 0' }}
               />
+
+              <button
+                type="button"
+                onClick={() => shiftDate(1)}
+                title="하루 뒤 (다음일)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDateFilter(getTodayStr())}
+                title="오늘 날짜로 이동"
+                style={{
+                  padding: '3px 7px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  backgroundColor: dateFilter === getTodayStr() ? '#eff6ff' : '#ffffff',
+                  color: dateFilter === getTodayStr() ? '#2563eb' : '#475569',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  fontWeight: 700
+                }}
+              >
+                오늘
+              </button>
+
               {dateFilter && (
-                <button onClick={() => setDateFilter('')} style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                  초기화
+                <button
+                  type="button"
+                  onClick={() => setDateFilter('')}
+                  title="날짜 필터 해제 (전체 보기)"
+                  style={{
+                    padding: '3px 7px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '4px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    fontWeight: 700
+                  }}
+                >
+                  전체
                 </button>
               )}
             </div>
