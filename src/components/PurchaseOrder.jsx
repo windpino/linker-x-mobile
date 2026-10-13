@@ -10,9 +10,16 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = true;
 
-  const defaultWH = warehouses.find(w => w.isMain)?.name || 
-                    warehouses.find(w => w.name.includes('메인'))?.name || 
-                    (warehouses.length > 0 ? warehouses[0].name : '본사');
+  const getMainWH = (whList) => {
+    if (!whList || whList.length === 0) return '본사';
+    return whList.find(w => w.isMain)?.name || 
+           whList.find(w => (w.name || '').includes('메인'))?.name || 
+           whList.find(w => (w.name || '').includes('본사'))?.name || 
+           whList[0]?.name || 
+           '본사';
+  };
+
+  const defaultWH = getMainWH(warehouses);
 
   const themeColor = propThemeColor || '#f97316';
 
@@ -25,6 +32,17 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
     manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
     warehouse: defaultWH
   });
+
+  const userChangedWarehouseRef = useRef(false);
+
+  useEffect(() => {
+    if (warehouses && warehouses.length > 0 && !userChangedWarehouseRef.current) {
+      const targetMain = getMainWH(warehouses);
+      if (targetMain && orderData.warehouse !== targetMain) {
+        setOrderData(prev => ({ ...prev, warehouse: targetMain }));
+      }
+    }
+  }, [warehouses]);
 
   const [activeMobileTab, setActiveMobileTab] = useState('input');
   const [isBasicInfoCollapsed, setIsBasicInfoCollapsed] = useState(false);
@@ -190,11 +208,13 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
       items: parsedItems
     });
     
+    userChangedWarehouseRef.current = false;
     setOrderData(prev => ({
       ...prev,
       id: Date.now(),
       itemsText: '',
-      memo: ''
+      memo: '',
+      warehouse: getMainWH(warehouses)
     }));
     
     alert('발주가 저장되었습니다.');
@@ -264,6 +284,7 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
           </div>
           <div className="so-header-actions">
             <button className="so-btn-outline" onClick={() => {
+              userChangedWarehouseRef.current = false;
               setOrderData({
                 id: Date.now(),
                 date: new Date().toISOString().split('T')[0],
@@ -271,7 +292,7 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                 itemsText: '',
                 memo: '',
                 manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
-                warehouse: defaultWH
+                warehouse: getMainWH(warehouses)
               });
             }}>
               <RefreshCw size={14} /> 새발주
@@ -332,9 +353,20 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                     </div>
                     <div className="form-group" style={{ gridColumn: 'span 2' }}>
                       <label>입고 창고</label>
-                      <select value={orderData.warehouse} onChange={(e) => setOrderData({...orderData, warehouse: e.target.value})}>
+                      <select 
+                        value={orderData.warehouse} 
+                        onChange={(e) => {
+                          userChangedWarehouseRef.current = true;
+                          setOrderData({ ...orderData, warehouse: e.target.value });
+                        }}
+                      >
+                        {!warehouses.some(wh => wh.name === orderData.warehouse) && orderData.warehouse && (
+                          <option value={orderData.warehouse}>{orderData.warehouse}</option>
+                        )}
                         {warehouses.map(wh => (
-                          <option key={wh.id} value={wh.name}>{wh.name}</option>
+                          <option key={wh.id || wh.name} value={wh.name}>
+                            {wh.name}{wh.isMain && !wh.name.includes('메인') ? ' (메인)' : ''}
+                          </option>
                         ))}
                       </select>
                     </div>
