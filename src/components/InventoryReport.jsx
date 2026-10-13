@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown } from 'lucide-react';
+import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -154,6 +154,20 @@ const InventoryReport = ({
     }
 
     setFilters(prev => ({ ...prev, startDate: start, endDate: end }));
+  };
+
+  const handleShiftDay = (delta) => {
+    const shift = (dateStr) => {
+      const d = dateStr ? new Date(dateStr) : new Date();
+      if (isNaN(d.getTime())) return dateStr;
+      d.setDate(d.getDate() + delta);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    setFilters(prev => ({
+      ...prev,
+      startDate: shift(prev.startDate),
+      endDate: shift(prev.endDate)
+    }));
   };
 
   const handleMemoClick = (row) => {
@@ -432,6 +446,26 @@ const InventoryReport = ({
           {activeTab === 'daily' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleShiftDay(-1)}
+                  title="하루 전 (-1일)"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#fff',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                </button>
                 <input 
                   type="date" 
                   value={filters.startDate} 
@@ -445,6 +479,26 @@ const InventoryReport = ({
                   onChange={e => setFilters({...filters, endDate: e.target.value})} 
                   style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0, fontWeight: 600 }} 
                 />
+                <button
+                  type="button"
+                  onClick={() => handleShiftDay(1)}
+                  title="하루 후 (+1일)"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#fff',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
 
               <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
