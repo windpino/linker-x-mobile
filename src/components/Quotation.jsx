@@ -21,6 +21,7 @@ import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
+import './Quotation.css';
 
 // 한글 금액 변환 헬퍼 (견적서 인쇄용)
 const numberToKorean = (number) => {
@@ -385,13 +386,13 @@ const Quotation = ({
       width="100%" 
       contentPadding="0"
     >
-      <div className="so-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="qo-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Header Bar */}
-        <div className="so-header" style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="so-title" style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="qo-header" style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="qo-title" style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileSpreadsheet size={18} color="#2563eb" />
             <span>{editingQuotation ? "견적서 수정" : "견적서"}</span>
-            <span className="so-date-badge" style={{ fontSize: '0.78rem', padding: '2px 8px' }}>
+            <span className="qo-date-badge" style={{ fontSize: '0.78rem', padding: '2px 8px' }}>
               <input 
                 type="date"
                 value={quotationData.date}
@@ -402,11 +403,11 @@ const Quotation = ({
           </div>
 
           <div style={{ display: 'flex', gap: '6px' }}>
-            <button className="so-btn-outline" onClick={handleNewQuotation} style={{ padding: '5px 10px', fontSize: '0.8rem' }}>
+            <button className="qo-btn-outline" onClick={handleNewQuotation} style={{ padding: '5px 10px', fontSize: '0.8rem' }}>
               <RefreshCw size={12} /> 새견적
             </button>
             <button 
-              className="so-btn-outline" 
+              className="qo-btn-outline" 
               onClick={() => {
                 if (parsedItems.length === 0) {
                   showToast('인쇄할 견적 내역이 없습니다.', 'error');
@@ -422,16 +423,16 @@ const Quotation = ({
         </div>
 
         {/* Mobile Tabs */}
-        <div className="so-mobile-tabs" style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+        <div className="qo-mobile-tabs" style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
           <button 
-            className={`so-mobile-tab-btn ${activeMobileTab === 'input' ? 'active' : ''}`}
+            className={`qo-mobile-tab-btn ${activeMobileTab === 'input' ? 'active' : ''}`}
             onClick={() => setActiveMobileTab('input')}
             style={{ flex: 1, padding: '10px', border: 'none', background: activeMobileTab === 'input' ? '#eff6ff' : '#fff', color: activeMobileTab === 'input' ? '#2563eb' : '#64748b', fontWeight: 700, fontSize: '0.85rem' }}
           >
             견적 입력 (약칭/수량)
           </button>
           <button 
-            className={`so-mobile-tab-btn ${activeMobileTab === 'preview' ? 'active' : ''}`}
+            className={`qo-mobile-tab-btn ${activeMobileTab === 'preview' ? 'active' : ''}`}
             onClick={() => {
               setActiveMobileTab('preview');
               if (document.activeElement) document.activeElement.blur();
@@ -442,10 +443,10 @@ const Quotation = ({
           </button>
         </div>
 
-        <div className="so-body" style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
+        <div className="qo-body" style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
           {activeMobileTab === 'input' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="so-card" style={{ background: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
+              <div className="qo-card" style={{ background: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <div className="form-group" style={{ marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>거래처명</label>
                   <PartnerSearchInput 
@@ -487,7 +488,7 @@ const Quotation = ({
                 </div>
               </div>
 
-              <div className="so-card" style={{ background: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
+              <div className="qo-card" style={{ background: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>견적 품목 빠른 입력</span>
                   <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>예: 사과10 배5</span>
