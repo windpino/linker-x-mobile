@@ -41,12 +41,36 @@ const Header = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const hasPerm = (perm) => {
+    if (!currentUser) return false;
+    if (currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin' || currentUser?.permissions?.ALL === true) return true;
+    const p = currentUser?.permissions || {};
+    if (p[perm] !== undefined) return Boolean(p[perm]);
+
+    // Backwards compatibility fallbacks if new permission key not yet explicitly saved on user
+    if (perm === '실재고 입력') return Boolean(p['재고이동']);
+    if (perm === '재고 이동 현황 관리') return Boolean(p['재고이동']);
+    if (perm === '재고조정 (손실처리)' || perm === '재고조정') return Boolean(p['재고조정 (손실처리)'] || p['재고조정'] || p['재고이동']);
+    if (perm === '재고 불일치 현황') return Boolean(p['재고 불일치 현황'] || p['재고보고서']);
+    if (perm === '매출처 미수금현황' || perm === '미수금관리') return Boolean(p['매출처 미수금현황'] || p['매출원장'] || p['미수금 보고서'] || p['미수금관리']);
+    if (perm === '매입처미지급현황') return Boolean(p['매입처미지급현황'] || p['매입원장']);
+    if (perm === '수주보고서') return Boolean(p['수주보고서'] || p['수주']);
+    if (perm === '미수금 보고서' || perm === '미수금보고서') return Boolean(p['미수금 보고서'] || p['미수금보고서'] || p['매출원장'] || p['매출처 미수금현황']);
+    if (perm === '견적서') return Boolean(p['수주'] || p['매출전표']);
+    if (perm === '세금신고 지원 보고서') return true;
+    if (perm === '거래처몰') return true;
+    if (perm === '환경설정') return Boolean(p['환경설정']);
+    if (perm === '정품등록') return Boolean(p['정품등록']);
+
+    return false;
+  };
+
   const getMenuItems = () => [
     {
       title: '거래처몰',
       category: '바로가기',
       action: onOpenPartnerMall,
-      perm: true,
+      perm: hasPerm('거래처몰'),
     },
     {
       title: '플랫폼 관리',
@@ -194,7 +218,7 @@ const Header = ({
       title: '실재고 입력',
       category: '재고관리',
       action: onOpenPhysicalInventory,
-      perm: hasPerm('재고이동') || hasPerm('재고보고서'),
+      perm: hasPerm('실재고 입력'),
       keywords: '실재고입력 재고실사 실사 재고입력 실재고',
     },
     {
@@ -215,7 +239,7 @@ const Header = ({
       title: '수주보고서',
       category: '스마트지원',
       action: onOpenOrderReport,
-      perm: hasPerm('수주'),
+      perm: hasPerm('수주보고서'),
       keywords: '수주보고서 수주현황',
     },
     {
@@ -257,35 +281,35 @@ const Header = ({
       title: '미수금관리',
       category: '스마트지원',
       action: onOpenReceivablesReport,
-      perm: true,
+      perm: hasPerm('매출처 미수금현황'),
       keywords: '외상 외상값 못받은돈 미수금조회',
     },
     {
       title: '재고조정 (손실처리)',
       category: '재고관리',
       action: onOpenInventoryAdjustment,
-      perm: true,
+      perm: hasPerm('재고조정 (손실처리)'),
       keywords: '재고조정 손실처리 재고수량조정',
     },
     {
       title: '재고 불일치 현황',
       category: '재고관리',
       action: onOpenInventoryMismatch,
-      perm: true,
+      perm: hasPerm('재고 불일치 현황'),
       keywords: '재고불일치 실사재고 장부재고 차이조정',
     },
     {
       title: '재고 이동 현황 관리',
       category: '재고관리',
       action: onOpenInventoryMovementManager,
-      perm: hasPerm('재고이동'),
+      perm: hasPerm('재고 이동 현황 관리'),
       keywords: '재고이동 현황 목록 이동내역 관리 수정 삭제',
     },
     {
       title: '세금신고 지원 보고서',
       category: '스마트지원',
       action: onOpenTaxReport,
-      perm: true,
+      perm: hasPerm('세금신고 지원 보고서'),
       keywords: '부가세 세무 세금계산서 세금신고',
     },
     {
@@ -300,7 +324,7 @@ const Header = ({
       title: '환경설정',
       category: '환경설정',
       action: onOpenSettings,
-      perm: true,
+      perm: hasPerm('환경설정'),
       keywords: '설정 옵션 회사정보',
     }
   ];
@@ -356,11 +380,6 @@ const Header = ({
       setSearchQuery('');
       setIsSearchFocused(false);
     }
-  };
-
-  const hasPerm = (perm) => {
-    if (currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
-    return currentUser?.permissions?.[perm];
   };
 
   const handleMenuClick = (menu) => {
@@ -558,11 +577,11 @@ const Header = ({
               { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
             ]},
             { id: 'inventory', label: '재고관리', items: [
-              { perm: true, label: '실재고 입력', action: onOpenPhysicalInventory },
+              { perm: hasPerm('실재고 입력'), label: '실재고 입력', action: onOpenPhysicalInventory },
               { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
-              { perm: hasPerm('재고이동'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
-              { perm: true, label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
-              { perm: true, label: '재고 불일치 현황', action: onOpenInventoryMismatch },
+              { perm: hasPerm('재고 이동 현황 관리'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
+              { perm: hasPerm('재고조정 (손실처리)'), label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
+              { perm: hasPerm('재고 불일치 현황'), label: '재고 불일치 현황', action: onOpenInventoryMismatch },
               { perm: hasPerm('재고보고서'), label: '일자별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('daily') },
               { perm: hasPerm('재고보고서'), label: '최종 재고 현황', action: () => onOpenInventoryReport && onOpenInventoryReport('final') },
               { perm: hasPerm('재고보고서'), label: '매입처별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('partner') },
@@ -578,7 +597,7 @@ const Header = ({
               { perm: hasPerm('매출원장'), label: '매출원장', action: onOpenSalesLedger },
               { perm: hasPerm('수주'), label: '간편수주 등록', action: onOpenSalesOrder },
               { perm: hasPerm('수주'), label: '수주목록', action: onOpenOrderList },
-              { perm: true, label: '견적서', action: onOpenQuotation },
+              { perm: hasPerm('견적서'), label: '견적서', action: onOpenQuotation },
             ]},
             { id: 'cash_mgmt', label: '입출금관리', items: [
               { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
@@ -590,16 +609,16 @@ const Header = ({
             ]},
             { id: 'report_management', label: '스마트지원', items: [
               { perm: hasPerm('매출보고서'), label: '매출보고서', action: onOpenSalesReport },
-              { perm: hasPerm('수주'), label: '수주보고서', action: onOpenOrderReport },
+              { perm: hasPerm('수주보고서'), label: '수주보고서', action: onOpenOrderReport },
               { perm: hasPerm('전표수정/삭제 보고서'), label: '전표수정/삭제 보고서', action: onOpenEditDeleteReport },
               { perm: hasPerm('직원 실적 보고서'), label: '직원 실적 보고서', action: onOpenStaffPerformanceReport },
-              { perm: true, label: '미수금관리', action: onOpenReceivablesReport },
+              { perm: (hasPerm('미수금 보고서') || hasPerm('매출처 미수금현황')), label: '미수금관리', action: onOpenReceivablesReport },
               { perm: hasPerm('특별단가관리'), label: '거래처별 특별단가 관리', action: onOpenPartnerSpecialPriceManager },
-              { perm: true, label: '세금신고 지원 보고서', action: onOpenTaxReport },
+              { perm: hasPerm('세금신고 지원 보고서'), label: '세금신고 지원 보고서', action: onOpenTaxReport },
               { perm: hasPerm('일정'), label: '일정추가', action: onOpenScheduleList },
             ]},
             { id: 'settings_license', label: '환경설정', items: [
-              { perm: true, label: '환경설정', action: onOpenSettings },
+              { perm: hasPerm('환경설정'), label: '환경설정', action: onOpenSettings },
             ]}
           ].map(group => (
             <div key={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '8px' }}>

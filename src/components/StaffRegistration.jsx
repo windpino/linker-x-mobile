@@ -7,15 +7,19 @@ import { doc, setDoc } from 'firebase/firestore';
 const MENU_PERMISSIONS = [
   {
     category: '기초자료등록',
-    items: ['재고이동', '직원관리', '창고관리', '거래처등록', '거래처관리', '품목등록', '품목관리', '특별단가관리']
+    items: ['직원관리', '창고관리', '차량관리', '거래처등록', '거래처관리', '품목등록', '품목관리', '특별단가관리']
   },
   {
-    category: '매입/발주관리',
-    items: ['매입전표', '매입원장', '발주']
+    category: '재고관리',
+    items: ['실재고 입력', '재고이동', '재고 이동 현황 관리', '재고조정 (손실처리)', '재고 불일치 현황', '재고보고서']
   },
   {
     category: '매출/수주관리',
-    items: ['매출전표', '매출전표내역', '매출원장', '수주']
+    items: ['매출전표', '매출전표내역', '매출원장', '매출처 미수금현황', '수주', '견적서']
+  },
+  {
+    category: '매입/발주관리',
+    items: ['매입전표', '매입원장', '매입처미지급현황', '발주']
   },
   {
     category: '입출금관리',
@@ -23,15 +27,15 @@ const MENU_PERMISSIONS = [
   },
   {
     category: '스마트지원',
-    items: ['일정', '매출보고서', '재고보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '최근 처리 현황']
+    items: ['일정', '매출보고서', '수주보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '미수금 보고서', '세금신고 지원 보고서', '최근 처리 현황']
   },
   {
-    category: '시스템관리',
+    category: '데이터관리',
     items: ['데이터 전체 저장/불러오기', '거래처 엑셀파일로 저장/불러오기', '품목 엑셀파일로 저장/불러오기', '매출처원장 저장/불러오기', '매입처원장 저장/불러오기', '구글스프레드시트 연동']
   },
   {
     category: '환경설정&정품등록',
-    items: ['환경설정', '정품등록']
+    items: ['거래처몰', '환경설정', '정품등록']
   }
 ];
 
@@ -125,7 +129,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   };
 
   const handleCategoryToggle = (category, checked) => {
-    const categoryItems = MENU_PERMISSIONS.find(g => g.category === category).items;
+    const categoryGroup = MENU_PERMISSIONS.find(g => g.category === category);
+    if (!categoryGroup) return;
+    const categoryItems = categoryGroup.items;
     const newPermissions = { ...formData.permissions };
     categoryItems.forEach(item => {
       newPermissions[item] = checked;
