@@ -1291,7 +1291,7 @@ function App() {
     }
   };
 
-  const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null) => {
+  const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null, operator = null) => {
     try {
       const companyId = currentUser?.companyId || 'default';
       const getLocalDateStr = () => {
@@ -1324,7 +1324,7 @@ function App() {
         spec: product?.spec || '',
         qty: Number(qty),
         processedAt: moveTime,
-        operator: currentUser?.name || '시스템',
+        operator: operator || currentUser?.name || '시스템',
         memo: isAuto ? '상차(자동이동)' : '수동이동',
         salesOrderId: relatedOrderId ? String(relatedOrderId) : null,
         companyId
@@ -1341,7 +1341,7 @@ function App() {
         type: '이동',
         title: `재고이동 (${from} ➔ ${to})`,
         detail: `품목: ${productName} (${qty}개${product?.spec ? `, 규격: ${product.spec}` : ''}) | 구분: ${isAuto ? '상차(자동이동)' : '수동이동'}`,
-        user: currentUser?.name || '시스템',
+        user: operator || currentUser?.name || '시스템',
         targetId: String(historyId),
         date: moveDate,
         time: moveTime

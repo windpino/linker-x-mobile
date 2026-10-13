@@ -12,18 +12,16 @@ const InventoryTransfer = ({
   purchaseInvoices = [], onOpenPurchaseInvoice,
   initialDate, staffList = []
 }) => {
-  // ─── 컬럼 너비 조정 ───
+  // ─── 컬럼 너비 조정 (구분, 규격 제거) ───
   const [colWidths, setColWidths] = useState({
     select: 40,
     date: 110,
     from: 105,
     to: 105,
-    moveType: 85,
-    item: 190,
-    spec: 95,
+    item: 200,
     qty: 85,
     processedAt: 90,
-    operator: 85,
+    operator: 95,
     memo: 130,
     manage: 85
   });
@@ -110,11 +108,52 @@ const InventoryTransfer = ({
     }
   }, [initialDate]);
 
+  // ─── 메인 창고 & 담당자 기본 설정 ───
+  const mainWarehouseName = useMemo(() => {
+    const mainWh = warehouses.find(w => w.isMain) || 
+      warehouses.find(w => (w.name || '').includes('메인') || (w.name || '').includes('본사')) || 
+      warehouses[0];
+    return mainWh?.name || '본사창고';
+  }, [warehouses]);
+
+  const defaultToWarehouse = useMemo(() => {
+    if (currentUser?.warehouse && currentUser.warehouse !== '-' && currentUser.warehouse !== mainWarehouseName) {
+      return currentUser.warehouse;
+    }
+    const otherWh = warehouses.find(w => w.name !== mainWarehouseName && w.name !== '전체창고');
+    return otherWh ? otherWh.name : (warehouses[1]?.name || '통영창고');
+  }, [warehouses, currentUser, mainWarehouseName]);
+
+  const [fromWarehouse, setFromWarehouse] = useState(mainWarehouseName);
+  const [toWarehouse, setToWarehouse] = useState(defaultToWarehouse);
+
+  // 기본 담당자: 로그인한 사용자 기본 설정
+  const [selectedOperator, setSelectedOperator] = useState(() => {
+    return currentUser?.name || (staffList.length > 0 ? staffList[0].name : '관리자');
+  });
+
+  useEffect(() => {
+    if (mainWarehouseName) {
+      setFromWarehouse(mainWarehouseName);
+    }
+  }, [mainWarehouseName]);
+
+  useEffect(() => {
+    if (currentUser?.name) {
+      setSelectedOperator(currentUser.name);
+    } else if (staffList.length > 0 && !selectedOperator) {
+      setSelectedOperator(staffList[0].name);
+    }
+  }, [currentUser, staffList]);
+
   // ─── 엑셀 직접 수정(인라인 그리드) 상태 관리 ───
   const [modifiedRows, setModifiedRows] = useState({});
   const [newRows, setNewRows] = useState([]);
   const [activeItemSuggestRowId, setActiveItemSuggestRowId] = useState(null);
   const [itemSuggestQuery, setItemSuggestQuery] = useState('');
+  const [gridSelectedIndex, setGridSelectedIndex] = useState(-1);
+  const gridItemInputRefs = useRef({});
+  const gridQtyInputRefs = useRef({});
 
   const handleSearch = () => {
     setStartDate(startDateInput);
@@ -179,22 +218,13 @@ const InventoryTransfer = ({
     setAppliedSearch(historySearch);
   };
 
-  const [fromWarehouse, setFromWarehouse] = useState(warehouses[0]?.name || '창고');
-  const [toWarehouse, setToWarehouse] = useState(() => {
-    if (currentUser?.warehouse && currentUser.warehouse !== '-') {
-      return currentUser.warehouse;
-    }
-    const otherWh = warehouses.find(w => w.name !== warehouses[0]?.name);
-    return otherWh ? otherWh.name : '통영창고';
-  });
-
   const renderWarehouseOptions = (includeAll = true) => {
     return (
       <>
         {includeAll && <option value="전체창고">전체창고</option>}
         {warehouses.map(w => (
           <option key={w.id} value={w.name}>
-            {w.name} {w.manager && !w.name.includes(w.manager) ? `(${w.manager})` : ''}
+            {w.name} {w.isMain ? '(메인)' : (w.manager && !w.name.includes(w.manager) ? `(${w.manager})` : '')}
           </option>
         ))}
       </>
@@ -277,39 +307,23 @@ const InventoryTransfer = ({
   const productListRef = useRef(null);
 
   const handleSelectProduct = (prod) => {
+    if (!prod) return;
     setSelectedProduct(prod);
     setItemSearch(prod.name);
     setShowSuggestions(false);
 
-    const availableWarehouses = findWarehousesWithStock(prod.name);
-
-    if (availableWarehouses.length === 1) {
-      const targetWh = availableWarehouses[0].name;
-      setFromWarehouse(targetWh);
-      if (toWarehouse === targetWh) {
-        const otherWh = warehouses.find(w => w.name !== targetWh && w.name !== '전체창고');
-        if (otherWh) setToWarehouse(otherWh.name);
-      }
-      setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-        }
-      }, 10);
-    } else if (availableWarehouses.length > 1) {
-      setWarehousePickerState({
-        show: true,
-        candidates: availableWarehouses,
-        product: prod
-      });
-    } else {
-      setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-        }
-      }, 10);
+    // 출고 창고는 항상 메인창고가 선택되어 있도록 유지
+    setFromWarehouse(mainWarehouseName);
+    if (toWarehouse === mainWarehouseName) {
+      setToWarehouse(defaultToWarehouse);
     }
+
+    setTimeout(() => {
+      if (qtyInputRef.current) {
+        qtyInputRef.current.focus();
+        qtyInputRef.current.select();
+      }
+    }, 10);
   };
 
   const handleChooseWarehouse = (whName) => {
@@ -340,21 +354,29 @@ const InventoryTransfer = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const filterProducts = useCallback((query) => {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return [];
+    return products.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const abbr = (p.abbreviation || '').toLowerCase();
+      const matchNameSound = matchesInitialSound(p.name || '', q);
+      const matchAbbrSound = p.abbreviation ? matchesInitialSound(p.abbreviation, q) : false;
+      const matchNameText = name.includes(q);
+      const matchAbbrText = abbr ? abbr.includes(q) : false;
+      return matchNameSound || matchNameText || matchAbbrSound || matchAbbrText;
+    });
+  }, [products]);
+
   const suggestions = useMemo(() => {
     if (!itemSearch.trim()) return [];
-    return products.filter(p => 
-      matchesInitialSound(p.name, itemSearch) || 
-      (p.abbreviation && matchesInitialSound(p.abbreviation, itemSearch))
-    ).slice(0, 50);
-  }, [itemSearch, products]);
+    return filterProducts(itemSearch).slice(0, 50);
+  }, [itemSearch, filterProducts]);
 
   const gridSuggestions = useMemo(() => {
     if (!itemSuggestQuery.trim()) return products.slice(0, 30);
-    return products.filter(p => 
-      matchesInitialSound(p.name, itemSuggestQuery) || 
-      (p.abbreviation && matchesInitialSound(p.abbreviation, itemSuggestQuery))
-    ).slice(0, 50);
-  }, [itemSuggestQuery, products]);
+    return filterProducts(itemSuggestQuery).slice(0, 50);
+  }, [itemSuggestQuery, filterProducts, products]);
 
   useEffect(() => {
     setSelectedIndex(suggestions.length > 0 ? 0 : -1);
@@ -482,27 +504,24 @@ const InventoryTransfer = ({
   };
 
   const handleAddNewRow = () => {
-    const defaultFrom = warehouses[0]?.name || '통영창고';
-    const otherWh = warehouses.find(w => w.name !== defaultFrom);
-    const defaultTo = currentUser?.warehouse && currentUser.warehouse !== '-' 
-      ? currentUser.warehouse 
-      : (otherWh?.name || '본사창고');
-
+    const newTempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     const newRow = {
-      tempId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      tempId: newTempId,
       date: getTodayStr(),
-      from: defaultFrom,
-      to: defaultTo,
+      from: mainWarehouseName,
+      to: defaultToWarehouse,
       item: '',
-      spec: '',
       qty: 1,
-      operator: currentUser?.name || '관리자',
+      operator: selectedOperator || currentUser?.name || '관리자',
       memo: '수동이동'
     };
-    setNewRows(prev => [newRow, ...prev]);
+    setNewRows(prev => [...prev, newRow]);
+    setTimeout(() => {
+      gridItemInputRefs.current[newTempId]?.focus();
+    }, 50);
   };
 
-  const handleSaveSingleRow = async (row) => {
+  const handleSaveSingleRow = async (row, isSilent = false) => {
     const targetData = row.isNew 
       ? newRows.find(nr => nr.tempId === row.id)
       : (modifiedRows[row.id] || row);
@@ -511,6 +530,7 @@ const InventoryTransfer = ({
 
     if (!targetData.item?.trim()) {
       alert('품목명을 입력해주세요.');
+      gridItemInputRefs.current[row.id]?.focus();
       return;
     }
     if (targetData.from === targetData.to) {
@@ -519,8 +539,11 @@ const InventoryTransfer = ({
     }
     if (Number(targetData.qty) <= 0) {
       alert('이동 수량을 1개 이상 입력해주세요.');
+      gridQtyInputRefs.current[row.id]?.focus();
       return;
     }
+
+    const rowOperator = targetData.operator || selectedOperator || currentUser?.name || '관리자';
 
     try {
       if (row.isNew) {
@@ -530,15 +553,18 @@ const InventoryTransfer = ({
           targetData.item.trim(),
           Number(targetData.qty),
           false,
-          targetData.date
+          targetData.date,
+          null,
+          rowOperator
         );
         setNewRows(prev => prev.filter(nr => nr.tempId !== row.id));
-        alert('신규 재고이동이 등록되었습니다.');
+        if (!isSilent) alert('신규 재고이동이 등록되었습니다.');
       } else {
         if (onUpdateMoveStock) {
           await onUpdateMoveStock(row.id, {
             ...targetData,
-            qty: Number(targetData.qty)
+            qty: Number(targetData.qty),
+            operator: rowOperator
           });
         } else {
           await onDeleteMoveStock(row.id);
@@ -548,7 +574,9 @@ const InventoryTransfer = ({
             targetData.item.trim(),
             Number(targetData.qty),
             false,
-            targetData.date
+            targetData.date,
+            null,
+            rowOperator
           );
         }
         setModifiedRows(prev => {
@@ -556,7 +584,7 @@ const InventoryTransfer = ({
           delete next[row.id];
           return next;
         });
-        alert('재고이동 내역이 성공적으로 수정되었습니다.');
+        if (!isSilent) alert('재고이동 내역이 성공적으로 수정되었습니다.');
       }
     } catch (err) {
       console.error(err);
@@ -573,6 +601,71 @@ const InventoryTransfer = ({
         delete next[row.id];
         return next;
       });
+    }
+  };
+
+  const handleGridItemKeyDown = (e, row) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setGridSelectedIndex(prev => (prev < gridSuggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setGridSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeItemSuggestRowId === row.id && gridSuggestions.length > 0) {
+        const sel = gridSuggestions[gridSelectedIndex >= 0 ? gridSelectedIndex : 0];
+        if (sel) {
+          handleCellChange(row, 'item', sel.name);
+          setActiveItemSuggestRowId(null);
+          setTimeout(() => {
+            gridQtyInputRefs.current[row.id]?.focus();
+            gridQtyInputRefs.current[row.id]?.select();
+          }, 30);
+          return;
+        }
+      }
+      gridQtyInputRefs.current[row.id]?.focus();
+      gridQtyInputRefs.current[row.id]?.select();
+    } else if (e.key === 'Escape') {
+      setActiveItemSuggestRowId(null);
+    }
+  };
+
+  const handleGridQtyKeyDown = async (e, row) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const targetData = row.isNew 
+        ? newRows.find(nr => nr.tempId === row.id)
+        : (modifiedRows[row.id] || row);
+
+      if (!targetData?.item?.trim()) {
+        alert('품목명을 입력해주세요.');
+        gridItemInputRefs.current[row.id]?.focus();
+        return;
+      }
+      if (Number(targetData?.qty) <= 0) {
+        alert('이동 수량을 1개 이상 입력해주세요.');
+        return;
+      }
+
+      await handleSaveSingleRow(row, true);
+
+      const newTempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const nextRow = {
+        tempId: newTempId,
+        date: targetData.date || getTodayStr(),
+        from: targetData.from || mainWarehouseName,
+        to: targetData.to || defaultToWarehouse,
+        item: '',
+        qty: 1,
+        operator: targetData.operator || selectedOperator || currentUser?.name || '관리자',
+        memo: '수동이동'
+      };
+      setNewRows(prev => [...prev, nextRow]);
+      setTimeout(() => {
+        gridItemInputRefs.current[newTempId]?.focus();
+      }, 50);
     }
   };
 
@@ -617,15 +710,34 @@ const InventoryTransfer = ({
 
     try {
       for (const nr of newRows) {
-        await onMoveStock(nr.from, nr.to, nr.item.trim(), Number(nr.qty), false, nr.date);
+        await onMoveStock(
+          nr.from, 
+          nr.to, 
+          nr.item.trim(), 
+          Number(nr.qty), 
+          false, 
+          nr.date, 
+          null, 
+          nr.operator || selectedOperator || currentUser?.name || '관리자'
+        );
       }
       for (const id of Object.keys(modifiedRows)) {
         const mr = modifiedRows[id];
+        const rowOp = mr.operator || selectedOperator || currentUser?.name || '관리자';
         if (onUpdateMoveStock) {
-          await onUpdateMoveStock(id, { ...mr, qty: Number(mr.qty) });
+          await onUpdateMoveStock(id, { ...mr, qty: Number(mr.qty), operator: rowOp });
         } else {
           await onDeleteMoveStock(id);
-          await onMoveStock(mr.from, mr.to, mr.item.trim(), Number(mr.qty), false, mr.date);
+          await onMoveStock(
+            mr.from, 
+            mr.to, 
+            mr.item.trim(), 
+            Number(mr.qty), 
+            false, 
+            mr.date, 
+            null, 
+            rowOp
+          );
         }
       }
 
@@ -647,9 +759,7 @@ const InventoryTransfer = ({
       '이동일자': row.date || '',
       '출고창고': row.from || '',
       '입고창고': row.to || '',
-      '구분': getTransferBadge(row).text,
       '품목명': row.item || '',
-      '규격': row.spec || '',
       '수량': Number(row.qty) || 0,
       '처리시간': row.processedAt || '',
       '담당자': row.operator || '',
@@ -658,16 +768,19 @@ const InventoryTransfer = ({
     exportToExcel(exportData, `재고이동내역_${startDate}_${endDate}`, '재고이동내역');
   };
 
-  const handleTransfer = () => {
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const handleTransfer = async () => {
     if (fromWarehouse === '전체창고' || toWarehouse === '전체창고') {
       alert('출고창고와 입고창고는 "전체창고" 이외의 실제 창고를 지정해야 이동할 수 있습니다.');
       productInputRef.current?.focus();
       return;
     }
 
-    if (!selectedProduct || quantity <= 0) {
+    if (!selectedProduct || Number(quantity) <= 0) {
       alert('품목과 수량을 정확히 입력해주세요.');
-      productInputRef.current?.focus();
+      if (!selectedProduct) productInputRef.current?.focus();
+      else qtyInputRef.current?.focus();
       return;
     }
     
@@ -677,24 +790,45 @@ const InventoryTransfer = ({
       return;
     }
 
-    const prodObj = products.find(p => p.name === selectedProduct.name);
+    const movingName = selectedProduct.name;
+    const movingQty = parseInt(quantity, 10);
+
+    const prodObj = products.find(p => p.name === movingName);
     const initialStock = prodObj?.initialStock || 0;
-    const available = initialStock + ((inventory[fromWarehouse]?.[selectedProduct.name]) || 0);
-    if (available < quantity) {
+    const available = initialStock + ((inventory[fromWarehouse]?.[movingName]) || 0);
+    if (available < movingQty) {
       if (!window.confirm(`선택한 창고의 재고(${available}개)가 부족합니다. 그래도 이동하시겠습니까?`)) {
-        productInputRef.current?.focus();
+        qtyInputRef.current?.focus();
         return;
       }
     }
 
-    onMoveStock(fromWarehouse, toWarehouse, selectedProduct.name, parseInt(quantity, 10), false, transferDate);
-    
-    setItemSearch('');
-    setSelectedProduct(null);
-    setQuantity(0);
-    setTimeout(() => {
-      productInputRef.current?.focus();
-    }, 10);
+    try {
+      await onMoveStock(
+        fromWarehouse, 
+        toWarehouse, 
+        movingName, 
+        movingQty, 
+        false, 
+        transferDate, 
+        null, 
+        selectedOperator || currentUser?.name || '관리자'
+      );
+      
+      setSuccessMsg(`✓ [${movingName}] ${movingQty}개 이동 저장 완료! 다음 품목을 입력하세요.`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+
+      setItemSearch('');
+      setSelectedProduct(null);
+      setQuantity(1);
+      setShowSuggestions(false);
+      setTimeout(() => {
+        productInputRef.current?.focus();
+      }, 20);
+    } catch (err) {
+      console.error(err);
+      alert('재고이동 저장 중 오류가 발생했습니다.');
+    }
   };
 
   const handleRowClickOrDoubleClick = (row) => {
@@ -899,9 +1033,35 @@ const InventoryTransfer = ({
         {/* 신규 등록 폼 (토글) */}
         {isRegisterOpen && (
           <div className="inv-form-box" style={{ background: '#fff', border: '1.5px solid #3b82f6', padding: '12px 14px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+            {successMsg && (
+              <div style={{ padding: '6px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#059669', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px' }}>
+                {successMsg}
+              </div>
+            )}
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>출고</label>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>담당자</label>
+                <select 
+                  className="inv-select" 
+                  value={selectedOperator} 
+                  onChange={e => setSelectedOperator(e.target.value)} 
+                  style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.8rem', color: '#1e293b' }}
+                >
+                  {staffList.map(s => (
+                    <option key={s.id || s.name} value={s.name}>
+                      {s.name} {s.position ? `(${s.position})` : ''}
+                    </option>
+                  ))}
+                  {(!staffList || staffList.length === 0 || !staffList.some(s => s.name === selectedOperator)) && (
+                    <option value={selectedOperator || currentUser?.name || '관리자'}>
+                      {selectedOperator || currentUser?.name || '관리자'}
+                    </option>
+                  )}
+                </select>
+              </div>
+              <div className="inv-col">
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>출고(메인)</label>
                 <select 
                   className="inv-select" 
                   value={fromWarehouse} 
@@ -934,18 +1094,42 @@ const InventoryTransfer = ({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '8px', alignItems: 'end' }} ref={searchRef}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 80px', gap: '8px', alignItems: 'end' }} ref={searchRef}>
               <div style={{ position: 'relative' }}>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>품목 검색</label>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
+                  품목 검색 (단축어/초성)
+                </label>
                 <input 
                   ref={productInputRef}
                   type="text" 
                   className="inv-input" 
-                  placeholder="품목명/초성" 
+                  placeholder="품목명/단축어/초성 후 Enter" 
                   value={itemSearch}
                   onChange={e => {
                     setItemSearch(e.target.value);
                     setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    if (itemSearch) setShowSuggestions(true);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+                    } else if (e.key === 'Enter') {
+                      if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+                        e.preventDefault();
+                        handleSelectProduct(suggestions[selectedIndex]);
+                      } else if (suggestions.length > 0) {
+                        e.preventDefault();
+                        handleSelectProduct(suggestions[0]);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setShowSuggestions(false);
+                    }
                   }}
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', outline: 'none', fontSize: '0.8rem' }}
                 />
@@ -955,16 +1139,17 @@ const InventoryTransfer = ({
                     background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px',
                     boxShadow: '0 8px 16px rgba(0,0,0,0.1)', maxHeight: '180px', overflowY: 'auto'
                   }}>
-                    {suggestions.map(p => (
+                    {suggestions.map((p, idx) => (
                       <div
                         key={p.id}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           handleSelectProduct(p);
                         }}
-                        style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.78rem' }}
+                        style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.78rem', backgroundColor: idx === selectedIndex ? '#eff6ff' : 'transparent' }}
+                        onMouseEnter={() => setSelectedIndex(idx)}
                       >
-                        <b>{p.name}</b> {p.spec && <span style={{ color: '#94a3b8' }}>({p.spec})</span>}
+                        <b>{p.name}</b> {p.abbreviation && <span style={{ color: '#2563eb', marginLeft: '4px', fontSize: '0.72rem' }}>[{p.abbreviation}]</span>}
                       </div>
                     ))}
                   </div>
@@ -972,13 +1157,22 @@ const InventoryTransfer = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>수량</label>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
+                  수량 (Enter 저장)
+                </label>
                 <input 
                   ref={qtyInputRef}
                   type="number" 
                   className="inv-input" 
                   value={quantity}
                   onChange={e => setQuantity(e.target.value)}
+                  onFocus={e => e.target.select()}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleTransfer();
+                    }
+                  }}
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem' }}
                 />
               </div>
@@ -988,7 +1182,7 @@ const InventoryTransfer = ({
                 onClick={handleTransfer}
                 style={{ height: '34px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem' }}
               >
-                이동 실행
+                저장
               </button>
             </div>
           </div>
@@ -1049,9 +1243,7 @@ const InventoryTransfer = ({
                     { key: 'date', label: '일자', width: colWidths.date, align: 'center' },
                     { key: 'from', label: '출고', width: colWidths.from, align: 'center' },
                     { key: 'to', label: '입고', width: colWidths.to, align: 'center' },
-                    { key: 'moveType', label: '구분', width: colWidths.moveType, align: 'center' },
                     { key: 'item', label: '품목명', width: colWidths.item, align: 'left' },
-                    { key: 'spec', label: '규격', width: colWidths.spec, align: 'left' },
                     { key: 'qty', label: '수량', width: colWidths.qty, align: 'right' },
                     { key: 'processedAt', label: '시간', width: colWidths.processedAt, align: 'center' },
                     { key: 'operator', label: '담당자', width: colWidths.operator, align: 'center' },
@@ -1075,7 +1267,7 @@ const InventoryTransfer = ({
               <tbody>
                 {combinedGridRows.length === 0 ? (
                   <tr>
-                    <td colSpan="12" style={{ padding: '40px 10px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan="10" style={{ padding: '40px 10px', textAlign: 'center', color: '#94a3b8' }}>
                       해당 조건 및 기간에 발생한 이동 내역이 없습니다.
                     </td>
                   </tr>
@@ -1156,21 +1348,15 @@ const InventoryTransfer = ({
                           )}
                         </td>
 
-                        {/* 구분 */}
-                        <td style={{ textAlign: 'center', padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          <span style={{ display: 'inline-block', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, backgroundColor: badge.bg, color: badge.color }}>
-                            {badge.text}
-                          </span>
-                        </td>
-
                         {/* 품목명 */}
                         <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0', position: 'relative' }} className="grid-autocomplete-container">
                           {isEditableType ? (
                             <div>
                               <input
+                                ref={el => { gridItemInputRefs.current[row.id] = el; }}
                                 type="text"
                                 value={rowData.item || ''}
-                                placeholder="품목명"
+                                placeholder="품목명/초성"
                                 onChange={e => {
                                   handleCellChange(row, 'item', e.target.value);
                                   setItemSuggestQuery(e.target.value);
@@ -1180,6 +1366,7 @@ const InventoryTransfer = ({
                                   setItemSuggestQuery(rowData.item || '');
                                   setActiveItemSuggestRowId(row.id);
                                 }}
+                                onKeyDown={e => handleGridItemKeyDown(e, row)}
                                 style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.78rem', padding: '2px 4px', outline: 'none', fontWeight: 700 }}
                               />
                               {isSuggestOpen && gridSuggestions.length > 0 && (
@@ -1189,17 +1376,22 @@ const InventoryTransfer = ({
                                   backgroundColor: '#fff', border: '1px solid #3b82f6',
                                   borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
                                 }}>
-                                  {gridSuggestions.map(p => (
+                                  {gridSuggestions.map((p, idx) => (
                                     <div
                                       key={p.id}
                                       onMouseDown={(e) => {
                                         e.preventDefault();
                                         handleCellChange(row, 'item', p.name);
                                         setActiveItemSuggestRowId(null);
+                                        setTimeout(() => {
+                                          gridQtyInputRefs.current[row.id]?.focus();
+                                          gridQtyInputRefs.current[row.id]?.select();
+                                        }, 30);
                                       }}
-                                      style={{ padding: '5px 8px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.74rem' }}
+                                      style={{ padding: '5px 8px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.74rem', backgroundColor: idx === gridSelectedIndex ? '#eff6ff' : 'transparent' }}
+                                      onMouseEnter={() => setGridSelectedIndex(idx)}
                                     >
-                                      <b>{p.name}</b> {p.spec && <span style={{ color: '#94a3b8' }}>({p.spec})</span>}
+                                      <b>{p.name}</b> {p.abbreviation && <span style={{ color: '#2563eb', marginLeft: '4px', fontSize: '0.7rem' }}>[{p.abbreviation}]</span>}
                                     </div>
                                   ))}
                                 </div>
@@ -1215,28 +1407,15 @@ const InventoryTransfer = ({
                           )}
                         </td>
 
-                        {/* 규격 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <input
-                              type="text"
-                              value={rowData.spec || ''}
-                              onChange={e => handleCellChange(row, 'spec', e.target.value)}
-                              placeholder="규격"
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.74rem', padding: '2px', outline: 'none', color: '#64748b' }}
-                            />
-                          ) : (
-                            <div style={{ fontSize: '0.74rem', color: '#94a3b8', padding: '2px' }}>{rowData.spec || '-'}</div>
-                          )}
-                        </td>
-
                         {/* 수량 */}
                         <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
                           {isEditableType ? (
                             <input
+                              ref={el => { gridQtyInputRefs.current[row.id] = el; }}
                               type="number"
                               value={rowData.qty}
                               onChange={e => handleCellChange(row, 'qty', e.target.value)}
+                              onKeyDown={e => handleGridQtyKeyDown(e, row)}
                               style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.84rem', padding: '2px', outline: 'none', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}
                             />
                           ) : (
@@ -1254,12 +1433,22 @@ const InventoryTransfer = ({
                         {/* 담당자 */}
                         <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
                           {isEditableType ? (
-                            <input
-                              type="text"
-                              value={rowData.operator || ''}
+                            <select
+                              value={rowData.operator || selectedOperator || ''}
                               onChange={e => handleCellChange(row, 'operator', e.target.value)}
                               style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.74rem', padding: '2px', outline: 'none', textAlign: 'center', fontWeight: 600 }}
-                            />
+                            >
+                              {staffList.map(s => (
+                                <option key={s.id || s.name} value={s.name}>
+                                  {s.name} {s.position ? `(${s.position})` : ''}
+                                </option>
+                              ))}
+                              {(!staffList || staffList.length === 0 || !staffList.some(s => s.name === (rowData.operator || selectedOperator))) && (
+                                <option value={rowData.operator || selectedOperator || currentUser?.name || '관리자'}>
+                                  {rowData.operator || selectedOperator || currentUser?.name || '관리자'}
+                                </option>
+                              )}
+                            </select>
                           ) : (
                             <div style={{ textAlign: 'center', fontSize: '0.74rem', fontWeight: 600 }}>{rowData.operator || '-'}</div>
                           )}
