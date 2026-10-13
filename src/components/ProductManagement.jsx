@@ -3,6 +3,7 @@ import { Package, Printer, Download, Search, Plus, Edit2, Trash2, Tag, Grid, Set
 import WindowModal from './WindowModal';
 import ProductRegistration from './ProductRegistration';
 import ProductCategoryModal from './ProductCategoryModal';
+import ProductSettingsModal from './ProductSettingsModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
@@ -84,7 +85,6 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
   const [searchTerm, setSearchTerm] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const settingsRef = useRef(null);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,23 +115,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
     localStorage.setItem('product_mgmt_columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
   
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
-        setIsSettingsOpen(false);
-      }
-    };
-    
-    if (isSettingsOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isSettingsOpen]);
+  
 
   const toggleColumn = (col) => {
     setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
@@ -588,49 +572,13 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
                 </button>
               </div>
 
-              <div style={{ position: 'relative' }}>
-                <button 
-                  ref={settingsRef}
-                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                  style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                >
-                  <Settings size={12} /> 표시 항목
-                </button>
-                {isSettingsOpen && (
-                  <div style={{
-                    position: 'absolute', top: '100%', right: 0, marginTop: '4px',
-                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 100,
-                    width: '180px', padding: '8px', maxHeight: '250px', overflowY: 'auto'
-                  }} onClick={e => e.stopPropagation()}>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '6px', padding: '0 4px' }}>항목 표시 설정</p>
-                    {[
-                      { id: 'photo', label: '상품 사진' },
-                      { id: 'categoryLarge', label: '대분류' },
-                      { id: 'categoryMedium', label: '중분류' },
-                      { id: 'categorySmall', label: '소분류' },
-                      { id: 'name', label: '상품명' },
-                      { id: 'spec', label: '규격' },
-                      { id: 'innerQty', label: '내품수량' },
-                      { id: 'showInMall', label: '몰 노출' },
-                      { id: 'salesPrice', label: '매출가' },
-                      { id: 'purchasePrice', label: '매입가' },
-                      { id: 'barcode', label: '바코드' }
-                    ].map(col => (
-                      <div key={col.id} onClick={() => toggleColumn(col.id)} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '6px 8px', borderRadius: '6px', cursor: 'pointer',
-                        backgroundColor: visibleColumns[col.id] ? '#eff6ff' : 'transparent',
-                        fontSize: '0.75rem', color: visibleColumns[col.id] ? '#1d4ed8' : '#475569',
-                        fontWeight: visibleColumns[col.id] ? 700 : 500
-                      }}>
-                        <span>{col.label}</span>
-                        {visibleColumns[col.id] && <Check size={12} color="#1d4ed8" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button 
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+              >
+                <Settings size={12} /> 설정
+              </button>
             </div>
           </div>
 
@@ -1046,6 +994,17 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
           categories={categories}
           setCategories={setCategories}
           currentUser={currentUser}
+        />
+      )}
+
+      {isSettingsOpen && (
+        <ProductSettingsModal
+          onClose={() => setIsSettingsOpen(false)}
+          initialVisibleColumns={visibleColumns}
+          onSave={(newCols) => {
+            setVisibleColumns(newCols);
+            setIsSettingsOpen(false);
+          }}
         />
       )}
     </>
