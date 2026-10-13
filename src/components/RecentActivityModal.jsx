@@ -60,13 +60,32 @@ const RecentActivityModal = ({
   staffList = [],
   currentUser = null,
   onDeleteActivity = () => {},
+  onDeleteMultipleActivities = null,
   onOpenActivity = null
 }) => {
   const [activeCategory, setActiveCategory] = useState('전체');
   const [selectedStaff, setSelectedStaff] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const canDelete = currentUser?.permissions?.deleteRecentActivity === true || currentUser?.allowAllEditDelete === true;
+  const [selectedActIds, setSelectedActIds] = useState([]);
+
+  const canDelete = Boolean(
+    currentUser?.role === 'super_admin' || 
+    currentUser?.role === 'admin' || 
+    currentUser?.role === 'owner' || 
+    currentUser?.role === 'company' || 
+    currentUser?.userId === 'admin' || 
+    currentUser?.isCompanyAdmin ||
+    currentUser?.jobTitle === '관리자' ||
+    currentUser?.jobTitle === '대표' ||
+    currentUser?.jobTitle === '대표이사' ||
+    currentUser?.allowAllEditDelete === true || 
+    currentUser?.deleteRecentActivity === true ||
+    currentUser?.permissions?.deleteRecentActivity === true ||
+    currentUser?.permissions?.['최근 처리 이력 삭제 권한'] === true ||
+    currentUser?.permissions?.['최근 처리 현황 삭제'] === true ||
+    currentUser?.permissions?.ALL === true
+  );
 
   const handleItemClick = (act) => {
     if (onOpenActivity) {
@@ -535,6 +554,38 @@ const RecentActivityModal = ({
                 <X size={12} /> 필터 해제
               </button>
             )}
+
+            {canDelete && selectedActIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const targets = filteredActivities.filter(a => selectedActIds.includes(a.id));
+                  if (onDeleteMultipleActivities) {
+                    onDeleteMultipleActivities(targets);
+                  } else {
+                    targets.forEach(a => onDeleteActivity(a));
+                  }
+                  setSelectedActIds([]);
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  color: '#dc2626',
+                  backgroundColor: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(220, 38, 38, 0.15)'
+                }}
+              >
+                <Trash2 size={12} /> 선택 삭제 ({selectedActIds.length}건)
+              </button>
+            )}
           </div>
         </div>
 
@@ -546,6 +597,22 @@ const RecentActivityModal = ({
           <table className="report-v2-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '700px' }}>
             <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f1f5f9', zIndex: 10 }}>
               <tr style={{ borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#475569' }}>
+                {canDelete && (
+                  <th style={{ padding: '8px 8px', width: '38px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={filteredActivities.length > 0 && selectedActIds.length === filteredActivities.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedActIds(filteredActivities.map(a => a.id));
+                        } else {
+                          setSelectedActIds([]);
+                        }
+                      }}
+                      title="전체 선택/해제"
+                    />
+                  </th>
+                )}
                 <th style={{ padding: '8px 10px', width: '65px', textAlign: 'center' }}>유형</th>
                 <th style={{ padding: '8px 10px', width: '120px' }}>처리일시</th>
                 <th style={{ padding: '8px 10px', width: '90px' }}>구분</th>
@@ -558,99 +625,118 @@ const RecentActivityModal = ({
             <tbody>
               {filteredActivities.length === 0 ? (
                 <tr>
-                  <td colSpan={canDelete ? 7 : 6} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  <td colSpan={canDelete ? 8 : 6} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
                     조건에 해당하는 최근 처리 내역이 없습니다.
                   </td>
                 </tr>
               ) : (
-                filteredActivities.map((act) => (
-                  <tr 
-                    key={act.id} 
-                    onClick={() => handleItemClick(act)}
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9', 
-                      transition: 'background-color 0.15s',
-                      cursor: onOpenActivity ? 'pointer' : 'default'
-                    }} 
-                    className="hover:bg-slate-50"
-                    title={onOpenActivity ? '클릭 시 해당 등록/처리 창으로 이동합니다' : undefined}
-                  >
-                    <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '2px 7px',
-                        borderRadius: '6px',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        backgroundColor: act.badgeBg,
-                        color: act.badgeColor
-                      }}>
-                        {act.type}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px 10px', color: '#475569', whiteSpace: 'nowrap' }}>
-                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.8rem' }}>{act.displayDate}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px', fontWeight: 600 }}>{act.displayTime}</div>
-                    </td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155' }}>
-                      {act.subCategory}
-                    </td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: '#1e293b' }}>
-                      {act.title}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: '#475569', fontSize: '0.75rem' }}>
-                      {act.detail}
-                    </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                      <span 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (act.user && act.user !== '시스템') {
-                            setSelectedStaff(act.user);
-                          }
-                        }}
-                        style={{
-                          color: selectedStaff === act.user ? '#1d4ed8' : '#2563eb',
-                          fontWeight: 700,
-                          cursor: act.user && act.user !== '시스템' ? 'pointer' : 'default',
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          backgroundColor: selectedStaff === act.user ? '#dbeafe' : 'transparent',
-                          transition: 'all 0.15s',
-                          display: 'inline-block'
-                        }}
-                        title={act.user && act.user !== '시스템' ? `클릭 시 [${act.user}] 담당자 내역만 필터링` : undefined}
-                      >
-                        {act.user}
-                      </span>
-                    </td>
-                    {canDelete && (
+                filteredActivities.map((act) => {
+                  const isChecked = selectedActIds.includes(act.id);
+                  return (
+                    <tr 
+                      key={act.id} 
+                      onClick={() => handleItemClick(act)}
+                      style={{ 
+                        borderBottom: '1px solid #f1f5f9', 
+                        transition: 'background-color 0.15s',
+                        cursor: onOpenActivity ? 'pointer' : 'default',
+                        backgroundColor: isChecked ? '#f0f9ff' : undefined
+                      }} 
+                      className="hover:bg-slate-50"
+                      title={onOpenActivity ? '클릭 시 해당 등록/처리 창으로 이동합니다' : undefined}
+                    >
+                      {canDelete && (
+                        <td style={{ padding: '8px 8px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedActIds(prev => [...prev, act.id]);
+                              } else {
+                                setSelectedActIds(prev => prev.filter(id => id !== act.id));
+                              }
+                            }}
+                          />
+                        </td>
+                      )}
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                        <button
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          backgroundColor: act.badgeBg,
+                          color: act.badgeColor
+                        }}>
+                          {act.type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#475569', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.8rem' }}>{act.displayDate}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px', fontWeight: 600 }}>{act.displayTime}</div>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155' }}>
+                        {act.subCategory}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: '#1e293b' }}>
+                        {act.title}
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#475569', fontSize: '0.75rem' }}>
+                        {act.detail}
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        <span 
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDeleteActivity(act);
+                            if (act.user && act.user !== '시스템') {
+                              setSelectedStaff(act.user);
+                            }
                           }}
                           style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            transition: 'all 0.2s'
+                            color: selectedStaff === act.user ? '#1d4ed8' : '#2563eb',
+                            fontWeight: 700,
+                            cursor: act.user && act.user !== '시스템' ? 'pointer' : 'default',
+                            padding: '2px 6px',
+                            borderRadius: '6px',
+                            backgroundColor: selectedStaff === act.user ? '#dbeafe' : 'transparent',
+                            transition: 'all 0.15s',
+                            display: 'inline-block'
                           }}
-                          title="이력 삭제"
+                          title={act.user && act.user !== '시스템' ? `클릭 시 [${act.user}] 담당자 내역만 필터링` : undefined}
                         >
-                          <Trash2 size={14} />
-                        </button>
+                          {act.user}
+                        </span>
                       </td>
-                    )}
-                  </tr>
-                ))
+                      {canDelete && (
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteActivity(act);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s'
+                            }}
+                            title="이력 삭제"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

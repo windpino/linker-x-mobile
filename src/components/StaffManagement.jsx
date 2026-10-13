@@ -12,6 +12,9 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [selectedStaffKeys, setSelectedStaffKeys] = useState([]);
+
+  const getStaffKey = (s) => s?._docId || (s?.userId ? `uid_${s.userId}` : (s?.id ? `id_${s.id}` : `name_${s?.name}`));
 
   const hasWritePermission = () => {
     if (!currentUser) return true;
@@ -219,9 +222,11 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
   const handleDeleteStaff = async (staffOrId) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
-      return;
+      return false;
     }
-    if (!window.confirm('정말 이 직원을 삭제하시겠습니까?')) return;
+    if (!skipConfirm) {
+      if (!window.confirm('정말 이 직원을 삭제하시겠습니까?')) return false;
+    }
     try {
       const companyId = currentUser?.companyId || 'default';
       const staff = typeof staffOrId === 'object' ? staffOrId : staffList.find(s => String(s.id) === String(staffOrId));
@@ -239,6 +244,26 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           } catch (delErr) {
             console.warn('Staff doc delete warning:', delErr);
           }
+        }
+      }
+
+      // 담당 창고가 있다면 창고 관리자 해제 (독립 try/catch)
+      if (staff?.name && warehouses && warehouses.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          let hasWhUpdates = false;
+          warehouses.forEach(w => {
+            if (w.manager === staff.name) {
+              const whDocId = w._docId || String(w.id);
+              batch.set(doc(db, 'companies', companyId, 'warehouses', whDocId), { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+              hasWhUpdates = true;
+            }
+          });
+          if (hasWhUpdates) {
+            await batch.commit();
+          }
+        } catch (whDelErr) {
+          console.warn('Warehouse manager clear warning:', whDelErr);
         }
       }
 
@@ -267,10 +292,37 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           targetId: String(staff?.id || staffOrId)
         });
       }
+      if (!skipConfirm) {
+        alert('직원이 성공적으로 삭제되었습니다.');
+      }
+      return true;
     } catch (err) {
       console.error('Staff delete error:', err);
-      alert('직원 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
+      if (!skipConfirm) {
+        alert('직원 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
+      }
+      return false;
     }
+  };
+
+  const handleDeleteSelectedStaff = async () => {
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
+      return;
+    }
+    const targets = filteredStaffList.filter(s => selectedStaffKeys.includes(getStaffKey(s)));
+    if (targets.length === 0) {
+      alert('삭제할 직원을 선택해주세요.');
+      return;
+    }
+    if (!window.confirm(`선택한 ${targets.length}명의 직원을 정말 삭제하시겠습니까?\n(${targets.map(s => s.name).join(', ')})`)) {
+      return;
+    }
+    for (const staff of targets) {
+      await handleDeleteStaff(staff, true);
+    }
+    setSelectedStaffKeys([]);
+    alert(`선택한 ${targets.length}명의 직원이 성공적으로 삭제되었습니다.`);
   };
 
   const sortStaffList = (list) => {
@@ -432,6 +484,14 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             </div>
             
             <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              {selectedStaffKeys.length > 0 && (
+                <button 
+                  onClick={handleDeleteSelectedStaff}
+                  style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '6px 8px', fontSize: '0.74rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #fca5a5', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  <Trash2 size={13} /> 선택 삭제 ({selectedStaffKeys.length}명)
+                </button>
+              )}
               <button 
                 onClick={handleExcelExport} 
                 style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 8px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -468,7 +528,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           )}
 
           {/* Search Bar */}
-          <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
             <input
               type="text"
               value={searchTerm}
@@ -477,6 +537,26 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#f8fafc' }}
             />
           </div>
+
+          {/* Select All Checkbox Header */}
+          {filteredStaffList.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 6px', fontSize: '0.78rem', color: '#64748b' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={filteredStaffList.length > 0 && selectedStaffKeys.length === filteredStaffList.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedStaffKeys(filteredStaffList.map(getStaffKey));
+                    } else {
+                      setSelectedStaffKeys([]);
+                    }
+                  }}
+                />
+                <span>전체 선택 ({selectedStaffKeys.length}/{filteredStaffList.length}명)</span>
+              </label>
+            </div>
+          )}
 
           {/* Mobile Staff Card List */}
           <div className="staff-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
@@ -493,6 +573,8 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             ) : filteredStaffList.map((staff, index) => {
               const isDragging = draggedIndex === index;
               const isDragOver = dragOverIndex === index;
+              const staffKey = getStaffKey(staff);
+              const isChecked = selectedStaffKeys.includes(staffKey);
               return (
                 <div 
                   key={staff._docId || (staff.userId ? `user_${staff.userId}` : (staff.id ? `id_${staff.id}` : `staff_${index}`))} 
@@ -518,8 +600,8 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
                     setDragOverIndex(null);
                   }}
                   style={{
-                    backgroundColor: isDragOver ? '#eff6ff' : '#ffffff',
-                    border: isDragOver ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                    backgroundColor: isDragOver ? '#eff6ff' : (isChecked ? '#f0f9ff' : '#ffffff'),
+                    border: isDragOver ? '1.5px solid #3b82f6' : (isChecked ? '1.5px solid #93c5fd' : '1px solid #e2e8f0'),
                     borderRadius: '10px',
                     padding: '12px 14px',
                     display: 'flex',
@@ -532,6 +614,18 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStaffKeys(prev => [...prev, staffKey]);
+                          } else {
+                            setSelectedStaffKeys(prev => prev.filter(k => k !== staffKey));
+                          }
+                        }}
+                        style={{ cursor: 'pointer', margin: 0 }}
+                      />
                       {/* Drag Handle & Sequence */}
                       {!searchTerm && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'grab' }}>
@@ -634,6 +728,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           onClose={() => setIsRegistrationOpen(false)} 
           initialData={editingStaff}
           onSave={handleSaveStaff}
+          onDeleteStaff={handleDeleteStaff}
           warehouses={warehouses}
           nextSequence={(() => {
             const sequences = staffList.map(s => parseInt(s.sequence)).filter(n => !isNaN(n));

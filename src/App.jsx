@@ -2404,14 +2404,36 @@ function App() {
     setIsInventoryMismatchOpen(true);
   };
 
-  const handleDeleteActivityRecord = async (act) => {
-    if (!currentUser || (!currentUser.permissions?.deleteRecentActivity && !currentUser.allowAllEditDelete)) {
-      alert('이력 삭제 권한이 없습니다.');
-      return;
+  const checkActivityDeletePermission = () => {
+    return Boolean(
+      currentUser?.role === 'super_admin' || 
+      currentUser?.role === 'admin' || 
+      currentUser?.role === 'owner' || 
+      currentUser?.role === 'company' || 
+      currentUser?.userId === 'admin' || 
+      currentUser?.isCompanyAdmin ||
+      currentUser?.jobTitle === '관리자' ||
+      currentUser?.jobTitle === '대표' ||
+      currentUser?.jobTitle === '대표이사' ||
+      currentUser?.allowAllEditDelete === true || 
+      currentUser?.deleteRecentActivity === true ||
+      currentUser?.permissions?.deleteRecentActivity === true ||
+      currentUser?.permissions?.['최근 처리 이력 삭제 권한'] === true ||
+      currentUser?.permissions?.['최근 처리 현황 삭제'] === true ||
+      currentUser?.permissions?.ALL === true
+    );
+  };
+
+  const handleDeleteActivityRecord = async (act, skipConfirm = false) => {
+    if (!checkActivityDeletePermission()) {
+      alert('이력 삭제 권한이 없습니다.\n(직원 관리 > 권한 설정에서 [최근 처리 이력 삭제 권한]이 필요합니다.)');
+      return false;
     }
 
-    if (!window.confirm('선택한 처리 이력 및 연계된 원본 데이터(전표/수주서/재고이동 등)를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)')) {
-      return;
+    if (!skipConfirm) {
+      if (!window.confirm('선택한 처리 이력 및 연계된 원본 데이터(전표/수주서/재고이동 등)를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)')) {
+        return false;
+      }
     }
 
     const companyId = currentUser?.companyId || 'default';
@@ -2429,10 +2451,10 @@ function App() {
         const nextPOs = purchaseOrders.filter(po => String(po.id) !== String(id));
         setPurchaseOrders(nextPOs);
         await saveBundle(companyId, 'purchaseOrders', nextPOs);
-        alert('발주서가 성공적으로 삭제되었습니다.');
+        if (!skipConfirm) alert('발주서가 성공적으로 삭제되었습니다.');
       } else if (act.id.startsWith('mov-')) {
         await onDeleteMoveStock(id);
-        alert('재고이동 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
+        if (!skipConfirm) alert('재고이동 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
       } else if (act.id.startsWith('adj-')) {
         const adj = inventoryAdjustments.find(a => String(a.id) === String(id));
         if (adj) {
@@ -2447,18 +2469,37 @@ function App() {
         const nextAdjs = inventoryAdjustments.filter(a => String(a.id) !== String(id));
         setInventoryAdjustments(nextAdjs);
         await saveBundle(companyId, 'inventoryAdjustments', nextAdjs);
-        alert('재고조정 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
+        if (!skipConfirm) alert('재고조정 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
       } else if (act.id.startsWith('log-')) {
         await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(id)));
         const nextLogs = actionLogs.filter(log => String(log.id) !== String(id));
         setActionLogs(nextLogs);
         await saveBundle(companyId, 'actionLogs', nextLogs);
-        alert('처리 기록이 성공적으로 삭제되었습니다.');
+        if (!skipConfirm) alert('처리 기록이 성공적으로 삭제되었습니다.');
       }
+      return true;
     } catch (err) {
       console.error('Error deleting activity record:', err);
-      alert('이력 삭제 중 오류가 발생했습니다: ' + err.message);
+      if (!skipConfirm) alert('이력 삭제 중 오류가 발생했습니다: ' + err.message);
+      return false;
     }
+  };
+
+  const handleDeleteMultipleActivities = async (acts) => {
+    if (!acts || acts.length === 0) return;
+    if (!checkActivityDeletePermission()) {
+      alert('이력 삭제 권한이 없습니다.\n(직원 관리 > 권한 설정에서 [최근 처리 이력 삭제 권한]이 필요합니다.)');
+      return;
+    }
+    if (!window.confirm(`선택한 ${acts.length}건의 처리 이력 및 연계 데이터를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)`)) {
+      return;
+    }
+    let successCount = 0;
+    for (const act of acts) {
+      const ok = await handleDeleteActivityRecord(act, true);
+      if (ok) successCount++;
+    }
+    alert(`선택한 ${successCount}건의 처리 이력이 성공적으로 삭제되었습니다.`);
   };
 
   // 2. Effects for persistence
@@ -3598,6 +3639,27 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                           <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{item.user}</span>
                           <span style={{ color: '#94a3b8', fontSize: '0.68rem' }}>{item.date.substring(5)}</span>
+                          {checkActivityDeletePermission() && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteActivityRecord(item);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: '2px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                opacity: 0.75
+                              }}
+                              title="이력 삭제"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -5835,6 +5897,7 @@ function App() {
           staffList={staffList}
           currentUser={currentUser}
           onDeleteActivity={handleDeleteActivityRecord}
+          onDeleteMultipleActivities={handleDeleteMultipleActivities}
           onOpenActivity={handleActivityAction}
         />
       )}

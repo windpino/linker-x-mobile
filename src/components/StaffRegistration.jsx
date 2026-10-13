@@ -35,7 +35,7 @@ const MENU_PERMISSIONS = [
   }
 ];
 
-const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], nextSequence, staffZones = [], setStaffZones, staffJobTitles = [], setStaffJobTitles, currentUser }) => {
+const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], nextSequence, staffZones = [], setStaffZones, staffJobTitles = [], setStaffJobTitles, currentUser, onDeleteStaff }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || '메인창고';
   const isEditing = !!initialData;
   const titleText = isEditing ? "직원 정보 수정" : "신규 직원 등록";
@@ -57,6 +57,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     allowAllEditDelete: false,
     viewOtherWarehouseOrders: false,
     viewRecentActivity: false,
+    deleteRecentActivity: false,
     permissions: {} // { '재고이동': true, ... }
   });
 
@@ -79,7 +80,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         allowSpecialPriceSave: initialData.allowSpecialPriceSave || false,
         allowAllEditDelete: initialData.allowAllEditDelete || false,
         viewOtherWarehouseOrders: initialData.viewOtherWarehouseOrders || false,
-        viewRecentActivity: initialData.viewRecentActivity || false,
+        viewRecentActivity: Boolean(initialData.viewRecentActivity || initialData.permissions?.viewRecentActivity || initialData.permissions?.['최근 처리 현황']),
+        deleteRecentActivity: Boolean(initialData.deleteRecentActivity || initialData.permissions?.deleteRecentActivity || initialData.permissions?.['최근 처리 이력 삭제 권한']),
         permissions: initialData.permissions || {}
       });
     } else {
@@ -98,6 +100,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         allowAllEditDelete: false,
         viewOtherWarehouseOrders: false,
         viewRecentActivity: false,
+        deleteRecentActivity: false,
         permissions: {}
       });
     }
@@ -133,6 +136,26 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
+      const isDeleteActivity = Boolean(
+        formData.deleteRecentActivity || 
+        formData.permissions?.deleteRecentActivity || 
+        formData.permissions?.['최근 처리 이력 삭제 권한']
+      );
+      const isViewActivity = Boolean(
+        formData.viewRecentActivity || 
+        formData.permissions?.viewRecentActivity || 
+        formData.permissions?.['최근 처리 현황']
+      );
+
+      const enrichedPermissions = {
+        ...(formData.permissions || {}),
+        deleteRecentActivity: isDeleteActivity,
+        '최근 처리 이력 삭제 권한': isDeleteActivity,
+        viewRecentActivity: isViewActivity,
+        '최근 처리 현황': isViewActivity,
+        '최근 처리 현황 권한': isViewActivity
+      };
+
       if (isCloning) {
         if (!formData.userId || !formData.userId.trim()) {
           alert('아이디를 입력해주세요.');
@@ -143,11 +166,20 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           return;
         }
         const { _docId, ...cleanForm } = formData;
-        onSave({ ...cleanForm, id: Date.now() }, true);
+        onSave({ 
+          ...cleanForm, 
+          deleteRecentActivity: isDeleteActivity,
+          viewRecentActivity: isViewActivity,
+          permissions: enrichedPermissions,
+          id: Date.now() 
+        }, true);
       } else {
         const payload = {
           ...formData,
-          password: formData.password || initialData?.password || ''
+          deleteRecentActivity: isDeleteActivity,
+          viewRecentActivity: isViewActivity,
+          password: formData.password || initialData?.password || '',
+          permissions: enrichedPermissions
         };
         onSave(payload, false);
       }
@@ -366,6 +398,15 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           </div>
           <div className="permission-box mb-4">
             <label className="checkbox-label">
+              <input type="checkbox" name="deleteRecentActivity" checked={formData.deleteRecentActivity || false} onChange={handleChange} />
+              <div className="checkbox-text-group">
+                <span className="checkbox-main-text">최근 처리 현황 & 작업 이력 내역 삭제 권한</span>
+                <span className="checkbox-sub-text">체크 시 최근 처리 현황 보고서 및 작업 이력에서 개별 및 선택 처리 이력 내역을 삭제할 수 있습니다.</span>
+              </div>
+            </label>
+          </div>
+          <div className="permission-box mb-4">
+            <label className="checkbox-label">
               <input type="checkbox" name="allowAllEditDelete" checked={formData.allowAllEditDelete || false} onChange={handleChange} />
               <div className="checkbox-text-group">
                 <span className="checkbox-main-text">모든 데이터 삭제/수정 권한 부여</span>
@@ -435,7 +476,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
 
         <div className="staff-reg-footer">
           {isEditing && !isCloning && (
-            <div style={{ marginRight: 'auto' }}>
+            <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button 
                 type="button" 
                 className="btn-clone" 
@@ -457,6 +498,31 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
               >
                 <Copy size={16} /> 이 권한으로 신규 등록
               </button>
+              {onDeleteStaff && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteStaff(initialData);
+                    onClose();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 16px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    color: '#ef4444',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Trash2 size={16} /> 직원 삭제
+                </button>
+              )}
             </div>
           )}
           <button type="button" className="btn-outline" onClick={onClose}>취소</button>
