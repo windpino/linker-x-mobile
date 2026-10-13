@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
   ClipboardCheck, Search, RefreshCw, Save, CheckCircle2, AlertTriangle, 
-  ArrowUpDown, Plus, Minus, X, Layers, FileSpreadsheet, Package
+  ArrowUpDown, Plus, Minus, X, Layers, FileSpreadsheet, Package,
+  Check, CornerDownLeft, Zap
 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -35,6 +36,17 @@ const PhysicalInventoryInput = ({
   const [reasons, setReasons] = useState({});
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Quick single product entry state
+  const [quickSearchText, setQuickSearchText] = useState('');
+  const [quickSelectedProduct, setQuickSelectedProduct] = useState(null);
+  const [quickCountValue, setQuickCountValue] = useState('');
+  const [quickDropdownOpen, setQuickDropdownOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const quickSearchInputRef = useRef(null);
+  const quickCountInputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (initialWarehouse) {
@@ -87,6 +99,86 @@ const PhysicalInventoryInput = ({
     });
     return unique;
   }, [products]);
+
+  // Quick suggestions based on quickSearchText
+  const quickSuggestions = useMemo(() => {
+    if (!quickSearchText.trim()) return [];
+    const q = quickSearchText.trim();
+    return uniqueProducts.filter(p => {
+      return matchesInitialSound(p.name, q) ||
+        (p.abbreviation && matchesInitialSound(p.abbreviation, q)) ||
+        (p.singleBarcode && p.singleBarcode.includes(q));
+    }).slice(0, 10);
+  }, [uniqueProducts, quickSearchText]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) &&
+          quickSearchInputRef.current && !quickSearchInputRef.current.contains(e.target)) {
+        setQuickDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectQuickProduct = (product) => {
+    if (!product) return;
+    setQuickSelectedProduct(product);
+    setQuickSearchText(product.name);
+    setQuickDropdownOpen(false);
+
+    const existingCount = editedCounts[product.name];
+    setQuickCountValue(existingCount !== undefined && existingCount !== '' ? String(existingCount) : '');
+
+    setTimeout(() => {
+      if (quickCountInputRef.current) {
+        quickCountInputRef.current.focus();
+        quickCountInputRef.current.select();
+      }
+    }, 50);
+  };
+
+  const handleApplyQuickCount = (e) => {
+    if (e) e.preventDefault();
+    if (!quickSelectedProduct) return;
+
+    if (quickCountValue.trim() === '') {
+      alert('실재고 수량을 입력해 주세요.');
+      quickCountInputRef.current?.focus();
+      return;
+    }
+
+    const num = Math.max(0, parseInt(quickCountValue, 10) || 0);
+    handleCountChange(quickSelectedProduct.name, num);
+
+    if (!hasSearched) {
+      setHasSearched(true);
+      setAppliedWarehouse(selectedWarehouse);
+    }
+
+    showSaveToast(`[${quickSelectedProduct.name}] 실재고 ${num}개 입력 완료!`);
+
+    setQuickSelectedProduct(null);
+    setQuickSearchText('');
+    setQuickCountValue('');
+    setQuickDropdownOpen(false);
+    setSelectedIndex(0);
+
+    setTimeout(() => {
+      quickSearchInputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleCancelQuickProduct = () => {
+    setQuickSelectedProduct(null);
+    setQuickSearchText('');
+    setQuickCountValue('');
+    setQuickDropdownOpen(false);
+    setSelectedIndex(0);
+    quickSearchInputRef.current?.focus();
+  };
 
   const filteredProducts = useMemo(() => {
     if (!hasSearched) return [];
@@ -329,6 +421,130 @@ const PhysicalInventoryInput = ({
             >
               검색
             </button>
+          </div>
+
+          {/* Quick Product Search & Physical Count Entry Bar */}
+          <div className="mobile-quick-entry-bar">
+            <div className="mobile-quick-entry-header">
+              <Zap size={14} color="#2563eb" />
+              <span className="mobile-quick-title">품목 실재고 빠른 입력</span>
+            </div>
+
+            <div className="mobile-quick-search-box" ref={dropdownRef}>
+              <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <Search size={15} className="mobile-quick-search-icon" />
+                <input
+                  ref={quickSearchInputRef}
+                  type="text"
+                  placeholder="품목명/초성/바코드 검색 후 실재고 등록..."
+                  value={quickSearchText}
+                  onChange={(e) => {
+                    setQuickSearchText(e.target.value);
+                    setQuickDropdownOpen(true);
+                    setSelectedIndex(0);
+                  }}
+                  onFocus={() => {
+                    if (quickSearchText.trim()) setQuickDropdownOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (quickSuggestions.length > 0) {
+                        handleSelectQuickProduct(quickSuggestions[0]);
+                      }
+                    }
+                  }}
+                  className="mobile-quick-search-input"
+                />
+                {quickSearchText && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickSearchText('');
+                      setQuickDropdownOpen(false);
+                      quickSearchInputRef.current?.focus();
+                    }}
+                    className="mobile-quick-clear-btn"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestions Dropdown */}
+              {quickDropdownOpen && quickSuggestions.length > 0 && (
+                <div className="mobile-quick-dropdown">
+                  {quickSuggestions.map((item, idx) => {
+                    const bookStock = getBookStock(item.name, selectedWarehouse);
+                    const currentCount = editedCounts[item.name];
+                    return (
+                      <div
+                        key={item.id || item.name}
+                        className="mobile-quick-dropdown-item"
+                        onClick={() => handleSelectQuickProduct(item)}
+                      >
+                        <div className="mobile-q-item-info">
+                          <span className="mobile-q-name">{item.name}</span>
+                          <span className="mobile-q-sub">{item.spec ? `${item.spec} · ` : ''}{item.categoryLarge || ''}</span>
+                        </div>
+                        <div className="mobile-q-stock-info">
+                          <span className="mobile-q-book">장부: <b>{bookStock}</b></span>
+                          {currentCount !== undefined && (
+                            <span className="mobile-q-entered">실사: {currentCount}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Selected Product & Count Form */}
+            {quickSelectedProduct && (
+              <div className="mobile-quick-count-box">
+                <div className="mobile-selected-badge">
+                  <Package size={13} color="#2563eb" />
+                  <span className="mobile-selected-name">{quickSelectedProduct.name}</span>
+                  <span className="mobile-selected-stock">(장부: {getBookStock(quickSelectedProduct.name, selectedWarehouse)}개)</span>
+                  <button
+                    type="button"
+                    onClick={handleCancelQuickProduct}
+                    className="mobile-btn-cancel-badge"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+
+                <div className="mobile-quick-count-row">
+                  <div className="mobile-count-input-wrap">
+                    <span className="mobile-count-label">실재고:</span>
+                    <input
+                      ref={quickCountInputRef}
+                      type="number"
+                      min="0"
+                      placeholder="수량"
+                      value={quickCountValue}
+                      onChange={(e) => setQuickCountValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleApplyQuickCount(e);
+                      }}
+                      className="mobile-count-input"
+                    />
+                    <span className="mobile-count-unit">개</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleApplyQuickCount}
+                    className="mobile-btn-apply-count"
+                  >
+                    <Check size={14} />
+                    <span>실재고 등록</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mobile-tabs-row">

@@ -94,6 +94,238 @@
   cursor: pointer;
 }
 
+/* Mobile Quick Entry Bar */
+.mobile-quick-entry-bar {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobile-quick-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-quick-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0369a1;
+}
+
+.mobile-quick-search-box {
+  position: relative;
+  width: 100%;
+}
+
+.mobile-quick-search-icon {
+  position: absolute;
+  left: 8px;
+  color: #0284c7;
+  pointer-events: none;
+}
+
+.mobile-quick-search-input {
+  width: 100%;
+  padding: 6px 28px 6px 28px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1.5px solid #7dd3fc;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+}
+
+.mobile-quick-search-input:focus {
+  border-color: #0284c7;
+}
+
+.mobile-quick-clear-btn {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.mobile-quick-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.mobile-quick-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+
+.mobile-quick-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-quick-dropdown-item:active {
+  background-color: #f0fdf4;
+}
+
+.mobile-q-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-q-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mobile-q-sub {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.mobile-q-stock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.mobile-q-book {
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.mobile-q-book b {
+  color: #0284c7;
+}
+
+.mobile-q-entered {
+  font-size: 0.68rem;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+/* Selected Product Box */
+.mobile-quick-count-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: #ffffff;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+}
+
+.mobile-selected-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.mobile-selected-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-selected-stock {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.mobile-btn-cancel-badge {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.mobile-quick-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-count-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #f8fafc;
+  border: 1.5px solid #3b82f6;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.mobile-count-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.mobile-count-input {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  border: none;
+  outline: none;
+  text-align: right;
+  background: transparent;
+}
+
+.mobile-count-unit {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.mobile-btn-apply-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .mobile-tabs-row {
   display: flex;
   gap: 6px;
