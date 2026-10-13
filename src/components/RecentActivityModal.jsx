@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { History, Printer, Download, Search, Calendar, Trash2, Users, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { History, Printer, Download, Search, Calendar, Trash2, Users, X, Clock } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 
@@ -61,13 +61,30 @@ const RecentActivityModal = ({
   currentUser = null,
   onDeleteActivity = () => {},
   onDeleteMultipleActivities = null,
-  onOpenActivity = null
+  onOpenActivity = null,
+  retentionPeriod = 'none',
+  onSaveRetentionPeriod = null,
+  deletedActivityIds = []
 }) => {
   const [activeCategory, setActiveCategory] = useState('전체');
   const [selectedStaff, setSelectedStaff] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedActIds, setSelectedActIds] = useState([]);
+  const [localRetentionPeriod, setLocalRetentionPeriod] = useState(retentionPeriod || 'none');
+
+  useEffect(() => {
+    if (retentionPeriod) {
+      setLocalRetentionPeriod(retentionPeriod);
+    }
+  }, [retentionPeriod]);
+
+  const handleRetentionPeriodChange = (val) => {
+    setLocalRetentionPeriod(val);
+    if (onSaveRetentionPeriod) {
+      onSaveRetentionPeriod(val);
+    }
+  };
 
   const canDelete = Boolean(
     currentUser?.role === 'super_admin' || 
@@ -326,9 +343,25 @@ const RecentActivityModal = ({
       });
     });
 
+    const deletedIdSet = new Set((deletedActivityIds || []).map(String));
+
+    const now = Date.now();
+    let cutoffMs = null;
+    if (localRetentionPeriod === '1day') cutoffMs = now - 24 * 60 * 60 * 1000;
+    else if (localRetentionPeriod === '1week') cutoffMs = now - 7 * 24 * 60 * 60 * 1000;
+    else if (localRetentionPeriod === '1month') cutoffMs = now - 30 * 24 * 60 * 60 * 1000;
+
+    const filteredList = list.filter(item => {
+      if (deletedIdSet.has(String(item.id))) return false;
+      if (item.rawId && deletedIdSet.has(String(item.rawId))) return false;
+      if (item.targetId && deletedIdSet.has(String(item.targetId))) return false;
+      if (cutoffMs && Number(item.numericTimestamp) > 0 && Number(item.numericTimestamp) < cutoffMs) return false;
+      return true;
+    });
+
     // Sort by timestamp descending (most recent first)
-    return list.sort((a, b) => Number(b.numericTimestamp) - Number(a.numericTimestamp));
-  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, inventoryMovements, inventoryAdjustments, activityLogs, currentUser?.companyId]);
+    return filteredList.sort((a, b) => Number(b.numericTimestamp) - Number(a.numericTimestamp));
+  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, inventoryMovements, inventoryAdjustments, activityLogs, currentUser?.companyId, deletedActivityIds, localRetentionPeriod]);
 
   // Extract unique staff members from staffList and activity data
   const staffOptions = useMemo(() => {
@@ -407,17 +440,58 @@ const RecentActivityModal = ({
     <WindowModal title="최근 처리 현황 보고서" onClose={onClose} width="1100px">
       <div className="report-v2-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div className="report-v2-title-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <History size={24} color="#f59e0b" />
+          <History size={26} color="#f59e0b" />
           <div>
-            <h2 className="report-v2-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
-              최근 처리 현황 & 작업 이력
-            </h2>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-              수주서 등록/수정/삭제, 매출/매입 전표 처리, 재고 이동 및 조정 등 전체 시스템 작업 내역을 직원별·유형별로 확인합니다.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 className="report-v2-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
+                최근 처리 현황 & 작업 이력
+              </h2>
+              <span style={{ fontSize: '0.7rem', color: '#10b981', backgroundColor: '#f0fdf4', padding: '2px 8px', borderRadius: '12px', fontWeight: 750, border: '1px solid #bbf7d0' }}>
+                단순 이력 표시 (내역 삭제 시 원본 보존)
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>
+              💡 최근 처리 현황은 단순 작업 내역 확인용이며, <strong>내역을 삭제하더라도 실제 전표/주문서/재고 등의 원본 데이터는 전혀 삭제되지 않습니다.</strong>
             </p>
           </div>
         </div>
-        <div className="report-v2-actions" style={{ display: 'flex', gap: '8px' }}>
+        <div className="report-v2-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* 내역 자동삭제 기한 설정 셀렉트 */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: '#ffffff',
+            padding: '4px 8px',
+            borderRadius: '8px',
+            border: '1px solid #cbd5e1',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+          }}>
+            <Clock size={14} color="#f59e0b" />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+              자동삭제 기한:
+            </span>
+            <select
+              value={localRetentionPeriod}
+              onChange={(e) => handleRetentionPeriodChange(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                color: localRetentionPeriod === 'none' ? '#64748b' : '#2563eb',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+              title="설정한 기한(하루/일주일/한달)이 경과한 내역은 자동으로 삭제되며 원본 데이터는 안전하게 보존됩니다"
+            >
+              <option value="none">보관 제한 없음</option>
+              <option value="1day">하루 (1일 보관 후 자동삭제)</option>
+              <option value="1week">일주일 (7일 보관 후 자동삭제)</option>
+              <option value="1month">한달 (30일 보관 후 자동삭제)</option>
+            </select>
+          </div>
+
           <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.8rem' }}>
             <Printer size={14} /> 인쇄
           </button>
@@ -728,7 +802,7 @@ const RecentActivityModal = ({
                               borderRadius: '4px',
                               transition: 'all 0.2s'
                             }}
-                            title="이력 삭제"
+                            title="최근 처리 내역 삭제 (원본 데이터는 보존됩니다)"
                           >
                             <Trash2 size={14} />
                           </button>

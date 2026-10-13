@@ -1151,6 +1151,24 @@ function App() {
           console.warn(`Error fetching single doc ${sd.name}:`, e);
         }
       }
+
+      // Recent Activity settings (retentionPeriod, deletedActivityIds)
+      try {
+        const raSnap = await getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'));
+        if (raSnap.exists()) {
+          const raData = raSnap.data();
+          if (raData.retentionPeriod !== undefined) {
+            setActivityRetentionPeriod(raData.retentionPeriod);
+            localStorage.setItem(`activityRetentionPeriod_${companyId}`, raData.retentionPeriod);
+          }
+          if (Array.isArray(raData.deletedActivityIds)) {
+            setDeletedActivityIds(raData.deletedActivityIds);
+            localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(raData.deletedActivityIds));
+          }
+        }
+      } catch (e) {
+        console.warn('Error fetching recentActivity settings in mobile:', e);
+      }
     } catch (err) {
       console.warn("One-time mobile data sync warning:", err?.message || err);
     }
@@ -1263,6 +1281,18 @@ function App() {
   const [inventoryTransferHistory, setInventoryTransferHistory] = useState(() => getInitialStateFromCache('inventoryTransferHistory', []));
   const [specialPrices, setSpecialPrices] = useState(() => getInitialStateFromCache('specialPrices', []));
   const [actionLogs, setActionLogs] = useState(() => getInitialStateFromCache('actionLogs', []));
+  const [activityRetentionPeriod, setActivityRetentionPeriod] = useState(() => {
+    const prefix = getCompanyPrefix();
+    return localStorage.getItem(`activityRetentionPeriod${prefix}`) || 'none';
+  });
+  const [deletedActivityIds, setDeletedActivityIds] = useState(() => {
+    const prefix = getCompanyPrefix();
+    try {
+      return JSON.parse(localStorage.getItem(`deletedActivityIds${prefix}`)) || [];
+    } catch {
+      return [];
+    }
+  });
 
   const logOperation = async ({ category, subCategory, title, detail, user, type, targetId, date, time }) => {
     try {
@@ -2433,6 +2463,63 @@ function App() {
     );
   };
 
+  const cleanExpiredActivityLogs = async (period = activityRetentionPeriod) => {
+    if (!period || period === 'none') return;
+    const companyId = currentUser?.companyId || 'default';
+    const now = Date.now();
+    let cutoff = 0;
+    if (period === '1day') cutoff = now - 24 * 60 * 60 * 1000;
+    else if (period === '1week') cutoff = now - 7 * 24 * 60 * 60 * 1000;
+    else if (period === '1month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
+    else return;
+
+    const expiredLogs = (actionLogs || []).filter(log => {
+      const ts = log.timestamp ? (new Date(log.timestamp).getTime() || log.id) : (log.date ? new Date(log.date).getTime() : log.id);
+      return Number(ts) > 0 && Number(ts) < cutoff;
+    });
+
+    if (expiredLogs.length > 0) {
+      console.log(`Auto-cleaning ${expiredLogs.length} expired activity logs in mobile (older than ${period})...`);
+      for (const log of expiredLogs) {
+        try {
+          await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(log.id)));
+        } catch (e) {
+          console.error('Error auto-cleaning expired actionLog in mobile:', e);
+        }
+      }
+      const expiredIdSet = new Set(expiredLogs.map(l => String(l.id)));
+      setActionLogs(prev => {
+        const next = prev.filter(l => !expiredIdSet.has(String(l.id)));
+        try {
+          localStorage.setItem(`actionLogs_${companyId}`, JSON.stringify(next));
+          saveBundle(companyId, 'actionLogs', next).catch(() => {});
+        } catch (e) {}
+        return next;
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    if (actionLogs && actionLogs.length > 0 && activityRetentionPeriod && activityRetentionPeriod !== 'none') {
+      cleanExpiredActivityLogs(activityRetentionPeriod);
+    }
+  }, [actionLogs.length, activityRetentionPeriod]);
+
+  const handleSaveActivityRetentionPeriod = async (newPeriod) => {
+    setActivityRetentionPeriod(newPeriod);
+    const companyId = currentUser?.companyId || 'default';
+    localStorage.setItem(`activityRetentionPeriod_${companyId}`, newPeriod);
+    try {
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'), {
+        retentionPeriod: newPeriod,
+        deletedActivityIds
+      }, { merge: true });
+    } catch (e) {
+      console.error('Error saving recentActivity settings in mobile:', e);
+    }
+    await cleanExpiredActivityLogs(newPeriod);
+  };
+
   const handleDeleteActivityRecord = async (act, skipConfirm = false) => {
     if (!checkActivityDeletePermission()) {
       alert('이력 삭제 권한이 없습니다.\n(직원 관리 > 권한 설정에서 [최근 처리 이력 삭제 권한]이 필요합니다.)');
@@ -2440,7 +2527,7 @@ function App() {
     }
 
     if (!skipConfirm) {
-      if (!window.confirm('선택한 처리 이력 및 연계된 원본 데이터(전표/수주서/재고이동 등)를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)')) {
+      if (!window.confirm('선택한 최근 처리 내역을 삭제하시겠습니까?\n(실제 등록된 전표, 주문서, 재고 등의 원본 데이터는 삭제되지 않으며 처리 내역만 삭제됩니다.)')) {
         return false;
       }
     }
@@ -2449,47 +2536,32 @@ function App() {
     const id = act.rawId;
 
     try {
-      if (act.id.startsWith('sales-inv-')) {
-        await handleDeleteSalesInvoice(id);
-      } else if (act.id.startsWith('purch-inv-')) {
-        await handleDeletePurchaseInvoice(id);
-      } else if (act.id.startsWith('order-')) {
-        await handleDeleteSalesOrder(id);
-      } else if (act.id.startsWith('po-')) {
-        await deleteDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)));
-        const nextPOs = purchaseOrders.filter(po => String(po.id) !== String(id));
-        setPurchaseOrders(nextPOs);
-        await saveBundle(companyId, 'purchaseOrders', nextPOs);
-        if (!skipConfirm) alert('발주서가 성공적으로 삭제되었습니다.');
-      } else if (act.id.startsWith('mov-')) {
-        await onDeleteMoveStock(id);
-        if (!skipConfirm) alert('재고이동 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
-      } else if (act.id.startsWith('adj-')) {
-        const adj = inventoryAdjustments.find(a => String(a.id) === String(id));
-        if (adj) {
-          const nextInv = { ...inventory };
-          const wh = adj.warehouse || warehouses[0]?.name || '창고';
-          if (!nextInv[wh]) nextInv[wh] = {};
-          nextInv[wh][adj.productName] = (nextInv[wh][adj.productName] || 0) - Number(adj.qty);
-          await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-          setInventory(nextInv);
-        }
-        await deleteDoc(doc(db, 'companies', companyId, 'inventoryAdjustments', String(id)));
-        const nextAdjs = inventoryAdjustments.filter(a => String(a.id) !== String(id));
-        setInventoryAdjustments(nextAdjs);
-        await saveBundle(companyId, 'inventoryAdjustments', nextAdjs);
-        if (!skipConfirm) alert('재고조정 내역이 성공적으로 삭제되고 재고가 원상 복구되었습니다.');
-      } else if (act.id.startsWith('log-')) {
+      // 1. If it's a recorded actionLog, delete it from actionLogs collection
+      if (act.id.startsWith('log-')) {
         await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(id)));
         const nextLogs = actionLogs.filter(log => String(log.id) !== String(id));
         setActionLogs(nextLogs);
         await saveBundle(companyId, 'actionLogs', nextLogs);
-        if (!skipConfirm) alert('처리 기록이 성공적으로 삭제되었습니다.');
       }
+
+      // 2. Mark this activity ID as deleted so fallback items or logs do not appear again in recent activity
+      const idsToAdd = [String(act.id)];
+      if (act.rawId) idsToAdd.push(String(act.rawId));
+      if (act.targetId) idsToAdd.push(String(act.targetId));
+
+      const nextDeletedIds = Array.from(new Set([...deletedActivityIds, ...idsToAdd]));
+      setDeletedActivityIds(nextDeletedIds);
+      localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(nextDeletedIds));
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'), {
+        deletedActivityIds: nextDeletedIds,
+        retentionPeriod: activityRetentionPeriod
+      }, { merge: true });
+
+      if (!skipConfirm) alert('최근 처리 내역이 성공적으로 삭제되었습니다.\n(원본 데이터는 안전하게 보존됩니다.)');
       return true;
     } catch (err) {
       console.error('Error deleting activity record:', err);
-      if (!skipConfirm) alert('이력 삭제 중 오류가 발생했습니다: ' + err.message);
+      if (!skipConfirm) alert('내역 삭제 중 오류가 발생했습니다: ' + (err.message || ''));
       return false;
     }
   };
@@ -2500,15 +2572,42 @@ function App() {
       alert('이력 삭제 권한이 없습니다.\n(직원 관리 > 권한 설정에서 [최근 처리 이력 삭제 권한]이 필요합니다.)');
       return;
     }
-    if (!window.confirm(`선택한 ${acts.length}건의 처리 이력 및 연계 데이터를 완전히 삭제하시겠습니까?\n(재고가 원상복구되고 마스터 내역이 함께 삭제됩니다.)`)) {
+    if (!window.confirm(`선택한 ${acts.length}건의 최근 처리 내역을 삭제하시겠습니까?\n(실제 등록된 전표, 주문서, 재고 등의 원본 데이터는 삭제되지 않으며 처리 내역만 삭제됩니다.)`)) {
       return;
     }
     let successCount = 0;
+    const companyId = currentUser?.companyId || 'default';
+    const newDeletedIds = [...deletedActivityIds];
+
     for (const act of acts) {
-      const ok = await handleDeleteActivityRecord(act, true);
-      if (ok) successCount++;
+      try {
+        if (act.id.startsWith('log-')) {
+          await deleteDoc(doc(db, 'companies', companyId, 'actionLogs', String(act.rawId)));
+        }
+        newDeletedIds.push(String(act.id));
+        if (act.rawId) newDeletedIds.push(String(act.rawId));
+        if (act.targetId) newDeletedIds.push(String(act.targetId));
+        successCount++;
+      } catch (e) {
+        console.error('Error in batch deleting activity in mobile:', e);
+      }
     }
-    alert(`선택한 ${successCount}건의 처리 이력이 성공적으로 삭제되었습니다.`);
+
+    const uniqueDeletedIds = Array.from(new Set(newDeletedIds));
+    setDeletedActivityIds(uniqueDeletedIds);
+    localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(uniqueDeletedIds));
+
+    const actRawIds = new Set(acts.map(a => String(a.rawId)));
+    const nextLogs = actionLogs.filter(log => !actRawIds.has(String(log.id)));
+    setActionLogs(nextLogs);
+    await saveBundle(companyId, 'actionLogs', nextLogs).catch(() => {});
+
+    await setDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'), {
+      deletedActivityIds: uniqueDeletedIds,
+      retentionPeriod: activityRetentionPeriod
+    }, { merge: true });
+
+    alert(`선택한 ${successCount}건의 최근 처리 내역이 성공적으로 삭제되었습니다.\n(원본 데이터는 안전하게 보존됩니다.)`);
   };
 
   // 2. Effects for persistence
@@ -3568,7 +3667,29 @@ function App() {
               return getMs(b.timestamp) - getMs(a.timestamp);
             });
 
+            const deletedIdSet = new Set((deletedActivityIds || []).map(String));
+            const now = Date.now();
+            let cutoffMs = null;
+            if (activityRetentionPeriod === '1day') cutoffMs = now - 24 * 60 * 60 * 1000;
+            else if (activityRetentionPeriod === '1week') cutoffMs = now - 7 * 24 * 60 * 60 * 1000;
+            else if (activityRetentionPeriod === '1month') cutoffMs = now - 30 * 24 * 60 * 60 * 1000;
+
             const filteredInWidget = sortedActivities.filter(act => {
+              if (deletedIdSet.has(String(act.id))) return false;
+              if (act.rawId && deletedIdSet.has(String(act.rawId))) return false;
+              if (act.targetId && deletedIdSet.has(String(act.targetId))) return false;
+              if (cutoffMs) {
+                const getMs = (val) => {
+                  if (!val) return 0;
+                  if (typeof val === 'number') return val;
+                  if (typeof val.seconds === 'number') return val.seconds * 1000;
+                  if (typeof val.toDate === 'function') return val.toDate().getTime();
+                  const d = new Date(val);
+                  return isNaN(d.getTime()) ? 0 : d.getTime();
+                };
+                const ms = getMs(act.timestamp) || (act.date ? new Date(act.date).getTime() : 0);
+                if (ms > 0 && ms < cutoffMs) return false;
+              }
               if (recentActivityWidgetCategory === '전표등록') return act.category === '전표등록' || act.type === '등록';
               if (recentActivityWidgetCategory === '변경') return act.category === '변경' || act.type === '수정' || act.type === '변경';
               if (recentActivityWidgetCategory === '이동') return act.category === '이동' || act.type === '이동';
@@ -5959,6 +6080,9 @@ function App() {
           onDeleteActivity={handleDeleteActivityRecord}
           onDeleteMultipleActivities={handleDeleteMultipleActivities}
           onOpenActivity={handleActivityAction}
+          retentionPeriod={activityRetentionPeriod}
+          onSaveRetentionPeriod={handleSaveActivityRetentionPeriod}
+          deletedActivityIds={deletedActivityIds}
         />
       )}
       {showExitConfirmModal && (
