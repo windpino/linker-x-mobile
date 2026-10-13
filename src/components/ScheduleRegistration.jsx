@@ -68,8 +68,6 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
         time: formData.startTime
       });
     }
-    alert(formData.id ? '일정이 수정되었습니다.' : '일정이 성공적으로 추가되었습니다.');
-    onClose();
   };
 
   return (

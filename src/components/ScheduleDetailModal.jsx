@@ -2,7 +2,7 @@ import React from 'react';
 import { Clock, User, CheckCircle2, MessageSquare, Tag } from 'lucide-react';
 import WindowModal from './WindowModal';
 
-const ScheduleDetailModal = ({ schedule, onClose, currentUser, scheduleTypes = [], onUpdateSchedule, onDeleteSchedule }) => {
+const ScheduleDetailModal = ({ schedule, onClose, currentUser, scheduleTypes = [], onUpdateSchedule, onDeleteSchedule, onEditSchedule }) => {
   if (!schedule) return null;
 
   const getBadgeColors = (type) => {
@@ -32,11 +32,13 @@ const ScheduleDetailModal = ({ schedule, onClose, currentUser, scheduleTypes = [
   const badgeColors = getBadgeColors(schedule.type);
   const viewers = schedule.viewers || [];
 
-  const canDelete = 
+  const isAdmin = 
     currentUser?.role === 'super_admin' || 
     currentUser?.role === 'admin' || 
     currentUser?.userId === 'admin' ||
-    (schedule.author && currentUser?.name && schedule.author === currentUser.name);
+    currentUser?.allowAllEditDelete === true;
+  const isAuthor = !schedule.author || (currentUser?.name && schedule.author && currentUser.name === schedule.author);
+  const canModify = isAdmin || isAuthor;
 
   const handleDeleteClick = () => {
     if (window.confirm('일정을 삭제하시겠습니까?')) {
@@ -169,30 +171,59 @@ const ScheduleDetailModal = ({ schedule, onClose, currentUser, scheduleTypes = [
 
         {/* Footer actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-          {canDelete ? (
-            <button
-              onClick={handleDeleteClick}
-              style={{
-                padding: '8px 16px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                border: '1px solid #fee2e2',
-                backgroundColor: '#fef2f2',
-                color: '#ef4444'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#fee2e2';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#fef2f2';
-              }}
-            >
-              일정 삭제
-            </button>
-          ) : <div />}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {canModify && onDeleteSchedule && (
+              <button
+                onClick={handleDeleteClick}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  border: '1px solid #fee2e2',
+                  backgroundColor: '#fef2f2',
+                  color: '#ef4444'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#fee2e2';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#fef2f2';
+                }}
+              >
+                일정 삭제
+              </button>
+            )}
+            {canModify && onEditSchedule && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onEditSchedule(schedule);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  border: '1px solid #bfdbfe',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#dbeafe';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#eff6ff';
+                }}
+              >
+                일정 수정
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="btn-outline"

@@ -2976,21 +2976,15 @@ function App() {
             onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
             onDelete={async (id) => {
               console.log("onDelete triggered. Target ID:", id, "Type:", typeof id);
+              const nextSchedules = schedules.filter(s => String(s.id) !== String(id));
+              setSchedules(nextSchedules);
               
-              // bypass window.confirm as it might be blocked by the browser
-              // 1. Update local state immediately with robust ID comparison
-              setSchedules(prev => {
-                const filtered = prev.filter(s => String(s.id) !== String(id));
-                console.log(`Filtering complete. Previous: ${prev.length}, Current: ${filtered.length}`);
-                return filtered;
-              });
-              
-              // 2. Delete from Firestore
               try {
                 const companyId = currentUser?.companyId || 'default';
                 const docRef = doc(db, 'companies', companyId, 'schedules', String(id));
                 console.log(`Attempting Firestore delete for path: companies/${companyId}/schedules/${id}`);
                 await deleteDoc(docRef);
+                await saveBundle(companyId, 'schedules', nextSchedules);
                 showToast('일정이 삭제되었습니다.', 'success');
               } catch (err) {
                 console.error("Firestore Delete Error:", err);
@@ -4887,10 +4881,12 @@ function App() {
             }}
             onEdit={(s) => { setEditingSchedule(s); setIsScheduleRegistrationOpen(true); }}
             onDelete={async (id) => {
-              setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
+              const nextSchedules = schedules.filter(s => String(s.id) !== String(id));
+              setSchedules(nextSchedules);
               try {
                 const companyId = currentUser?.companyId || 'default';
                 await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+                await saveBundle(companyId, 'schedules', nextSchedules);
                 showToast('일정이 삭제되었습니다.', 'success');
               } catch (err) {
                 console.error('Failed to delete schedule:', err);
@@ -5093,15 +5089,20 @@ function App() {
           onClose={() => { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); }} 
           currentUser={currentUser} 
           scheduleTypes={scheduleTypes}
-          onUpdateSchedule={(updatedSched) => {
-            setSchedules(prev => prev.map(s => String(s.id) === String(updatedSched.id) ? updatedSched : s));
+          onUpdateSchedule={async (updatedSched) => {
+            const nextSchedules = schedules.map(s => String(s.id) === String(updatedSched.id) ? updatedSched : s);
+            setSchedules(nextSchedules);
             setSelectedScheduleForDetail(updatedSched);
+            const companyId = currentUser?.companyId || 'default';
+            await saveBundle(companyId, 'schedules', nextSchedules);
           }}
           onDeleteSchedule={async (id) => {
             try {
               const companyId = currentUser?.companyId || 'default';
               await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
-              setSchedules(prev => prev.filter(s => String(s.id) !== String(id)));
+              const nextSchedules = schedules.filter(s => String(s.id) !== String(id));
+              setSchedules(nextSchedules);
+              await saveBundle(companyId, 'schedules', nextSchedules);
               setIsScheduleDetailOpen(false);
               setSelectedScheduleForDetail(null);
               showToast('일정이 삭제되었습니다.', 'success');
@@ -5109,6 +5110,12 @@ function App() {
               console.error("Delete schedule error:", err);
               alert('삭제 중 오류가 발생했습니다.');
             }
+          }}
+          onEditSchedule={(s) => {
+            setIsScheduleDetailOpen(false);
+            setSelectedScheduleForDetail(null);
+            setEditingSchedule(s);
+            setIsScheduleRegistrationOpen(true);
           }}
         />
       )}
@@ -5131,6 +5138,9 @@ function App() {
               try {
                 const companyId = currentUser?.companyId || 'default';
                 await deleteDoc(doc(db, 'companies', companyId, 'schedules', String(id)));
+                const nextSchedules = schedules.filter(s => String(s.id) !== String(id));
+                setSchedules(nextSchedules);
+                await saveBundle(companyId, 'schedules', nextSchedules);
                 showToast('일정이 삭제되었습니다.', 'success');
               } catch (err) {
                 console.error("Delete schedule error:", err);
@@ -5162,19 +5172,39 @@ function App() {
             try {
               const companyId = currentUser?.companyId || 'default';
               const docId = sd.id ? String(sd.id) : String(Date.now());
+              const dateVal = sd.startDate || sd.date || (selectedDate instanceof Date ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
               const finalData = {
                 ...sd,
                 id: sd.id || Number(docId),
+                date: dateVal,
+                startDate: dateVal,
+                endDate: sd.endDate || dateVal,
+                startTime: sd.startTime || sd.time || '10:00',
+                endTime: sd.endTime || '11:00',
+                time: sd.startTime || sd.time || '10:00',
                 author: sd.author || currentUser?.name || '알 수 없음',
                 viewers: sd.viewers || [],
                 companyId,
                 updatedAt: new Date().toISOString()
               };
-              delete finalData.date;
               await setDoc(doc(db, 'companies', companyId, 'schedules', docId), finalData);
+
+              const nextSchedules = (() => {
+                const idx = schedules.findIndex(s => String(s.id) === String(finalData.id));
+                if (idx >= 0) {
+                  const updated = [...schedules];
+                  updated[idx] = finalData;
+                  return updated;
+                }
+                return [...schedules, finalData];
+              })();
+              setSchedules(nextSchedules);
+              await saveBundle(companyId, 'schedules', nextSchedules);
+
               setEditingSchedule(null);
               setIsScheduleRegistrationOpen(false);
               setIsManagingTypesOnOpen(false);
+              showToast(sd.id ? '일정이 수정되었습니다.' : '일정이 등록되었습니다.', 'success');
             } catch (err) {
               console.error("Save schedule error:", err);
               alert('저장 중 오류가 발생했습니다.');
