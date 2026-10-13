@@ -231,11 +231,29 @@ const Quotation = ({
 
   const getProductDefaultPrice = (prod) => {
     if (!prod) return 0;
-    if (!quotationData.partner) return prod.salesPriceSingle || prod.salesPrice || 0;
-    const sp = (specialPrices || []).find(s => 
-      s.partnerName === quotationData.partner && String(s.productId) === String(prod.id)
-    );
-    if (sp) return sp.specialPrice;
+    const partnerName = (quotationData?.partner || '').trim();
+    if (!partnerName) return prod.salesPriceSingle || prod.salesPrice || 0;
+    
+    const matchedPartner = (partners || []).find(p => (p.name || '').trim() === partnerName);
+    const partnerIdStr = matchedPartner ? String(matchedPartner.id) : '';
+
+    const prodIdStr = prod.id !== undefined && prod.id !== null ? String(prod.id) : '';
+    const prodNameTrimmed = (prod.name || '').trim();
+
+    const specialPriceRecord = (specialPrices || []).find(sp => {
+      const spPartnerName = (sp.partnerName || '').trim();
+      const spPartnerId = sp.partnerId !== undefined && sp.partnerId !== null ? String(sp.partnerId) : '';
+      const matchPartner = (spPartnerName && spPartnerName === partnerName) || (partnerIdStr && spPartnerId === partnerIdStr);
+      if (!matchPartner) return false;
+
+      const spProdId = sp.productId !== undefined && sp.productId !== null ? String(sp.productId) : '';
+      const spProdName = (sp.productName || '').trim();
+      return (prodIdStr && spProdId === prodIdStr) || (prodNameTrimmed && spProdName === prodNameTrimmed);
+    });
+    
+    if (specialPriceRecord && specialPriceRecord.specialPrice !== undefined && specialPriceRecord.specialPrice !== null && !isNaN(Number(specialPriceRecord.specialPrice))) {
+      return Number(specialPriceRecord.specialPrice);
+    }
     return prod.salesPriceSingle || prod.salesPrice || 0;
   };
 

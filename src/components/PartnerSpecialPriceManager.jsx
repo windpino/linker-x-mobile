@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DollarSign, Printer, Download, Plus, Edit2, Trash2, Search, Filter, HelpCircle } from 'lucide-react';
 import WindowModal from './WindowModal';
+import PartnerSearchInput from './PartnerSearchInput';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -108,9 +109,17 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
     }
 
     try {
-      const targetDocId = editingRecord ? String(editingRecord._docId || editingRecord.id || Date.now()) : String(Date.now());
+      const existingSP = (specialPrices || []).find(sp => 
+        (String(sp.partnerId) === String(partnerId) || (sp.partnerName || '').trim() === partnerName.trim()) &&
+        (String(sp.productId) === String(productId) || (sp.productName || '').trim() === productName.trim())
+      );
+      const targetDocId = editingRecord 
+        ? String(editingRecord._docId || editingRecord.id || Date.now()) 
+        : (existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now()));
+
       const finalData = {
         id: targetDocId,
+        _docId: targetDocId,
         partnerId,
         partnerName,
         productId,
@@ -125,14 +134,28 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
 
       if (setSpecialPrices) {
         setSpecialPrices(prev => {
-          const exists = prev.some(sp => String(sp._docId || sp.id) === targetDocId);
-          if (exists) {
-            return prev.map(sp => String(sp._docId || sp.id) === targetDocId ? { ...sp, ...finalData, _docId: targetDocId } : sp);
-          } else {
-            return [...prev, { ...finalData, _docId: targetDocId }];
-          }
+          const filtered = prev.filter(sp => 
+            String(sp._docId || sp.id) !== targetDocId && 
+            !((String(sp.partnerId) === String(partnerId) || (sp.partnerName || '').trim() === partnerName.trim()) &&
+              (String(sp.productId) === String(productId) || (sp.productName || '').trim() === productName.trim()))
+          );
+          return [...filtered, finalData];
         });
       }
+
+      // LocalStorage 캐시 동기화
+      const prefix = `_${companyId}`;
+      const cached = JSON.parse(localStorage.getItem(`specialPrices${prefix}`)) || [];
+      const updatedCache = [
+        ...cached.filter(sp => 
+          String(sp._docId || sp.id) !== targetDocId && 
+          !((String(sp.partnerId) === String(partnerId) || (sp.partnerName || '').trim() === partnerName.trim()) &&
+            (String(sp.productId) === String(productId) || (sp.productName || '').trim() === productName.trim()))
+        ),
+        finalData
+      ];
+      localStorage.setItem(`specialPrices${prefix}`, JSON.stringify(updatedCache));
+      localStorage.setItem(`specialPrices_${companyId}`, JSON.stringify(updatedCache));
 
       setIsFormOpen(false);
     } catch (err) {
@@ -161,6 +184,11 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
       if (setSpecialPrices) {
         setSpecialPrices(prev => prev.filter(sp => String(sp._docId || sp.id) !== targetId));
       }
+      const prefix = `_${companyId}`;
+      const cached = JSON.parse(localStorage.getItem(`specialPrices${prefix}`)) || [];
+      const updatedCache = cached.filter(sp => String(sp._docId || sp.id) !== targetId);
+      localStorage.setItem(`specialPrices${prefix}`, JSON.stringify(updatedCache));
+      localStorage.setItem(`specialPrices_${companyId}`, JSON.stringify(updatedCache));
     } catch (err) {
       console.error('Error deleting special price:', err);
       alert('특별단가 삭제 중 오류가 발생했습니다.');
@@ -374,7 +402,7 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
       {/* Form Modal overlay for Mobile */}
       {isFormOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
-          <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
               <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b' }}>
                 {editingRecord ? '특별단가 정보 수정' : '신규 특별단가 등록'}
@@ -382,66 +410,176 @@ const PartnerSpecialPriceManager = ({ onClose, partners = [], products = [], spe
               <button onClick={() => setIsFormOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
             </div>
             
-            <form onSubmit={handleSave} style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <form onSubmit={handleSave} style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>거래처 선택</label>
-                <select 
-                  value={formPartnerId} 
-                  onChange={(e) => setFormPartnerId(e.target.value)} 
-                  disabled={!!editingRecord}
-                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: editingRecord ? '#f1f5f9' : '#fff' }}
-                >
-                  {editingRecord && !partners.some(p => String(p.id) === String(formPartnerId)) && (
-                    <option value={formPartnerId}>{editingRecord.partnerName || '선택된 거래처'}</option>
-                  )}
-                  {partners.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>품목 선택</label>
-                <select 
-                  value={formProductId} 
-                  onChange={(e) => setFormProductId(e.target.value)} 
-                  disabled={!!editingRecord}
-                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: editingRecord ? '#f1f5f9' : '#fff' }}
-                >
-                  {editingRecord && !products.some(p => String(p.id) === String(formProductId)) && (
-                    <option value={formProductId}>{editingRecord.productName || '선택된 품목'}</option>
-                  )}
-                  {products.map(p => {
-                    const normal = p.salesPrice || p.salesPriceSingle || 0;
-                    return (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (정상가: {normal.toLocaleString()}원)
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>특별단가 설정</label>
-                <div style={{ position: 'relative' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>거래처 선택 (검색/선택)</label>
+                {editingRecord ? (
                   <input 
-                    type="number"
-                    placeholder="특별단가 입력"
-                    value={formSpecialPrice}
-                    onChange={(e) => setFormSpecialPrice(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '7px 28px 7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 800, textAlign: 'right', boxSizing: 'border-box' }}
+                    type="text" 
+                    readOnly 
+                    value={editingRecord.partnerName || ''} 
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600, boxSizing: 'border-box' }}
                   />
-                  <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>원</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px' }}>
-                  원래 정상가: <strong>{getProductNormalPrice(formProductId).toLocaleString()}원</strong>
-                </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <PartnerSearchInput 
+                      partners={partners}
+                      value={partners.find(p => String(p.id) === String(formPartnerId))?.name || ''}
+                      onSelect={(partner) => {
+                        if (partner) {
+                          setFormPartnerId(String(partner.id));
+                        }
+                      }}
+                      placeholder="거래처 검색 (초성검색 가능)..."
+                    />
+                    <select 
+                      value={formPartnerId} 
+                      onChange={(e) => setFormPartnerId(e.target.value)} 
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: '#fff', boxSizing: 'border-box' }}
+                    >
+                      <option value="">-- 목록에서 거래처 직접 선택 --</option>
+                      {partners.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>적용 메모 (사유)</label>
+                {(() => {
+                  const selectedProduct = products.find(p => String(p.id) === String(formProductId) || p.name === editingRecord?.productName);
+                  const normalPrice = selectedProduct ? (selectedProduct.salesPrice || selectedProduct.salesPriceSingle || 0) : 0;
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>품목 선택</label>
+                        {selectedProduct && (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563eb', backgroundColor: '#eff6ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>
+                            현재단가: {normalPrice.toLocaleString()}원
+                          </span>
+                        )}
+                      </div>
+                      <select 
+                        value={formProductId} 
+                        onChange={(e) => setFormProductId(e.target.value)} 
+                        disabled={!!editingRecord}
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', backgroundColor: editingRecord ? '#f1f5f9' : '#fff', boxSizing: 'border-box' }}
+                      >
+                        {editingRecord && !products.some(p => String(p.id) === String(formProductId)) && (
+                          <option value={formProductId}>{editingRecord.productName || '선택된 품목'}</option>
+                        )}
+                        <option value="">-- 품목을 선택하세요 --</option>
+                        {products.map(p => {
+                          const normal = p.salesPrice || p.salesPriceSingle || 0;
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {p.spec ? `(${p.spec})` : ''} [현재단가: {normal.toLocaleString()}원]
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {formProductId && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          marginTop: '6px'
+                        }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>선택 품목 현재 기본단가</span>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
+                            {normalPrice.toLocaleString()}원
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div>
+                {(() => {
+                  const selectedProduct = products.find(p => String(p.id) === String(formProductId) || p.name === editingRecord?.productName);
+                  const normalPrice = selectedProduct ? (selectedProduct.salesPrice || selectedProduct.salesPriceSingle || 0) : 0;
+                  const numSpecialPrice = Number(formSpecialPrice);
+                  const isPriceValid = formSpecialPrice !== '' && !isNaN(numSpecialPrice) && numSpecialPrice > 0;
+                  const discountAmount = normalPrice - (isPriceValid ? numSpecialPrice : 0);
+                  const discountRate = (normalPrice > 0 && isPriceValid)
+                    ? ((discountAmount / normalPrice) * 100).toFixed(1)
+                    : null;
+
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>지정단가 (특별단가)</label>
+                        {discountRate !== null && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            backgroundColor: discountAmount > 0 ? '#eff6ff' : discountAmount < 0 ? '#fff7ed' : '#f1f5f9',
+                            color: discountAmount > 0 ? '#2563eb' : discountAmount < 0 ? '#ea580c' : '#64748b',
+                            border: discountAmount > 0 ? '1px solid #bfdbfe' : discountAmount < 0 ? '1px solid #fed7aa' : '1px solid #e2e8f0'
+                          }}>
+                            {discountAmount > 0 ? (
+                              <>할인율: {discountRate}% (-{discountAmount.toLocaleString()}원)</>
+                            ) : discountAmount < 0 ? (
+                              <>할증율: +{Math.abs(discountRate)}% (+{Math.abs(discountAmount).toLocaleString()}원)</>
+                            ) : (
+                              <>정상가 동일 (0.0%)</>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <input 
+                          type="number"
+                          placeholder="특별단가 입력"
+                          value={formSpecialPrice}
+                          onChange={(e) => setFormSpecialPrice(e.target.value)}
+                          required
+                          style={{ width: '100%', padding: '8px 28px 8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 800, textAlign: 'right', boxSizing: 'border-box' }}
+                        />
+                        <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>원</span>
+                      </div>
+                      {isPriceValid && normalPrice > 0 && (
+                        <div style={{
+                          marginTop: '6px',
+                          padding: '8px 10px',
+                          backgroundColor: discountAmount > 0 ? '#eff6ff' : discountAmount < 0 ? '#fff7ed' : '#f8fafc',
+                          borderRadius: '6px',
+                          border: discountAmount > 0 ? '1px solid #bfdbfe' : discountAmount < 0 ? '1px solid #fed7aa' : '1px solid #e2e8f0',
+                          fontSize: '0.75rem'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', color: '#64748b' }}>
+                            <span>기본 정상단가:</span>
+                            <span style={{ textDecoration: 'line-through' }}>{normalPrice.toLocaleString()}원</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontWeight: 800, color: discountAmount > 0 ? '#2563eb' : discountAmount < 0 ? '#ea580c' : '#1e293b' }}>
+                            <span>지정 특별단가:</span>
+                            <span>{numSpecialPrice.toLocaleString()}원</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '3px', fontWeight: 700, color: discountAmount > 0 ? '#1d4ed8' : discountAmount < 0 ? '#c2410c' : '#475569' }}>
+                            <span>{discountAmount >= 0 ? '적용 할인율' : '적용 할증율'}:</span>
+                            <span>{discountAmount >= 0 ? `-${discountAmount.toLocaleString()}원 (${discountRate}%)` : `+${Math.abs(discountAmount).toLocaleString()}원 (+${Math.abs(discountRate)}%)`}</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>적용 메모 (사유)</label>
                 <input 
                   type="text"
                   placeholder="예: 장기 계약 단가, 대량 납품 등"

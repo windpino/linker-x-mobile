@@ -7,7 +7,7 @@ import { getStaffWarehouse } from '../utils/warehouseUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
-const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, onDeleteOrder, salesOrders = [], currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
+const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, onDeleteOrder, salesOrders = [], specialPrices = [], setSpecialPrices, currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = true;
 
@@ -42,6 +42,34 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     itemsText: '',
     memo: ''
   });
+
+  const getProductDefaultPrice = (prod) => {
+    if (!prod) return 0;
+    const partnerName = (orderData?.partner || '').trim();
+    if (!partnerName) return prod.salesPriceSingle || prod.salesPrice || 0;
+    
+    const matchedPartner = (partners || []).find(p => (p.name || '').trim() === partnerName);
+    const partnerIdStr = matchedPartner ? String(matchedPartner.id) : '';
+
+    const prodIdStr = prod.id !== undefined && prod.id !== null ? String(prod.id) : '';
+    const prodNameTrimmed = (prod.name || '').trim();
+
+    const specialPriceRecord = (specialPrices || []).find(sp => {
+      const spPartnerName = (sp.partnerName || '').trim();
+      const spPartnerId = sp.partnerId !== undefined && sp.partnerId !== null ? String(sp.partnerId) : '';
+      const matchPartner = (spPartnerName && spPartnerName === partnerName) || (partnerIdStr && spPartnerId === partnerIdStr);
+      if (!matchPartner) return false;
+
+      const spProdId = sp.productId !== undefined && sp.productId !== null ? String(sp.productId) : '';
+      const spProdName = (sp.productName || '').trim();
+      return (prodIdStr && spProdId === prodIdStr) || (prodNameTrimmed && spProdName === prodNameTrimmed);
+    });
+    
+    if (specialPriceRecord && specialPriceRecord.specialPrice !== undefined && specialPriceRecord.specialPrice !== null && !isNaN(Number(specialPriceRecord.specialPrice))) {
+      return Number(specialPriceRecord.specialPrice);
+    }
+    return prod.salesPriceSingle || prod.salesPrice || 0;
+  };
 
   React.useEffect(() => {
     if (orderData.partner) {
@@ -209,7 +237,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         const qty = parseInt(match[2], 10);
         const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
         if (product) {
-          const price = product.salesPrice || 0;
+          const price = getProductDefaultPrice(product);
           const isTaxFree = product.taxType === '면세';
           const itemTotal = qty * price;
           const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
@@ -232,7 +260,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       }
     });
     return items;
-  }, [orderData.itemsText, products]);
+  }, [orderData.itemsText, products, specialPrices, orderData.partner, partners]);
 
   const parsedTotalQty = parsedItems.reduce((sum, item) => sum + item.qty, 0);
   const parsedTotalPrice = parsedItems.reduce((sum, item) => sum + item.total, 0);
@@ -292,7 +320,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
         
         if (product) {
-          const price = product.salesPrice || 0;
+          const price = getProductDefaultPrice(product);
           const isTaxFree = product.taxType === '면세';
           const itemTotal = qty * price;
           const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
