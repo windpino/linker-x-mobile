@@ -8,9 +8,9 @@ const STATUS_TO_GRADE = { blue: '1', yellow: '2', red: '3' };
 
 const GradeBadge = ({ grade }) => {
   const styles = {
-    '1': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', text: '★ 1등급' },
-    '2': { bg: '#fffbeb', color: '#b45309', border: '#fde68a', text: '★★ 2등급' },
-    '3': { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', text: '★★★ 3등급' },
+    '1': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', text: '1등급' },
+    '2': { bg: '#fffbeb', color: '#b45309', border: '#fde68a', text: '2등급' },
+    '3': { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', text: '3등급' },
   };
   const s = styles[grade] || styles['1'];
   return (
@@ -303,7 +303,7 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
         {/* 3 Grade Summary Cards Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
           <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 800 }}>★★★ 3등급</div>
+            <div style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 800 }}>3등급</div>
             <div style={{ fontSize: '0.62rem', color: '#ef4444' }}>위험(빨간불)</div>
             <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
               {reportData.filter(d => d.status === 'red').length}건
@@ -311,7 +311,7 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
           </div>
 
           <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 800 }}>★★ 2등급</div>
+            <div style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 800 }}>2등급</div>
             <div style={{ fontSize: '0.62rem', color: '#f59e0b' }}>주의(노란불)</div>
             <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#b45309', marginTop: '2px' }}>
               {reportData.filter(d => d.status === 'yellow').length}건
@@ -319,7 +319,7 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
           </div>
 
           <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 800 }}>★ 1등급</div>
+            <div style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 800 }}>1등급</div>
             <div style={{ fontSize: '0.62rem', color: '#3b82f6' }}>안전(파란불)</div>
             <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
               {reportData.filter(d => d.status === 'blue').length}건
@@ -485,9 +485,9 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
                             onChange={e => handleSettingChange(row.id, 'grade', e.target.value)}
                             style={{ flex: 1, padding: '3px 4px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, border: '1px solid #cbd5e1', outline: 'none', backgroundColor: '#fff' }}
                           >
-                            <option value="1">★ 1등급</option>
-                            <option value="2">★★ 2등급</option>
-                            <option value="3">★★★ 3등급</option>
+                            <option value="1">1등급</option>
+                            <option value="2">2등급</option>
+                            <option value="3">3등급</option>
                           </select>
                         </div>
                       </div>

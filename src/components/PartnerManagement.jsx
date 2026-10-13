@@ -1039,7 +1039,7 @@ const PartnerManagement = ({
                                    color: value === '1' ? '#1d4ed8' : value === '2' ? '#b45309' : '#dc2626',
                                    flexShrink: 0
                                  }}>
-                                   {value === '1' ? '★ 1등급' : value === '2' ? '★★ 2등급' : '★★★ 3등급'}
+                                   {value === '1' ? '1등급' : value === '2' ? '2등급' : '3등급'}
                                   </span>
                               </td>
                             );
