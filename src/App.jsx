@@ -4882,7 +4882,7 @@ function App() {
           logOperation={logOperation}
         />
       )}
-      {isProductManagerOpen && <ProductManagement onClose={() => setIsProductManagerOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} onOpenBulk={() => setIsProductBulkOpen(true)} currentUser={currentUser} />}
+      {isProductManagerOpen && <ProductManagement onClose={() => setIsProductManagerOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} onOpenBulk={() => setIsProductBulkOpen(true)} currentUser={currentUser} warehouses={warehouses} />}
       {isPartnerSpecialPriceManagerOpen && (
         <PartnerSpecialPriceManager 
           onClose={() => setIsPartnerSpecialPriceManagerOpen(false)} 

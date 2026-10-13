@@ -28,7 +28,7 @@ const DEFAULT_COLUMNS = {
   management: true
 };
 
-const ProductManagement = ({ onClose, products, setProducts, categories, setCategories, onOpenBulk, currentUser }) => {
+const ProductManagement = ({ onClose, products, setProducts, categories, setCategories, onOpenBulk, currentUser, warehouses = [] }) => {
   const isMobile = true;
 
   const [colWidths, setColWidths] = useState({
@@ -1036,6 +1036,7 @@ const ProductManagement = ({ onClose, products, setProducts, categories, setCate
           onOpenCategoryModal={() => setIsCategoryModalOpen(true)}
           categories={categories}
           initialData={editingProduct}
+          warehouses={warehouses}
         />
       )}
 

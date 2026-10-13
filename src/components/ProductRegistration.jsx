@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import WindowModal from './WindowModal';
 
-const ProductRegistration = ({ onClose, onSave, categories = [], initialData, onOpenCategoryModal }) => {
+const ProductRegistration = ({ onClose, onSave, categories = [], initialData, onOpenCategoryModal, warehouses = [] }) => {
   const isEditing = !!initialData;
   const [formData, setFormData] = useState({
     photos: initialData?.photos || (initialData?.photo ? [initialData.photo] : []),
@@ -20,7 +20,7 @@ const ProductRegistration = ({ onClose, onSave, categories = [], initialData, on
     manufacturer: initialData?.manufacturer || '',
     spec: initialData?.spec || '',
     innerQty: initialData?.innerQty || 1,
-    warehouse: initialData?.warehouse || '',
+    warehouse: (initialData?.warehouse && warehouses && warehouses.some(w => w.name === initialData.warehouse)) ? initialData.warehouse : '',
     taxType: initialData?.taxType || '과세',
     salesPriceSingle: initialData?.salesPriceSingle || initialData?.salesPrice || 0,
     salesPriceBox: initialData?.salesPriceBox || 0,
@@ -487,6 +487,25 @@ const ProductRegistration = ({ onClose, onSave, categories = [], initialData, on
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>적정재고량</label>
                   <input type="text" name="optimalStock" value={formData.optimalStock ? formData.optimalStock.toLocaleString() : '0'} onChange={handleChange} style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box', color: '#059669' }} />
                 </div>
+              </div>
+
+              {/* 기본 보관창고 */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>기본 보관창고</label>
+                <select
+                  name="warehouse"
+                  value={(formData.warehouse && warehouses && warehouses.some(w => w.name === formData.warehouse)) ? formData.warehouse : ''}
+                  onChange={handleChange}
+                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem', background: '#fff', boxSizing: 'border-box' }}
+                >
+                  <option value="">기본창고 선택 (미지정)</option>
+                  {warehouses && warehouses.map(w => (
+                    <option key={w.id || w.name} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                  * 창고 관리 메뉴에 등록된 정식 창고만 표시됩니다.
+                </span>
               </div>
             </div>
           </div>

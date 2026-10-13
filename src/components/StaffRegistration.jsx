@@ -326,12 +326,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                     </option>
                   );
                 })
-              ) : (
-                <option value="본사">본사</option>
-              )}
-              {formData.warehouse && !warehouses.some(w => w.name === formData.warehouse) && (
-                <option value={formData.warehouse}>{formData.warehouse}</option>
-              )}
+              ) : null}
             </select>
           </div>
           <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
