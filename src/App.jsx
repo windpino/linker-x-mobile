@@ -2557,7 +2557,6 @@ function App() {
         retentionPeriod: activityRetentionPeriod
       }, { merge: true });
 
-      if (!skipConfirm) alert('최근 처리 내역이 성공적으로 삭제되었습니다.\n(원본 데이터는 안전하게 보존됩니다.)');
       return true;
     } catch (err) {
       console.error('Error deleting activity record:', err);
@@ -2606,8 +2605,6 @@ function App() {
       deletedActivityIds: uniqueDeletedIds,
       retentionPeriod: activityRetentionPeriod
     }, { merge: true });
-
-    alert(`선택한 ${successCount}건의 최근 처리 내역이 성공적으로 삭제되었습니다.\n(원본 데이터는 안전하게 보존됩니다.)`);
   };
 
   // 2. Effects for persistence
