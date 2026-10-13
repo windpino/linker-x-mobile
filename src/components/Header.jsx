@@ -7,7 +7,7 @@ const Header = ({
   onOpenInventoryTransfer, onOpenInventoryMovementManager, onOpenPartnerManager, onOpenProductManager, 
   onOpenAccountManager, onOpenScheduleList,
   onOpenPurchaseInvoice, onOpenPurchaseLedger, onOpenPurchaseOrder,
-  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList,
+  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenQuotation,
   onOpenCashReport, onOpenSalesReport, onOpenOrderReport, onOpenInventoryReport, onOpenEditDeleteReport, onOpenCashBook,
   onOpenExpenseRegistration, onOpenStaffPerformanceReport, onOpenDataManager,
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
@@ -578,6 +578,7 @@ const Header = ({
               { perm: hasPerm('매출원장'), label: '매출원장', action: onOpenSalesLedger },
               { perm: hasPerm('수주'), label: '간편수주 등록', action: onOpenSalesOrder },
               { perm: hasPerm('수주'), label: '수주목록', action: onOpenOrderList },
+              { perm: true, label: '견적서', action: onOpenQuotation },
             ]},
             { id: 'cash_mgmt', label: '입출금관리', items: [
               { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },

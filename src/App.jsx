@@ -36,6 +36,7 @@ import SalesInvoiceList from './components/SalesInvoiceList';
 import SalesLedger from './components/SalesLedger';
 import SalesOrder from './components/SalesOrder';
 import OrderList from './components/OrderList';
+import Quotation from './components/Quotation';
 import CashReport from './components/CashReport';
 import SalesReport from './components/SalesReport';
 import OrderReport from './components/OrderReport';
@@ -406,6 +407,11 @@ function App() {
   const [isSalesOrderOpen, setIsSalesOrderOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [isOrderListOpen, setIsOrderListOpen] = useState(false);
+  const [isQuotationOpen, setIsQuotationOpen] = useState(false);
+  const [editingQuotation, setEditingQuotation] = useState(null);
+  const [quotations, setQuotations] = useState(() => {
+    return getInitialStateFromCache('quotations', []);
+  });
   const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => currentUser?.name || 'all');
 
   const openOrderList = (staffName = null) => {
@@ -561,6 +567,7 @@ function App() {
       if (typeof isSalesInvoiceListOpen !== 'undefined' && isSalesInvoiceListOpen) { setIsSalesInvoiceListOpen(false); return true; }
       if (typeof isSalesLedgerOpen !== 'undefined' && isSalesLedgerOpen) { setIsSalesLedgerOpen(false); return true; }
       if (typeof isSalesOrderOpen !== 'undefined' && isSalesOrderOpen) { setIsSalesOrderOpen(false); return true; }
+      if (typeof isQuotationOpen !== 'undefined' && isQuotationOpen) { setIsQuotationOpen(false); return true; }
       if (typeof isOrderListOpen !== 'undefined' && isOrderListOpen) { setIsOrderListOpen(false); return true; }
       if (typeof isPurchaseInvoiceOpen !== 'undefined' && isPurchaseInvoiceOpen) { setIsPurchaseInvoiceOpen(false); return true; }
       if (typeof isPurchaseLedgerOpen !== 'undefined' && isPurchaseLedgerOpen) { setIsPurchaseLedgerOpen(false); return true; }
@@ -1012,6 +1019,7 @@ function App() {
     loadCache('purchaseOrders', setPurchaseOrders, []);
     loadCache('salesInvoices', setSalesInvoices, []);
     loadCache('salesOrders', setSalesOrders, []);
+    loadCache('quotations', setQuotations, []);
     loadCache('expenses', setExpenses, []);
     loadCache('inventory', setInventory, {});
     loadCache('physicalInventory', setPhysicalInventory, {});
@@ -1046,6 +1054,7 @@ function App() {
         purchaseOrders: setPurchaseOrders,
         salesInvoices: setSalesInvoices,
         salesOrders: setSalesOrders,
+        quotations: setQuotations,
         warehouses: setWarehouses,
         expenses: setExpenses,
         inventoryAdjustments: setInventoryAdjustments,
@@ -4643,6 +4652,7 @@ function App() {
           onOpenSalesLedger={openSalesLedger}
           onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
           onOpenOrderList={openOrderList}
+          onOpenQuotation={() => { setEditingQuotation(null); setIsQuotationOpen(true); }}
           onOpenCashReport={openCashReport}
           onOpenSalesReport={() => setIsSalesReportOpen(true)}
           onOpenOrderReport={() => setIsOrderReportOpen(true)}
@@ -5197,6 +5207,54 @@ function App() {
         selectedDate={selectedDate} 
         editingOrder={editingOrder}
         onDeleteOrder={handleDeleteSalesOrder}
+      />}
+
+      {isQuotationOpen && <Quotation
+        themeColor="#2563eb"
+        onClose={() => setIsQuotationOpen(false)}
+        partners={partners}
+        products={products}
+        quotations={quotations}
+        specialPrices={specialPrices}
+        setSpecialPrices={setSpecialPrices}
+        currentUser={currentUser}
+        staffList={staffList}
+        warehouses={warehouses}
+        selectedDate={selectedDate}
+        editingQuotation={editingQuotation}
+        companySettings={companySettings}
+        onSave={async (qData) => {
+          try {
+            const companyId = currentUser?.companyId || 'default';
+            const id = qData.id || Date.now();
+            const fullQuotation = { 
+              ...qData, 
+              id: Number(id), 
+              companyId, 
+              updatedAt: new Date().toISOString() 
+            };
+            await setDoc(doc(db, 'companies', companyId, 'quotations', String(id)), fullQuotation);
+            const nextQuotations = (() => {
+              const idx = quotations.findIndex(q => String(q.id) === String(id));
+              if (idx >= 0) {
+                const updated = [...quotations];
+                updated[idx] = fullQuotation;
+                return updated;
+              }
+              return [...quotations, fullQuotation];
+            })();
+            setQuotations(nextQuotations);
+            await saveBundle(companyId, 'quotations', nextQuotations);
+          } catch (err) {
+            console.error('Error saving quotation:', err);
+            alert('견적서 저장 중 오류가 발생했습니다: ' + (err?.message || '알 수 없는 오류'));
+          }
+        }}
+        onConvertToOrder={(orderData) => {
+          setIsQuotationOpen(false);
+          setEditingOrder(orderData);
+          setIsSalesOrderOpen(true);
+        }}
       />}
 
       {orderingPartner && (
