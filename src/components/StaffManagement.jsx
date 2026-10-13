@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { UserPlus, Printer, Download, Plus, Edit2, Trash2, Building2 } from 'lucide-react';
+import { UserPlus, Printer, Download, Plus, Edit2, Trash2, Building2, GripVertical, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import StaffRegistration from './StaffRegistration';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
@@ -9,6 +9,10 @@ import { saveBundle } from '../utils/bundleSyncManager';
 import './Staff.css';
 
 const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [], currentUser, setCurrentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles, logOperation }) => {
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+
   const hasWritePermission = () => {
     if (!currentUser) return true;
     if (
@@ -271,12 +275,6 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
 
   const sortStaffList = (list) => {
     return [...(list || [])].sort((a, b) => {
-      const isAdminA = a.role === 'super_admin' || a.role === 'admin' || a.userId === 'admin' || a.jobTitle === '관리자' || a.jobTitle === '대표이사' || a.jobTitle === '대표';
-      const isAdminB = b.role === 'super_admin' || b.role === 'admin' || b.userId === 'admin' || b.jobTitle === '관리자' || b.jobTitle === '대표이사' || b.jobTitle === '대표';
-
-      if (isAdminA && !isAdminB) return -1;
-      if (!isAdminA && isAdminB) return 1;
-
       const seqA = a.sequence !== undefined && a.sequence !== null && String(a.sequence).trim() !== '' ? a.sequence : null;
       const seqB = b.sequence !== undefined && b.sequence !== null && String(b.sequence).trim() !== '' ? b.sequence : null;
 
@@ -295,10 +293,98 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
         return 1;
       }
 
+      const isAdminA = a.role === 'super_admin' || a.role === 'admin' || a.userId === 'admin' || a.jobTitle === '관리자' || a.jobTitle === '대표이사' || a.jobTitle === '대표';
+      const isAdminB = b.role === 'super_admin' || b.role === 'admin' || b.userId === 'admin' || b.jobTitle === '관리자' || b.jobTitle === '대표이사' || b.jobTitle === '대표';
+
+      if (isAdminA && !isAdminB) return -1;
+      if (!isAdminA && isAdminB) return 1;
+
       const nameA = a.name || '';
       const nameB = b.name || '';
       return String(nameA).localeCompare(String(nameB), 'ko');
     });
+  };
+
+  const sortedStaffList = sortStaffList(staffList);
+
+  const reorderAndSave = async (newList, targetName, newIndex) => {
+    // 새 위치에 따라 순번(sequence)을 1부터 순차적으로 재할당
+    const reorderedList = newList.map((item, idx) => ({
+      ...item,
+      sequence: idx + 1,
+      updatedAt: new Date().toISOString()
+    }));
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    // 1. 상태 즉시 업데이트
+    if (setStaffList) setStaffList(reorderedList);
+
+    // 2. LocalStorage 및 번들 저장
+    const companyId = currentUser?.companyId || 'default';
+    await saveBundle(companyId, 'staffList', reorderedList);
+    localStorage.setItem(`staffList_${companyId}`, JSON.stringify(reorderedList));
+    localStorage.setItem('staffList', JSON.stringify(reorderedList));
+
+    // 3. Firestore writeBatch 업데이트
+    try {
+      if (db) {
+        const batch = writeBatch(db);
+        reorderedList.forEach(item => {
+          const docId = item._docId || (item.userId ? `${companyId}_${item.userId}` : (item.id ? String(item.id) : null));
+          if (docId) {
+            const docRef = doc(db, 'companies', companyId, 'staffList', docId);
+            batch.set(docRef, { sequence: item.sequence, updatedAt: item.updatedAt }, { merge: true });
+          }
+        });
+        await batch.commit();
+      }
+    } catch (err) {
+      console.warn('Firestore sequence batch update warning:', err);
+    }
+
+    setSaveSuccessMsg(`순서 및 순번이 변경되었습니다. (${targetName} ➔ ${newIndex + 1}번)`);
+    setTimeout(() => setSaveSuccessMsg(''), 2500);
+  };
+
+  // Drag and Drop
+  const handleDrop = async (targetIndex) => {
+    if (draggedIndex === null || draggedIndex === undefined || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정 권한이 없습니다.');
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const currentList = [...sortedStaffList];
+    const [movedItem] = currentList.splice(draggedIndex, 1);
+    currentList.splice(targetIndex, 0, movedItem);
+
+    await reorderAndSave(currentList, movedItem.name, targetIndex);
+  };
+
+  // Button-based Move (위/아래 한 칸 이동)
+  const handleMove = async (currentIndex, direction) => {
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= sortedStaffList.length) return;
+
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정 권한이 없습니다.');
+      return;
+    }
+
+    const currentList = [...sortedStaffList];
+    const [movedItem] = currentList.splice(currentIndex, 1);
+    currentList.splice(targetIndex, 0, movedItem);
+
+    await reorderAndSave(currentList, movedItem.name, targetIndex);
   };
 
   const handleExcelExport = () => {
@@ -331,14 +417,17 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       <WindowModal title="직원관리" onClose={onClose} width="100%">
         <div style={{ padding: '10px' }}>
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <UserPlus color="#3b82f6" size={18} strokeWidth={2.2} />
               </div>
               <div>
                 <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>직원 관리</h2>
-                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>직원 정보 및 담당 창고 관리</p>
+                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+                  직원 정보 및 담당 창고 관리
+                  <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: 700 }}>(💡 드래그나 ▲▼ 버튼으로 순서 변경)</span>
+                </p>
               </div>
             </div>
             
@@ -357,6 +446,26 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
               </button>
             </div>
           </div>
+
+          {/* Toast Notification */}
+          {saveSuccessMsg && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#ecfdf5',
+              color: '#065f46',
+              border: '1px solid #a7f3d0',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              marginBottom: '10px',
+              fontSize: '0.78rem',
+              fontWeight: 700
+            }}>
+              <CheckCircle2 size={14} color="#059669" />
+              <span>{saveSuccessMsg}</span>
+            </div>
+          )}
 
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '12px' }}>
@@ -381,62 +490,141 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
                 <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>등록된 직원이 없습니다.</div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>우측 상단의 '+ 직원 추가' 버튼을 눌러 직원을 등록하세요.</div>
               </div>
-            ) : filteredStaffList.map((staff, index) => (
-              <div key={staff._docId || (staff.userId ? `user_${staff.userId}` : (staff.id ? `id_${staff.id}` : `staff_${index}`))} style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3b82f6', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>
-                      #{staff.sequence || '-'}
-                    </span>
-                    <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1e293b' }}>
-                      {staff.name}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
-                      {staff.jobTitle || '사원'}
-                    </span>
+            ) : filteredStaffList.map((staff, index) => {
+              const isDragging = draggedIndex === index;
+              const isDragOver = dragOverIndex === index;
+              return (
+                <div 
+                  key={staff._docId || (staff.userId ? `user_${staff.userId}` : (staff.id ? `id_${staff.id}` : `staff_${index}`))} 
+                  draggable={!searchTerm}
+                  onDragStart={(e) => {
+                    if (searchTerm) return;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDraggedIndex(index);
+                  }}
+                  onDragOver={(e) => {
+                    if (searchTerm) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (dragOverIndex !== index) setDragOverIndex(index);
+                  }}
+                  onDrop={(e) => {
+                    if (searchTerm) return;
+                    e.preventDefault();
+                    handleDrop(index);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  style={{
+                    backgroundColor: isDragOver ? '#eff6ff' : '#ffffff',
+                    border: isDragOver ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    opacity: isDragging ? 0.35 : 1,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {/* Drag Handle & Sequence */}
+                      {!searchTerm && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'grab' }}>
+                          <GripVertical size={14} color="#94a3b8" />
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3b82f6', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>
+                        #{staff.sequence || (index + 1)}
+                      </span>
+                      {/* Move Up/Down buttons for touch devices */}
+                      {!searchTerm && (
+                        <div style={{ display: 'inline-flex', gap: '2px', marginLeft: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMove(index, -1)}
+                            disabled={index === 0}
+                            style={{
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              background: '#f8fafc',
+                              color: index === 0 ? '#cbd5e1' : '#475569',
+                              cursor: index === 0 ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="위로 이동"
+                          >
+                            <ChevronUp size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMove(index, 1)}
+                            disabled={index === filteredStaffList.length - 1}
+                            style={{
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              background: '#f8fafc',
+                              color: index === filteredStaffList.length - 1 ? '#cbd5e1' : '#475569',
+                              cursor: index === filteredStaffList.length - 1 ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="아래로 이동"
+                          >
+                            <ChevronDown size={11} />
+                          </button>
+                        </div>
+                      )}
+                      <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1e293b', marginLeft: '4px' }}>
+                        {staff.name}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
+                        {staff.jobTitle || '사원'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button 
+                        onClick={() => handleEditStaff(staff)} 
+                        style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                      >
+                        <Edit2 size={12} /> 수정
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStaff(staff)} 
+                        style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                      >
+                        <Trash2 size={12} /> 삭제
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button 
-                      onClick={() => handleEditStaff(staff)} 
-                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
-                    >
-                      <Edit2 size={12} /> 수정
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteStaff(staff)} 
-                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
-                    >
-                      <Trash2 size={12} /> 삭제
-                    </button>
-                  </div>
-                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem' }}>
-                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>전화:</span>
-                    <a href={`tel:${staff.phone}`} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
-                      {staff.phone || '-'}
-                    </a>
-                  </div>
-                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>창고:</span>
-                    <Building2 size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {staff.warehouse || '미지정'}{staff.zone ? ` (${staff.zone})` : ''}
-                    </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem' }}>
+                    <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ color: '#94a3b8', fontWeight: 600 }}>전화:</span>
+                      <a href={`tel:${staff.phone}`} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+                        {staff.phone || '-'}
+                      </a>
+                    </div>
+                    <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ color: '#94a3b8', fontWeight: 600 }}>창고:</span>
+                      <Building2 size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {staff.warehouse || '미지정'}{staff.zone ? ` (${staff.zone})` : ''}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </WindowModal>
