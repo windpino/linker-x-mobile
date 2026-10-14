@@ -48,6 +48,7 @@ import RecentActivityModal from './components/RecentActivityModal';
 import BulkEditor from './components/BulkEditor';
 import EditDeleteReport from './components/EditDeleteReport';
 import CashBook from './components/CashBook';
+import DepositSlipManagement from './components/DepositSlipManagement';
 import ExpenseRegistration from './components/ExpenseRegistration';
 import StaffPerformanceReport from './components/StaffPerformanceReport';
 import DataManager from './components/DataManager';
@@ -111,6 +112,7 @@ const ALL_FAVORITE_MENUS = [
   { id: 'quotation',           name: '견적서',          category: '매출/수주관리',   emoji: '📑' },
   { id: 'quotation_list',      name: '견적서 관리',      category: '매출/수주관리',   emoji: '📋' },
 
+  { id: 'deposit_slip',        name: '입금전표발행',    category: '입출금관리',     emoji: '💰' },
   { id: 'account',             name: '계좌관리',        category: '입출금관리',     emoji: '💳' },
   { id: 'cash_report_1',       name: '결산보고서',      category: '입출금관리',     emoji: '💰' },
   { id: 'cash_report_2',       name: '일자별 입출금 현황', category: '입출금관리',   emoji: '📈' },
@@ -153,6 +155,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
     order_list:                 <List size={size} />,
     quotation:                  <FileSpreadsheet size={size} />,
     quotation_list:             <List size={size} />,
+    deposit_slip:               <DollarSign size={size} />,
     account:                    <CreditCard size={size} />,
     cash_report_1:              <BarChart2 size={size} />,
     cash_report_2:              <TrendingUp size={size} />,
@@ -457,6 +460,7 @@ function App() {
   const [prefilledAgencyId, setPrefilledAgencyId] = useState('');
   const [selectedAgencyForSignup, setSelectedAgencyForSignup] = useState(null);
   const [isCashBookOpen, setIsCashBookOpen] = useState(false);
+  const [isDepositSlipManagementOpen, setIsDepositSlipManagementOpen] = useState(false);
   const [isExpenseRegistrationOpen, setIsExpenseRegistrationOpen] = useState(false);
   const [isStaffPerformanceReportOpen, setIsStaffPerformanceReportOpen] = useState(false);
   const [isDataManagerOpen, setIsDataManagerOpen] = useState(false);
@@ -540,6 +544,7 @@ function App() {
       if (typeof isReceivablesReportOpen !== 'undefined' && isReceivablesReportOpen) count++;
       if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) count++;
       if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) count++;
+      if (typeof isDepositSlipManagementOpen !== 'undefined' && isDepositSlipManagementOpen) count++;
       if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) count++;
       if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) count++;
       if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) count++;
@@ -597,6 +602,7 @@ function App() {
       if (typeof isReceivablesReportOpen !== 'undefined' && isReceivablesReportOpen) { setIsReceivablesReportOpen(false); return true; }
       if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return true; }
       if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) { setIsCashBookOpen(false); return true; }
+      if (typeof isDepositSlipManagementOpen !== 'undefined' && isDepositSlipManagementOpen) { setIsDepositSlipManagementOpen(false); return true; }
       if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) { setIsExpenseRegistrationOpen(false); return true; }
       if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) { setIsStaffPerformanceReportOpen(false); return true; }
       if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) { setIsDataManagerOpen(false); return true; }
@@ -1200,7 +1206,7 @@ function App() {
     isPurchaseInvoiceOpen || isPurchaseOrderOpen || isSalesInvoiceOpen ||
     isSalesOrderOpen || isOrderListOpen || isCashReportOpen || isSalesReportOpen ||
     isOrderReportOpen || isInventoryReportOpen || isReceivablesReportOpen ||
-    isRecentActivityModalOpen || isCashBookOpen ||
+    isRecentActivityModalOpen || isCashBookOpen || isDepositSlipManagementOpen ||
     isExpenseRegistrationOpen || isStaffPerformanceReportOpen || isDataManagerOpen ||
     isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
@@ -4932,6 +4938,7 @@ function App() {
           onOpenReceivablesReport={() => setIsReceivablesReportOpen(true)}
           onOpenEditDeleteReport={() => setIsEditDeleteReportOpen(true)}
           onOpenCashBook={() => setIsCashBookOpen(true)}
+          onOpenDepositSlipManagement={() => setIsDepositSlipManagementOpen(true)}
           onOpenExpenseRegistration={() => setIsExpenseRegistrationOpen(true)}
           onOpenStaffPerformanceReport={() => setIsStaffPerformanceReportOpen(true)}
           onOpenDataManager={() => setIsDataManagerOpen(true)}
@@ -4996,6 +5003,7 @@ function App() {
               cash_report_2:              () => openCashReport('일자별'),
               cash_report_3:              () => openCashReport('계좌별'),
               cash_book:                  () => setIsCashBookOpen(true),
+              deposit_slip:               () => setIsDepositSlipManagementOpen(true),
               expense:                    () => setIsExpenseRegistrationOpen(true),
               sales_report:               () => setIsSalesReportOpen(true),
               order_report:               () => setIsOrderReportOpen(true),
@@ -5726,6 +5734,22 @@ function App() {
       {isReceivablesReportOpen && <ReceivablesReport onClose={() => setIsReceivablesReportOpen(false)} partners={partners} salesInvoices={salesInvoices} setPartners={setPartners} staffList={staffList} />}
       {isEditDeleteReportOpen && <EditDeleteReport onClose={() => setIsEditDeleteReportOpen(false)} />}
       {isCashBookOpen && <CashBook onClose={() => setIsCashBookOpen(false)} />}
+      {isDepositSlipManagementOpen && (
+        <DepositSlipManagement
+          onClose={() => setIsDepositSlipManagementOpen(false)}
+          salesInvoices={salesInvoices}
+          partners={partners}
+          accounts={accounts}
+          staffList={staffList}
+          warehouses={warehouses}
+          currentUser={currentUser}
+          onSaveSalesInvoice={handleSaveSalesInvoice}
+          onDeleteInvoice={handleDeleteSalesInvoice}
+          onOpenSalesInvoice={openSalesInvoice}
+          onOpenLedger={openSalesLedger}
+          zIndex={10000}
+        />
+      )}
       {isExpenseRegistrationOpen && (
         <ExpenseRegistration 
           onClose={() => setIsExpenseRegistrationOpen(false)} 

@@ -63,6 +63,7 @@ const getMenuIdFromTitle = (title) => {
   if (title.includes('환경설정')) return 'settings';
   if (title.includes('견적서 관리') || title.includes('견적서 목록')) return 'quotation_list';
   if (title.includes('견적')) return 'quotation';
+  if (title.includes('입금전표')) return 'deposit_slip';
   return null;
 };
 

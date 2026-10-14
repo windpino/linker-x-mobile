@@ -9,6 +9,7 @@ const Header = ({
   onOpenPurchaseInvoice, onOpenPurchaseLedger, onOpenPurchaseOrder,
   onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenQuotation, onOpenQuotationManagement,
   onOpenCashReport, onOpenSalesReport, onOpenOrderReport, onOpenInventoryReport, onOpenEditDeleteReport, onOpenCashBook,
+  onOpenDepositSlipManagement,
   onOpenExpenseRegistration, onOpenStaffPerformanceReport, onOpenDataManager,
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
@@ -48,6 +49,7 @@ const Header = ({
     if (p[perm] !== undefined) return Boolean(p[perm]);
 
     // Backwards compatibility fallbacks if new permission key not yet explicitly saved on user
+    if (perm === '입금전표발행' || perm === '입금전표') return Boolean(p['입금전표발행'] || p['입금전표'] || p['입출금보고서'] || p['금전출납부'] || p['매출전표']);
     if (perm === '실재고 입력') return Boolean(p['재고이동']);
     if (perm === '재고 이동 현황 관리') return Boolean(p['재고이동']);
     if (perm === '재고조정 (손실처리)' || perm === '재고조정') return Boolean(p['재고조정 (손실처리)'] || p['재고조정'] || p['재고이동']);
@@ -212,6 +214,13 @@ const Header = ({
       action: () => onOpenCashReport && onOpenCashReport('계좌별'),
       perm: hasPerm('입출금보고서'),
       keywords: '계좌별입출금 통장현황',
+    },
+    {
+      title: '입금전표발행',
+      category: '입출금관리',
+      action: onOpenDepositSlipManagement,
+      perm: hasPerm('입금전표발행'),
+      keywords: '입금전표 입금관리 수금 수금관리 입금전표발행 입금등록',
     },
     {
       title: '금전출납부',
@@ -438,6 +447,7 @@ const Header = ({
     '간편수주 등록': '🛒',
     '수주목록': '📝',
     '계좌관리': '💳',
+    '입금전표발행': '💰',
     '결산보고서': '💰',
     '일자별 입출금 현황': '📈',
     '계좌별 입출금 현황': '📊',
@@ -615,6 +625,7 @@ const Header = ({
               { perm: hasPerm('견적서'), label: '견적서 관리', action: onOpenQuotationManagement },
             ]},
             { id: 'cash_mgmt', label: '입출금관리', items: [
+              { perm: hasPerm('입금전표발행'), label: '입금전표발행', action: onOpenDepositSlipManagement },
               { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
               { perm: hasPerm('입출금보고서'), label: '결산보고서', action: () => onOpenCashReport && onOpenCashReport('결산') },
               { perm: hasPerm('입출금보고서'), label: '일자별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('일자별') },
