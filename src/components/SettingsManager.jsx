@@ -452,46 +452,6 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                 </div>
               </div>
 
-              <div className="settings-section">
-                <h3 className="settings-section-title">
-                  <FileText size={16} style={{ display: 'inline', marginRight: '6px', color: '#10b981', verticalAlign: 'middle' }} />
-                  전표 저장 및 발행 옵션
-                </h3>
-                <div className="toggle-group">
-                  <div className="toggle-item" style={{ alignItems: 'flex-start', gap: '16px' }}>
-                    <div className="toggle-info">
-                      <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        실시간 자동 저장
-                        <span style={{
-                          fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px',
-                          backgroundColor: (localSettings.salesInvoice?.saveMode !== 'manual') ? '#d1fae5' : '#f1f5f9',
-                          color: (localSettings.salesInvoice?.saveMode !== 'manual') ? '#065f46' : '#94a3b8',
-                          borderRadius: '20px', border: '1px solid',
-                          borderColor: (localSettings.salesInvoice?.saveMode !== 'manual') ? '#a7f3d0' : '#e2e8f0'
-                        }}>
-                          {(localSettings.salesInvoice?.saveMode !== 'manual') ? '활성화' : '비활성화'}
-                        </span>
-                      </h4>
-                      <p style={{ marginTop: '6px' }}>
-                        활성화 시 매출전표 품목 추가, 수정, 삭제 시 즉시 데이터베이스에 자동으로 반영(저장)합니다.<br />
-                        <strong>비활성화 시:</strong> 품목 추가 시 자동 저장되지 않으며, 우하단의 <strong>&ldquo;전표 저장하기&rdquo;</strong> 버튼을 눌러 수동 저장합니다.
-                      </p>
-                    </div>
-                    <label className="switch" style={{ flexShrink: 0, marginTop: '2px' }}>
-                      <input
-                        type="checkbox"
-                        checked={localSettings.salesInvoice?.saveMode !== 'manual'}
-                        onChange={e => {
-                          updateSalesInvoice('saveMode', e.target.checked ? 'auto' : 'manual');
-                        }}
-                      />
-                      <span className="slider"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-
             </div>
           )}
 
