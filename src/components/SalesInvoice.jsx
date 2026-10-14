@@ -153,8 +153,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     }
     if (slipToEdit) {
       setEditingPaymentSlipId(slipToEdit.id);
+      const targetTotal = (slipToEdit.totalAmount || 0) + (slipToEdit.discount || 0) || (totalAmount > 0 ? totalAmount : previousBalance);
       setTempPaymentState({
         date: slipToEdit.date || invoiceData.date,
+        targetTotal: targetTotal,
         payments: {
           cash: slipToEdit.cash || 0,
           account: slipToEdit.account || 0,
@@ -171,13 +173,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     setEditingPaymentSlipId(null);
     const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
     const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
-    const currentPaid = Number(invoiceData.receivedAmount) || 0;
-    const currentDiscount = Number(invoiceData.discount) || 0;
-    const unpaid = Math.max(0, currentTotal - currentPaid - currentDiscount);
-    const initialCash = isDepositOnly ? 0 : unpaid;
+    const targetTotal = currentTotal > 0 ? currentTotal : (previousBalance > 0 ? previousBalance : 0);
+    const initialCash = targetTotal;
 
     setTempPaymentState({
       date: invoiceData.date || format(new Date(), 'yyyy-MM-dd'),
+      targetTotal: targetTotal,
       payments: {
         cash: initialCash,
         account: 0,
@@ -844,27 +845,33 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const handlePaymentChange = (type, value, localState, setLocalState) => {
     const cleanStr = String(value).replace(/[^0-9]/g, '');
     const val = cleanStr === '' ? 0 : Number(cleanStr);
+    const target = (localState?.targetTotal !== undefined)
+      ? localState.targetTotal
+      : (totalAmount > 0 ? totalAmount : (previousBalance > 0 ? previousBalance : 0));
     
     if (type === 'discount') {
-      const others = (localState.payments.account || 0) + (localState.payments.card || 0) + (localState.payments.bill || 0);
-      const newCash = Math.max(0, totalAmount - val - others);
+      const others = (localState?.payments?.account || 0) + (localState?.payments?.card || 0) + (localState?.payments?.bill || 0);
+      const newCash = Math.max(0, target - val - others);
       setLocalState({ 
         ...localState, 
         discount: val, 
-        payments: { ...localState.payments, cash: newCash } 
+        payments: { ...(localState?.payments || {}), cash: newCash } 
       });
       return;
     }
 
-    const newPayments = { ...localState.payments, [type]: val };
-    const others = (newPayments.account || 0) + (newPayments.card || 0) + (newPayments.bill || 0);
-    const calculatedCash = Math.max(0, totalAmount - (localState.discount || 0) - others);
-    // Always adjust cash unless we are specifically editing the cash field
-    // Even if editing cash, we might want to let the user override, 
-    // but the user's request says "차감한 상태로 자동으로 보여죠"
-    if (type !== 'cash') {
-      newPayments.cash = calculatedCash;
+    if (type === 'cash') {
+      setLocalState({
+        ...localState,
+        payments: { ...(localState?.payments || {}), cash: val }
+      });
+      return;
     }
+
+    const newPayments = { ...(localState?.payments || {}), [type]: val };
+    const others = (newPayments.account || 0) + (newPayments.card || 0) + (newPayments.bill || 0);
+    const calculatedCash = Math.max(0, target - (localState?.discount || 0) - others);
+    newPayments.cash = calculatedCash;
 
     setLocalState({ ...localState, payments: newPayments });
   };
@@ -904,8 +911,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         /* 품목 검색 그리드 반응형 */
         .item-search-grid-responsive {
           display: grid;
-          grid-template-columns: minmax(160px, 3fr) minmax(70px, 1fr) minmax(90px, 1fr) 100px;
-          gap: 10px;
+          grid-template-columns: minmax(100px, 3.5fr) minmax(55px, 1fr) minmax(75px, 1.2fr) auto;
+          gap: 6px;
           align-items: flex-end;
         }
         /* 요약 카드 너비 제한 */
@@ -1314,10 +1321,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     style={{ textAlign: 'right' }}
                   />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
+                <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', minWidth: 'auto', flexShrink: 0 }}>
                   <label style={{ visibility: 'hidden' }}>추가</label>
-                  <button className="btn-primary" onClick={handleAddItem} style={{ height: '38px', backgroundColor: themeColor, margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <Plus size={18} /> 추가
+                  <button className="btn-primary" onClick={handleAddItem} style={{ height: '38px', backgroundColor: themeColor, margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap', minWidth: '60px', padding: '0 8px' }}>
+                    <Plus size={18} /> <span style={{ whiteSpace: 'nowrap' }}>추가</span>
                   </button>
                 </div>
               </div>
@@ -1669,12 +1676,18 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 </button>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '3px' }}>
-                  {invoiceData.items.length === 0 ? '이전 미수금 잔액' : '전표 합계금액'}
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>전미수금 (이전 미수금):</span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ef4444' }}>
+                    {previousBalance.toLocaleString()}원
+                  </span>
                 </div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: invoiceData.items.length === 0 ? '#ef4444' : '#1e293b' }}>
-                  {invoiceData.items.length === 0 ? `${previousBalance.toLocaleString()}원` : `${totalAmount.toLocaleString()}원`}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>당일 출고금액 (금일 합계):</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: themeColor }}>
+                    {totalAmount.toLocaleString()}원
+                  </span>
                 </div>
               </div>
 
@@ -1706,7 +1719,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {[
-                    { id: 'cash', label: '현금 수금', color: '#047857' },
+                    { id: 'cash', label: '현금 수금 (입금)', color: '#047857' },
                     { id: 'account', label: '계좌 이체', color: themeColor },
                     { id: 'card', label: '카드 결제', color: '#ef4444' },
                     { id: 'bill', label: '어음 수금', color: '#f59e0b' },
@@ -1752,7 +1765,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 >
                   {editingPaymentSlipId 
                     ? '수금전표 수정 완료' 
-                    : (invoiceData.items.length === 0 ? '💰 입금전표 발행 / 저장' : '수금전표 발행 / 저장')}
+                    : '💰 입금 저장'}
                 </button>
               </div>
             </div>
