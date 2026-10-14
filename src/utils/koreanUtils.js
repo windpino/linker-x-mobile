@@ -64,29 +64,57 @@ export const makeChoseongRegex = (search) => {
   }
 };
 
+const stripCorp = (name) => (name || '').replace(/^(\(주\)|주식회사|\(유\)|유한회사|\(합\)|합자회사)\s*/i, '');
+
 const checkSingleMatch = (target, search) => {
   if (!search) return true;
   if (!target || typeof target !== 'string') return false;
   const s = search.trim();
   if (!s) return true;
 
-  // 1. Direct includes (case-insensitive)
-  if (target.toLowerCase().includes(s.toLowerCase())) return true;
+  const tLower = target.toLowerCase();
+  const sLower = s.toLowerCase();
 
-  // 2. Choseong regex matching
+  // 1. 단어/부분 문자열 일치 (e.g. '삼양', '유통', '대림')
+  if (tLower.includes(sLower)) return true;
+
+  // 2. 공백 제거 후 일치 (e.g. '강남 유통' <-> '강남유통')
+  const tNoSpace = tLower.replace(/\s+/g, '');
+  const sNoSpace = sLower.replace(/\s+/g, '');
+  if (tNoSpace.includes(sNoSpace)) return true;
+
+  // 3. 초성만 있는 경우 (e.g. 'ㅅ', 'ㄱ', 'ㅅㅇ', 'ㄷㄹ')
+  const isChosungOnly = /^[ㄱ-ㅎ\s]+$/.test(s);
+  if (isChosungOnly) {
+    const tInit = getInitialSound(target);
+    const tInitNoSpace = tInit.replace(/\s+/g, '');
+    const sInitNoSpace = s.replace(/\s+/g, '');
+
+    // 단일 초성 검색인 경우 (e.g. 'ㅅ', 'ㄱ', 'ㄷ')
+    // 회사명 시작 초성이 일치하거나, 단어별 첫 글자 초성이 일치할 때만 매칭 (아무 글자나 포함되는 것 방지)
+    if (sInitNoSpace.length === 1) {
+      const stripped = stripCorp(target);
+      const strippedInit = getInitialSound(stripped);
+      if (strippedInit.startsWith(sInitNoSpace)) return true;
+      const words = target.split(/\s+/);
+      if (words.some(w => getInitialSound(stripCorp(w)).startsWith(sInitNoSpace))) return true;
+      return false;
+    }
+
+    // 2글자 이상 초성 검색인 경우 (e.g. 'ㅅㅇ', 'ㄷㄹ', 'ㄱㄴㅇㅌ', 'ㅁㅅ')
+    if (tInitNoSpace.includes(sInitNoSpace)) return true;
+    const strippedInit = getInitialSound(stripCorp(target)).replace(/\s+/g, '');
+    if (strippedInit.includes(sInitNoSpace)) return true;
+    return false;
+  }
+
+  // 4. 초성+음절 혼합 검색 (e.g. '대ㄹ', '삼ㅇ')
   const reg = makeChoseongRegex(s);
-  if (reg && reg.test(target)) return true;
+  if (reg && (reg.test(target) || reg.test(tNoSpace))) return true;
 
-  // 3. Normalized target without spaces / special characters
-  const targetClean = target.replace(/[^가-힣a-zA-Z0-9]/g, '');
-  const searchClean = s.replace(/[^가-힣a-zA-Z0-9ㄱ-ㅎ]/g, '');
-  if (reg && reg.test(targetClean)) return true;
-  if (searchClean && targetClean.toLowerCase().includes(searchClean.toLowerCase())) return true;
-
-  // 4. Initial sounds match (both raw and cleaned)
+  // 5. 전체 초성 포함 확인 (초성 이외 특수문자 포함 등 보조 확인)
   const tInit = getInitialSound(target);
-  const tInitClean = getInitialSound(targetClean);
-  if (tInit.includes(s) || (searchClean && tInitClean.includes(searchClean))) return true;
+  if (tInit.includes(s)) return true;
 
   return false;
 };

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, User } from 'lucide-react';
-import { matchesInitialSound } from '../utils/koreanUtils';
+import { matchesInitialSound, getInitialSound } from '../utils/koreanUtils';
 
 const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder = "거래처 검색...", typeFilter = null, autoFocus = false, currentUser = null }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,30 +40,58 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
   const cleanSearch = (searchTerm || '').trim();
 
   // 초성 또는 검색어가 입력되었을 때만 필터링 수행 (미입력 시 거래처 목록 미표시)
-  const filteredPartners = (partners || []).filter(p => {
-    if (!cleanSearch) return false;
+  const filteredPartners = (partners || [])
+    .filter(p => {
+      if (!cleanSearch) return false;
 
-    if (isRestricted) {
-      const pManager = (p.manager || '').trim();
-      const uName = (currentUser.name || '').trim();
-      if (pManager !== uName) return false;
-    }
-    const matchesType = typeFilter 
-      ? (typeFilter === '매출처' 
-          ? (!p.type || p.type === '매출처' || p.type === '매출' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
-          : typeFilter === '매입처' 
-          ? (!p.type || p.type === '매입처' || p.type === '매입' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
-          : p.type === typeFilter) 
-      : true;
+      if (isRestricted) {
+        const pManager = (p.manager || '').trim();
+        const uName = (currentUser?.name || '').trim();
+        if (pManager !== uName) return false;
+      }
+      const matchesType = typeFilter 
+        ? (typeFilter === '매출처' 
+            ? (!p.type || p.type === '매출처' || p.type === '매출' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
+            : typeFilter === '매입처' 
+            ? (!p.type || p.type === '매입처' || p.type === '매입' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
+            : p.type === typeFilter) 
+        : true;
 
-    const matchesSearch = 
-      matchesInitialSound(p.name, cleanSearch) ||
-      (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch)) ||
-      (p.ceo && matchesInitialSound(p.ceo, cleanSearch)) ||
-      (p.businessNo && String(p.businessNo).replace(/[^0-9]/g, '').includes(cleanSearch.replace(/[^0-9]/g, '')));
+      if (!matchesType) return false;
 
-    return matchesType && matchesSearch;
-  });
+      // 1. 거래처명 매칭 (초성 및 단어)
+      if (matchesInitialSound(p.name, cleanSearch)) return true;
+
+      // 2. 약칭 매칭
+      if (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch)) return true;
+
+      // 3. 대표자명 매칭 (검색어가 2글자 이상일 때만 매칭하여 단일 초성 오탐 방지)
+      if (cleanSearch.length >= 2 && p.ceo && matchesInitialSound(p.ceo, cleanSearch)) return true;
+
+      // 4. 사업자번호 매칭 (숫자가 3자리 이상 입력되었을 때만 매칭)
+      const searchNums = cleanSearch.replace(/[^0-9]/g, '');
+      if (searchNums.length >= 3 && p.businessNo && String(p.businessNo).replace(/[^0-9]/g, '').includes(searchNums)) return true;
+
+      return false;
+    })
+    .sort((a, b) => {
+      // 1. 거래처명이 검색어로 시작하는 경우 최우선
+      const aStarts = (a.name || '').toLowerCase().startsWith(cleanSearch.toLowerCase());
+      const bStarts = (b.name || '').toLowerCase().startsWith(cleanSearch.toLowerCase());
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      // 2. 거래처명 초성이 검색어(초성)로 시작하는 경우 우선
+      const aInit = getInitialSound(a.name || '');
+      const bInit = getInitialSound(b.name || '');
+      const aInitStarts = aInit.startsWith(cleanSearch);
+      const bInitStarts = bInit.startsWith(cleanSearch);
+      if (aInitStarts && !bInitStarts) return -1;
+      if (!aInitStarts && bInitStarts) return 1;
+
+      // 3. 가나다순 정렬
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
   useEffect(() => {
     setSelectedIndex(filteredPartners.length > 0 ? 0 : -1);
