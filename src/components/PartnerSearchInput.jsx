@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, User } from 'lucide-react';
 import { matchesInitialSound } from '../utils/koreanUtils';
 
-const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder = "거래처 검색...", typeFilter = null, autoFocus = false }) => {
+const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder = "거래처 검색...", typeFilter = null, autoFocus = false, currentUser = null }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+
+  const isRestricted = currentUser?.restrictPartnerSearch && currentUser?.name && currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin' && currentUser?.userId !== 'admin';
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -44,15 +46,35 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
     }
   }, [selectedIndex]);
 
-  const filteredPartners = partners.filter(p => {
-    const matchesType = typeFilter ? p.type === typeFilter : true;
-    const matchesSearch = matchesInitialSound(p.name, searchTerm);
+  const filteredPartners = (partners || []).filter(p => {
+    if (isRestricted) {
+      const pManager = (p.manager || '').trim();
+      const uName = (currentUser.name || '').trim();
+      if (pManager !== uName) return false;
+    }
+    const matchesType = typeFilter 
+      ? (typeFilter === '매출처' 
+          ? (!p.type || p.type === '매출처' || p.type === '매출' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
+          : typeFilter === '매입처' 
+          ? (!p.type || p.type === '매입처' || p.type === '매입' || p.type === '혼합' || p.type === '매입매출처' || p.type === '공통') 
+          : p.type === typeFilter) 
+      : true;
+
+    const cleanSearch = (searchTerm || '').trim();
+    if (!cleanSearch) return matchesType;
+
+    const matchesSearch = 
+      matchesInitialSound(p.name, cleanSearch) ||
+      (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch)) ||
+      (p.ceo && matchesInitialSound(p.ceo, cleanSearch)) ||
+      (p.businessNo && String(p.businessNo).replace(/[^0-9]/g, '').includes(cleanSearch.replace(/[^0-9]/g, '')));
+
     return matchesType && matchesSearch;
   });
 
   const handleSelect = (partner) => {
     setSearchTerm(partner.name);
-    onChange(partner.name);
+    if (onChange) onChange(partner.name);
     if (onSelect) onSelect(partner);
     setIsOpen(false);
   };
@@ -70,9 +92,12 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
           onChange={(e) => {
             setSearchTerm(e.target.value);
             setIsOpen(true);
-            if (e.target.value === '') onChange('');
+            if (onChange) onChange(e.target.value);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={(e) => {
+            setIsOpen(true);
+            try { e.target.select(); } catch (err) {}
+          }}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
               e.preventDefault();
@@ -97,7 +122,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
         <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
       </div>
 
-      {isOpen && searchTerm && (
+      {isOpen && (
         <ul className="search-results-list" ref={listRef} style={{
           position: 'absolute',
           top: '100%',
@@ -117,7 +142,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
           {filteredPartners.length > 0 ? (
             filteredPartners.map((p, index) => (
               <li
-                key={p.id}
+                key={p.id || index}
                 onClick={() => handleSelect(p)}
                 onMouseEnter={() => setSelectedIndex(index)}
                 style={{
@@ -132,15 +157,36 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                 }}
               >
                 <User size={16} color="#64748b" />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.name}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{p.type} | {p.ceo || '-'}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                      {p.name}
+                      {p.abbreviation && p.abbreviation !== p.name && (
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400, marginLeft: '6px' }}>
+                          ({p.abbreviation})
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ 
+                      fontSize: '0.7rem', 
+                      padding: '1px 6px', 
+                      borderRadius: '4px', 
+                      backgroundColor: p.type === '매입처' ? '#fef3c7' : p.type === '혼합' ? '#f3e8ff' : '#e0f2fe',
+                      color: p.type === '매입처' ? '#b45309' : p.type === '혼합' ? '#7e22ce' : '#0369a1',
+                      fontWeight: 700 
+                    }}>
+                      {p.type || '거래처'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    {p.ceo ? `대표: ${p.ceo}` : ''} {p.manager ? `| 담당: ${p.manager}` : ''}
+                  </span>
                 </div>
               </li>
             ))
           ) : (
             <li style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>
-              검색 결과가 없습니다.
+              {searchTerm ? '일치하는 거래처가 없습니다.' : '등록된 거래처가 없습니다.'}
             </li>
           )}
         </ul>

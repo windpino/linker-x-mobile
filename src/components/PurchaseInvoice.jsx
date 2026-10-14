@@ -348,6 +348,8 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
             <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>거래처명</label>
             <PartnerSearchInput 
               partners={partners} 
+              currentUser={currentUser}
+              typeFilter="매입처"
               value={invoiceData.partner} 
               onChange={(val) => {
                 const updatedInvoice = {...invoiceData, partner: val};

@@ -1197,6 +1197,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 <div style={{ flex: 1 }}>
                   <PartnerSearchInput 
                     partners={partners} 
+                    currentUser={currentUser}
+                    typeFilter="매출처"
                     value={invoiceData.partner} 
                     onChange={(val) => {
                       const updatedInvoice = {...invoiceData, partner: val};

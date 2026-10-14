@@ -678,6 +678,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   <div className="so-partner-input-wrapper" style={{ flex: 1, minWidth: 0 }}>
                     <PartnerSearchInput 
                       partners={partners} 
+                      currentUser={currentUser}
                       value={orderData.partner} 
                       onChange={(val) => setOrderData({...orderData, partner: val})} 
                       onSelect={(partner) => {
