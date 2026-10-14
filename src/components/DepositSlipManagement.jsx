@@ -7,6 +7,7 @@ import {
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import PartnerSearchInput from './PartnerSearchInput';
 
 const DepositSlipManagement = ({
   onClose,
@@ -189,7 +190,11 @@ const DepositSlipManagement = ({
       if (dateFilter.endDate && slip.date > dateFilter.endDate) return false;
 
       if (filterPartner && filterPartner !== '전체') {
-        if (slip.partner !== filterPartner) return false;
+        const fp = filterPartner.trim().toLowerCase();
+        const pName = (slip.partner || '').toLowerCase();
+        if (pName !== fp && !pName.includes(fp) && !matchesInitialSound(slip.partner || '', filterPartner.trim())) {
+          return false;
+        }
       }
 
       if (filterSlipType !== '전체') {
@@ -263,18 +268,6 @@ const DepositSlipManagement = ({
     memo: '입금전표'
   });
 
-  const [partnerQuery, setPartnerQuery] = useState('');
-  const [showPartnerSuggestions, setShowPartnerSuggestions] = useState(false);
-
-  const partnerSuggestions = useMemo(() => {
-    if (!partnerQuery.trim()) return [];
-    const q = partnerQuery.trim().toLowerCase();
-    return (partners || []).filter(p => {
-      const name = p.name || '';
-      return name.toLowerCase().includes(q) || matchesInitialSound(name, q);
-    }).slice(0, 8);
-  }, [partners, partnerQuery]);
-
   const currentPartnerObj = useMemo(() => {
     if (!formData.partner) return null;
     return (partners || []).find(p => p.name === formData.partner) || null;
@@ -304,8 +297,6 @@ const DepositSlipManagement = ({
       selectedAccount: accounts[0]?.bankName ? `${accounts[0].bankName} ${accounts[0].accountNumber || ''}` : '',
       memo: '입금전표'
     });
-    setPartnerQuery('');
-    setShowPartnerSuggestions(false);
     setIsIssuanceModalOpen(true);
   };
 
@@ -324,8 +315,6 @@ const DepositSlipManagement = ({
       selectedAccount: slip.selectedAccount || '',
       memo: slip.memo || '입금전표'
     });
-    setPartnerQuery(slip.partner || '');
-    setShowPartnerSuggestions(false);
     setIsIssuanceModalOpen(true);
   };
 
@@ -344,8 +333,6 @@ const DepositSlipManagement = ({
         cash: defaultCash
       };
     });
-    setPartnerQuery(p.name);
-    setShowPartnerSuggestions(false);
   };
 
   const handleSaveModal = async () => {
@@ -742,17 +729,15 @@ const DepositSlipManagement = ({
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px' }}>
-            <select
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px', alignItems: 'center' }}>
+            <PartnerSearchInput
+              partners={partners}
               value={filterPartner}
-              onChange={(e) => setFilterPartner(e.target.value)}
-              style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 600 }}
-            >
-              <option value="">전체 거래처</option>
-              {(partners || []).map(p => (
-                <option key={p.id || p.name} value={p.name}>{p.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setFilterPartner(val)}
+              onSelect={(p) => setFilterPartner(p.name)}
+              placeholder="전체 거래처 (초성/단어)"
+              currentUser={currentUser}
+            />
 
             <select
               value={filterPaymentMethod}
@@ -921,37 +906,19 @@ const DepositSlipManagement = ({
                 />
               </div>
 
-              <div style={{ position: 'relative' }}>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '3px' }}>거래처 검색</label>
-                <input
-                  type="text"
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '3px' }}>
+                  거래처 검색 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <PartnerSearchInput
+                  partners={partners}
+                  currentUser={currentUser}
+                  value={formData.partner}
+                  typeFilter="매출처"
                   placeholder="거래처명 입력 (초성 가능)"
-                  value={partnerQuery}
-                  onChange={(e) => {
-                    setPartnerQuery(e.target.value);
-                    setFormData({ ...formData, partner: e.target.value });
-                    setShowPartnerSuggestions(true);
-                  }}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  onChange={(val) => setFormData(prev => ({ ...prev, partner: val }))}
+                  onSelect={(p) => handleSelectPartner(p)}
                 />
-                {showPartnerSuggestions && partnerSuggestions.length > 0 && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                    background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxHeight: '160px', overflowY: 'auto'
-                  }}>
-                    {partnerSuggestions.map(p => (
-                      <div
-                        key={p.id || p.name}
-                        onMouseDown={() => handleSelectPartner(p)}
-                        style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between' }}
-                      >
-                        <span style={{ fontWeight: 700 }}>{p.name}</span>
-                        <span style={{ fontSize: '0.74rem', color: '#ef4444' }}>미수: {Number(p.receivables || 0).toLocaleString()}원</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {formData.partner && (

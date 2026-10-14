@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User } from 'lucide-react';
+import { Search, User, X } from 'lucide-react';
 import { matchesInitialSound, getInitialSound } from '../utils/koreanUtils';
 
 const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder = "거래처 검색...", typeFilter = null, autoFocus = false, currentUser = null }) => {
@@ -160,9 +160,38 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
             }
           }}
           className="partner-input"
-          style={{ width: '100%', padding: '6px 12px 6px 32px', fontSize: '0.82rem', height: '34px', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '6px 28px 6px 32px', fontSize: '0.82rem', height: '34px', boxSizing: 'border-box' }}
         />
-        <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSearchTerm('');
+              setIsOpen(false);
+              if (onChange) onChange('');
+              if (inputRef.current) inputRef.current.focus();
+            }}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="검색어 지우기"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {isOpen && cleanSearch && (
@@ -176,7 +205,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
           border: '1px solid #e2e8f0',
           borderRadius: '8px',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-          maxHeight: '300px',
+          maxHeight: '260px',
           overflowY: 'auto',
           marginTop: '4px',
           padding: '4px 0',
@@ -189,7 +218,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                 onClick={() => handleSelect(p)}
                 onMouseEnter={() => setSelectedIndex(index)}
                 style={{
-                  padding: '10px 16px',
+                  padding: '8px 12px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -199,10 +228,10 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                   color: index === selectedIndex ? '#1d4ed8' : '#1e293b'
                 }}
               >
-                <User size={16} color="#64748b" />
+                <User size={15} color="#64748b" />
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
                       {p.name}
                       {p.abbreviation && p.abbreviation !== p.name && (
                         <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400, marginLeft: '6px' }}>
@@ -210,18 +239,25 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                         </span>
                       )}
                     </span>
-                    <span style={{ 
-                      fontSize: '0.7rem', 
-                      padding: '1px 6px', 
-                      borderRadius: '4px', 
-                      backgroundColor: p.type === '매입처' ? '#fef3c7' : p.type === '혼합' ? '#f3e8ff' : '#e0f2fe',
-                      color: p.type === '매입처' ? '#b45309' : p.type === '혼합' ? '#7e22ce' : '#0369a1',
-                      fontWeight: 700 
-                    }}>
-                      {p.type || '거래처'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {Number(p.receivables || 0) > 0 && (
+                        <span style={{ fontSize: '0.73rem', color: '#ef4444', fontWeight: 700 }}>
+                          미수: {Number(p.receivables || 0).toLocaleString()}원
+                        </span>
+                      )}
+                      <span style={{ 
+                        fontSize: '0.7rem', 
+                        padding: '1px 6px', 
+                        borderRadius: '4px', 
+                        backgroundColor: p.type === '매입처' ? '#fef3c7' : p.type === '혼합' ? '#f3e8ff' : '#e0f2fe',
+                        color: p.type === '매입처' ? '#b45309' : p.type === '혼합' ? '#7e22ce' : '#0369a1',
+                        fontWeight: 700 
+                      }}>
+                        {p.type || '거래처'}
+                      </span>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                     {p.ceo ? `대표: ${p.ceo}` : ''} {p.manager ? `| 담당: ${p.manager}` : ''}
                   </span>
                 </div>
