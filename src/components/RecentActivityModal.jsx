@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { History, Printer, Download, Search, Calendar, Trash2, Users, User, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { History, Printer, Download, Search, Calendar, Trash2, Users, User, X, Clock, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 
@@ -98,10 +98,27 @@ const RecentActivityModal = ({
     }
   }, [retentionPeriod]);
 
-  const handleRetentionPeriodChange = (val) => {
-    setLocalRetentionPeriod(val);
-    if (onSaveRetentionPeriod) {
-      onSaveRetentionPeriod(val);
+  const getRetentionLabel = (val) => {
+    switch (val) {
+      case '1day': return '하루 (1일 보관 후 자동삭제)';
+      case '1week': return '일주일 (7일 보관 후 자동삭제)';
+      case '1month': return '한달 (30일 보관 후 자동삭제)';
+      case '3months': return '3개월 (90일 보관 후 자동삭제)';
+      case '6months': return '6개월 (180일 보관 후 자동삭제)';
+      case '1year': return '1년 (365일 보관 후 자동삭제)';
+      default: return '보관 제한 없음';
+    }
+  };
+
+  const handleSaveRetention = async () => {
+    try {
+      if (onSaveRetentionPeriod) {
+        await onSaveRetentionPeriod(localRetentionPeriod);
+      }
+      alert(`내역 자동삭제 기한이 [${getRetentionLabel(localRetentionPeriod)}]으로 설정 변경 및 저장되었습니다.`);
+    } catch (e) {
+      console.error('Failed to save retention period:', e);
+      alert('설정 저장 중 오류가 발생했습니다.');
     }
   };
 
@@ -488,7 +505,7 @@ const RecentActivityModal = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h2 className="report-v2-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
-                최근 처리 현황 & 작업 이력
+                최근 처리 현황 보고서
               </h2>
               <span style={{ fontSize: '0.7rem', color: '#10b981', backgroundColor: '#f0fdf4', padding: '2px 8px', borderRadius: '12px', fontWeight: 750, border: '1px solid #bbf7d0' }}>
                 단순 이력 표시 (내역 삭제 시 원본 보존)
@@ -517,7 +534,7 @@ const RecentActivityModal = ({
             </span>
             <select
               value={localRetentionPeriod}
-              onChange={(e) => handleRetentionPeriodChange(e.target.value)}
+              onChange={(e) => setLocalRetentionPeriod(e.target.value)}
               style={{
                 border: 'none',
                 background: 'transparent',
@@ -527,14 +544,40 @@ const RecentActivityModal = ({
                 outline: 'none',
                 cursor: 'pointer'
               }}
-              title="설정한 기한(하루/일주일/한달)이 경과한 내역은 자동으로 삭제되며 원본 데이터는 안전하게 보존됩니다"
+              title="설정한 기한이 경과한 내역은 자동으로 삭제되며 원본 데이터는 안전하게 보존됩니다"
             >
               <option value="none">보관 제한 없음</option>
               <option value="1day">하루 (1일 보관 후 자동삭제)</option>
               <option value="1week">일주일 (7일 보관 후 자동삭제)</option>
               <option value="1month">한달 (30일 보관 후 자동삭제)</option>
+              <option value="3months">3개월 (90일 보관 후 자동삭제)</option>
+              <option value="6months">6개월 (180일 보관 후 자동삭제)</option>
+              <option value="1year">1년 (365일 보관 후 자동삭제)</option>
             </select>
           </div>
+
+          {/* 저장하기 버튼 (인쇄버튼 앞에 위치) */}
+          <button 
+            className="btn-v2-action" 
+            onClick={handleSaveRetention} 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '6px 12px', 
+              fontSize: '0.8rem',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(37,99,235,0.2)'
+            }}
+            title="선택한 자동삭제 기한을 저장하고 즉시 적용합니다"
+          >
+            <Save size={14} /> 저장하기
+          </button>
 
           <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.8rem' }}>
             <Printer size={14} /> 인쇄

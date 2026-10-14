@@ -15,6 +15,7 @@ const Header = ({
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
   onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenPhysicalInventory,
+  onOpenRecentActivityReport,
   onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -60,6 +61,9 @@ const Header = ({
     if (perm === '미수금 보고서' || perm === '미수금보고서') return Boolean(p['미수금 보고서'] || p['미수금보고서'] || p['매출원장'] || p['매출처 미수금현황']);
     if (perm === '견적서') return Boolean(p['수주'] || p['매출전표']);
     if (perm === '세금신고 지원 보고서') return true;
+    if (perm === '최근 처리 현황 보고서' || perm === '최근처리현황보고서' || perm === '최근 처리 현황') {
+      return p['최근 처리 현황 보고서'] !== undefined ? Boolean(p['최근 처리 현황 보고서']) : (p['최근 처리 현황'] !== undefined ? Boolean(p['최근 처리 현황']) : true);
+    }
     if (perm === '거래처몰') return true;
     if (perm === '환경설정') return Boolean(p['환경설정']);
     if (perm === '정품등록') return Boolean(p['정품등록']);
@@ -306,6 +310,13 @@ const Header = ({
       action: onOpenReceivablesReport,
       perm: hasPerm('매출처 미수금현황'),
       keywords: '외상 외상값 못받은돈 미수금조회',
+    },
+    {
+      title: '최근 처리 현황 보고서',
+      category: '스마트지원',
+      action: onOpenRecentActivityReport,
+      perm: hasPerm('최근 처리 현황 보고서'),
+      keywords: '최근처리현황보고서 최근처리 최근작업 처리이력 작업내역 이력 보고서',
     },
     {
       title: '재고조정 (손실처리)',
@@ -639,6 +650,7 @@ const Header = ({
               { perm: hasPerm('전표수정/삭제 보고서'), label: '전표수정/삭제 보고서', action: onOpenEditDeleteReport },
               { perm: hasPerm('직원 실적 보고서'), label: '직원 실적 보고서', action: onOpenStaffPerformanceReport },
               { perm: (hasPerm('미수금 보고서') || hasPerm('매출처 미수금현황')), label: '미수금관리', action: onOpenReceivablesReport },
+              { perm: hasPerm('최근 처리 현황 보고서'), label: '최근 처리 현황 보고서', action: onOpenRecentActivityReport },
               { perm: hasPerm('특별단가관리'), label: '거래처별 특별단가 관리', action: onOpenPartnerSpecialPriceManager },
               { perm: hasPerm('세금신고 지원 보고서'), label: '세금신고 지원 보고서', action: onOpenTaxReport },
               { perm: hasPerm('일정'), label: '일정추가', action: onOpenScheduleList },

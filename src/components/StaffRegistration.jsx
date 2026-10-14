@@ -203,6 +203,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
       const isViewActivity = Boolean(
         formData.viewRecentActivity || 
         formData.permissions?.viewRecentActivity || 
+        formData.permissions?.['최근 처리 현황 보고서'] || 
         formData.permissions?.['최근 처리 현황']
       );
 
@@ -228,6 +229,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         deleteRecentActivity: isDeleteActivity,
         '최근 처리 이력 삭제 권한': isDeleteActivity,
         viewRecentActivity: isViewActivity,
+        '최근 처리 현황 보고서': isViewActivity,
         '최근 처리 현황': isViewActivity,
         '최근 처리 현황 권한': isViewActivity,
         '상품금액노출': isShowPurchasePrice,

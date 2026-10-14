@@ -2572,10 +2572,12 @@ function App() {
     if (!period || period === 'none') return;
     const companyId = currentUser?.companyId || 'default';
     const now = Date.now();
-    let cutoff = 0;
     if (period === '1day') cutoff = now - 24 * 60 * 60 * 1000;
     else if (period === '1week') cutoff = now - 7 * 24 * 60 * 60 * 1000;
     else if (period === '1month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
+    else if (period === '3months') cutoff = now - 90 * 24 * 60 * 60 * 1000;
+    else if (period === '6months') cutoff = now - 180 * 24 * 60 * 60 * 1000;
+    else if (period === '1year') cutoff = now - 365 * 24 * 60 * 60 * 1000;
     else return;
 
     const expiredLogs = (actionLogs || []).filter(log => {
@@ -5006,6 +5008,7 @@ function App() {
           }}
           onOpenPlatformManager={() => setCurrentView('super_admin')}
           onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
+          onOpenRecentActivityReport={() => setIsRecentActivityModalOpen(true)}
           onOpenWidgetModal={() => setIsWidgetModalOpen(true)}
           onOpenCalendarModal={() => setIsCalendarModalOpen(true)}
           onToggleMobileDrawer={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
