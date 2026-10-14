@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { History, Printer, Download, Search, Calendar, Trash2, Users, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { History, Printer, Download, Search, Calendar, Trash2, Users, User, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 
@@ -191,7 +191,7 @@ const RecentActivityModal = ({
         subCategory: log.subCategory || '전표',
         title: log.title || log.action || `${type} 처리 완료`,
         detail: log.detail || log.message || '시스템 처리 이력 기록',
-        user: log.user || log.manager || '시스템',
+        user: log.user || log.operator || log.creator || log.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -216,7 +216,7 @@ const RecentActivityModal = ({
         subCategory: '매출전표',
         title: `매출전표 등록 - ${inv.partner || '미지정 거래처'}`,
         detail: `품목: ${itemsSummary} | 합계: ${(inv.totalAmount || 0).toLocaleString()}원 (출고: ${inv.warehouse || '본사창고'})`,
-        user: inv.manager || inv.creator || '시스템',
+        user: inv.creator || inv.user || inv.operator || inv.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -241,7 +241,7 @@ const RecentActivityModal = ({
         subCategory: '매입전표',
         title: `매입전표 등록 - ${inv.partner || '미지정 거래처'}`,
         detail: `품목: ${itemsSummary} | 합계: ${(inv.totalAmount || 0).toLocaleString()}원 (입고: ${inv.warehouse || '본사창고'})`,
-        user: inv.manager || inv.creator || '시스템',
+        user: inv.creator || inv.user || inv.operator || inv.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -266,7 +266,7 @@ const RecentActivityModal = ({
         subCategory: '수주',
         title: `수주서 등록 - ${ord.partner || '미지정 거래처'}`,
         detail: `품목: ${itemsSummary} | 합계: ${(ord.totalPrice || ord.totalAmount || 0).toLocaleString()}원 (출고: ${ord.outWarehouse || '본사창고'} ➔ 배송: ${ord.inWarehouse || '차량'})`,
-        user: ord.manager || ord.creator || '시스템',
+        user: ord.creator || ord.user || ord.operator || ord.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -291,7 +291,7 @@ const RecentActivityModal = ({
         subCategory: '발주',
         title: `발주서 등록 - ${po.partner || '미지정 거래처'}`,
         detail: `품목: ${itemsSummary} | 발주금액: ${(po.totalAmount || 0).toLocaleString()}원`,
-        user: po.manager || po.creator || '시스템',
+        user: po.creator || po.user || po.operator || po.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -316,7 +316,7 @@ const RecentActivityModal = ({
         subCategory: '견적서',
         title: `견적서 등록 - ${q.partner || '미지정 거래처'}`,
         detail: `품목: ${itemsSummary} | 합계: ${(q.totalPrice || q.totalAmount || 0).toLocaleString()}원`,
-        user: q.manager || q.creator || '시스템',
+        user: q.creator || q.user || q.operator || q.manager || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -351,7 +351,7 @@ const RecentActivityModal = ({
         subCategory: '재고이동',
         title: `재고이동: ${mov.from || mov.fromWarehouse || '출발'} ➔ ${mov.to || mov.toWarehouse || '도착'}`,
         detail: `품목: ${itemDetail} | 구분: ${mov.memo || '재고이동'}`,
-        user: mov.operator || mov.creator || '시스템',
+        user: mov.creator || mov.operator || mov.user || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -375,7 +375,7 @@ const RecentActivityModal = ({
         subCategory: '재고조정',
         title: `재고 손실/조정 - ${adj.productName || '품목'}`,
         detail: `조정수량: ${adj.qty > 0 ? '+' + adj.qty : adj.qty}개 | 사유: ${adj.reason || '재고실사 차이'} (창고: ${adj.warehouse || '본사창고'})`,
-        user: adj.author || adj.creator || '시스템',
+        user: adj.creator || adj.author || adj.user || '시스템',
         date: dt.displayDate,
         time: dt.displayTime,
         displayDate: dt.displayDate,
@@ -472,7 +472,7 @@ const RecentActivityModal = ({
       '구분': act.subCategory,
       '처리내용': act.title,
       '상세정보': act.detail,
-      '담당자': act.user
+      '실행직원': act.user
     }));
     const staffSuffix = selectedStaff !== '전체' ? `_${selectedStaff}` : '';
     exportToExcel(exportData, `최근처리현황보고서${staffSuffix}`);
@@ -811,7 +811,7 @@ const RecentActivityModal = ({
                 <th style={{ padding: '8px 10px', width: '90px' }}>구분</th>
                 <th style={{ padding: '8px 10px' }}>처리 내용</th>
                 <th style={{ padding: '8px 10px' }}>상세 정보</th>
-                <th style={{ padding: '8px 10px', width: '90px', textAlign: 'center' }}>담당자</th>
+                <th style={{ padding: '8px 10px', width: '95px', textAlign: 'center' }}>실행 직원</th>
                 {canDelete && <th style={{ padding: '8px 10px', width: '55px', textAlign: 'center' }}>관리</th>}
               </tr>
             </thead>
@@ -888,18 +888,23 @@ const RecentActivityModal = ({
                             }
                           }}
                           style={{
-                            color: selectedStaff === act.user ? '#1d4ed8' : '#2563eb',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            color: selectedStaff === act.user ? '#1d4ed8' : (act.user === '시스템' ? '#64748b' : '#1e40af'),
                             fontWeight: 700,
                             cursor: act.user && act.user !== '시스템' ? 'pointer' : 'default',
-                            padding: '2px 6px',
+                            padding: '2px 7px',
                             borderRadius: '6px',
-                            backgroundColor: selectedStaff === act.user ? '#dbeafe' : 'transparent',
-                            transition: 'all 0.15s',
-                            display: 'inline-block'
+                            backgroundColor: selectedStaff === act.user ? '#dbeafe' : (act.user === '시스템' ? '#f1f5f9' : '#eff6ff'),
+                            border: selectedStaff === act.user ? '1px solid #93c5fd' : (act.user === '시스템' ? '1px solid #e2e8f0' : '1px solid #bfdbfe'),
+                            boxShadow: selectedStaff === act.user ? '0 1px 2px rgba(29, 78, 216, 0.15)' : 'none',
+                            transition: 'all 0.15s'
                           }}
-                          title={act.user && act.user !== '시스템' ? `클릭 시 [${act.user}] 담당자 내역만 필터링` : undefined}
+                          title={act.user && act.user !== '시스템' ? `클릭 시 [${act.user}] 실행 직원 내역만 필터링` : undefined}
                         >
-                          {act.user}
+                          <User size={12} style={{ flexShrink: 0, color: selectedStaff === act.user ? '#1d4ed8' : (act.user === '시스템' ? '#94a3b8' : '#3b82f6') }} />
+                          <span>{act.user || '미지정'}</span>
                         </span>
                       </td>
                       {canDelete && (

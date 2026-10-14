@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  AlertTriangle, Package, TrendingUp, ShoppingCart, Users, Home, ClipboardList, Star, Settings as SettingsIcon,
+  AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
   CheckCircle2, Info, FileSearch, Percent, History, FileSpreadsheet,
   Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut
@@ -264,6 +264,7 @@ function App() {
   const [isWarehouseManagerOpen, setIsWarehouseManagerOpen] = useState(false);
   const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
   const [recentActivityWidgetCategory, setRecentActivityWidgetCategory] = useState('전체');
+  const [recentActivityWidgetStaff, setRecentActivityWidgetStaff] = useState('전체');
   const [isPartnerSpecialPriceManagerOpen, setIsPartnerSpecialPriceManagerOpen] = useState(false);
   const [isStaffManagerOpen, setIsStaffManagerOpen] = useState(false);
   const [isInventoryTransferOpen, setIsInventoryTransferOpen] = useState(false);
@@ -3681,7 +3682,7 @@ function App() {
                 subCategory: '매출전표',
                 title: `매출전표 등록 (${inv.partner || '미지정'})`,
                 detail: `${(inv.totalAmount || 0).toLocaleString()}원`,
-                user: inv.manager || inv.creator || '시스템',
+                user: inv.creator || inv.user || inv.operator || inv.manager || '시스템',
                 date: inv.date || new Date().toISOString().split('T')[0],
                 timestamp: inv.createdAt || inv.id || new Date(inv.date || Date.now()).getTime(),
                 type: '등록',
@@ -3700,7 +3701,7 @@ function App() {
                 subCategory: '매입전표',
                 title: `매입전표 등록 (${inv.partner || '미지정'})`,
                 detail: `${(inv.totalAmount || 0).toLocaleString()}원`,
-                user: inv.manager || inv.creator || '시스템',
+                user: inv.creator || inv.user || inv.operator || inv.manager || '시스템',
                 date: inv.date || new Date().toISOString().split('T')[0],
                 timestamp: inv.createdAt || inv.id || new Date(inv.date || Date.now()).getTime(),
                 type: '등록',
@@ -3719,7 +3720,7 @@ function App() {
                 subCategory: '수주',
                 title: `수주 등록 (${ord.partner || '미지정'})`,
                 detail: `${(ord.totalPrice || 0).toLocaleString()}원`,
-                user: ord.manager || '시스템',
+                user: ord.creator || ord.user || ord.operator || ord.manager || '시스템',
                 date: ord.date || new Date().toISOString().split('T')[0],
                 timestamp: ord.createdAt || ord.id || new Date(ord.date || Date.now()).getTime(),
                 type: '등록',
@@ -3738,7 +3739,7 @@ function App() {
                 subCategory: '발주',
                 title: `발주 등록 (${po.partner || '미지정'})`,
                 detail: `${(po.totalAmount || 0).toLocaleString()}원`,
-                user: po.manager || '시스템',
+                user: po.creator || po.user || po.operator || po.manager || '시스템',
                 date: po.date || new Date().toISOString().split('T')[0],
                 timestamp: po.createdAt || po.id || new Date(po.date || Date.now()).getTime(),
                 type: '등록',
@@ -3757,7 +3758,7 @@ function App() {
                 subCategory: '재고이동',
                 title: `재고이동 (${mov.from || '출발'}➔${mov.to || '도착'})`,
                 detail: `${mov.item || '품목'} (${mov.qty || 0}개)`,
-                user: mov.creator || mov.operator || '시스템',
+                user: mov.creator || mov.operator || mov.user || '시스템',
                 date: mov.date || new Date().toISOString().split('T')[0],
                 timestamp: mov.createdAt || mov.id || new Date(mov.date || Date.now()).getTime(),
                 type: '이동',
@@ -3776,7 +3777,7 @@ function App() {
                 subCategory: '재고조정',
                 title: `재고조정 (${adj.productName || '품목'})`,
                 detail: `${adj.qty > 0 ? '+' + adj.qty : adj.qty}개`,
-                user: adj.creator || '시스템',
+                user: adj.creator || adj.author || adj.user || '시스템',
                 date: adj.date || new Date().toISOString().split('T')[0],
                 timestamp: adj.createdAt || adj.id || new Date(adj.date || Date.now()).getTime(),
                 type: '수정',
@@ -3795,7 +3796,7 @@ function App() {
                 subCategory: log.subCategory || '수주',
                 title: log.title || '처리 내역',
                 detail: log.detail || '',
-                user: log.user || '시스템',
+                user: log.user || log.operator || log.creator || log.manager || '시스템',
                 date: log.date || new Date().toISOString().split('T')[0],
                 timestamp: log.timestamp || log.id || Date.now(),
                 type: log.type || '삭제',
@@ -3822,6 +3823,8 @@ function App() {
               };
               return getMs(b.timestamp) - getMs(a.timestamp);
             });
+
+            const widgetStaffList = ['전체', ...Array.from(new Set(sortedActivities.map(a => a.user).filter(Boolean)))];
 
             const deletedIdSet = new Set((deletedActivityIds || []).map(String));
             const now = Date.now();
@@ -3850,6 +3853,7 @@ function App() {
               if (recentActivityWidgetCategory === '변경') return act.category === '변경' || act.type === '수정' || act.type === '변경';
               if (recentActivityWidgetCategory === '이동') return act.category === '이동' || act.type === '이동';
               if (recentActivityWidgetCategory === '삭제') return act.category === '삭제' || act.type === '삭제';
+              if (recentActivityWidgetStaff !== '전체' && act.user !== recentActivityWidgetStaff) return false;
               return true; // '전체'
             }).slice(0, 5);
 
@@ -3857,28 +3861,51 @@ function App() {
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                {/* Category Buttons Filter */}
-                <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
-                  {widgetCategories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={(e) => { e.stopPropagation(); setRecentActivityWidgetCategory(cat); }}
+                {/* Category Buttons & Staff Dropdown Filter */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {widgetCategories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={(e) => { e.stopPropagation(); setRecentActivityWidgetCategory(cat); }}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          backgroundColor: recentActivityWidgetCategory === cat ? '#3b82f6' : '#f1f5f9',
+                          color: recentActivityWidgetCategory === cat ? '#ffffff' : '#64748b',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                  {widgetStaffList.length > 2 && (
+                    <select
+                      value={recentActivityWidgetStaff}
+                      onChange={(e) => { e.stopPropagation(); setRecentActivityWidgetStaff(e.target.value); }}
                       style={{
-                        padding: '3px 8px',
-                        fontSize: '0.7rem',
+                        padding: '2px 4px',
+                        fontSize: '0.68rem',
                         fontWeight: 700,
                         borderRadius: '6px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        backgroundColor: recentActivityWidgetCategory === cat ? '#3b82f6' : '#f1f5f9',
-                        color: recentActivityWidgetCategory === cat ? '#ffffff' : '#64748b',
-                        transition: 'all 0.15s'
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#ffffff',
+                        color: recentActivityWidgetStaff === '전체' ? '#64748b' : '#2563eb',
+                        outline: 'none',
+                        cursor: 'pointer'
                       }}
                     >
-                      {cat}
-                    </button>
-                  ))}
+                      {widgetStaffList.map(s => (
+                        <option key={s} value={s}>{s === '전체' ? '전체직원' : s}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* List Items */}
@@ -3923,7 +3950,23 @@ function App() {
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{item.user}</span>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            color: item.user === '시스템' ? '#64748b' : '#1d4ed8',
+                            backgroundColor: item.user === '시스템' ? '#f1f5f9' : '#eff6ff',
+                            border: item.user === '시스템' ? '1px solid #e2e8f0' : '1px solid #bfdbfe',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontSize: '0.65rem',
+                            fontWeight: 750
+                          }}
+                          title={`실행 직원: ${item.user}`}
+                          >
+                            <User size={10} style={{ flexShrink: 0 }} />
+                            {item.user}
+                          </span>
                           <span style={{ color: '#94a3b8', fontSize: '0.68rem' }}>{item.date.substring(5)}</span>
                           {checkActivityDeletePermission() && (
                             <button
