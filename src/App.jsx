@@ -1572,33 +1572,84 @@ function App() {
     try {
       const companyId = currentUser?.companyId || 'default';
       const nextInv = { ...inventory };
-      
-      const wh = targetInv?.warehouse || userWarehouse;
-      if (wh && targetInv?.items && targetInv.items.length > 0) {
-        if (!nextInv[wh]) nextInv[wh] = {};
+      const deletedTransferIds = new Set();
+      const revertedMovements = [];
+
+      // 1. 매출전표와 연관된 재고이동 및 매출출고 이력 수집
+      const matchedTransfers = inventoryTransferHistory.filter(h => {
+        if (String(h.salesInvoiceId) === String(id)) return true;
+        if (targetInv && (targetInv.salesOrderId || targetInv.orderId)) {
+          const orderId = String(targetInv.salesOrderId || targetInv.orderId);
+          if (String(h.salesOrderId) === orderId || String(h.orderId) === orderId) return true;
+        }
+        if (targetInv && h.date === targetInv.date) {
+          if (h.memo === `[매출] ${targetInv.partner}` || h.memo === `[매출] ${targetInv.partner || ''}`) return true;
+          if (h.to === targetInv.warehouse && h.memo === '상차(자동이동)' && (targetInv.items || []).some(i => i.name === h.item)) return true;
+        }
+        return false;
+      });
+
+      // 2. 이동 이력 기반 재고 역복구 및 Firestore 이력 삭제
+      for (const match of matchedTransfers) {
+        const { from, to, item, qty } = match;
+        const numQty = Number(qty) || 0;
+        if (from && to && item && numQty > 0) {
+          if (!nextInv[from]) nextInv[from] = { ...(inventory[from] || {}) };
+          if (!nextInv[to]) nextInv[to] = { ...(inventory[to] || {}) };
+
+          if (to === '매출출고') {
+            // 매출 출고 복구: 출고 창고로 재고 환원
+            nextInv[from][item] = (nextInv[from][item] || 0) + numQty;
+          } else if (from === '매입입고') {
+            nextInv[to][item] = (nextInv[to][item] || 0) - numQty;
+          } else {
+            // 창고 간 이동 (예: 본사창고 -> 출고창고 상차 자동이동) 역복구
+            // 출발 창고(from)는 재고 증가, 도착 창고(to)는 재고 차감
+            nextInv[from][item] = (nextInv[from][item] || 0) + numQty;
+            nextInv[to][item] = (nextInv[to][item] || 0) - numQty;
+          }
+          revertedMovements.push({ from, to, item, qty: numQty });
+        }
+        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        deletedTransferIds.add(String(match.id));
+      }
+
+      // 3. 만약 이동 이력이 없었던 품목이 전표에 있다면, 기본 출고창고 재고에 환원 복구
+      if (targetInv && Array.isArray(targetInv.items)) {
+        const targetWH = targetInv.warehouse || userWarehouse || warehouses[0]?.name || '창고';
         for (const item of targetInv.items) {
-          nextInv[wh][item.name] = (nextInv[wh][item.name] || 0) + Number(item.qty);
+          const itemQty = Number(item.qty) || 0;
+          const wasReverted = revertedMovements.some(m => m.item === item.name && m.to === '매출출고');
+          if (!wasReverted && itemQty > 0) {
+            if (!nextInv[targetWH]) nextInv[targetWH] = { ...(inventory[targetWH] || {}) };
+            nextInv[targetWH][item.name] = (nextInv[targetWH][item.name] || 0) + itemQty;
+          }
         }
       }
 
       await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       setInventory(nextInv);
 
+      // 4. 매출전표 삭제 및 번들 갱신
       await deleteDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
       const nextSalesInvoices = salesInvoices.filter(si => String(si.id) !== String(id));
       setSalesInvoices(nextSalesInvoices);
       await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
 
-      const idMatches = inventoryTransferHistory.filter(h => String(h.salesInvoiceId) === String(id));
-      for (const match of idMatches) {
-        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
-      }
-
-      const nextTransfers = inventoryTransferHistory.filter(h => String(h.salesInvoiceId) !== String(id));
+      // 5. 창고이동/출고 내역 상태 및 번들, 로컬스토리지 갱신 (전표 삭제 시 함께 완전 삭제)
+      const nextTransfers = inventoryTransferHistory.filter(h => !deletedTransferIds.has(String(h.id)));
       setInventoryTransferHistory(nextTransfers);
       await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
 
-      // 삭제된 매출전표와 연결된 수주서(salesOrders)가 있을 경우 상태를 '대기'로 복원
+      const prefix = `_${companyId}`;
+      const curTransferCache = JSON.parse(localStorage.getItem(`inventoryTransferHistory${prefix}`)) || JSON.parse(localStorage.getItem('inventoryTransferHistory')) || [];
+      const updatedTransferCache = curTransferCache.filter(h => !deletedTransferIds.has(String(h.id)));
+      localStorage.setItem(`inventoryTransferHistory${prefix}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem(`inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem(`bundle_inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem('inventoryTransferHistory', JSON.stringify(updatedTransferCache));
+
+      // 6. 삭제된 매출전표와 연결된 수주서(salesOrders)가 있을 경우 상태를 '대기'로 복원
       const linkedOrders = salesOrders.filter(so => 
         String(so.salesInvoiceId) === String(id) || 
         (targetInv && (String(targetInv.salesOrderId) === String(so.id) || String(targetInv.orderId) === String(so.id)))
@@ -1631,17 +1682,18 @@ function App() {
         localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
       }
 
+      // 7. 삭제 이력 로그 작성
       await logOperation({
         category: '삭제',
         subCategory: '매출전표',
         type: '삭제',
         title: `매출전표 삭제 (${targetInv?.partner || '미지정'})`,
-        detail: `출고 재고 원상 복구 및 전표 삭제 (전표일자: ${targetInv?.date || '-'}, 품목수: ${targetInv?.items?.length || 0}건, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
+        detail: `출고 재고 원상 복구 및 관련 창고이동/출고 내역 삭제 (전표일자: ${targetInv?.date || '-'}, 품목수: ${targetInv?.items?.length || 0}건, 이동삭제: ${deletedTransferIds.size}건, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
         user: currentUser?.name || '시스템',
         targetId: String(id)
       });
 
-      alert('매출전표가 삭제되었으며 실시간 재고에 복구되었습니다.');
+      alert('매출전표 및 관련 창고이동 내역이 삭제되었으며 실시간 재고에 복구되었습니다.');
     } catch (err) { console.error(err); }
   };
 
