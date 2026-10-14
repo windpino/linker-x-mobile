@@ -26,6 +26,7 @@
 * { box-sizing: border-box; }
 
 .mall-container {
+  font-size: 18px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -50,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
 }
 
@@ -102,7 +103,7 @@
 }
 
 .mall-logo-name {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
   color: var(--mall-primary);
   letter-spacing: -1px;
@@ -110,7 +111,7 @@
 }
 
 .mall-logo-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--mall-text-muted);
   font-weight: 500;
   letter-spacing: 1px;
@@ -142,7 +143,7 @@
   border: none;
   outline: none;
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 16px;
   font-family: inherit;
   color: var(--mall-text);
   background: transparent;
@@ -177,7 +178,7 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--mall-text-muted);
   cursor: pointer;
   transition: color 0.2s;
@@ -196,7 +197,7 @@
   right: 2px;
   background: var(--mall-primary);
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
@@ -230,7 +231,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--mall-white);
   background: var(--mall-secondary);
@@ -245,7 +246,7 @@
 .mall-nav-all:hover { background: var(--mall-primary); }
 
 .mall-nav-link {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--mall-text);
   padding: 0 14px;
@@ -281,7 +282,7 @@
 }
 
 .mall-subnav-item {
-  font-size: 13px;
+  font-size: 15px;
   padding: 4px 12px;
   border-radius: 20px;
   cursor: pointer;
@@ -295,7 +296,7 @@
 .mall-subnav-item.active { color: var(--mall-primary); background: #fff5f5; border-color: var(--mall-primary); font-weight: 700; }
 
 .mall-smallnav-item {
-  font-size: 12px;
+  font-size: 14px;
   padding: 3px 10px;
   cursor: pointer;
   color: #888;
@@ -362,14 +363,14 @@
   color: #fff;
   padding: 4px 14px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   margin-bottom: 16px;
   backdrop-filter: blur(4px);
 }
 
 .mall-banner-title {
-  font-size: 40px;
+  font-size: 42px;
   font-weight: 900;
   line-height: 1.2;
   margin-bottom: 12px;
@@ -377,7 +378,7 @@
 }
 
 .mall-banner-desc {
-  font-size: 16px;
+  font-size: 18px;
   opacity: 0.9;
   margin-bottom: 24px;
   font-weight: 400;
@@ -390,7 +391,7 @@
   padding: 12px 28px;
   border-radius: 2px;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -469,7 +470,7 @@
 
 .mall-banner-counter {
   color: rgba(255,255,255,0.8);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   background: rgba(0,0,0,0.25);
   padding: 2px 10px;
@@ -494,7 +495,7 @@
 }
 
 .mall-service-title {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
   font-weight: 600;
   margin-bottom: 12px;
@@ -540,7 +541,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 26px;
   transition: transform 0.2s;
 }
 
@@ -549,7 +550,7 @@
 }
 
 .mall-service-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #444;
   text-align: center;
@@ -557,7 +558,7 @@
 }
 
 .mall-service-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--mall-text-muted);
   text-align: center;
 }
@@ -569,7 +570,7 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 10px 20px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
   display: flex;
   align-items: center;
@@ -609,7 +610,7 @@
 .mall-sidebar-title {
   background: var(--mall-secondary);
   color: #fff;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   padding: 12px 15px;
   display: flex;
@@ -621,7 +622,7 @@
 .mall-cat-tree-group:last-child { border-bottom: none; }
 
 .mall-cat-tree-large {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   padding: 10px 15px;
   cursor: pointer;
@@ -640,7 +641,7 @@
 }
 
 .mall-cat-tree-medium {
-  font-size: 12px;
+  font-size: 14px;
   padding: 7px 15px 7px 25px;
   cursor: pointer;
   color: #666;
@@ -668,13 +669,13 @@
 }
 
 .mall-cat-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--mall-text);
 }
 
 .mall-cat-count {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--mall-text-muted);
   margin-top: 3px;
 }
@@ -690,7 +691,7 @@
 
 .mall-sort-btn {
   padding: 7px 14px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   border: none;
   background: var(--mall-white);
@@ -760,7 +761,7 @@
 }
 
 .mall-section-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--mall-text);
   display: flex;
@@ -769,12 +770,12 @@
 }
 
 .mall-section-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
 }
 
 .mall-section-more {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
   cursor: pointer;
   display: flex;
@@ -843,7 +844,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 16px;
   z-index: 2;
 }
 
@@ -859,7 +860,7 @@
   background: var(--mall-primary);
   color: #fff;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   z-index: 2;
   border-bottom-left-radius: 8px;
@@ -900,7 +901,7 @@
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   opacity: 0;
   transform: translateY(100%);
@@ -972,7 +973,7 @@
 }
 
 .mall-product-brand {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--mall-primary);
   font-weight: 700;
   text-transform: uppercase;
@@ -980,7 +981,7 @@
 }
 
 .mall-product-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: #333;
   line-height: 1.45;
@@ -994,10 +995,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
-.mall-stars { color: #f59e0b; font-size: 11px; letter-spacing: -1px; }
+.mall-stars { color: #f59e0b; font-size: 13px; letter-spacing: -1px; }
 .mall-review-count { color: #aaa; }
 
 .mall-product-price-area {
@@ -1009,26 +1010,26 @@
 }
 
 .mall-product-discount {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
   color: var(--mall-primary);
 }
 
 .mall-product-price {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 900;
   color: var(--mall-text);
 }
 
 .mall-product-original {
-  font-size: 12px;
+  font-size: 14px;
   color: #aaa;
   text-decoration: line-through;
   font-weight: 400;
 }
 
 .mall-product-hidden-price {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--mall-text-muted);
   font-weight: 600;
   font-style: italic;
@@ -1060,7 +1061,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: #555;
   transition: background 0.15s;
@@ -1075,7 +1076,7 @@
   border: none;
   border-left: 1px solid var(--mall-border);
   border-right: 1px solid var(--mall-border);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   padding: 4px 0;
   outline: none;
@@ -1106,7 +1107,7 @@
 
 .mall-sidebar-dropdown-item {
   padding: 10px 16px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   border-bottom: 1px solid #f5f5f5;
@@ -1172,7 +1173,7 @@
 }
 
 .mall-modal-header h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   margin: 0;
   color: var(--mall-text);
@@ -1181,7 +1182,7 @@
 .mall-modal-close {
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
   color: #aaa;
   line-height: 1;
@@ -1238,7 +1239,7 @@
 .mall-cart-item-info { flex: 1; min-width: 0; }
 
 .mall-cart-item-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--mall-text);
   white-space: nowrap;
@@ -1248,7 +1249,7 @@
 }
 
 .mall-cart-item-price {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--mall-text-muted);
 }
 
@@ -1260,7 +1261,7 @@
 }
 
 .mall-cart-item-qty {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--mall-primary);
   min-width: 30px;
@@ -1291,12 +1292,12 @@
   padding: 14px 0;
   border-top: 2px solid var(--mall-border);
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .mall-cart-total-price {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   color: var(--mall-primary);
 }
@@ -1309,7 +1310,7 @@
   gap: 6px;
   padding: 12px 20px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   border: none;
@@ -1322,7 +1323,7 @@
   color: #fff;
   width: 100%;
   padding: 14px;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .mall-btn-primary:hover { background: var(--mall-primary-dark); }
@@ -1363,7 +1364,7 @@
 
 .mall-h-tab {
   padding: 12px 18px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   color: var(--mall-text-muted);
@@ -1401,7 +1402,7 @@
 
 .mall-order-date {
   font-weight: 800;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--mall-text);
 }
 
@@ -1410,7 +1411,7 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1437,11 +1438,11 @@
   background: #eee;
 }
 
-.mall-order-item-name { font-size: 13px; font-weight: 700; flex: 1; }
-.mall-order-item-qty { font-size: 12px; color: var(--mall-text-muted); }
+.mall-order-item-name { font-size: 15px; font-weight: 700; flex: 1; }
+.mall-order-item-qty { font-size: 14px; color: var(--mall-text-muted); }
 
 .mall-order-item-status {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   padding: 3px 10px;
   border-radius: 6px;
@@ -1472,8 +1473,8 @@
   flex-shrink: 0;
 }
 
-.mall-freq-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-.mall-freq-price { color: var(--mall-primary); font-weight: 900; font-size: 14px; }
+.mall-freq-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.mall-freq-price { color: var(--mall-primary); font-weight: 900; font-size: 16px; }
 .mall-freq-actions { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 
 /* =========================================
@@ -1487,14 +1488,14 @@
 }
 
 .mall-confirm-title {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   margin-bottom: 10px;
 }
 
 .mall-confirm-desc {
   color: var(--mall-text-muted);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -1534,14 +1535,14 @@
 }
 
 .mall-footer-logo {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 900;
   color: #fff;
   margin-bottom: 14px;
 }
 
 .mall-footer-info {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 2;
 }
 
@@ -1549,7 +1550,7 @@
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid rgba(255,255,255,0.1);
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255,255,255,0.4);
 }
 
@@ -1613,7 +1614,7 @@
 @media (max-width: 860px) {
   .mall-product-grid { grid-template-columns: repeat(2, 1fr); }
   .mall-banner-carousel { height: 240px; }
-  .mall-banner-title { font-size: 28px; }
+  .mall-banner-title { font-size: 30px; }
   .mall-banner-visual { font-size: 70px; }
   .mall-service-item { padding: 8px 10px; }
 }
@@ -1630,7 +1631,7 @@
     padding: 10px 14px;
   }
 
-  .mall-logo-name { font-size: 20px; }
+  .mall-logo-name { font-size: 22px; }
 
   .mall-search-wrap {
     order: 3;
@@ -1650,22 +1651,22 @@
   }
   .mall-nav-inner::-webkit-scrollbar { display: none; }
 
-  .mall-nav-all { padding: 0 14px; margin-right: 4px; font-size: 13px; }
-  .mall-nav-link { padding: 0 10px; font-size: 13px; }
+  .mall-nav-all { padding: 0 14px; margin-right: 4px; font-size: 15px; }
+  .mall-nav-link { padding: 0 10px; font-size: 15px; }
 
   .mall-banner-carousel { height: 180px; }
 
   .mall-banner-slide-inner { padding: 0 30px; }
-  .mall-banner-title { font-size: 20px; }
+  .mall-banner-title { font-size: 22px; }
   .mall-banner-desc { display: none; }
-  .mall-banner-cta { padding: 8px 18px; font-size: 12px; }
+  .mall-banner-cta { padding: 8px 18px; font-size: 14px; }
   .mall-banner-visual { display: none; }
   .mall-banner-nav-btn { width: 30px; height: 30px; }
 
   .mall-service-grid { gap: 0; justify-content: space-between; }
   .mall-service-item { padding: 6px 5px; max-width: 70px; }
-  .mall-service-icon-wrap { width: 40px; height: 40px; font-size: 18px; }
-  .mall-service-label { font-size: 10px; }
+  .mall-service-icon-wrap { width: 40px; height: 40px; font-size: 20px; }
+  .mall-service-label { font-size: 12px; }
   .mall-service-sub { display: none; }
 
   .mall-main { padding: 10px; gap: 0; }
@@ -1676,15 +1677,15 @@
   }
 
   .mall-product-info { padding: 8px 10px 10px; }
-  .mall-product-name { font-size: 12px; }
-  .mall-product-price { font-size: 15px; }
-  .mall-product-discount { font-size: 13px; }
+  .mall-product-name { font-size: 14px; }
+  .mall-product-price { font-size: 17px; }
+  .mall-product-discount { font-size: 15px; }
 
   .mall-home-section { padding: 16px; }
-  .mall-section-title { font-size: 16px; }
+  .mall-section-title { font-size: 18px; }
 
   .mall-cat-header { padding: 12px 14px; }
-  .mall-cat-title { font-size: 16px; }
+  .mall-cat-title { font-size: 18px; }
 
   .mall-modal {
     width: 96vw !important;
@@ -1697,13 +1698,13 @@
   .mall-modal-overlay { align-items: flex-end !important; }
 
   .mall-history-tabs { overflow-x: auto; }
-  .mall-h-tab { font-size: 12px; padding: 10px 12px; white-space: nowrap; }
+  .mall-h-tab { font-size: 14px; padding: 10px 12px; white-space: nowrap; }
 
   .mall-order-card { padding: 12px; }
   .mall-order-item-row { flex-wrap: wrap; }
 
   .mall-subnav-inner, .mall-smallnav-inner { padding: 8px 12px; gap: 6px; }
-  .mall-subnav-item { font-size: 12px; padding: 3px 10px; }
+  .mall-subnav-item { font-size: 14px; padding: 3px 10px; }
 
   .mall-breadcrumb { padding: 8px 12px; }
 

@@ -186,6 +186,11 @@ const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수
 function App() {
   const [currentView, setCurrentView] = useState(() => {
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === 'shopping' || window.location.hash.includes('shopping')) {
+        return 'shopping';
+      }
+
       if (window.location.pathname === '/madmin') return 'super_admin';
       
       const savedUser = localStorage.getItem('currentUser');
@@ -4995,7 +5000,10 @@ function App() {
           onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
           onOpenPhysicalInventory={() => setIsPhysicalInventoryOpen(true)}
           onOpenTaxReport={() => setIsTaxReportOpen(true)}
-          onOpenPartnerMall={() => setCurrentView('shopping')}
+          onOpenPartnerMall={() => {
+            const url = `${window.location.origin}${window.location.pathname}?view=shopping`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }}
           onOpenPlatformManager={() => setCurrentView('super_admin')}
           onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
           onOpenWidgetModal={() => setIsWidgetModalOpen(true)}

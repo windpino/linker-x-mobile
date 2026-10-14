@@ -577,7 +577,7 @@ const PartnerShoppingMall = ({
                       <div
                         key={mc.id}
                         className="mall-sidebar-dropdown-item"
-                        style={{ paddingLeft: 28, fontSize: 12, color: '#666', fontWeight: 500 }}
+                        style={{ paddingLeft: 28, fontSize: 14, color: '#666', fontWeight: 500 }}
                         onClick={() => navigate(mc.name)}
                       >
                         {mc.name}
@@ -839,7 +839,7 @@ const PartnerShoppingMall = ({
               {filteredProducts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0', color: '#aaa', background: '#fff', border: '1px solid #eee', borderRadius: 8 }}>
                   <Package size={48} style={{ marginBottom: 16, opacity: 0.4 }} />
-                  <div style={{ fontSize: 16, fontWeight: 600 }}>해당 카테고리에 상품이 없습니다.</div>
+                  <div style={{ fontSize: 18, fontWeight: 600 }}>해당 카테고리에 상품이 없습니다.</div>
                 </div>
               ) : (
                 <div className="mall-product-grid" style={{ background: '#fff', padding: 16, borderRadius: 8, border: '1px solid #eee' }}>
@@ -876,7 +876,7 @@ const PartnerShoppingMall = ({
                 {cart.length > 0 && (
                   <button
                     className="mall-btn mall-btn-danger-outline"
-                    style={{ padding: '6px 12px', fontSize: 12 }}
+                    style={{ padding: '6px 12px', fontSize: 14 }}
                     onClick={() => setShowClearConfirm(true)}
                   >
                     전체 삭제
@@ -890,8 +890,8 @@ const PartnerShoppingMall = ({
               {cart.length === 0 ? (
                 <div className="mall-cart-empty">
                   <div className="mall-cart-empty-icon">🛒</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>장바구니가 비어있습니다</div>
-                  <div style={{ fontSize: 13, color: '#bbb' }}>원하는 상품을 담아보세요</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>장바구니가 비어있습니다</div>
+                  <div style={{ fontSize: 15, color: '#bbb' }}>원하는 상품을 담아보세요</div>
                 </div>
               ) : (
                 <div className="mall-cart-items">
@@ -977,7 +977,7 @@ const PartnerShoppingMall = ({
               {/* Pending Orders */}
               {historyTab === 'pending' && (
                 <div>
-                  <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, color: '#888', marginBottom: 16 }}>
                     접수된 주문의 실시간 진행 상황입니다.
                   </div>
                   {myPendingOrders.length === 0 ? (
@@ -1016,7 +1016,7 @@ const PartnerShoppingMall = ({
                                     </div>
                                     <button
                                       className="mall-btn mall-btn-danger-outline"
-                                      style={{ padding: '4px 10px', fontSize: 12 }}
+                                      style={{ padding: '4px 10px', fontSize: 14 }}
                                       onClick={() => handleHistoryItemDelete(order, idx)}
                                     >
                                       삭제
@@ -1039,7 +1039,7 @@ const PartnerShoppingMall = ({
               {/* Past Invoices */}
               {historyTab === 'past' && (
                 <div>
-                  <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>완료된 이전 주문 내역입니다.</div>
+                  <div style={{ fontSize: 15, color: '#888', marginBottom: 16 }}>완료된 이전 주문 내역입니다.</div>
                   {myPastInvoices.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '50px 0', color: '#bbb' }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
@@ -1050,21 +1050,21 @@ const PartnerShoppingMall = ({
                       <div key={inv.id} className="mall-order-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                            <span style={{ fontWeight: 800, fontSize: 14 }}>{inv.date} 매출전표</span>
+                            <span style={{ fontWeight: 800, fontSize: 16 }}>{inv.date} 매출전표</span>
                             <span className="mall-order-status done">배송완료</span>
                           </div>
-                          <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
+                          <div style={{ fontSize: 15, color: '#666', marginBottom: 4 }}>
                             {inv.items.map(i => `${i.name}×${i.qty}`).join(', ')}
                           </div>
                           {!currentUser?.hidePrice && (
-                            <div style={{ fontSize: 13, fontWeight: 800, color: '#e62e2e' }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#e62e2e' }}>
                               합계: {inv.totalAmount.toLocaleString()}원
                             </div>
                           )}
                         </div>
                         <button
                           className="mall-btn mall-btn-secondary"
-                          style={{ padding: '8px 14px', fontSize: 12, flexShrink: 0 }}
+                          style={{ padding: '8px 14px', fontSize: 14, flexShrink: 0 }}
                           onClick={() => setSelectedInvoice(inv)}
                         >
                           <FileText size={14} /> 거래명세표
@@ -1078,14 +1078,14 @@ const PartnerShoppingMall = ({
               {/* Frequent Products */}
               {historyTab === 'frequent' && (
                 <div>
-                  <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, color: '#888', marginBottom: 16 }}>
                     하트를 눌러 나만의 단골 상품을 관리할 수 있습니다.
                   </div>
                   {frequentProducts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '50px 0', color: '#bbb' }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>❤️</div>
                       <div>즐겨찾는 상품이 없습니다.</div>
-                      <div style={{ fontSize: 12, marginTop: 6 }}>상품 카드의 하트 버튼을 눌러 등록해보세요!</div>
+                      <div style={{ fontSize: 14, marginTop: 6 }}>상품 카드의 하트 버튼을 눌러 등록해보세요!</div>
                     </div>
                   ) : (
                     frequentProducts.map(p => (
@@ -1193,7 +1193,7 @@ const PartnerShoppingMall = ({
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button
                     className="mall-btn mall-btn-secondary"
-                    style={{ padding: '7px 14px', fontSize: 13 }}
+                    style={{ padding: '7px 14px', fontSize: 15 }}
                     onClick={() => window.print()}
                   >
                     인쇄
@@ -1212,9 +1212,9 @@ const PartnerShoppingMall = ({
                   </div>
 
                   {/* Meta */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, fontSize: 13 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, fontSize: 15 }}>
                     <div>일자: <strong>{inv.date}</strong></div>
-                    <div style={{ fontSize: 16, fontWeight: 900 }}>{inv.partner} <span style={{ fontSize: 13, fontWeight: 400, color: '#666' }}>귀하</span></div>
+                    <div style={{ fontSize: 18, fontWeight: 900 }}>{inv.partner} <span style={{ fontSize: 15, fontWeight: 400, color: '#666' }}>귀하</span></div>
                   </div>
 
                   {/* Supplier / Receiver */}
@@ -1236,18 +1236,18 @@ const PartnerShoppingMall = ({
                       },
                     ].map((side, i) => (
                       <div key={i} style={{ flex: 1, borderRight: i === 0 ? '1px solid #000' : 'none', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ background: '#f8fafc', borderBottom: '1px solid #000', padding: '5px', textAlign: 'center', fontWeight: 900, fontSize: 12 }}>
+                        <div style={{ background: '#f8fafc', borderBottom: '1px solid #000', padding: '5px', textAlign: 'center', fontWeight: 900, fontSize: 14 }}>
                           {side.label}
                         </div>
                         <div style={{ display: 'flex', flex: 1 }}>
-                          <div style={{ width: 72, borderRight: '1px solid #000', display: 'flex', flexDirection: 'column', fontSize: 11, fontWeight: 700, background: '#f8fafc' }}>
+                          <div style={{ width: 72, borderRight: '1px solid #000', display: 'flex', flexDirection: 'column', fontSize: 13, fontWeight: 700, background: '#f8fafc' }}>
                             {['등록번호', '상호명', '대표자', '주소'].map(label => (
                               <div key={label} style={{ padding: '6px', borderBottom: '1px solid #ddd', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {label}
                               </div>
                             ))}
                           </div>
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontSize: 11 }}>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontSize: 13 }}>
                             {[side.bizNum, side.name, side.ceo, side.address].map((val, j) => (
                               <div key={j} style={{ padding: '6px 10px', borderBottom: '1px solid #ddd', flex: 1, display: 'flex', alignItems: 'center', fontWeight: j === 1 ? 700 : 400 }}>
                                 {val}
@@ -1260,7 +1260,7 @@ const PartnerShoppingMall = ({
                   </div>
 
                   {/* Items Table */}
-                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: 12, marginBottom: 16 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: 14, marginBottom: 16 }}>
                     <thead>
                       <tr style={{ background: '#f8fafc' }}>
                         {['월/일', '품명', '규격', '수량',
@@ -1296,8 +1296,8 @@ const PartnerShoppingMall = ({
                     </tbody>
                     <tfoot>
                       <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
-                        <td colSpan={3} style={{ border: '1px solid #000', padding: '7px', textAlign: 'center', fontSize: 13 }}>합 계 금 액</td>
-                        <td colSpan={currentUser?.hidePrice ? 1 : 4} style={{ border: '1px solid #000', padding: '7px', textAlign: 'right', color: '#1e3a8a', fontSize: 14 }}>
+                        <td colSpan={3} style={{ border: '1px solid #000', padding: '7px', textAlign: 'center', fontSize: 15 }}>합 계 금 액</td>
+                        <td colSpan={currentUser?.hidePrice ? 1 : 4} style={{ border: '1px solid #000', padding: '7px', textAlign: 'right', color: '#1e3a8a', fontSize: 16 }}>
                           {currentUser?.hidePrice
                             ? `${inv.items.reduce((s, i) => s + i.qty, 0)}개`
                             : `${inv.totalAmount.toLocaleString()}원`}
@@ -1307,13 +1307,13 @@ const PartnerShoppingMall = ({
                   </table>
 
                   {!currentUser?.hidePrice && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#888', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#888', marginBottom: 16 }}>
                       <span>공급가액 합계: {inv.items.reduce((s, i) => s + (i.supplyValue || 0), 0).toLocaleString()}원</span>
                       <span>세액 합계: {inv.items.reduce((s, i) => s + (i.tax || 0), 0).toLocaleString()}원</span>
                     </div>
                   )}
 
-                  <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 14, color: '#333' }}>
+                  <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 16, color: '#333' }}>
                     위 금액을 정히 영수(청구)함.
                   </div>
                 </div>
@@ -1340,7 +1340,7 @@ const PartnerShoppingMall = ({
                 <h1 style={{ display: 'inline-block', border: '3px double #000', padding: '8px 36px', fontSize: '1.8rem', fontWeight: 900, letterSpacing: 8 }}>
                   거 래 명 세 표
                 </h1>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 15 }}>
                   <span>일자: {inv.date}</span>
                   <span>거래처: {inv.partner} 귀하</span>
                 </div>
@@ -1348,16 +1348,16 @@ const PartnerShoppingMall = ({
               <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', marginBottom: 16 }}>
                 <tbody>
                   <tr>
-                    <td rowSpan={4} style={{ width: '5%', textAlign: 'center', fontWeight: 900, border: '1px solid #000', background: '#f1f5f9', fontSize: 12 }}>공<br/>급<br/>자</td>
+                    <td rowSpan={4} style={{ width: '5%', textAlign: 'center', fontWeight: 900, border: '1px solid #000', background: '#f1f5f9', fontSize: 14 }}>공<br/>급<br/>자</td>
                     {[['등록번호', systemSettings.company?.bizNum || '-'], ['상호(법인명)', companyName || systemSettings.company?.name || '-'], ['성명(대표자)', systemSettings.company?.ceo || '-'], ['주소', systemSettings.company?.address || '-']].slice(0, 1).map(([k, v]) => (
                       <React.Fragment key={k}>
-                        <td style={{ width: '15%', border: '1px solid #000', padding: '5px', fontSize: 11, fontWeight: 700, background: '#f8fafc' }}>{k}</td>
-                        <td style={{ width: '30%', border: '1px solid #000', padding: '5px', fontSize: 11 }}>{v}</td>
+                        <td style={{ width: '15%', border: '1px solid #000', padding: '5px', fontSize: 13, fontWeight: 700, background: '#f8fafc' }}>{k}</td>
+                        <td style={{ width: '30%', border: '1px solid #000', padding: '5px', fontSize: 13 }}>{v}</td>
                       </React.Fragment>
                     ))}
-                    <td rowSpan={4} style={{ width: '5%', textAlign: 'center', fontWeight: 900, border: '1px solid #000', background: '#f1f5f9', fontSize: 12 }}>공<br/>급<br/>받<br/>는<br/>자</td>
-                    <td style={{ width: '15%', border: '1px solid #000', padding: '5px', fontSize: 11, fontWeight: 700, background: '#f8fafc' }}>등록번호</td>
-                    <td style={{ width: '30%', border: '1px solid #000', padding: '5px', fontSize: 11 }}>{partnerDetail.businessNo || '-'}</td>
+                    <td rowSpan={4} style={{ width: '5%', textAlign: 'center', fontWeight: 900, border: '1px solid #000', background: '#f1f5f9', fontSize: 14 }}>공<br/>급<br/>받<br/>는<br/>자</td>
+                    <td style={{ width: '15%', border: '1px solid #000', padding: '5px', fontSize: 13, fontWeight: 700, background: '#f8fafc' }}>등록번호</td>
+                    <td style={{ width: '30%', border: '1px solid #000', padding: '5px', fontSize: 13 }}>{partnerDetail.businessNo || '-'}</td>
                   </tr>
                   {[
                     [['상호(법인명)', companyName || systemSettings.company?.name || '-'], ['상호(법인명)', inv.partner]],
@@ -1365,10 +1365,10 @@ const PartnerShoppingMall = ({
                     [['주소', systemSettings.company?.address || '-'], ['주소', partnerDetail.address || '-']],
                   ].map(([left, right], i) => (
                     <tr key={i}>
-                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 11, fontWeight: 700, background: '#f8fafc' }}>{left[0]}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 11 }}>{left[1]}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 11, fontWeight: 700, background: '#f8fafc' }}>{right[0]}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 11 }}>{right[1]}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 13, fontWeight: 700, background: '#f8fafc' }}>{left[0]}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 13 }}>{left[1]}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 13, fontWeight: 700, background: '#f8fafc' }}>{right[0]}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', fontSize: 13 }}>{right[1]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1377,22 +1377,22 @@ const PartnerShoppingMall = ({
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
                     {['월/일', '품명', '규격', '수량', ...(!currentUser?.hidePrice ? ['단가', '공급가액', '세액'] : [])].map(h => (
-                      <th key={h} style={{ border: '1px solid #000', padding: '5px', fontSize: 11, textAlign: 'center' }}>{h}</th>
+                      <th key={h} style={{ border: '1px solid #000', padding: '5px', fontSize: 13, textAlign: 'center' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {inv.items.map((item, idx) => (
                     <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 11 }}>{inv.date.substring(5)}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', fontWeight: 700, fontSize: 11 }}>{item.name}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 11 }}>{item.spec || '-'}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 11 }}>{item.qty}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 13 }}>{inv.date.substring(5)}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', fontWeight: 700, fontSize: 13 }}>{item.name}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 13 }}>{item.spec || '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', fontSize: 13 }}>{item.qty}</td>
                       {!currentUser?.hidePrice && (
                         <>
-                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 11 }}>{(item.price || 0).toLocaleString()}</td>
-                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 11 }}>{(item.supplyValue || 0).toLocaleString()}</td>
-                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 11 }}>{(item.tax || 0).toLocaleString()}</td>
+                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 13 }}>{(item.price || 0).toLocaleString()}</td>
+                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 13 }}>{(item.supplyValue || 0).toLocaleString()}</td>
+                          <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right', fontSize: 13 }}>{(item.tax || 0).toLocaleString()}</td>
                         </>
                       )}
                     </tr>
@@ -1408,7 +1408,7 @@ const PartnerShoppingMall = ({
                 <tfoot>
                   <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
                     <td colSpan={3} style={{ border: '1px solid #000', padding: '7px', textAlign: 'center' }}>합 계 금 액</td>
-                    <td colSpan={currentUser?.hidePrice ? 1 : 4} style={{ border: '1px solid #000', padding: '7px', textAlign: 'right', fontSize: 14 }}>
+                    <td colSpan={currentUser?.hidePrice ? 1 : 4} style={{ border: '1px solid #000', padding: '7px', textAlign: 'right', fontSize: 16 }}>
                       {currentUser?.hidePrice ? `${inv.items.reduce((s, i) => s + i.qty, 0)}개` : `${inv.totalAmount.toLocaleString()}원`}
                     </td>
                   </tr>
