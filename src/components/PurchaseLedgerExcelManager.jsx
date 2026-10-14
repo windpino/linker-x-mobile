@@ -1,12 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { FileSpreadsheet, Download, Upload, Edit3, CheckCircle, ChevronRight, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, Edit3, CheckCircle, ChevronRight, ArrowLeft, ShieldCheck, Trash2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import BulkEditor from './BulkEditor';
 import * as XLSX from 'xlsx';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
+import { db } from '../firebase';
+import { doc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './ExcelManager.css';
 
-const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchaseInvoices }) => {
+const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchaseInvoices, currentUser }) => {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [step, setStep] = useState('main'); // main | mapping | preview
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +22,59 @@ const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchas
   });
   const [previewData, setPreviewData] = useState({ invoices: [], payments: [] });
   const fileInputRef = useRef(null);
+
+  const isAdmin = currentUser?.role === 'admin' || 
+                  currentUser?.role === 'super_admin' || 
+                  currentUser?.userId === 'admin' || 
+                  currentUser?.jobTitle === '대표' ||
+                  currentUser?.jobTitle === '관리자' ||
+                  currentUser?.permissions?.ALL === true;
+
+  const handleDeleteAllPurchaseLedger = async () => {
+    if (!isAdmin) {
+      alert('매입처원장 데이터 삭제는 관리자 권한이 필요합니다.');
+      return;
+    }
+    if (!purchaseInvoices || purchaseInvoices.length === 0) {
+      alert('삭제할 매입처원장 데이터가 없습니다.');
+      return;
+    }
+    if (!window.confirm(`현재 등록된 모든 매입처원장/매입전표 내역(${purchaseInvoices.length}건)을 시스템 및 DB에서 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+    const entered = window.prompt(`정말 삭제하시려면 아래에 '매입원장삭제'를 정확히 입력해 주세요.`);
+    if (entered !== '매입원장삭제') {
+      alert('입력값이 일치하지 않아 취소되었습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < purchaseInvoices.length; i += CHUNK_SIZE) {
+        const chunk = purchaseInvoices.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach(inv => {
+          const docId = String(inv.id || inv._docId);
+          batch.delete(doc(db, 'companies', companyId, 'purchaseInvoices', docId));
+        });
+        await batch.commit();
+      }
+      const count = purchaseInvoices.length;
+      setPurchaseInvoices([]);
+      try {
+        await saveBundle(companyId, 'purchaseInvoices', []);
+        localStorage.removeItem(`purchaseInvoices_${companyId}`);
+      } catch (e) {}
+      alert(`모든 매입처원장 데이터(${count}건)가 성공적으로 삭제되었습니다.`);
+    } catch (err) {
+      console.error('Delete purchase ledger error:', err);
+      alert('매입처원장 삭제 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const MAPPING_LABELS = [
     { key: 'date', label: '날짜 / 일자', required: true },
@@ -351,13 +407,13 @@ const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchas
   }
 
   return (
-    <WindowModal title="매입처원장 저장/불러오기" onClose={onClose} width="1000px">
+    <WindowModal title="매입처원장 저장/불러오기/삭제" onClose={onClose} width="1120px">
       <div className="excel-header">
         <div className="excel-title-group">
           <FileSpreadsheet size={24} color="#ef4444" />
-          <h2 className="excel-title">매입처원장 저장/불러오기</h2>
+          <h2 className="excel-title">매입처원장 저장/불러오기/삭제</h2>
         </div>
-        <p className="excel-desc">매입 내역을 엑셀(.xlsx) 파일로 내보내거나, 외부 엑셀 파일을 업로드해 자동 분석 후 매입전표를 일괄 등록합니다.</p>
+        <p className="excel-desc">매입 내역을 엑셀(.xlsx) 파일로 내보내거나, 외부 엑셀 파일을 업로드해 자동 분석 후 매입전표를 일괄 등록 및 필요시 전체 데이터를 일괄 삭제합니다.</p>
       </div>
 
       <div className="excel-actions-grid">
@@ -379,6 +435,13 @@ const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchas
             {isLoading ? '⏳ 파일 읽는 중...' : '📂 파일 불러오기'}
           </button>
         </div>
+        <div className="excel-card" style={{ borderColor: '#ef4444', background: 'linear-gradient(135deg, #fff5f5, #fee2e2)' }}>
+          <div className="card-top"><Trash2 size={24} color="#dc2626" /><span style={{ color: '#991b1b' }}>매입처원장 데이터 삭제</span></div>
+          <p style={{ color: '#7f1d1d', marginBottom: '12px' }}>등록된 전체 매입전표/원장 내역({purchaseInvoices?.length || 0}건)을 시스템 및 DB에서 안전하게 영구 일괄 삭제합니다. (관리자 전용)</p>
+          <button className="btn-excel-primary red" onClick={handleDeleteAllPurchaseLedger} disabled={isLoading}>
+            {isLoading ? '⏳ 삭제 진행 중...' : '🗑️ 전체 매입원장 데이터 삭제'}
+          </button>
+        </div>
       </div>
 
       <div className="excel-guide-footer">
@@ -389,6 +452,7 @@ const PurchaseLedgerExcelManager = ({ onClose, purchaseInvoices = [], setPurchas
         <ul className="guide-list">
           <li>매입원장 엑셀 업로드 시 기존 매입 기록과 충돌하거나 중복 등록되지 않도록 업로드 전 데이터를 반드시 대조해 주세요.</li>
           <li>중요한 대규모 입고/매입 작업 전에는 '매입원장 다운로드' 기능을 활용하여 기존 원본을 다운로드(백업) 보관하세요.</li>
+          <li>'매입처원장 데이터 삭제'는 되돌릴 수 없으므로 반드시 작업 전 백업 파일을 다운로드해 두시기 바랍니다.</li>
           <li>수량이 공란이거나 단가가 누락된 행은 시스템 데이터 무결성을 위해 매핑 과정에서 생략되거나 비정상 처리될 수 있습니다.</li>
         </ul>
       </div>

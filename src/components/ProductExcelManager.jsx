@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FileSpreadsheet, Download, Upload, Edit3, CheckCircle, ChevronRight, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, Edit3, CheckCircle, ChevronRight, ArrowLeft, ShieldCheck, Trash2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import BulkEditor from './BulkEditor';
 import * as XLSX from 'xlsx';
@@ -24,6 +24,59 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
   });
   const [previewProducts, setPreviewProducts] = useState([]);
   const fileInputRef = useRef(null);
+
+  const isAdmin = currentUser?.role === 'admin' || 
+                  currentUser?.role === 'super_admin' || 
+                  currentUser?.userId === 'admin' || 
+                  currentUser?.jobTitle === '대표' ||
+                  currentUser?.jobTitle === '관리자' ||
+                  currentUser?.permissions?.ALL === true;
+
+  const handleDeleteAllProducts = async () => {
+    if (!isAdmin) {
+      alert('품목 데이터 삭제는 관리자 권한이 필요합니다.');
+      return;
+    }
+    if (!products || products.length === 0) {
+      alert('삭제할 품목 데이터가 없습니다.');
+      return;
+    }
+    if (!window.confirm(`현재 등록된 모든 품목(${products.length}개)을 시스템 및 DB에서 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+    const entered = window.prompt(`정말 삭제하시려면 아래에 '품목삭제'를 정확히 입력해 주세요.`);
+    if (entered !== '품목삭제') {
+      alert('입력값이 일치하지 않아 취소되었습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < products.length; i += CHUNK_SIZE) {
+        const chunk = products.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach(p => {
+          const docId = String(p.id || p._docId);
+          batch.delete(doc(db, 'companies', companyId, 'products', docId));
+        });
+        await batch.commit();
+      }
+      const count = products.length;
+      setProducts([]);
+      try {
+        await saveBundle(companyId, 'products', []);
+        localStorage.removeItem(`products_${companyId}`);
+      } catch (e) {}
+      alert(`모든 품목 데이터(${count}개)가 성공적으로 삭제되었습니다.`);
+    } catch (err) {
+      console.error('Delete products error:', err);
+      alert('품목 삭제 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const MAPPING_LABELS = [
     { key: 'name', label: '상품명', required: true },
@@ -361,13 +414,13 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
   }
 
   return (
-    <WindowModal title="엑셀파일로 품목저장/불러오기" onClose={onClose} width="1000px">
+    <WindowModal title="엑셀파일로 품목 저장/불러오기/삭제" onClose={onClose} width="1120px">
       <div className="excel-header">
         <div className="excel-title-group">
           <FileSpreadsheet size={24} color="#3b82f6" />
-          <h2 className="excel-title">품목 저장/불러오기</h2>
+          <h2 className="excel-title">품목 저장/불러오기/삭제</h2>
         </div>
-        <p className="excel-desc">품목 목록을 엑셀(.xlsx) 파일로 내보내거나, 외부 엑셀 파일을 업로드하여 일괄 등록합니다.</p>
+        <p className="excel-desc">품목 목록을 엑셀(.xlsx) 파일로 내보내거나, 외부 엑셀 파일을 업로드하여 일괄 등록 및 필요시 전체 데이터를 일괄 삭제합니다.</p>
       </div>
 
       <div className="excel-actions-grid">
@@ -389,6 +442,13 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
             {isLoading ? '⏳ 파일 읽는 중...' : '📂 파일 불러오기'}
           </button>
         </div>
+        <div className="excel-card" style={{ borderColor: '#ef4444', background: 'linear-gradient(135deg, #fff5f5, #fee2e2)' }}>
+          <div className="card-top"><Trash2 size={24} color="#dc2626" /><span style={{ color: '#991b1b' }}>품목 데이터 삭제</span></div>
+          <p style={{ color: '#7f1d1d', marginBottom: '12px' }}>등록된 전체 품목 목록({products?.length || 0}개)을 시스템 및 DB에서 안전하게 영구 일괄 삭제합니다. (관리자 전용)</p>
+          <button className="btn-excel-primary red" onClick={handleDeleteAllProducts} disabled={isLoading}>
+            {isLoading ? '⏳ 삭제 진행 중...' : '🗑️ 전체 품목 데이터 삭제'}
+          </button>
+        </div>
       </div>
 
       <div className="excel-guide-footer">
@@ -399,6 +459,7 @@ const ProductExcelManager = ({ onClose, products = [], setProducts, categories =
         <ul className="guide-list">
           <li>품목 업로드 시 동일한 바코드나 품목명이 존재할 경우 단가 및 규격 등 기존 품목 데이터가 덮어씌워지거나 오류가 발생할 수 있습니다.</li>
           <li>품목 리스트의 큰 변화나 중요 변경 사항이 있을 때는 업로드 전 '품목 목록 다운로드'를 통해 백업 파일을 먼저 안전하게 저장하세요.</li>
+          <li>'품목 데이터 삭제'는 되돌릴 수 없으므로 반드시 작업 전 백업 파일을 다운로드해 두시기 바랍니다.</li>
           <li>카테고리명(대/중/소)이 일치하지 않을 경우 시스템 내에서 카테고리 매칭 오류나 공란 처리가 발생할 수 있으니 템플릿 규격을 유지해 주세요.</li>
         </ul>
       </div>

@@ -1261,9 +1261,9 @@ function App() {
     '매출전표': true, '매출원장': true, '수주': true,
     '입출금보고서': true, '매출보고서': true, '재고보고서': true, '전표수정/삭제 보고서': true,
     '금전출납부': true, '경비출금': true, '직원 실적 보고서': true,
-    '데이터 전체 저장/불러오기': true, '엑셀파일로 거래처저장/불러오기': true,
-    '엑셀파일로 품목저장/불러오기': true, '매출처원장 저장/불러오기': true,
-    '매입처원장 저장/불러오기': true, '구글스프레드시트 연동': true,
+    '데이터 전체 저장/불러오기': true, '데이터 전체 저장/불러오기/삭제': true, '엑셀파일로 거래처저장/불러오기': true, '거래처 엑셀파일로 저장/불러오기/삭제': true,
+    '엑셀파일로 품목저장/불러오기': true, '품목 엑셀파일로 저장/불러오기/삭제': true, '매출처원장 저장/불러오기': true, '매출처원장 저장/불러오기/삭제': true,
+    '매입처원장 저장/불러오기': true, '매입처원장 저장/불러오기/삭제': true, '구글스프레드시트 연동': true,
     viewAllInventoryMovements: true
   };
 
@@ -5824,6 +5824,7 @@ function App() {
       {isStaffPerformanceReportOpen && <StaffPerformanceReport onClose={() => setIsStaffPerformanceReportOpen(false)} staffList={staffList} salesInvoices={salesInvoices} />}
       {isDataManagerOpen && (
         <DataManager 
+          currentUser={currentUser}
           onClose={() => setIsDataManagerOpen(false)} 
           onSaveAll={() => {
             const data = { 
@@ -6104,8 +6105,8 @@ function App() {
       )}
       {isPartnerExcelOpen && <PartnerExcelManager onClose={() => setIsPartnerExcelOpen(false)} partners={partners} setPartners={setPartners} staffList={staffList} setStaffList={setStaffList} currentUser={currentUser} />}
       {isProductExcelOpen && <ProductExcelManager onClose={() => setIsProductExcelOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} currentUser={currentUser} />}
-      {isPurchaseLedgerExcelOpen && <PurchaseLedgerExcelManager onClose={() => setIsPurchaseLedgerExcelOpen(false)} purchaseInvoices={purchaseInvoices} setPurchaseInvoices={setPurchaseInvoices} />}
-      {isSalesLedgerExcelOpen && <SalesLedgerExcelManager onClose={() => setIsSalesLedgerExcelOpen(false)} salesInvoices={salesInvoices} setSalesInvoices={setSalesInvoices} />}
+      {isPurchaseLedgerExcelOpen && <PurchaseLedgerExcelManager onClose={() => setIsPurchaseLedgerExcelOpen(false)} purchaseInvoices={purchaseInvoices} setPurchaseInvoices={setPurchaseInvoices} currentUser={currentUser} />}
+      {isSalesLedgerExcelOpen && <SalesLedgerExcelManager onClose={() => setIsSalesLedgerExcelOpen(false)} salesInvoices={salesInvoices} setSalesInvoices={setSalesInvoices} currentUser={currentUser} />}
       {isSettingsOpen && (
         <SettingsManager 
           onClose={() => setIsSettingsOpen(false)} 

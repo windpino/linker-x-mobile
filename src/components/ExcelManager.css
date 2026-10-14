@@ -27,8 +27,8 @@
 
 .excel-actions-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
   padding: 24px;
   background-color: #f8fafc;
 }
@@ -93,6 +93,7 @@
 .btn-excel-primary.blue { background-color: #2563eb; }
 .btn-excel-primary.green { background-color: #10b981; }
 .btn-excel-primary.orange { background-color: #f59e0b; }
+.btn-excel-primary.red { background-color: #dc2626; }
 
 .btn-excel-outline {
   padding: 12px 24px;
