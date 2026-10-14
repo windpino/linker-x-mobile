@@ -7,6 +7,8 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
   const [activeCategory, setActiveCategory] = useState('general');
   const [localSettings, setLocalSettings] = useState(() => {
     const initial = { ...settings };
+    if (!initial.display) initial.display = {};
+    if (initial.display.showMenuIcons === undefined) initial.display.showMenuIcons = true;
     if (!initial.company) initial.company = {};
     if (!initial.salesInvoice) initial.salesInvoice = { warnNoStock: true, saveMode: 'auto' };
     if (!initial.salesInvoice.saveMode) initial.salesInvoice.saveMode = 'auto';
@@ -224,6 +226,20 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                     </div>
                     <label className="switch">
                       <input type="checkbox" checked={localSettings.display.realTimeUpdate} onChange={e => updateDisplay('realTimeUpdate', e.target.checked)} />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+                  <div className="toggle-item">
+                    <div className="toggle-info">
+                      <h4>하위 메뉴 아이콘 표시</h4>
+                      <p>메뉴 내 각 하위 메뉴 앞에 아이콘을 표시합니다.</p>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox" 
+                        checked={localSettings.display.showMenuIcons ?? true} 
+                        onChange={e => updateDisplay('showMenuIcons', e.target.checked)} 
+                      />
                       <span className="slider"></span>
                     </label>
                   </div>

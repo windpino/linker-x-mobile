@@ -16,7 +16,8 @@ const Header = ({
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
   onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenPhysicalInventory,
   onOpenRecentActivityReport,
-  onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer
+  onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer,
+  settings
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -476,13 +477,16 @@ const Header = ({
     setActiveSubDropdown(null);
   };
 
+  const showMenuIcons = settings?.display?.showMenuIcons ?? true;
+
   const MENU_EMOJIS = {
-    '거래처몰': '🤝',
+    '거래처몰': '🛍️',
     '플랫폼 관리': '💻',
     '직원관리': '👤',
     '창고관리': '🏠',
     '거래처등록/관리': '🤝',
     '품목등록/관리': '📦',
+    '실재고 입력': '📝',
     '재고이동': '🚚',
     '재고 이동 현황 관리': '📋',
     '재고조정 (손실처리)': '🔧',
@@ -492,12 +496,15 @@ const Header = ({
     '매입처별 재고현황': '📋',
     '매입전표 등록': '📥',
     '매입전표 관리': '📋',
+    '매입원장': '📊',
     '발주 등록': '📤',
     '매출전표등록': '🧾',
     '매출전표내역': '📄',
     '매출원장': '📊',
     '간편수주 등록': '🛒',
     '수주목록': '📝',
+    '견적서': '📑',
+    '견적서 관리': '📑',
     '계좌관리': '💳',
     '입금전표발행': '💰',
     '결산보고서': '💰',
@@ -510,6 +517,8 @@ const Header = ({
     '전표수정/삭제 보고서': '🔍',
     '직원 실적 보고서': '🏆',
     '미수금관리': '💵',
+    '미수금 보고서': '💵',
+    '최근 처리 현황 보고서': '📋',
     '거래처별 특별단가 관리': '🏷️',
     '세금신고 지원 보고서': '🧮',
     '일정추가': '📅',
@@ -743,7 +752,7 @@ const Header = ({
                       width: '100%'
                     }}
                   >
-                    <span>{MENU_EMOJIS[item.label] || '📄'}</span>
+                    {showMenuIcons && <span>{MENU_EMOJIS[item.label] || '📄'}</span>}
                     <span>{item.label}</span>
                   </button>
                 ))}

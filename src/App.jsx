@@ -4962,6 +4962,7 @@ function App() {
           currentUser={currentUser} 
           companyLogo={companySettings?.theme?.logoUrl}
           companyName={companySettings?.name || systemSettings.company?.name || 'Link X'}
+          settings={systemSettings}
           onLogout={handleLogout} 
           onOpenWarehouseManager={() => setIsWarehouseManagerOpen(true)}
           onOpenStaffManager={() => setIsStaffManagerOpen(true)}
