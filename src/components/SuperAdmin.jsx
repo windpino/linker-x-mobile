@@ -473,6 +473,8 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           viewRecentActivity: true,
           deleteRecentActivity: true,
           restrictPartnerSearch: false,
+          allowPastDateSlip: true,
+          allowPastDateDeposit: true,
           createdAt: nowIso
         };
         await setDoc(adminRef, baseAdminStaff);
@@ -813,6 +815,8 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         viewRecentActivity: true,
         deleteRecentActivity: true,
         restrictPartnerSearch: false,
+        allowPastDateSlip: true,
+        allowPastDateDeposit: true,
         createdAt: nowIso
       };
       const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);

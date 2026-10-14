@@ -86,6 +86,26 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     }
   }, [salesOrders, orderData.id, orderData.partner, orderData.date]);
 
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const canIssuePastDateSlip = (() => {
+    if (currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
+    const staff = (staffList || []).find(s => 
+      (currentUser?.userId && s.userId === currentUser.userId) ||
+      (currentUser?.id && String(s.id) === String(currentUser.id)) ||
+      (currentUser?.name && s.name === currentUser.name)
+    ) || currentUser;
+    if (staff?.allowPastDateSlip !== undefined) return Boolean(staff.allowPastDateSlip);
+    if (currentUser?.allowPastDateSlip !== undefined) return Boolean(currentUser.allowPastDateSlip);
+    if (staff?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(staff.permissions['과거일자 전표발행']);
+    if (currentUser?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(currentUser.permissions['과거일자 전표발행']);
+    if (currentUser?.role === 'admin') return true;
+    return false;
+  })();
+
   // Reset form when editingOrder or initialPartner changes
   React.useEffect(() => {
     if (!isItemSearchOpen) { // Don't reset while searching
@@ -94,12 +114,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       } else {
         const nextMgr = initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
         const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+        const d = selectedDate || new Date();
+        let initialDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (!canIssuePastDateSlip && initialDate < todayStr) {
+          initialDate = todayStr;
+        }
         setOrderData({
           id: Date.now(),
-          date: (() => {
-            const d = selectedDate || new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          })(),
+          date: initialDate,
           partner: initialPartner ? initialPartner.name : '',
           outWarehouse: nextOutWH,
           inWarehouse: staffWH,
@@ -354,6 +376,10 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       showToast('수주 품목을 입력해주세요.', 'error');
       return;
     }
+    if (!canIssuePastDateSlip && orderData?.date && orderData.date < todayStr && (!editingOrder || orderData.date !== editingOrder.date)) {
+      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
+      return;
+    }
 
     // 특별단가 자동 저장: 단가가 입력된 모든 품목에 대해 해당 거래처의 특별단가로 자동 저장
     if (orderData.partner) {
@@ -461,8 +487,13 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
               <input 
                 type="date"
                 value={orderData.date}
+                min={!canIssuePastDateSlip ? todayStr : undefined}
                 onChange={(e) => {
                   const newDate = e.target.value;
+                  if (!canIssuePastDateSlip && newDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                    return;
+                  }
                   if (newDate) {
                     setOrderData(prev => ({ ...prev, date: newDate }));
                   }
@@ -565,7 +596,20 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   <div className="so-grid-2" style={{ marginBottom: '10px', animation: 'so-fade-in 0.2s' }}>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>수주일자</label>
-                      <input type="date" value={orderData.date} onChange={(e) => setOrderData({...orderData, date: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }} />
+                      <input 
+                        type="date" 
+                        value={orderData.date} 
+                        min={!canIssuePastDateSlip ? todayStr : undefined}
+                        onChange={(e) => {
+                          const newDate = e.target.value;
+                          if (!canIssuePastDateSlip && newDate < todayStr) {
+                            alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                            return;
+                          }
+                          setOrderData({...orderData, date: newDate});
+                        }} 
+                        style={{ padding: '6px', fontSize: '0.8rem' }} 
+                      />
                     </div>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>담당자</label>

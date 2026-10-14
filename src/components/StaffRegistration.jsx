@@ -76,6 +76,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     viewOtherWarehouseOrders: false,
     viewRecentActivity: false,
     deleteRecentActivity: false,
+    allowPastDateSlip: false,
+    allowPastDateDeposit: false,
     showPurchasePrice: isEditing ? (
       initialData?.showPurchasePrice !== undefined 
         ? Boolean(initialData.showPurchasePrice) 
@@ -118,6 +120,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         viewOtherWarehouseOrders: initialData.viewOtherWarehouseOrders || false,
         viewRecentActivity: Boolean(initialData.viewRecentActivity || initialData.permissions?.viewRecentActivity || initialData.permissions?.['최근 처리 현황']),
         deleteRecentActivity: Boolean(initialData.deleteRecentActivity || initialData.permissions?.deleteRecentActivity || initialData.permissions?.['최근 처리 이력 삭제 권한']),
+        allowPastDateSlip: Boolean(initialData.allowPastDateSlip || initialData.permissions?.allowPastDateSlip || initialData.permissions?.['과거일자 전표발행']),
+        allowPastDateDeposit: Boolean(initialData.allowPastDateDeposit || initialData.permissions?.allowPastDateDeposit || initialData.permissions?.['과거일자 입금전표발행']),
         showPurchasePrice: initialShowPrice,
         permissions: initialData.permissions || {}
       });
@@ -138,6 +142,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         viewOtherWarehouseOrders: false,
         viewRecentActivity: false,
         deleteRecentActivity: false,
+        allowPastDateSlip: false,
+        allowPastDateDeposit: false,
         showPurchasePrice: false,
         permissions: {}
       });
@@ -206,6 +212,17 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         formData.permissions?.['발주_상품금액노출']
       );
 
+      const isAllowPastDateSlip = Boolean(
+        formData.allowPastDateSlip || 
+        formData.permissions?.allowPastDateSlip || 
+        formData.permissions?.['과거일자 전표발행']
+      );
+      const isAllowPastDateDeposit = Boolean(
+        formData.allowPastDateDeposit || 
+        formData.permissions?.allowPastDateDeposit || 
+        formData.permissions?.['과거일자 입금전표발행']
+      );
+
       const enrichedPermissions = {
         ...(formData.permissions || {}),
         deleteRecentActivity: isDeleteActivity,
@@ -215,7 +232,11 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         '최근 처리 현황 권한': isViewActivity,
         '상품금액노출': isShowPurchasePrice,
         '발주_상품금액노출': isShowPurchasePrice,
-        showPurchasePrice: isShowPurchasePrice
+        showPurchasePrice: isShowPurchasePrice,
+        allowPastDateSlip: isAllowPastDateSlip,
+        '과거일자 전표발행': isAllowPastDateSlip,
+        allowPastDateDeposit: isAllowPastDateDeposit,
+        '과거일자 입금전표발행': isAllowPastDateDeposit
       };
 
       if (isCloning) {
@@ -233,6 +254,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
           viewRecentActivity: isViewActivity,
+          allowPastDateSlip: isAllowPastDateSlip,
+          allowPastDateDeposit: isAllowPastDateDeposit,
           permissions: enrichedPermissions,
           id: Date.now() 
         }, true);
@@ -242,6 +265,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
           viewRecentActivity: isViewActivity,
+          allowPastDateSlip: isAllowPastDateSlip,
+          allowPastDateDeposit: isAllowPastDateDeposit,
           password: formData.password || initialData?.password || '',
           permissions: enrichedPermissions
         };
@@ -475,6 +500,24 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
               <div className="checkbox-text-group">
                 <span className="checkbox-main-text">모든 데이터 삭제/수정 권한 부여</span>
                 <span className="checkbox-sub-text">체크 시 매출/매입전표, 품목, 거래처, 계좌 등 시스템 내 모든 마스터 데이터를 수정하고 삭제할 수 있습니다. (미체크 시 본인이 작성한 데이터만 관리 가능)</span>
+              </div>
+            </label>
+          </div>
+          <div className="permission-box mb-4">
+            <label className="checkbox-label">
+              <input type="checkbox" name="allowPastDateSlip" checked={formData.allowPastDateSlip || false} onChange={handleChange} />
+              <div className="checkbox-text-group">
+                <span className="checkbox-main-text">과거일자 전표발행</span>
+                <span className="checkbox-sub-text">체크 시 당일 이전(과거 일자)으로 수주, 견적서, 매출전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)</span>
+              </div>
+            </label>
+          </div>
+          <div className="permission-box mb-4">
+            <label className="checkbox-label">
+              <input type="checkbox" name="allowPastDateDeposit" checked={formData.allowPastDateDeposit || false} onChange={handleChange} />
+              <div className="checkbox-text-group">
+                <span className="checkbox-main-text">과거일자 입금전표발행</span>
+                <span className="checkbox-sub-text">체크 시 당일 이전(과거 일자)으로 입금전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)</span>
               </div>
             </label>
           </div>

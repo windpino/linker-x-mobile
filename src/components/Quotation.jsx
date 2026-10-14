@@ -81,19 +81,44 @@ const Quotation = ({
   const [isBasicInfoCollapsed, setIsBasicInfoCollapsed] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const canIssuePastDateSlip = (() => {
+    if (currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
+    const staff = (staffList || []).find(s => 
+      (currentUser?.userId && s.userId === currentUser.userId) ||
+      (currentUser?.id && String(s.id) === String(currentUser.id)) ||
+      (currentUser?.name && s.name === currentUser.name)
+    ) || currentUser;
+    if (staff?.allowPastDateSlip !== undefined) return Boolean(staff.allowPastDateSlip);
+    if (currentUser?.allowPastDateSlip !== undefined) return Boolean(currentUser.allowPastDateSlip);
+    if (staff?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(staff.permissions['과거일자 전표발행']);
+    if (currentUser?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(currentUser.permissions['과거일자 전표발행']);
+    if (currentUser?.role === 'admin') return true;
+    return false;
+  })();
+
   // Form State
-  const [quotationData, setQuotationData] = useState(editingQuotation || {
-    id: Date.now(),
-    date: (() => {
-      const d = selectedDate || new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })(),
-    validUntil: '견적일로부터 15일간',
-    partner: initialPartner ? initialPartner.name : '',
-    outWarehouse: userWarehouse,
-    manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
-    itemsText: '',
-    memo: ''
+  const [quotationData, setQuotationData] = useState(() => {
+    if (editingQuotation) return editingQuotation;
+    const d = selectedDate || new Date();
+    let initialDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (!canIssuePastDateSlip && initialDate < todayStr) {
+      initialDate = todayStr;
+    }
+    return {
+      id: Date.now(),
+      date: initialDate,
+      validUntil: '견적일로부터 15일간',
+      partner: initialPartner ? initialPartner.name : '',
+      outWarehouse: userWarehouse,
+      manager: currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'),
+      itemsText: '',
+      memo: ''
+    };
   });
 
   // Track custom modified unit prices
@@ -381,6 +406,10 @@ const Quotation = ({
       showToast('견적 품목을 입력해주세요. (예: 사과10 배5)', 'error');
       return;
     }
+    if (!canIssuePastDateSlip && quotationData?.date && quotationData.date < todayStr && (!editingQuotation || quotationData.date !== editingQuotation.date)) {
+      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
+      return;
+    }
 
     // 특별단가 자동 저장: 단가가 입력된 모든 품목에 대해 해당 거래처의 특별단가로 자동 저장
     if (quotationData.partner) {
@@ -475,7 +504,15 @@ const Quotation = ({
               <input 
                 type="date"
                 value={quotationData.date}
-                onChange={(e) => setQuotationData(prev => ({ ...prev, date: e.target.value }))}
+                min={!canIssuePastDateSlip ? todayStr : undefined}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  if (!canIssuePastDateSlip && newDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                    return;
+                  }
+                  setQuotationData(prev => ({ ...prev, date: newDate }));
+                }}
                 style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#475569', fontWeight: 700 }}
               />
             </span>

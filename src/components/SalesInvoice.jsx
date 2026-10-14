@@ -433,6 +433,38 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     return false;
   };
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const canIssuePastDateSlip = (() => {
+    if (currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
+    const staff = (staffList || []).find(s => 
+      (currentUser?.userId && s.userId === currentUser.userId) ||
+      (currentUser?.id && String(s.id) === String(currentUser.id)) ||
+      (currentUser?.name && s.name === currentUser.name)
+    ) || currentUser;
+    if (staff?.allowPastDateSlip !== undefined) return Boolean(staff.allowPastDateSlip);
+    if (currentUser?.allowPastDateSlip !== undefined) return Boolean(currentUser.allowPastDateSlip);
+    if (staff?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(staff.permissions['과거일자 전표발행']);
+    if (currentUser?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(currentUser.permissions['과거일자 전표발행']);
+    if (currentUser?.role === 'admin') return true;
+    return false;
+  })();
+
+  const canIssuePastDateDeposit = (() => {
+    if (currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
+    const staff = (staffList || []).find(s => 
+      (currentUser?.userId && s.userId === currentUser.userId) ||
+      (currentUser?.id && String(s.id) === String(currentUser.id)) ||
+      (currentUser?.name && s.name === currentUser.name)
+    ) || currentUser;
+    if (staff?.allowPastDateDeposit !== undefined) return Boolean(staff.allowPastDateDeposit);
+    if (currentUser?.allowPastDateDeposit !== undefined) return Boolean(currentUser.allowPastDateDeposit);
+    if (staff?.permissions?.['과거일자 입금전표발행'] !== undefined) return Boolean(staff.permissions['과거일자 입금전표발행']);
+    if (currentUser?.permissions?.['과거일자 입금전표발행'] !== undefined) return Boolean(currentUser.permissions['과거일자 입금전표발행']);
+    if (currentUser?.role === 'admin') return true;
+    return false;
+  })();
+
   const autoSaveSpecialPrice = async (targetPartner, targetProduct, newPrice, sourceName = '매출전표') => {
     if (!targetPartner || !targetProduct) return;
     const numPrice = Number(newPrice);
@@ -523,6 +555,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   };
 
   const handleAutoSave = async (updatedInv) => {
+    if (!canIssuePastDateSlip && updatedInv?.date && updatedInv.date < todayStr && (!editingInvoice || updatedInv.date !== editingInvoice.date)) {
+      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
+      return;
+    }
     const saved = await onSave(updatedInv, true);
     if (saved && saved.id) {
       setInvoiceData(saved);
@@ -532,6 +568,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const handleManualSave = async () => {
     if (!invoiceData.partner) {
       alert('거래처를 선택해주세요.');
+      return;
+    }
+    if (!canIssuePastDateSlip && invoiceData?.date && invoiceData.date < todayStr && (!editingInvoice || invoiceData.date !== editingInvoice.date)) {
+      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
       return;
     }
     const hasItems = Array.isArray(invoiceData.items) && invoiceData.items.length > 0;
@@ -611,6 +651,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
     if (slipTotal <= 0 && slipDiscount <= 0) {
       alert('수금액 또는 할인 금액을 1원 이상 입력해주세요.');
+      return;
+    }
+
+    if (!canIssuePastDateDeposit && slipDate < todayStr) {
+      alert('과거일자 입금전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
       return;
     }
 
@@ -1000,8 +1045,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 <input 
                   type="date" 
                   value={invoiceData.date} 
+                  min={!canIssuePastDateSlip ? todayStr : undefined}
                   onChange={(e) => {
-                    const updatedInvoice = {...invoiceData, date: e.target.value};
+                    const newDate = e.target.value;
+                    if (!canIssuePastDateSlip && newDate < todayStr) {
+                      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                      return;
+                    }
+                    const updatedInvoice = {...invoiceData, date: newDate};
                     setInvoiceData(updatedInvoice);
                     if (updatedInvoice.items.length > 0) {
                       handleAutoSave(updatedInvoice);
@@ -1698,7 +1749,15 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     <input 
                       type="date"
                       value={tempPaymentState.date || invoiceData.date}
-                      onChange={(e) => setTempPaymentState({ ...tempPaymentState, date: e.target.value })}
+                      min={!canIssuePastDateDeposit ? todayStr : undefined}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        if (!canIssuePastDateDeposit && newDate < todayStr) {
+                          alert('과거일자 입금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                          return;
+                        }
+                        setTempPaymentState({ ...tempPaymentState, date: newDate });
+                      }}
                       style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem' }}
                     />
                   </div>
