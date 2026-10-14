@@ -158,10 +158,13 @@ const InventoryReport = ({
 
   const handleShiftDay = (delta) => {
     const shift = (dateStr) => {
-      const d = dateStr ? new Date(dateStr) : new Date();
-      if (isNaN(d.getTime())) return dateStr;
-      d.setDate(d.getDate() + delta);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const baseStr = dateStr || today;
+      const parts = baseStr.split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2] + delta);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      return dateStr;
     };
     setFilters(prev => ({
       ...prev,

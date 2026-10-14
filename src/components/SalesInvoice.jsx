@@ -10,7 +10,7 @@ import './SalesManagementCommon.css';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
+const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], setSpecialPrices, inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || 
                  warehouses.find(w => w.name.includes('메인'))?.name || 
                  warehouses.find(w => w.name.includes('main'))?.name || 
@@ -432,6 +432,74 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     return false;
   };
 
+  const autoSaveSpecialPrice = async (targetPartner, targetProduct, newPrice, sourceName = '매출전표') => {
+    if (!targetPartner || !targetProduct) return;
+    const numPrice = Number(newPrice);
+    if (isNaN(numPrice) || numPrice < 0) return;
+
+    const partnerName = typeof targetPartner === 'string' ? targetPartner : (targetPartner.name || '');
+    if (!partnerName) return;
+
+    const partnerObj = typeof targetPartner === 'object' && targetPartner.id 
+      ? targetPartner 
+      : (partners || []).find(p => p.name === partnerName);
+    const partnerId = partnerObj?.id || '';
+
+    const prodObj = typeof targetProduct === 'object' && targetProduct.name 
+      ? targetProduct 
+      : (products || []).find(p => String(p.id) === String(targetProduct) || p.name === targetProduct);
+    if (!prodObj) return;
+
+    const companyId = currentUser?.companyId || 'default';
+    
+    const existingSP = (specialPrices || []).find(sp => {
+      const spPartnerName = (sp.partnerName || '').trim();
+      const spPartnerId = sp.partnerId !== undefined && sp.partnerId !== null ? String(sp.partnerId) : '';
+      const matchPartner = (spPartnerName && spPartnerName === partnerName) || (partnerId && spPartnerId === String(partnerId));
+      if (!matchPartner) return false;
+
+      const spProdId = sp.productId !== undefined && sp.productId !== null ? String(sp.productId) : '';
+      const spProdName = (sp.productName || '').trim();
+      return (prodObj.id && spProdId === String(prodObj.id)) || (prodObj.name && spProdName === prodObj.name);
+    });
+
+    if (existingSP && Number(existingSP.specialPrice) === numPrice) {
+      return;
+    }
+
+    const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
+    const newSpecialPriceData = {
+      id: spId,
+      partnerId: partnerId,
+      partnerName: partnerName,
+      productId: prodObj.id || '',
+      productName: prodObj.name,
+      specialPrice: numPrice,
+      memo: `${sourceName}에서 자동 등록됨`,
+      companyId,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'companies', companyId, 'specialPrices', spId), newSpecialPriceData);
+      if (typeof setSpecialPrices === 'function') {
+        setSpecialPrices(prev => [
+          ...(prev || []).filter(sp => String(sp._docId || sp.id) !== spId),
+          newSpecialPriceData
+        ]);
+      }
+      try {
+        const prefix = currentUser?.isStaff ? `_staff_${currentUser.userId}` : '';
+        const cached = JSON.parse(localStorage.getItem(`specialPrices${prefix}`)) || [];
+        const updatedCache = [...cached.filter(sp => String(sp._docId || sp.id) !== spId), newSpecialPriceData];
+        localStorage.setItem(`specialPrices${prefix}`, JSON.stringify(updatedCache));
+        localStorage.setItem(`specialPrices_${companyId}`, JSON.stringify(updatedCache));
+      } catch (cacheErr) {}
+    } catch (err) {
+      console.error(`Error saving special price from ${sourceName}:`, err);
+    }
+  };
+
   const handleSelectProduct = (prod) => {
     setSelectedProduct(prod);
     setSearchItem(prod.name);
@@ -478,6 +546,17 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       alert('품목 또는 입금액을 입력해주세요.');
       return;
     }
+
+    // 특별단가 자동 저장: 입력된 품목 중 단가가 입력된 모든 품목에 대해 특별단가 자동 저장 보장
+    if (invoiceData.partner && Array.isArray(invoiceData.items)) {
+      invoiceData.items.forEach(item => {
+        const prod = products.find(p => String(p.id) === String(item.productId) || p.name === item.name);
+        if (prod && item.price !== undefined && item.price !== null) {
+          autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
+        }
+      });
+    }
+
     await onSave(invoiceData, false);
   };
 
@@ -707,38 +786,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       total: itemTotal
     };
 
-    // 매출전표 단가 수정 시 특별단가 저장 로직
+    // 특별단가 자동 저장: 입력한 단가가 기존 단가와 다르거나 지정된 경우 해당 거래처의 특별단가로 자동 저장
     const defaultPrice = getProductDefaultPrice(selectedProduct);
-    if (finalPrice !== defaultPrice && hasSpecialPricePermission()) {
-      if (window.confirm(`입력한 단가(${finalPrice.toLocaleString()}원)가 기존 단가(${defaultPrice.toLocaleString()}원)와 다릅니다. 이 단가를 해당 거래처의 특별단가로 지정하시겠습니까?`)) {
-        const companyId = currentUser?.companyId || 'default';
-        const partner = partners.find(p => p.name === invoiceData.partner);
-        if (partner) {
-          const existingSP = specialPrices.find(sp => 
-            (sp.partnerName === invoiceData.partner || String(sp.partnerId) === String(partner.id)) && 
-            (String(sp.productId) === String(selectedProduct.id) || sp.productName === selectedProduct.name)
-          );
-          const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
-          const newSpecialPriceData = {
-            id: spId,
-            partnerId: partner.id,
-            partnerName: partner.name,
-            productId: selectedProduct.id,
-            productName: selectedProduct.name,
-            specialPrice: Number(finalPrice),
-            memo: '매출전표에서 자동 등록됨',
-            companyId,
-            updatedAt: new Date().toISOString()
-          };
-          setDoc(doc(db, 'companies', companyId, 'specialPrices', spId), newSpecialPriceData)
-            .then(() => {
-              console.log('Special price auto-saved successfully.');
-            })
-            .catch(err => {
-              console.error('Error auto-saving special price:', err);
-            });
-        }
-      }
+    if (finalPrice !== defaultPrice) {
+      autoSaveSpecialPrice(invoiceData.partner, selectedProduct, finalPrice, '매출전표');
     }
     
     const updatedInvoice = { ...invoiceData, items: [...invoiceData.items, newItem] };
@@ -783,39 +834,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const handleItemPriceBlur = (item) => {
     const product = products.find(p => String(p.id) === String(item.productId));
     if (!product) return;
-    
-    const defaultPrice = getProductDefaultPrice(product);
-    if (item.price !== defaultPrice && hasSpecialPricePermission()) {
-      if (window.confirm(`입력한 단가(${item.price.toLocaleString()}원)가 기존 단가(${defaultPrice.toLocaleString()}원)와 다릅니다. 이 단가를 해당 거래처의 특별단가로 지정하시겠습니까?`)) {
-        const companyId = currentUser?.companyId || 'default';
-        const partner = partners.find(p => p.name === invoiceData.partner);
-        if (partner) {
-          const existingSP = specialPrices.find(sp => 
-            (sp.partnerName === invoiceData.partner || String(sp.partnerId) === String(partner.id)) && 
-            (String(sp.productId) === String(product.id) || sp.productName === product.name)
-          );
-          const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
-          const newSpecialPriceData = {
-            id: spId,
-            partnerId: partner.id,
-            partnerName: partner.name,
-            productId: product.id,
-            productName: product.name,
-            specialPrice: Number(item.price),
-            memo: '매출전표에서 자동 등록됨',
-            companyId,
-            updatedAt: new Date().toISOString()
-          };
-          setDoc(doc(db, 'companies', companyId, 'specialPrices', spId), newSpecialPriceData)
-            .then(() => {
-              console.log('Special price saved successfully on blur.');
-            })
-            .catch(err => {
-              console.error('Error auto-saving special price on blur:', err);
-            });
-        }
-      }
-    }
+    const numPrice = Number(item.price);
+    if (isNaN(numPrice) || numPrice < 0) return;
+    autoSaveSpecialPrice(invoiceData.partner, product, numPrice, '매출전표');
   };
 
   // Note: Auto-syncing of payments removed as per user request to only process on 'Confirm'

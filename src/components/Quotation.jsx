@@ -303,6 +303,74 @@ const Quotation = ({
   const parsedSupplyValue = parsedItems.reduce((sum, item) => sum + item.supplyValue, 0);
   const parsedTax = parsedItems.reduce((sum, item) => sum + item.tax, 0);
 
+  const autoSaveSpecialPrice = async (targetPartner, targetProduct, newPrice, sourceName = '견적서') => {
+    if (!targetPartner || !targetProduct) return;
+    const numPrice = Number(newPrice);
+    if (isNaN(numPrice) || numPrice < 0) return;
+
+    const partnerName = typeof targetPartner === 'string' ? targetPartner : (targetPartner.name || '');
+    if (!partnerName) return;
+
+    const partnerObj = typeof targetPartner === 'object' && targetPartner.id 
+      ? targetPartner 
+      : (partners || []).find(p => p.name === partnerName);
+    const partnerId = partnerObj?.id || '';
+
+    const prodObj = typeof targetProduct === 'object' && targetProduct.name 
+      ? targetProduct 
+      : (products || []).find(p => String(p.id) === String(targetProduct) || p.name === targetProduct);
+    if (!prodObj) return;
+
+    const companyId = currentUser?.companyId || 'default';
+    
+    const existingSP = (specialPrices || []).find(sp => {
+      const spPartnerName = (sp.partnerName || '').trim();
+      const spPartnerId = sp.partnerId !== undefined && sp.partnerId !== null ? String(sp.partnerId) : '';
+      const matchPartner = (spPartnerName && spPartnerName === partnerName) || (partnerId && spPartnerId === String(partnerId));
+      if (!matchPartner) return false;
+
+      const spProdId = sp.productId !== undefined && sp.productId !== null ? String(sp.productId) : '';
+      const spProdName = (sp.productName || '').trim();
+      return (prodObj.id && spProdId === String(prodObj.id)) || (prodObj.name && spProdName === prodObj.name);
+    });
+
+    if (existingSP && Number(existingSP.specialPrice) === numPrice) {
+      return;
+    }
+
+    const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
+    const newSpecialPriceData = {
+      id: spId,
+      partnerId: partnerId,
+      partnerName: partnerName,
+      productId: prodObj.id || '',
+      productName: prodObj.name,
+      specialPrice: numPrice,
+      memo: `${sourceName}에서 자동 등록`,
+      companyId,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'companies', companyId, 'specialPrices', spId), newSpecialPriceData);
+      if (typeof setSpecialPrices === 'function') {
+        setSpecialPrices(prev => [
+          ...(prev || []).filter(sp => String(sp._docId || sp.id) !== spId),
+          newSpecialPriceData
+        ]);
+      }
+      try {
+        const prefix = currentUser?.isStaff ? `_staff_${currentUser.userId}` : '';
+        const cached = JSON.parse(localStorage.getItem(`specialPrices${prefix}`)) || [];
+        const updatedCache = [...cached.filter(sp => String(sp._docId || sp.id) !== spId), newSpecialPriceData];
+        localStorage.setItem(`specialPrices${prefix}`, JSON.stringify(updatedCache));
+        localStorage.setItem(`specialPrices_${companyId}`, JSON.stringify(updatedCache));
+      } catch (cacheErr) {}
+    } catch (err) {
+      console.error(`Error saving special price from ${sourceName}:`, err);
+    }
+  };
+
   // 1. 견적서 저장 핸들러
   const handleSave = () => {
     if (!quotationData.partner) {
@@ -312,6 +380,16 @@ const Quotation = ({
     if (!quotationData.itemsText.trim() || parsedItems.length === 0) {
       showToast('견적 품목을 입력해주세요. (예: 사과10 배5)', 'error');
       return;
+    }
+
+    // 특별단가 자동 저장: 단가가 입력된 모든 품목에 대해 해당 거래처의 특별단가로 자동 저장
+    if (quotationData.partner) {
+      parsedItems.forEach(item => {
+        const prod = products.find(p => p.id === item.productId || p.name === item.name);
+        if (prod && item.price !== undefined && item.price !== null) {
+          autoSaveSpecialPrice(quotationData.partner, prod, item.price, '견적서');
+        }
+      });
     }
 
     const payload = {
@@ -559,6 +637,14 @@ const Quotation = ({
                             onChange={(e) => {
                               const val = e.target.value === '' ? 0 : Number(e.target.value);
                               setItemPrices(prev => ({ ...prev, [item.productId]: val }));
+                            }}
+                            onBlur={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              const prod = products.find(p => p.id === item.productId || p.name === item.name);
+                              autoSaveSpecialPrice(quotationData.partner, prod || item, val, '견적서');
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') e.target.blur();
                             }}
                             style={{ width: '65px', textAlign: 'right', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}
                           />

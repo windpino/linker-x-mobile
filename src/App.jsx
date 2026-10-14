@@ -5472,6 +5472,7 @@ function App() {
         products={products}
         partners={partners}
         specialPrices={specialPrices}
+        setSpecialPrices={setSpecialPrices}
         staffList={staffList}
         currentUser={currentUser}
         warehouses={warehouses}

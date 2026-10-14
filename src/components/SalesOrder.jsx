@@ -4,6 +4,8 @@ import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { getStaffWarehouse } from '../utils/warehouseUtils';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
@@ -28,6 +30,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
   const [partnerDayOrders, setPartnerDayOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [itemPrices, setItemPrices] = useState({});
 
   const [orderData, setOrderData] = useState(editingOrder || {
     id: Date.now(),
@@ -237,7 +240,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
         const qty = parseInt(match[2], 10);
         const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
         if (product) {
-          const price = getProductDefaultPrice(product);
+          const defaultPrice = getProductDefaultPrice(product);
+          const price = itemPrices[product.id] !== undefined ? itemPrices[product.id] : defaultPrice;
           const isTaxFree = product.taxType === '면세';
           const itemTotal = qty * price;
           const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
@@ -260,7 +264,83 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       }
     });
     return items;
-  }, [orderData.itemsText, products, specialPrices, orderData.partner, partners]);
+  }, [orderData.itemsText, products, itemPrices, specialPrices, orderData.partner, partners]);
+
+  const autoSaveSpecialPrice = async (targetPartner, targetProduct, newPrice, sourceName = '간편수주') => {
+    if (!targetPartner || !targetProduct) return;
+    const numPrice = Number(newPrice);
+    if (isNaN(numPrice) || numPrice < 0) return;
+
+    const partnerName = typeof targetPartner === 'string' ? targetPartner : (targetPartner.name || '');
+    if (!partnerName) return;
+
+    const partnerObj = typeof targetPartner === 'object' && targetPartner.id 
+      ? targetPartner 
+      : (partners || []).find(p => p.name === partnerName);
+    const partnerId = partnerObj?.id || '';
+
+    const prodObj = typeof targetProduct === 'object' && targetProduct.name 
+      ? targetProduct 
+      : (products || []).find(p => String(p.id) === String(targetProduct) || p.name === targetProduct);
+    if (!prodObj) return;
+
+    const companyId = currentUser?.companyId || 'default';
+    
+    const existingSP = (specialPrices || []).find(sp => {
+      const spPartnerName = (sp.partnerName || '').trim();
+      const spPartnerId = sp.partnerId !== undefined && sp.partnerId !== null ? String(sp.partnerId) : '';
+      const matchPartner = (spPartnerName && spPartnerName === partnerName) || (partnerId && spPartnerId === String(partnerId));
+      if (!matchPartner) return false;
+
+      const spProdId = sp.productId !== undefined && sp.productId !== null ? String(sp.productId) : '';
+      const spProdName = (sp.productName || '').trim();
+      return (prodObj.id && spProdId === String(prodObj.id)) || (prodObj.name && spProdName === prodObj.name);
+    });
+
+    if (existingSP && Number(existingSP.specialPrice) === numPrice) {
+      return;
+    }
+
+    const spId = existingSP ? String(existingSP._docId || existingSP.id) : String(Date.now());
+    const newSpecialPriceData = {
+      id: spId,
+      partnerId: partnerId,
+      partnerName: partnerName,
+      productId: prodObj.id || '',
+      productName: prodObj.name,
+      specialPrice: numPrice,
+      memo: `${sourceName}에서 자동 등록`,
+      companyId,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'companies', companyId, 'specialPrices', spId), newSpecialPriceData);
+      if (typeof setSpecialPrices === 'function') {
+        setSpecialPrices(prev => [
+          ...(prev || []).filter(sp => String(sp._docId || sp.id) !== spId),
+          newSpecialPriceData
+        ]);
+      }
+      try {
+        const prefix = currentUser?.isStaff ? `_staff_${currentUser.userId}` : '';
+        const cached = JSON.parse(localStorage.getItem(`specialPrices${prefix}`)) || [];
+        const updatedCache = [...cached.filter(sp => String(sp._docId || sp.id) !== spId), newSpecialPriceData];
+        localStorage.setItem(`specialPrices${prefix}`, JSON.stringify(updatedCache));
+        localStorage.setItem(`specialPrices_${companyId}`, JSON.stringify(updatedCache));
+      } catch (cacheErr) {}
+    } catch (err) {
+      console.error(`Error saving special price from ${sourceName}:`, err);
+    }
+  };
+
+  const handlePriceBlur = async (product, newPrice) => {
+    const numPrice = Number(newPrice);
+    if (!product || isNaN(numPrice)) return;
+    if (!orderData.partner) return;
+
+    await autoSaveSpecialPrice(orderData.partner, product, numPrice, '간편수주');
+  };
 
   const parsedTotalQty = parsedItems.reduce((sum, item) => sum + item.qty, 0);
   const parsedTotalPrice = parsedItems.reduce((sum, item) => sum + item.total, 0);
@@ -274,6 +354,17 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       showToast('수주 품목을 입력해주세요.', 'error');
       return;
     }
+
+    // 특별단가 자동 저장: 단가가 입력된 모든 품목에 대해 해당 거래처의 특별단가로 자동 저장
+    if (orderData.partner) {
+      parsedItems.forEach(item => {
+        const prod = products.find(p => p.id === item.productId || p.name === item.name);
+        if (prod && item.price !== undefined && item.price !== null) {
+          autoSaveSpecialPrice(orderData.partner, prod, item.price, '간편수주');
+        }
+      });
+    }
+
     const isAlreadySaved = partnerDayOrders.some(o => String(o.id) === String(orderData.id));
     onSave({ 
       ...orderData, 
@@ -677,7 +768,31 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                           <td style={{ fontWeight: 600 }}>{item.name}</td>
                           <td style={{ color: '#64748b', fontSize: '0.85rem' }}>{item.spec}</td>
                           <td style={{ textAlign: 'right', fontWeight: 600, color: themeColor }}>{item.qty.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{item.price.toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <input 
+                              type="number"
+                              value={item.price}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                setItemPrices(prev => ({ ...prev, [item.productId]: val }));
+                              }}
+                              onBlur={(e) => handlePriceBlur(products.find(p => p.id === item.productId || p.name === item.name) || item, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') e.target.blur();
+                              }}
+                              style={{
+                                width: '75px',
+                                textAlign: 'right',
+                                padding: '2px 4px',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                color: '#1e293b',
+                                outline: 'none'
+                              }}
+                            />
+                          </td>
                           <td style={{ textAlign: 'right', fontWeight: 600 }}>{item.total.toLocaleString()}</td>
                         </tr>
                       ))}
