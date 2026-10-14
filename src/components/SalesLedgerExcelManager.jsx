@@ -23,6 +23,13 @@ const SalesLedgerExcelManager = ({ onClose, salesInvoices = [], setSalesInvoices
   const [previewData, setPreviewData] = useState({ invoices: [], payments: [] });
   const fileInputRef = useRef(null);
 
+  // 기간별 부분삭제 관련 상태
+  const todayStr = new Date().toISOString().split('T')[0];
+  const firstDayOfYear = `${new Date().getFullYear()}-01-01`;
+  const [deleteMode, setDeleteMode] = useState('all'); // 'all' | 'period'
+  const [deleteStartDate, setDeleteStartDate] = useState(firstDayOfYear);
+  const [deleteEndDate, setDeleteEndDate] = useState(todayStr);
+
   const isAdmin = currentUser?.role === 'admin' || 
                   currentUser?.role === 'super_admin' || 
                   currentUser?.userId === 'admin' || 
@@ -39,7 +46,27 @@ const SalesLedgerExcelManager = ({ onClose, salesInvoices = [], setSalesInvoices
       alert('삭제할 매출처원장 데이터가 없습니다.');
       return;
     }
-    if (!window.confirm(`현재 등록된 모든 매출처원장/매출전표 내역(${salesInvoices.length}건)을 시스템 및 DB에서 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+
+    const isPeriod = deleteMode === 'period';
+    if (isPeriod && (!deleteStartDate || !deleteEndDate)) {
+      alert('삭제할 기간(시작일과 종료일)을 선택해 주세요.');
+      return;
+    }
+
+    const targetInvoices = isPeriod
+      ? salesInvoices.filter(inv => {
+          const d = inv.date || (inv.createdAt ? inv.createdAt.slice(0, 10) : '');
+          return d && d >= deleteStartDate && d <= deleteEndDate;
+        })
+      : salesInvoices;
+
+    if (targetInvoices.length === 0) {
+      alert(`선택하신 기간(${deleteStartDate} ~ ${deleteEndDate})에 등록된 매출전표 데이터가 없습니다.`);
+      return;
+    }
+
+    const periodText = isPeriod ? `${deleteStartDate} ~ ${deleteEndDate}` : '전체 기간';
+    if (!window.confirm(`현재 등록된 매출처원장/매출전표 내역 중 [${periodText}] 데이터 (${targetInvoices.length}건)를 시스템 및 DB에서 영구 삭제하시겠습니까?\n\n※ 전표 삭제 시 현재 최종재고(실시간 재고)는 변동 없이 보존됩니다.\n※ 이 작업은 되돌릴 수 없습니다.`)) {
       return;
     }
     const entered = window.prompt(`정말 삭제하시려면 아래에 '매출원장삭제'를 정확히 입력해 주세요.`);
@@ -52,8 +79,8 @@ const SalesLedgerExcelManager = ({ onClose, salesInvoices = [], setSalesInvoices
     try {
       const companyId = currentUser?.companyId || 'default';
       const CHUNK_SIZE = 400;
-      for (let i = 0; i < salesInvoices.length; i += CHUNK_SIZE) {
-        const chunk = salesInvoices.slice(i, i + CHUNK_SIZE);
+      for (let i = 0; i < targetInvoices.length; i += CHUNK_SIZE) {
+        const chunk = targetInvoices.slice(i, i + CHUNK_SIZE);
         const batch = writeBatch(db);
         chunk.forEach(inv => {
           const docId = String(inv.id || inv._docId);
@@ -61,13 +88,17 @@ const SalesLedgerExcelManager = ({ onClose, salesInvoices = [], setSalesInvoices
         });
         await batch.commit();
       }
-      const count = salesInvoices.length;
-      setSalesInvoices([]);
+
+      const targetIdSet = new Set(targetInvoices.map(inv => String(inv.id || inv._docId)));
+      const remainingInvoices = salesInvoices.filter(inv => !targetIdSet.has(String(inv.id || inv._docId)));
+      setSalesInvoices(remainingInvoices);
+
       try {
-        await saveBundle(companyId, 'salesInvoices', []);
-        localStorage.removeItem(`salesInvoices_${companyId}`);
+        await saveBundle(companyId, 'salesInvoices', remainingInvoices);
+        localStorage.setItem(`salesInvoices_${companyId}`, JSON.stringify(remainingInvoices));
       } catch (e) {}
-      alert(`모든 매출처원장 데이터(${count}건)가 성공적으로 삭제되었습니다.`);
+
+      alert(`[${periodText}] 매출처원장 데이터 ${targetInvoices.length}건이 성공적으로 삭제되었습니다.\n(남은 데이터: ${remainingInvoices.length}건, 최종재고 유지됨)`);
     } catch (err) {
       console.error('Delete sales ledger error:', err);
       alert('매출처원장 삭제 중 오류가 발생했습니다: ' + err.message);
@@ -506,9 +537,64 @@ const SalesLedgerExcelManager = ({ onClose, salesInvoices = [], setSalesInvoices
 
         <div className="excel-card" style={{ borderColor: '#ef4444', background: 'linear-gradient(135deg, #fff5f5, #fee2e2)' }}>
           <div className="card-top"><Trash2 size={24} color="#dc2626" /><span style={{ color: '#991b1b' }}>매출처원장 데이터 삭제</span></div>
-          <p style={{ color: '#7f1d1d', marginBottom: '12px' }}>등록된 전체 매출전표/원장 내역({salesInvoices?.length || 0}건)을 시스템 및 DB에서 안전하게 영구 일괄 삭제합니다. (관리자 전용)</p>
+          <p style={{ color: '#7f1d1d', marginBottom: '8px' }}>
+            등록된 매출전표/원장 내역({salesInvoices?.length || 0}건)을 기간별 또는 전체로 안전하게 영구 삭제합니다. (관리자 전용)
+          </p>
+
+          {/* 기간 선택 영역 */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            marginBottom: '10px',
+            border: '1px solid #fecaca'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: deleteMode === 'period' ? '6px' : '0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: deleteMode === 'all' ? 700 : 500, color: '#991b1b' }}>
+                <input 
+                  type="radio" 
+                  name="mobileSalesDeleteMode" 
+                  checked={deleteMode === 'all'} 
+                  onChange={() => setDeleteMode('all')} 
+                />
+                전체 기간
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: deleteMode === 'period' ? 700 : 500, color: '#991b1b' }}>
+                <input 
+                  type="radio" 
+                  name="mobileSalesDeleteMode" 
+                  checked={deleteMode === 'period'} 
+                  onChange={() => setDeleteMode('period')} 
+                />
+                기간 지정 삭제
+              </label>
+            </div>
+
+            {deleteMode === 'period' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                <input 
+                  type="date" 
+                  value={deleteStartDate} 
+                  onChange={(e) => setDeleteStartDate(e.target.value)} 
+                  style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
+                />
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>~</span>
+                <input 
+                  type="date" 
+                  value={deleteEndDate} 
+                  onChange={(e) => setDeleteEndDate(e.target.value)} 
+                  style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
+                />
+              </div>
+            )}
+            
+            <div style={{ fontSize: '0.73rem', color: '#047857', marginTop: '6px', fontWeight: 600 }}>
+              ※ 전표 삭제 시 현재 최종재고(실시간 재고)는 변동되지 않습니다.
+            </div>
+          </div>
+
           <button className="btn-excel-primary red" onClick={handleDeleteAllSalesLedger} disabled={isLoading}>
-            {isLoading ? '⏳ 삭제 진행 중...' : '🗑️ 전체 매출원장 데이터 삭제'}
+            {isLoading ? '⏳ 삭제 진행 중...' : `🗑️ ${deleteMode === 'all' ? '전체' : '선택 기간'} 매출원장 데이터 삭제`}
           </button>
         </div>
       </div>
