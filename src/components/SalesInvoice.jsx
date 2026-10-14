@@ -460,6 +460,60 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     }
   };
 
+  const handleManualSave = async () => {
+    if (!invoiceData.partner) {
+      alert('거래처를 선택해주세요.');
+      return;
+    }
+    const hasItems = Array.isArray(invoiceData.items) && invoiceData.items.length > 0;
+    const hasReceived = (Number(invoiceData.receivedAmount) || 0) > 0;
+    const hasPaymentList = Array.isArray(invoiceData.paymentList) && invoiceData.paymentList.length > 0;
+    const hasPayments = Boolean(invoiceData.payments && (
+      (Number(invoiceData.payments.cash) || 0) > 0 ||
+      (Number(invoiceData.payments.account) || 0) > 0 ||
+      (Number(invoiceData.payments.card) || 0) > 0 ||
+      (Number(invoiceData.payments.bill) || 0) > 0
+    ));
+    if (!hasItems && !hasReceived && !hasPaymentList && !hasPayments) {
+      alert('품목 또는 입금액을 입력해주세요.');
+      return;
+    }
+    await onSave(invoiceData, false);
+  };
+
+  const handleNewInvoice = () => {
+    if (invoiceData.partner) {
+      setInvoiceData({ 
+        ...invoiceData, 
+        id: Date.now(), 
+        items: [], 
+        receivedAmount: 0, 
+        payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
+        paymentList: [],
+        discount: 0, 
+        creator: currentUser?.name || '시스템', 
+        manager: currentUser?.name || staffList[0]?.name || '', 
+        warehouse: userWH 
+      });
+      setCurrentIndex(partnerDayInvoices.length);
+    } else {
+      setInvoiceData({ 
+        ...invoiceData, 
+        id: Date.now(), 
+        partner: '', 
+        items: [], 
+        receivedAmount: 0, 
+        payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
+        paymentList: [],
+        discount: 0, 
+        creator: currentUser?.name || '시스템', 
+        manager: currentUser?.name || staffList[0]?.name || '', 
+        warehouse: userWH 
+      });
+      setCurrentIndex(-1);
+    }
+  };
+
   const handleSavePaymentModal = async () => {
     if (!invoiceData.partner) {
       alert('거래처를 먼저 선택해주세요.');
@@ -868,7 +922,34 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           font-size: 0.82rem !important;
         }
       `}</style>
-      <WindowModal title={isDepositOnly ? "💰 입금전표 발행" : "매출전표"} onClose={onClose} width="1100px" zIndex={zIndex} desktopOnly={true}>
+      <WindowModal 
+        title={isDepositOnly ? "💰 입금전표 발행" : "매출전표"} 
+        onClose={onClose} 
+        width="1100px" 
+        zIndex={zIndex} 
+        desktopOnly={true}
+        headerExtra={
+          <button
+            type="button"
+            onClick={handleNewInvoice}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 10px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={13} /> 새전표
+          </button>
+        }
+      >
         {/* 매출전표 본문 영역 - 가로 스크롤 래퍼 */}
         <div className="sales-invoice-scroll-wrapper" style={{ marginTop: '10px' }}>
         <div className="sales-invoice-inner">
@@ -1682,38 +1763,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               gap: '5px',
               margin: 0
             }} 
-            onClick={() => {
-              if (invoiceData.partner) {
-                setInvoiceData({ 
-                  ...invoiceData, 
-                  id: Date.now(), 
-                  items: [], 
-                  receivedAmount: 0, 
-                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
-                  discount: 0, 
-                  creator: currentUser?.name || '시스템',
-                  manager: currentUser?.name || staffList[0]?.name || '',
-                  warehouse: userWH
-                });
-                setCurrentIndex(partnerDayInvoices.length);
-              } else {
-                setInvoiceData({ 
-                  ...invoiceData, 
-                  id: Date.now(), 
-                  partner: '', 
-                  items: [], 
-                  receivedAmount: 0, 
-                  payments: { cash: 0, account: 0, card: 0, bill: 0 }, 
-                  discount: 0, 
-                  creator: currentUser?.name || '시스템',
-                  manager: currentUser?.name || staffList[0]?.name || '',
-                  warehouse: userWH
-                });
-                setCurrentIndex(-1);
-              }
-            }}
+            onClick={handleManualSave}
           >
-            <RefreshCw size={13} /> 새전표
+            <Save size={13} /> 전표저장
           </button>
           
           <button 
@@ -1732,7 +1784,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             }} 
             onClick={() => openPaymentModal(null)}
           >
-            <Wallet size={13} /> 수금
+            <Wallet size={13} /> 입금
           </button>
           
           <button 
@@ -1751,7 +1803,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             }} 
             onClick={() => window.print()}
           >
-            <Printer size={13} /> 인쇄
+            <Printer size={13} /> 영수증출력
           </button>
 
           <button 
