@@ -9,6 +9,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const isInitialMount = useRef(true);
 
   const isRestricted = currentUser?.restrictPartnerSearch && currentUser?.name && currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin' && currentUser?.userId !== 'admin';
 
@@ -16,6 +17,10 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
     if (autoFocus && inputRef.current) {
       inputRef.current.focus();
     }
+    const timer = setTimeout(() => {
+      isInitialMount.current = false;
+    }, 200);
+    return () => clearTimeout(timer);
   }, [autoFocus]);
 
   useEffect(() => {
@@ -32,21 +37,12 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    setSelectedIndex(filteredPartners.length > 0 ? 0 : -1);
-  }, [searchTerm, isOpen]);
+  const cleanSearch = (searchTerm || '').trim();
 
-  // Scroll active item into view
-  useEffect(() => {
-    if (selectedIndex !== -1 && listRef.current) {
-      const activeItem = listRef.current.children[selectedIndex];
-      if (activeItem) {
-        activeItem.scrollIntoView({ block: 'nearest' });
-      }
-    }
-  }, [selectedIndex]);
-
+  // 초성 또는 검색어가 입력되었을 때만 필터링 수행 (미입력 시 거래처 목록 미표시)
   const filteredPartners = (partners || []).filter(p => {
+    if (!cleanSearch) return false;
+
     if (isRestricted) {
       const pManager = (p.manager || '').trim();
       const uName = (currentUser.name || '').trim();
@@ -60,9 +56,6 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
           : p.type === typeFilter) 
       : true;
 
-    const cleanSearch = (searchTerm || '').trim();
-    if (!cleanSearch) return matchesType;
-
     const matchesSearch = 
       matchesInitialSound(p.name, cleanSearch) ||
       (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch)) ||
@@ -71,6 +64,20 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
 
     return matchesType && matchesSearch;
   });
+
+  useEffect(() => {
+    setSelectedIndex(filteredPartners.length > 0 ? 0 : -1);
+  }, [searchTerm, isOpen]);
+
+  // Scroll active item into view
+  useEffect(() => {
+    if (selectedIndex !== -1 && listRef.current) {
+      const activeItem = listRef.current.children[selectedIndex];
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [selectedIndex]);
 
   const handleSelect = (partner) => {
     setSearchTerm(partner.name);
@@ -90,13 +97,21 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
           value={searchTerm}
           placeholder={placeholder}
           onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setIsOpen(true);
-            if (onChange) onChange(e.target.value);
+            const val = e.target.value;
+            setSearchTerm(val);
+            if (val.trim().length > 0) {
+              setIsOpen(true);
+            } else {
+              setIsOpen(false);
+            }
+            if (onChange) onChange(val);
           }}
           onFocus={(e) => {
-            setIsOpen(true);
-            try { e.target.select(); } catch (err) {}
+            if (isInitialMount.current) return;
+            if (cleanSearch) {
+              setIsOpen(true);
+              try { e.target.select(); } catch (err) {}
+            }
           }}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
@@ -122,7 +137,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
         <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
       </div>
 
-      {isOpen && (
+      {isOpen && cleanSearch && (
         <ul className="search-results-list" ref={listRef} style={{
           position: 'absolute',
           top: '100%',
@@ -162,7 +177,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
                       {p.name}
                       {p.abbreviation && p.abbreviation !== p.name && (
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400, marginLeft: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400, marginLeft: '6px' }}>
                           ({p.abbreviation})
                         </span>
                       )}
@@ -186,7 +201,7 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
             ))
           ) : (
             <li style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>
-              {searchTerm ? '일치하는 거래처가 없습니다.' : '등록된 거래처가 없습니다.'}
+              일치하는 거래처가 없습니다.
             </li>
           )}
         </ul>
