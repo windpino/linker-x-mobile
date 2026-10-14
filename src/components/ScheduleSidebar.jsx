@@ -37,11 +37,13 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
   const [deletingId, setDeletingId] = React.useState(null);
   const formattedDate = format(selectedDate, 'd일', { locale: ko });
   
+  const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
   const dailySchedules = (schedules || [])
     .filter(s => {
       const dayStr = format(selectedDate, 'yyyy-MM-dd');
       const sStart = s.startDate || s.date;
       const sEnd = s.endDate || s.startDate || s.date;
+      if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
       return dayStr >= sStart && dayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
     })
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
@@ -136,6 +138,18 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
                        }}>
                          {schedule.type}
                        </span>
+                       {schedule.isPublic === false && (
+                         <span style={{ 
+                           fontSize: '0.68rem', 
+                           padding: '1px 5px', 
+                           borderRadius: '4px', 
+                           backgroundColor: '#f1f5f9', 
+                           color: '#64748b', 
+                           border: '1px solid #cbd5e1' 
+                         }}>
+                           비공개
+                         </span>
+                       )}
                        <span style={{ color: '#1e293b', fontSize: '0.82rem' }}>{schedule.time}</span>
                        {schedule.author && (
                          <>

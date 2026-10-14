@@ -86,14 +86,27 @@ const ScheduleDetailModal = ({ schedule, onClose, currentUser, scheduleTypes = [
           border: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           fontSize: '0.9rem',
           color: '#334155',
           fontWeight: 600
         }}>
-          <Tag size={16} color="var(--primary, #3b82f6)" />
-          일정 날짜: {schedule.date || schedule.startDate}
-          {schedule.endDate && schedule.endDate !== schedule.startDate && ` ~ ${schedule.endDate}`}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Tag size={16} color="var(--primary, #3b82f6)" />
+            일정 날짜: {schedule.date || schedule.startDate}
+            {schedule.endDate && schedule.endDate !== schedule.startDate && ` ~ ${schedule.endDate}`}
+          </div>
+          <span style={{
+            fontSize: '0.75rem',
+            padding: '3px 8px',
+            borderRadius: '12px',
+            fontWeight: 700,
+            backgroundColor: schedule.isPublic === false ? '#f1f5f9' : '#eff6ff',
+            color: schedule.isPublic === false ? '#64748b' : '#2563eb',
+            border: schedule.isPublic === false ? '1px solid #cbd5e1' : '1px solid #bfdbfe'
+          }}>
+            {schedule.isPublic === false ? '🔒 비공개 일정 (나만 보기)' : '🌐 전체 공개 일정'}
+          </span>
         </div>
 
         {/* Description Section */}

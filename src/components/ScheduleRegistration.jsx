@@ -42,6 +42,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
     id: initialData?.id || null,
     type: initialData?.type || (scheduleTypes.length > 0 ? (typeof scheduleTypes[0] === 'object' ? scheduleTypes[0].name : scheduleTypes[0]) : '기타'),
     description: initialData?.description || '',
+    isPublic: initialData ? (initialData.isPublic !== undefined ? Boolean(initialData.isPublic) : true) : true,
     ...getInitialTimes()
   });
 
@@ -311,6 +312,51 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── 일정 공개 여부 설정 ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#eff6ff',
+          padding: '10px 14px',
+          borderRadius: '8px',
+          border: '1px solid #bfdbfe'
+        }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: '#1e40af',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}>
+            <input 
+              type="checkbox"
+              name="isPublic"
+              checked={formData.isPublic}
+              onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
+              style={{
+                width: '18px',
+                height: '18px',
+                accentColor: '#3b82f6',
+                cursor: 'pointer'
+              }}
+            />
+            <span>일정 공개</span>
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              color: '#475569'
+            }}>
+              {formData.isPublic 
+                ? '(전체 직원 공유 및 알림 전송)' 
+                : '(나만 보는 개인 일정)'}
+            </span>
+          </label>
         </div>
 
         {/* ── 내용 입력: 눈에 확 들어오게 강조 ── */}

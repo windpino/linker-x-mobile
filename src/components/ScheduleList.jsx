@@ -83,8 +83,10 @@ const ScheduleList = ({ onClose, schedules = [], setSchedules, onAddSchedule, on
 
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   // Filter schedules that overlap with the current month (from 1st to today)
   const filteredSchedules = (schedules || []).filter(s => {
+    if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
     const start = new Date(s.startDate || s.date);
     const end = new Date(s.endDate || s.startDate || s.date);
     if (isNaN(start.getTime())) return false;
@@ -231,6 +233,17 @@ const ScheduleList = ({ onClose, schedules = [], setSchedules, onAddSchedule, on
                           border: `1px solid ${getBadgeColors(sch.type).border}`
                         }}>
                           {sch.type}
+                        </span>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          backgroundColor: sch.isPublic === false ? '#f1f5f9' : '#eff6ff',
+                          color: sch.isPublic === false ? '#64748b' : '#2563eb',
+                          border: sch.isPublic === false ? '1px solid #cbd5e1' : '1px solid #bfdbfe'
+                        }}>
+                          {sch.isPublic === false ? '🔒 비공개' : '🌐 공개'}
                         </span>
                         <span className="sch-time">
                           <Clock size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />

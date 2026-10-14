@@ -28,6 +28,7 @@ import AccountManagement from './components/AccountManagement';
 import ScheduleList from './components/ScheduleList';
 import ScheduleRegistration from './components/ScheduleRegistration';
 import ScheduleTypeManagement from './components/ScheduleTypeManagement';
+import NewScheduleNoticeModal from './components/NewScheduleNoticeModal';
 import PurchaseInvoice from './components/PurchaseInvoice';
 import PurchaseLedger from './components/PurchaseLedger';
 import PurchaseOrder from './components/PurchaseOrder';
@@ -2812,6 +2813,60 @@ function App() {
     }
   };
 
+  // 새로운 공개 일정 등록 알림 팝업 상태 (타 직원이 새롭게 로그인 시 첫 화면 팝업 노출)
+  const [newScheduleNotice, setNewScheduleNotice] = useState(null);
+  const checkedScheduleNoticeRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!currentUser || !currentUser.name || !schedules || schedules.length === 0) return;
+
+    const currentUserId = String(currentUser.userId || currentUser.name);
+    if (checkedScheduleNoticeRef.current === currentUserId) return;
+
+    const sessionKey = `schedule_notice_checked_${currentUser.companyId || 'default'}_${currentUserId}`;
+    if (sessionStorage.getItem(sessionKey)) {
+      checkedScheduleNoticeRef.current = currentUserId;
+      return;
+    }
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    // 타 직원이 등록한 공개 일정 중 내가 아직 확인하지 않은 최근/예정 일정 탐색
+    const unreadPublicSchedules = schedules.filter(s => {
+      // 1. 공개 일정이어야 함 (비공개는 제외)
+      if (s.isPublic === false) return false;
+      // 2. 본인이 작성한 일정은 제외
+      if (s.author && s.author === currentUser.name) return false;
+      // 3. 이미 확인한 일정(viewers에 포함된 경우)은 제외
+      const viewers = s.viewers || [];
+      if (viewers.includes(currentUser.name)) return false;
+
+      // 4. 최근 등록되었거나 아직 지나지 않은 일정
+      const sEnd = s.endDate || s.startDate || s.date;
+      const isRecent = (sEnd && sEnd >= todayStr) || 
+        (s.createdAt && (Date.now() - new Date(s.createdAt).getTime() < 7 * 86400000)) ||
+        (s.id && (Date.now() - Number(s.id) < 7 * 86400000));
+      return isRecent;
+    });
+
+    if (unreadPublicSchedules.length > 0) {
+      const sorted = [...unreadPublicSchedules].sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.startDate || a.date).getTime() || Number(a.id) || 0;
+        const timeB = new Date(b.createdAt || b.startDate || b.date).getTime() || Number(b.id) || 0;
+        return timeB - timeA;
+      });
+      setNewScheduleNotice(sorted[0]);
+    }
+
+    checkedScheduleNoticeRef.current = currentUserId;
+    sessionStorage.setItem(sessionKey, 'true');
+  }, [currentUser, schedules]);
+
+  const handleConfirmScheduleNotice = async (sch) => {
+    if (!sch) return;
+    setNewScheduleNotice(null);
+    await handleOpenScheduleDetail(sch);
+  };
+
   const handleActivityAction = (act) => {
     if (!act) return;
     const sub = String(act.subCategory || '');
@@ -5180,8 +5235,10 @@ function App() {
                 endTime: sd.endTime || '11:00',
                 time: sd.startTime || sd.time || '10:00',
                 author: sd.author || currentUser?.name || '알 수 없음',
+                isPublic: sd.isPublic !== undefined ? Boolean(sd.isPublic) : true,
                 viewers: sd.viewers || [],
                 companyId,
+                createdAt: sd.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
               await setDoc(doc(db, 'companies', companyId, 'schedules', docId), finalData);
@@ -5207,6 +5264,15 @@ function App() {
               alert('저장 중 오류가 발생했습니다.');
             }
           }} 
+        />
+      )}
+      
+      {newScheduleNotice && (
+        <NewScheduleNoticeModal
+          noticeSchedule={newScheduleNotice}
+          onClose={() => setNewScheduleNotice(null)}
+          onConfirm={handleConfirmScheduleNotice}
+          scheduleTypes={scheduleTypes}
         />
       )}
       

@@ -279,6 +279,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
             const dayStr = format(d, 'yyyy-MM-dd');
             const sStart = s.startDate || s.date;
             const sEnd = s.endDate || s.startDate || s.date;
+            if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
             return dayStr >= sStart && dayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
           });
 
@@ -426,6 +427,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
         const selectedSchedules = schedules.filter(s => {
           const sStart = s.startDate || s.date;
           const sEnd = s.endDate || s.startDate || s.date;
+          if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
           return selectedDayStr >= sStart && selectedDayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
         });
         selectedSchedules.forEach(s => {
