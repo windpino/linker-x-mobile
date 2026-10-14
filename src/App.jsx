@@ -5247,6 +5247,9 @@ function App() {
           specialPrices={specialPrices} 
           setSpecialPrices={setSpecialPrices} 
           currentUser={currentUser}
+          categories={categories}
+          warehouses={warehouses}
+          staffList={staffList}
         />
       )}
       {isAccountManagerOpen && <AccountManagement onClose={() => setIsAccountManagerOpen(false)} accounts={accounts} setAccounts={setAccounts} currentUser={currentUser} />}

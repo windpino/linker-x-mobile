@@ -373,7 +373,12 @@ const Quotation = ({
       specialPrice: numPrice,
       memo: `${sourceName}에서 자동 등록`,
       companyId,
-      updatedAt: new Date().toISOString()
+      createdAt: existingSP?.createdAt || new Date().toISOString(),
+      creator: existingSP?.creator || currentUser?.name || '시스템',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || '시스템',
+      designatedDate: new Date().toISOString().split('T')[0],
+      designatedBy: currentUser?.name || '시스템'
     };
 
     try {
