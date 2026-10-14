@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
-  CheckCircle2, Info, FileSearch, Percent, History,
+  CheckCircle2, Info, FileSearch, Percent, History, FileSpreadsheet,
   Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
@@ -38,6 +38,7 @@ import SalesLedger from './components/SalesLedger';
 import SalesOrder from './components/SalesOrder';
 import OrderList from './components/OrderList';
 import Quotation from './components/Quotation';
+import QuotationManagement from './components/QuotationManagement';
 import CashReport from './components/CashReport';
 import SalesReport from './components/SalesReport';
 import OrderReport from './components/OrderReport';
@@ -107,6 +108,8 @@ const ALL_FAVORITE_MENUS = [
   { id: 'sales_ledger',        name: '매출원장',        category: '매출/수주관리',   emoji: '📊' },
   { id: 'sales_order',         name: '간편수주 등록',    category: '매출/수주관리',   emoji: '🛒' },
   { id: 'order_list',          name: '수주목록',        category: '매출/수주관리',   emoji: '📝' },
+  { id: 'quotation',           name: '견적서',          category: '매출/수주관리',   emoji: '📑' },
+  { id: 'quotation_list',      name: '견적서 관리',      category: '매출/수주관리',   emoji: '📋' },
 
   { id: 'account',             name: '계좌관리',        category: '입출금관리',     emoji: '💳' },
   { id: 'cash_report_1',       name: '결산보고서',      category: '입출금관리',     emoji: '💰' },
@@ -148,6 +151,8 @@ const getFavMenuIcon = (menuId, size = 18) => {
     sales_ledger:               <List size={size} />,
     sales_order:                <ShoppingCart size={size} />,
     order_list:                 <List size={size} />,
+    quotation:                  <FileSpreadsheet size={size} />,
+    quotation_list:             <List size={size} />,
     account:                    <CreditCard size={size} />,
     cash_report_1:              <BarChart2 size={size} />,
     cash_report_2:              <TrendingUp size={size} />,
@@ -413,6 +418,10 @@ function App() {
   const [quotations, setQuotations] = useState(() => {
     return getInitialStateFromCache('quotations', []);
   });
+  const [isQuotationManagementOpen, setIsQuotationManagementOpen] = useState(false);
+  const openQuotationManagement = () => {
+    setIsQuotationManagementOpen(true);
+  };
   const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => currentUser?.name || 'all');
 
   const openOrderList = (staffName = null) => {
@@ -569,6 +578,7 @@ function App() {
       if (typeof isSalesLedgerOpen !== 'undefined' && isSalesLedgerOpen) { setIsSalesLedgerOpen(false); return true; }
       if (typeof isSalesOrderOpen !== 'undefined' && isSalesOrderOpen) { setIsSalesOrderOpen(false); return true; }
       if (typeof isQuotationOpen !== 'undefined' && isQuotationOpen) { setIsQuotationOpen(false); return true; }
+      if (typeof isQuotationManagementOpen !== 'undefined' && isQuotationManagementOpen) { setIsQuotationManagementOpen(false); return true; }
       if (typeof isOrderListOpen !== 'undefined' && isOrderListOpen) { setIsOrderListOpen(false); return true; }
       if (typeof isPurchaseInvoiceOpen !== 'undefined' && isPurchaseInvoiceOpen) { setIsPurchaseInvoiceOpen(false); return true; }
       if (typeof isPurchaseLedgerOpen !== 'undefined' && isPurchaseLedgerOpen) { setIsPurchaseLedgerOpen(false); return true; }
@@ -1633,6 +1643,36 @@ function App() {
 
       alert('매출전표가 삭제되었으며 실시간 재고에 복구되었습니다.');
     } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteQuotation = async (id) => {
+    const targetQ = quotations.find(q => String(q.id) === String(id));
+    if (!targetQ) return;
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      await deleteDoc(doc(db, 'companies', companyId, 'quotations', String(id)));
+      const nextQuotations = quotations.filter(q => String(q.id) !== String(id));
+      setQuotations(nextQuotations);
+      await saveBundle(companyId, 'quotations', nextQuotations);
+
+      await logOperation({
+        category: '삭제',
+        subCategory: '견적서',
+        type: '삭제',
+        title: `견적서 삭제 (${targetQ?.partner || '미지정'})`,
+        detail: `견적일자: ${targetQ?.date || '-'}, 금액: ${(targetQ?.totalPrice || targetQ?.totalAmount || 0).toLocaleString()}원`,
+        targetId: String(id),
+        user: currentUser?.name || '시스템'
+      });
+
+      if (editingQuotation && String(editingQuotation.id) === String(id)) {
+        setIsQuotationOpen(false);
+        setEditingQuotation(null);
+      }
+    } catch (err) {
+      console.error('Error deleting quotation:', err);
+      alert('견적서 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const handleDeleteSalesOrder = async (id) => {
@@ -2895,6 +2935,18 @@ function App() {
       setEditingOrder(ord || null);
       if (typeof setOrderingPartner === 'function') setOrderingPartner(null);
       setIsSalesOrderOpen(true);
+      return;
+    }
+
+    // 3-1. 견적서 (전표등록 / 변경 / 삭제)
+    if (sub.includes('견적') || cat.includes('견적') || title.includes('견적')) {
+      const q = (quotations || []).find(item => String(item.id) === String(targetId));
+      if (q) {
+        setEditingQuotation(q);
+        setIsQuotationOpen(true);
+      } else {
+        openQuotationManagement();
+      }
       return;
     }
 
@@ -4820,6 +4872,7 @@ function App() {
           onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
           onOpenOrderList={openOrderList}
           onOpenQuotation={() => { setEditingQuotation(null); setIsQuotationOpen(true); }}
+          onOpenQuotationManagement={openQuotationManagement}
           onOpenCashReport={openCashReport}
           onOpenSalesReport={() => setIsSalesReportOpen(true)}
           onOpenOrderReport={() => setIsOrderReportOpen(true)}
@@ -4884,6 +4937,8 @@ function App() {
               sales_ledger:               () => setIsSalesLedgerOpen(true),
               sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
               order_list:                 () => openOrderList(),
+              quotation:                  () => { setEditingQuotation(null); setIsQuotationOpen(true); },
+              quotation_list:             () => openQuotationManagement(),
               account:                    () => setIsAccountManagerOpen(true),
               cash_report_1:              () => openCashReport('결산'),
               cash_report_2:              () => openCashReport('일자별'),
@@ -5439,10 +5494,12 @@ function App() {
         selectedDate={selectedDate}
         editingQuotation={editingQuotation}
         companySettings={companySettings}
+        onDelete={handleDeleteQuotation}
         onSave={async (qData) => {
           try {
             const companyId = currentUser?.companyId || 'default';
             const id = qData.id || Date.now();
+            const isEdit = quotations.some(q => String(q.id) === String(id));
             const fullQuotation = { 
               ...qData, 
               id: Number(id), 
@@ -5461,6 +5518,18 @@ function App() {
             })();
             setQuotations(nextQuotations);
             await saveBundle(companyId, 'quotations', nextQuotations);
+
+            // Log operation for recent activities (최근 처리 현황)
+            await logOperation({
+              category: '전표등록',
+              subCategory: '견적서',
+              type: isEdit ? '수정' : '등록',
+              title: `견적서 ${isEdit ? '수정' : '등록'} (${fullQuotation.partner || '미지정'})`,
+              detail: `${fullQuotation.itemsText || (fullQuotation.items && fullQuotation.items.map(it => it.name).join(', ')) || ''} / 합계: ${(fullQuotation.totalPrice || fullQuotation.totalAmount || 0).toLocaleString()}원`,
+              targetId: String(fullQuotation.id),
+              user: currentUser?.name || '시스템',
+              date: fullQuotation.date
+            });
           } catch (err) {
             console.error('Error saving quotation:', err);
             alert('견적서 저장 중 오류가 발생했습니다: ' + (err?.message || '알 수 없는 오류'));
@@ -5472,6 +5541,30 @@ function App() {
           setIsSalesOrderOpen(true);
         }}
       />}
+
+      {isQuotationManagementOpen && (
+        <QuotationManagement
+          onClose={() => setIsQuotationManagementOpen(false)}
+          quotations={quotations}
+          staffList={staffList}
+          partners={partners}
+          currentUser={currentUser}
+          onEditQuotation={(q) => {
+            setEditingQuotation(q);
+            setIsQuotationOpen(true);
+          }}
+          onDeleteQuotation={handleDeleteQuotation}
+          onNewQuotation={() => {
+            setEditingQuotation(null);
+            setIsQuotationOpen(true);
+          }}
+          onConvertToOrder={(orderData) => {
+            setIsQuotationManagementOpen(false);
+            setEditingOrder(orderData);
+            setIsSalesOrderOpen(true);
+          }}
+        />
+      )}
 
       {orderingPartner && (
         <SalesOrder 
@@ -6165,6 +6258,7 @@ function App() {
           purchaseInvoices={purchaseInvoices}
           salesOrders={salesOrders}
           purchaseOrders={purchaseOrders}
+          quotations={quotations}
           inventoryMovements={inventoryTransferHistory}
           inventoryAdjustments={inventoryAdjustments}
           activityLogs={actionLogs}

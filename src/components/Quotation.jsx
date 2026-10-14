@@ -58,6 +58,7 @@ const Quotation = ({
   quotations = [],
   onSave,
   onConvertToOrder,
+  onDelete,
   currentUser,
   staffList = [],
   initialPartner,
@@ -611,8 +612,35 @@ const Quotation = ({
               gap: '6px'
             }}
           >
-            <Save size={16} /> 견적서 저장
+            <Save size={16} /> {editingQuotation ? '수정 저장' : '견적서 저장'}
           </button>
+          {editingQuotation && onDelete && (
+            <button 
+              type="button"
+              onClick={() => {
+                if (window.confirm('정말 이 견적서를 삭제하시겠습니까?')) {
+                  onDelete(editingQuotation.id);
+                  onClose();
+                }
+              }}
+              style={{
+                flex: 0.8,
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+                backgroundColor: '#fef2f2',
+                color: '#ef4444',
+                fontWeight: 800,
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Trash2 size={16} /> 삭제
+            </button>
+          )}
           <button 
             onClick={handleConvertToOrder}
             style={{

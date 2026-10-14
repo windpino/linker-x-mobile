@@ -61,6 +61,8 @@ const getMenuIdFromTitle = (title) => {
   if (title.includes('경비출금')) return 'expense';
   if (title.includes('데이터 전체')) return 'data_manager';
   if (title.includes('환경설정')) return 'settings';
+  if (title.includes('견적서 관리') || title.includes('견적서 목록')) return 'quotation_list';
+  if (title.includes('견적')) return 'quotation';
   return null;
 };
 

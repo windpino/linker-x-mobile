@@ -54,6 +54,7 @@ const RecentActivityModal = ({
   purchaseInvoices = [], 
   salesOrders = [], 
   purchaseOrders = [], 
+  quotations = [], 
   inventoryMovements = [], 
   inventoryAdjustments = [],
   activityLogs = [],
@@ -302,6 +303,31 @@ const RecentActivityModal = ({
       });
     });
 
+    // 5-1) Fallback for active Quotations (if not already logged)
+    (quotations || []).filter(isSameCompany).forEach(q => {
+      if (loggedTargetIds.has(`${q.id}_등록`)) return;
+      const dt = extractDateTime(q);
+      const itemsSummary = q.itemsText || (q.items ? q.items.map(it => `${it.name}(${it.qty || 1}개)`).join(', ') : '-');
+      list.push({
+        id: `quotation-${q.id}`,
+        rawId: q.id,
+        targetId: q.id,
+        category: '전표등록',
+        subCategory: '견적서',
+        title: `견적서 등록 - ${q.partner || '미지정 거래처'}`,
+        detail: `품목: ${itemsSummary} | 합계: ${(q.totalPrice || q.totalAmount || 0).toLocaleString()}원`,
+        user: q.manager || q.creator || '시스템',
+        date: dt.displayDate,
+        time: dt.displayTime,
+        displayDate: dt.displayDate,
+        displayTime: dt.displayTime,
+        numericTimestamp: dt.numericTimestamp,
+        type: '등록',
+        badgeBg: '#eff6ff',
+        badgeColor: '#2563eb'
+      });
+    });
+
     // 6) Inventory Movements
     inventoryMovements.filter(isSameCompany).forEach(mov => {
       if (loggedTargetIds.has(`${mov.id}_이동`) || loggedTargetIds.has(`${mov.id}_등록`)) return;
@@ -379,7 +405,7 @@ const RecentActivityModal = ({
 
     // Sort by timestamp descending (most recent first)
     return filteredList.sort((a, b) => Number(b.numericTimestamp) - Number(a.numericTimestamp));
-  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, inventoryMovements, inventoryAdjustments, activityLogs, currentUser?.companyId, deletedActivityIds, localRetentionPeriod]);
+  }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders, quotations, inventoryMovements, inventoryAdjustments, activityLogs, currentUser?.companyId, deletedActivityIds, localRetentionPeriod]);
 
   // Extract unique staff members from staffList and activity data
   const staffOptions = useMemo(() => {

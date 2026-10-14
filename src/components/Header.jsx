@@ -7,7 +7,7 @@ const Header = ({
   onOpenInventoryTransfer, onOpenInventoryMovementManager, onOpenPartnerManager, onOpenProductManager, 
   onOpenAccountManager, onOpenScheduleList,
   onOpenPurchaseInvoice, onOpenPurchaseLedger, onOpenPurchaseOrder,
-  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenQuotation,
+  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenQuotation, onOpenQuotationManagement,
   onOpenCashReport, onOpenSalesReport, onOpenOrderReport, onOpenInventoryReport, onOpenEditDeleteReport, onOpenCashBook,
   onOpenExpenseRegistration, onOpenStaffPerformanceReport, onOpenDataManager,
   onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
@@ -169,6 +169,20 @@ const Header = ({
       action: onOpenOrderList,
       perm: hasPerm('수주'),
       keywords: '수주조회 수주현황',
+    },
+    {
+      title: '견적서',
+      category: '매출/수주관리',
+      action: onOpenQuotation,
+      perm: hasPerm('견적서'),
+      keywords: '견적서 견적 견적등록 견적서작성 견적관리',
+    },
+    {
+      title: '견적서 관리',
+      category: '매출/수주관리',
+      action: onOpenQuotationManagement,
+      perm: hasPerm('견적서'),
+      keywords: '견적서관리 견적관리 견적서목록 견적목록 견적서조회',
     },
     // 입출금관리
     {
@@ -598,6 +612,7 @@ const Header = ({
               { perm: hasPerm('수주'), label: '간편수주 등록', action: onOpenSalesOrder },
               { perm: hasPerm('수주'), label: '수주목록', action: onOpenOrderList },
               { perm: hasPerm('견적서'), label: '견적서', action: onOpenQuotation },
+              { perm: hasPerm('견적서'), label: '견적서 관리', action: onOpenQuotationManagement },
             ]},
             { id: 'cash_mgmt', label: '입출금관리', items: [
               { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
