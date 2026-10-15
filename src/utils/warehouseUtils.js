@@ -7,6 +7,22 @@
  * 4. Main warehouse (isMain === true)
  * 5. First available warehouse or fallback
  */
+export const isMainWarehouse = (whName, warehouses = []) => {
+  if (!whName) return false;
+  const found = warehouses.find(w => w.name === whName);
+  if (found?.isMain) return true;
+  const mainWh = warehouses.find(w => w.isMain)?.name || 
+                 warehouses.find(w => w.name?.includes('메인'))?.name || 
+                 warehouses.find(w => w.name?.includes('main'))?.name || 
+                 warehouses[0]?.name || 
+                 '본사창고';
+  if (whName === mainWh) return true;
+  if (whName === '본사창고' || whName === '메인창고' || whName === '기본창고') {
+    if (!warehouses.some(w => w.isMain && w.name !== whName)) return true;
+  }
+  return false;
+};
+
 export const getStaffWarehouse = (managerName, staffList = [], warehouses = [], currentUser = null) => {
   const mainWH = warehouses.find(w => w.isMain)?.name ||
                  warehouses.find(w => w.name?.includes('메인'))?.name ||
@@ -18,6 +34,7 @@ export const getStaffWarehouse = (managerName, staffList = [], warehouses = [], 
     const currentStaff = staffList.find(s => s.name === currentUser?.name || s.userId === currentUser?.userId);
     const userWH = currentUser?.warehouse || currentStaff?.warehouse;
     if (userWH && userWH !== '-') {
+      if (isMainWarehouse(userWH, warehouses)) return mainWH;
       const match = warehouses.find(w => w.name === userWH);
       if (match) return match.name;
       return userWH;
@@ -28,6 +45,7 @@ export const getStaffWarehouse = (managerName, staffList = [], warehouses = [], 
   // 1. Look up staff in staffList by name
   const staff = staffList.find(s => s.name === managerName);
   if (staff?.warehouse && staff.warehouse !== '-') {
+    if (isMainWarehouse(staff.warehouse, warehouses)) return mainWH;
     const match = warehouses.find(w => w.name === staff.warehouse);
     if (match) return match.name;
     return staff.warehouse;
@@ -36,6 +54,7 @@ export const getStaffWarehouse = (managerName, staffList = [], warehouses = [], 
   // 2. If managerName matches currentUser, check currentUser.warehouse
   if (currentUser && (currentUser.name === managerName || currentUser.userId === managerName)) {
     if (currentUser.warehouse && currentUser.warehouse !== '-') {
+      if (isMainWarehouse(currentUser.warehouse, warehouses)) return mainWH;
       const match = warehouses.find(w => w.name === currentUser.warehouse);
       if (match) return match.name;
       return currentUser.warehouse;

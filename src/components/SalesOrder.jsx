@@ -3,7 +3,7 @@ import { ShoppingCart, Printer, Search, Save, Package, RefreshCw, FileText, List
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
-import { getStaffWarehouse } from '../utils/warehouseUtils';
+import { getStaffWarehouse, isMainWarehouse } from '../utils/warehouseUtils';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
@@ -18,7 +18,8 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                  warehouses.find(w => w.name.includes('main'))?.name || 
                  warehouses[0]?.name || 
                  '메인창고';
-  const staffWH = currentUser?.warehouse || (staffList.find(s => s.name === currentUser?.name)?.warehouse) || '통영';
+  const rawStaffWH = currentUser?.warehouse || (staffList.find(s => s.name === currentUser?.name)?.warehouse);
+  const staffWH = isMainWarehouse(rawStaffWH, warehouses) ? mainWH : (rawStaffWH || mainWH);
 
   const defaultManager = currentUser?.name || (initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
   const defaultOutWH = getStaffWarehouse(defaultManager, staffList, warehouses, currentUser);
@@ -539,6 +540,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
             <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={() => {
               const newMgr = currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음');
               const newOutWH = getStaffWarehouse(newMgr, staffList, warehouses, currentUser);
+              const mStaff = staffList.find(s => s.name === newMgr);
+              const mWH = mStaff?.warehouse;
+              const newInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || newOutWH);
               setOrderData({
                 id: Date.now(),
                 date: (() => {
@@ -547,7 +551,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                 })(),
                 partner: orderData.partner,
                 outWarehouse: newOutWH,
-                inWarehouse: staffWH,
+                inWarehouse: newInWH,
                 manager: newMgr,
                 itemsText: '',
                 memo: ''
@@ -623,10 +627,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                         onChange={(e) => {
                           const nextMgr = e.target.value;
                           const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+                          const mStaff = staffList.find(s => s.name === nextMgr);
+                          const mWH = mStaff?.warehouse;
+                          const nextInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || nextOutWH);
                           setOrderData(prev => ({
                             ...prev,
                             manager: nextMgr,
-                            outWarehouse: nextOutWH || prev.outWarehouse
+                            outWarehouse: nextOutWH || prev.outWarehouse,
+                            inWarehouse: nextInWH || prev.inWarehouse
                           }));
                         }} 
                         style={{ padding: '6px', fontSize: '0.8rem' }}

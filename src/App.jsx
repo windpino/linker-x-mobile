@@ -2122,14 +2122,27 @@ function App() {
       const now = new Date();
       const nextInv = { ...inventory };
       
+      const mainWH = warehouses.find(w => w.isMain)?.name || 
+                     warehouses.find(w => w.name.includes('메인'))?.name || 
+                     warehouses.find(w => w.name.includes('main'))?.name || 
+                     warehouses[0]?.name || 
+                     '메인창고';
+
+      const isMainWHName = (whName) => {
+        if (!whName) return false;
+        if (whName === mainWH) return true;
+        const found = warehouses.find(w => w.name === whName);
+        if (found?.isMain) return true;
+        if (whName === '본사창고' || whName === '메인창고' || whName === '기본창고') {
+          if (!warehouses.some(w => w.isMain && w.name !== whName)) return true;
+        }
+        return false;
+      };
+
       const oldInv = isEdit ? (salesInvoices.find(si => String(si.id) === String(id)) || (editingInvoice?.id === id ? editingInvoice : null)) : null;
       if (oldInv && Array.isArray(oldInv.items) && oldInv.items.length > 0) {
         const oldWH = oldInv.warehouse;
-        const mainWH = warehouses.find(w => w.isMain)?.name || 
-                       warehouses.find(w => w.name.includes('메인'))?.name || 
-                       warehouses.find(w => w.name.includes('main'))?.name || 
-                       warehouses[0]?.name || 
-                       '메인창고';
+        const isOldMain = isMainWHName(oldWH);
         
         if (nextInv[oldWH]) {
           const whInv = { ...nextInv[oldWH] };
@@ -2138,7 +2151,7 @@ function App() {
             const itemQty = Number(item.qty) || 0;
             whInv[item.name] = (whInv[item.name] || 0) + itemQty;
             
-            if (oldWH !== mainWH) {
+            if (!isOldMain && oldWH !== mainWH) {
               const match = [...inventoryTransferHistory]
                 .reverse()
                 .find(h => 
@@ -2177,16 +2190,24 @@ function App() {
         }
       }
       
-      const targetWH = invData.warehouse || warehouses[0]?.name || '메인창고';
+      const invManager = invData.manager || currentUser?.name;
+      const matchedStaff = (staffList || []).find(s => 
+        (invManager && s.name === invManager) || 
+        (invManager && String(s.id) === String(invManager)) ||
+        (invManager && s.userId === invManager)
+      );
+      const staffDefaultWH = matchedStaff?.warehouse || (currentUser?.name === invManager ? currentUser?.warehouse : null);
+      const isStaffDefaultMainWH = isMainWHName(staffDefaultWH);
+
+      // 직원관리에서 기본창고가 메인창고인 경우 혹은 지정창고가 메인창고인 경우 바로 메인창고로 처리
+      let targetWH = invData.warehouse || warehouses[0]?.name || '메인창고';
+      if (isStaffDefaultMainWH || isMainWHName(targetWH)) {
+        targetWH = mainWH;
+      }
+
       if (!nextInv[targetWH]) nextInv[targetWH] = {};
       const whInv = { ...nextInv[targetWH] };
       const processedTime = now.toLocaleTimeString('ko-KR', { hour12: false });
-      
-      const mainWH = warehouses.find(w => w.isMain)?.name || 
-                     warehouses.find(w => w.name.includes('메인'))?.name || 
-                     warehouses.find(w => w.name.includes('main'))?.name || 
-                     warehouses[0]?.name || 
-                     '메인창고';
 
       const itemsList = Array.isArray(invData.items) ? invData.items : [];
       const newHistoryEntries = [];
@@ -2195,7 +2216,9 @@ function App() {
         const itemQty = Number(item.qty) || 0;
         
         // ─── 상차(자동이동) 처리: targetWH에 부족한 수량만큼만 메인창고에서 자동이동 ───
-        if (targetWH !== mainWH) {
+        // 직원관리에서 기본창고가 메인창고인 경우 및 targetWH가 메인창고인 경우,
+        // 재고이동 발생 없이 바로 메인창고에서 차감하므로 자동이동(상차)을 일체 생성하지 않음.
+        if (targetWH !== mainWH && !isStaffDefaultMainWH && !isMainWHName(targetWH)) {
           const product = products.find(p => p.name === item.name);
           const initialStock = (product && product.warehouse === targetWH) ? (Number(product.initialStock) || 0) : 0;
           const currentTargetStock = initialStock + (whInv[item.name] || 0);
@@ -2235,9 +2258,10 @@ function App() {
           }
         }
         
+        // 메인창고인 경우 바로 메인창고 재고에서 차감
         whInv[item.name] = (whInv[item.name] || 0) - itemQty;
         
-        // [매출] 출고 이력 추가
+        // [매출] 출고 이력 추가 (메인창고 직출고인 경우 from: mainWH -> to: '매출출고')
         const historyId = Date.now() + Math.random();
         const saleEntry = {
           id: historyId,
@@ -2269,6 +2293,7 @@ function App() {
       
       const finalData = { 
         ...invData, 
+        warehouse: targetWH,
         id: Number(id), 
         companyId, 
         updatedAt: now.toISOString(),

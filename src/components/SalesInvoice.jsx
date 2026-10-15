@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
-import { getStaffWarehouse } from '../utils/warehouseUtils';
+import { getStaffWarehouse, isMainWarehouse } from '../utils/warehouseUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 import { db } from '../firebase';
@@ -109,8 +109,18 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     if (editingInvoice) {
       const initialPayments = editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 };
       const initialPaymentList = getInitialPaymentList(editingInvoice);
+      const editingMgr = editingInvoice.manager || currentUser?.name || '';
+      const matchedStaff = (staffList || []).find(s => s.name === editingMgr);
+      const staffWH = matchedStaff?.warehouse;
+      let initialWH = editingInvoice.warehouse || editingInvoice.outWarehouse || '';
+      if (isMainWarehouse(staffWH, warehouses) || isMainWarehouse(initialWH, warehouses)) {
+        initialWH = mainWH;
+      } else if (!initialWH) {
+        initialWH = userWH;
+      }
       return {
         ...editingInvoice,
+        warehouse: initialWH,
         items: editingInvoice.items || [],
         payments: initialPayments,
         paymentList: initialPaymentList
