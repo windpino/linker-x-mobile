@@ -2,9 +2,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { AlertCircle, TrendingDown, TrendingUp, Search, Download, Printer, RefreshCw, Save } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
+import { db } from '../firebase';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import './ReceivablesReport.css';
 
 const STATUS_TO_GRADE = { blue: '1', yellow: '2', red: '3' };
+const GRADE_TO_STATUS = { '1': 'blue', '2': 'yellow', '3': 'red' };
 
 const GradeBadge = ({ grade }) => {
   const styles = {
@@ -105,8 +108,8 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
         const savedGrade = p.grade || '1';
         const savedPromiseDate = p.promiseDate || '';
 
-        // Aging Analysis Calculation
-        const aging = { bucket30: 0, bucket60: 0, bucket90: 0, bucketOver90: 0 };
+        // Aging Analysis Calculation (1주일 추가)
+        const aging = { bucket7: 0, bucket30: 0, bucket60: 0, bucket90: 0, bucketOver90: 0 };
         salesInvoices.filter(inv => inv.partner === p.name).forEach(inv => {
           const unpaid = (Number(inv.totalAmount) || 0) - (Number(inv.receivedAmount) || 0) - (Number(inv.discount) || 0);
           if (unpaid <= 0) return;
@@ -115,7 +118,8 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
           const diffTime = Math.abs(now - invDate);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-          if (diffDays <= 30) aging.bucket30 += unpaid;
+          if (diffDays <= 7) aging.bucket7 += unpaid;
+          else if (diffDays <= 30) aging.bucket30 += unpaid;
           else if (diffDays <= 60) aging.bucket60 += unpaid;
           else if (diffDays <= 90) aging.bucket90 += unpaid;
           else aging.bucketOver90 += unpaid;
@@ -169,49 +173,128 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
     setHasChanges(true);
   };
 
-  // Save all localSettings back to partners state
-  const handleSaveChanges = () => {
+  // Save all localSettings back to partners state and Firestore
+  const handleSaveChanges = async () => {
     if (!setPartners) return;
-    setPartners(prev => prev.map(p => {
+    const updatedPartners = partners.map(p => {
       const setting = localSettings[p.id];
       return setting ? { ...p, grade: setting.grade, promiseDate: setting.promiseDate } : p;
-    }));
+    });
+    setPartners(updatedPartners);
+
+    const companyId = localStorage.getItem('companyId') || 'default_company';
+    try {
+      localStorage.setItem(`partners_${companyId}`, JSON.stringify(updatedPartners));
+      localStorage.setItem('local_partners', JSON.stringify(updatedPartners));
+    } catch (e) {
+      console.warn('localStorage save error:', e);
+    }
+
+    try {
+      for (const [id, setting] of Object.entries(localSettings)) {
+        const partnerRef = doc(db, 'companies', companyId, 'partners', String(id));
+        await updateDoc(partnerRef, {
+          grade: setting.grade,
+          promiseDate: setting.promiseDate || ''
+        }).catch(async () => {
+          await setDoc(partnerRef, {
+            grade: setting.grade,
+            promiseDate: setting.promiseDate || ''
+          }, { merge: true });
+        });
+      }
+    } catch (e) {
+      console.error('Error saving grades to Firestore:', e);
+    }
+
     setHasChanges(false);
     alert('설정 및 약속일 변경사항이 저장되었습니다.');
+  };
+
+  // 등급별 건수: 수동 설정 등급(상위개념)을 우선 반영하여 집계
+  const gradeCounts = useMemo(() => {
+    let red = 0, yellow = 0, blue = 0;
+    reportData.forEach(r => {
+      const setting = localSettings[r.id];
+      const manualGrade = setting?.grade !== undefined ? setting.grade : (r.savedGrade || r.grade);
+      const effectiveGrade = manualGrade || r.autoGrade;
+      if (effectiveGrade === '3') red++;
+      else if (effectiveGrade === '2') yellow++;
+      else if (effectiveGrade === '1') blue++;
+    });
+    return { red, yellow, blue };
+  }, [reportData, localSettings]);
+
+  const isMatchStatus = (status, filter) => {
+    if (!filter || filter === '전체') return true;
+    if (filter === 'red' || filter === '3' || filter === '위험(빨간)' || filter === '3등급') return status === 'red';
+    if (filter === 'yellow' || filter === '2' || filter === '주의(노란)' || filter === '2등급') return status === 'yellow';
+    if (filter === 'blue' || filter === '1' || filter === '안전(파란)' || filter === '1등급') return status === 'blue';
+    return true;
   };
 
   const filteredData = useMemo(() => {
     return reportData
       .filter(row => {
-        if (filterStatus === '전체') return true;
-        if (filterStatus === '위험(빨간)') return row.status === 'red';
-        if (filterStatus === '주의(노란)') return row.status === 'yellow';
-        if (filterStatus === '안전(파란)') return row.status === 'blue';
-        return true;
-      })
-      .filter(row => {
-        if (filterManager === '전체') return true;
-        const pManager = (row.manager || '').trim();
-        if (filterManager === '미지정') {
-          return !pManager || pManager === '-' || pManager === '미지정';
+        const setting = localSettings[row.id];
+        const manualGrade = setting?.grade !== undefined ? setting.grade : (row.savedGrade || row.grade);
+        const effectiveGrade = manualGrade || row.autoGrade;
+        const effectiveStatus = GRADE_TO_STATUS[effectiveGrade] || row.status;
+
+        if (!isMatchStatus(effectiveStatus, filterStatus)) return false;
+
+        if (filterManager !== '전체') {
+          const pManager = (row.manager || '').trim();
+          if (filterManager === '미지정') {
+            if (pManager && pManager !== '-' && pManager !== '미지정') return false;
+          } else if (pManager !== filterManager.trim()) {
+            return false;
+          }
         }
-        return pManager === filterManager.trim();
-      })
-      .filter(row => (row.name || '').toLowerCase().includes((searchTerm || '').toLowerCase().trim()));
-  }, [reportData, filterStatus, filterManager, searchTerm]);
+
+        if (searchTerm && !(row.name || '').toLowerCase().includes(searchTerm.toLowerCase().trim())) {
+          return false;
+        }
+
+        return true;
+      });
+  }, [reportData, localSettings, filterStatus, filterManager, searchTerm]);
 
   const handleExcelExport = () => {
-    const dataToExport = filteredData.map((row, idx) => ({
-      '순위': idx + 1,
-      '거래처명': row.name,
-      '설정등급': localGrades[row.id] || row.savedGrade,
-      '자동등급': row.autoGrade,
-      '1개월매출': row.monthlySales,
-      '총미수금': Number(row.receivables),
-      '관리미수금': row.adjustedReceivables,
-      '상태': row.status === 'red' ? '위험' : row.status === 'yellow' ? '주의' : '안전'
-    }));
-    exportToExcel(dataToExport, '미수금현황보고서');
+    const dataToExport = filteredData.map((row, idx) => {
+      const setting = localSettings[row.id] || { grade: row.savedGrade, promiseDate: row.savedPromiseDate };
+      const manualGrade = setting.grade !== undefined ? setting.grade : (row.savedGrade || row.grade);
+      const effectiveGrade = manualGrade || row.autoGrade;
+      const effectiveStatusText = effectiveGrade === '3' ? '위험' : effectiveGrade === '2' ? '주의' : '안전';
+
+      if (activeTab === 'aging') {
+        return {
+          '순위': idx + 1,
+          '거래처명': row.name,
+          '1주일(7일) 이하': row.aging.bucket7,
+          '8~30일': row.aging.bucket30,
+          '31~60일': row.aging.bucket60,
+          '61~90일': row.aging.bucket90,
+          '90일 초과': row.aging.bucketOver90,
+          '전체 미수금': Number(row.receivables),
+          '상태': row.aging.bucketOver90 > 0 ? '소멸시효 주의' : '정상'
+        };
+      }
+
+      return {
+        '순위': idx + 1,
+        '거래처명': row.name,
+        '입금약속일': setting.promiseDate || '-',
+        '수동등급': `${manualGrade}등급`,
+        '자동등급': `${row.autoGrade}등급`,
+        '최종반영등급': `${effectiveGrade}등급`,
+        '1개월매출': row.monthlySales,
+        '총미수금': Number(row.receivables),
+        '관리미수금': row.adjustedReceivables,
+        '상태': effectiveStatusText
+      };
+    });
+    exportToExcel(dataToExport, activeTab === 'aging' ? '미수연령분석보고서' : '미수금현황보고서');
   };
 
   const gradeSelectStyle = (grade) => ({
@@ -302,28 +385,85 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
 
         {/* 3 Grade Summary Cards Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 800 }}>3등급</div>
-            <div style={{ fontSize: '0.62rem', color: '#ef4444' }}>위험(빨간불)</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
-              {reportData.filter(d => d.status === 'red').length}건
-            </div>
+          {/* 3등급 */}
+          <div 
+            onClick={() => setFilterStatus(prev => prev === 'red' ? '전체' : 'red')}
+            style={{
+              backgroundColor: filterStatus === 'red' ? '#fee2e2' : '#fef2f2',
+              border: filterStatus === 'red' ? '2px solid #ef4444' : '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '8px 4px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexWrap: 'nowrap',
+              boxShadow: filterStatus === 'red' ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : 'none'
+            }}
+            title="클릭 시 3등급(빨간불) 필터 토글"
+          >
+            <span style={{ backgroundColor: '#ef4444', color: '#fff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '10px', flexShrink: 0 }}>
+              {gradeCounts.red}건
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 800 }}>3등급</span>
+            <span style={{ fontSize: '0.62rem', color: '#ef4444' }}>위험</span>
           </div>
 
-          <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 800 }}>2등급</div>
-            <div style={{ fontSize: '0.62rem', color: '#f59e0b' }}>주의(노란불)</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#b45309', marginTop: '2px' }}>
-              {reportData.filter(d => d.status === 'yellow').length}건
-            </div>
+          {/* 2등급 */}
+          <div 
+            onClick={() => setFilterStatus(prev => prev === 'yellow' ? '전체' : 'yellow')}
+            style={{
+              backgroundColor: filterStatus === 'yellow' ? '#fef3c7' : '#fffbeb',
+              border: filterStatus === 'yellow' ? '2px solid #f59e0b' : '1px solid #fde68a',
+              borderRadius: '8px',
+              padding: '8px 4px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexWrap: 'nowrap',
+              boxShadow: filterStatus === 'yellow' ? '0 0 0 2px rgba(245, 158, 11, 0.2)' : 'none'
+            }}
+            title="클릭 시 2등급(노란불) 필터 토글"
+          >
+            <span style={{ backgroundColor: '#f59e0b', color: '#fff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '10px', flexShrink: 0 }}>
+              {gradeCounts.yellow}건
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 800 }}>2등급</span>
+            <span style={{ fontSize: '0.62rem', color: '#f59e0b' }}>주의</span>
           </div>
 
-          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 800 }}>1등급</div>
-            <div style={{ fontSize: '0.62rem', color: '#3b82f6' }}>안전(파란불)</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
-              {reportData.filter(d => d.status === 'blue').length}건
-            </div>
+          {/* 1등급 */}
+          <div 
+            onClick={() => setFilterStatus(prev => prev === 'blue' ? '전체' : 'blue')}
+            style={{
+              backgroundColor: filterStatus === 'blue' ? '#dbeafe' : '#eff6ff',
+              border: filterStatus === 'blue' ? '2px solid #2563eb' : '1px solid #bfdbfe',
+              borderRadius: '8px',
+              padding: '8px 4px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexWrap: 'nowrap',
+              boxShadow: filterStatus === 'blue' ? '0 0 0 2px rgba(37, 99, 235, 0.2)' : 'none'
+            }}
+            title="클릭 시 1등급(파란불) 필터 토글"
+          >
+            <span style={{ backgroundColor: '#2563eb', color: '#fff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '10px', flexShrink: 0 }}>
+              {gradeCounts.blue}건
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 800 }}>1등급</span>
+            <span style={{ fontSize: '0.62rem', color: '#3b82f6' }}>안전</span>
           </div>
         </div>
 
@@ -390,10 +530,10 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
               onChange={e => setFilterStatus(e.target.value)}
               style={{ padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, outline: 'none', backgroundColor: '#fff' }}
             >
-              <option>전체</option>
-              <option>위험(빨간)</option>
-              <option>주의(노란)</option>
-              <option>안전(파란)</option>
+              <option value="전체">전체 등급</option>
+              <option value="red">3등급 (빨간불 위험)</option>
+              <option value="yellow">2등급 (노란불 주의)</option>
+              <option value="blue">1등급 (파란불 안전)</option>
             </select>
           </div>
         </div>
@@ -415,6 +555,8 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
               const setting = localSettings[row.id] || { grade: row.savedGrade, promiseDate: row.savedPromiseDate };
               const isChanged = setting.grade !== row.savedGrade || setting.promiseDate !== row.savedPromiseDate;
               const isOverdue = setting.promiseDate && new Date(setting.promiseDate) < new Date(new Date().setHours(0,0,0,0));
+              const effectiveGrade = setting.grade || row.autoGrade;
+              const effectiveStatus = GRADE_TO_STATUS[effectiveGrade] || row.status;
 
               return (
                 <div key={row.id} style={{
@@ -450,7 +592,7 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{
                         width: '10px', height: '10px', borderRadius: '50%',
-                        backgroundColor: row.status === 'red' ? '#ef4444' : row.status === 'yellow' ? '#f59e0b' : '#3b82f6'
+                        backgroundColor: effectiveStatus === 'red' ? '#ef4444' : effectiveStatus === 'yellow' ? '#f59e0b' : '#3b82f6'
                       }}></span>
                       <span style={{ fontSize: '0.92rem', fontWeight: 900, color: row.adjustedReceivables > 0 ? '#ef4444' : '#1e293b' }}>
                         {row.adjustedReceivables.toLocaleString()}원
@@ -495,9 +637,13 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
                   ) : (
                     /* Aging Analysis View */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px dashed #f1f5f9', paddingTop: '4px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.68rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.68rem' }}>
                         <div style={{ backgroundColor: '#f8fafc', padding: '4px 2px', borderRadius: '4px' }}>
-                          <div style={{ color: '#64748b' }}>30일이하</div>
+                          <div style={{ color: '#64748b' }}>1주일이하</div>
+                          <div style={{ fontWeight: 700, marginTop: '2px' }}>{row.aging.bucket7.toLocaleString()}</div>
+                        </div>
+                        <div style={{ backgroundColor: '#f8fafc', padding: '4px 2px', borderRadius: '4px' }}>
+                          <div style={{ color: '#64748b' }}>8~30일</div>
                           <div style={{ fontWeight: 700, marginTop: '2px' }}>{row.aging.bucket30.toLocaleString()}</div>
                         </div>
                         <div style={{ backgroundColor: '#f8fafc', padding: '4px 2px', borderRadius: '4px' }}>
