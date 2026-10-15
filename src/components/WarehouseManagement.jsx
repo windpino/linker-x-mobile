@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Box, Printer, Download, Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Box, Printer, Download, Plus, Edit2, Trash2, RefreshCw, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import WarehouseRegistration from './WarehouseRegistration';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
@@ -9,13 +9,28 @@ import { saveBundle } from '../utils/bundleSyncManager';
 import './Warehouse.css';
 
 const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentUser, staffList = [], logOperation }) => {
+  const [toastMsg, setToastMsg] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState(null);
+
   const hasWritePermission = () => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
     return currentUser?.allowAllEditDelete === true;
   };
 
-  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState(null);
+  // 창고 목록을 order(sequence) 순으로 정렬
+  const sortedWarehouses = useMemo(() => {
+    if (!Array.isArray(warehouses)) return [];
+    return [...warehouses].sort((a, b) => {
+      const orderA = a.order !== undefined && a.order !== null ? Number(a.order) : (a.sequence !== undefined ? Number(a.sequence) : 9999);
+      const orderB = b.order !== undefined && b.order !== null ? Number(b.order) : (b.sequence !== undefined ? Number(b.sequence) : 9999);
+      if (orderA !== orderB) return orderA - orderB;
+      if (a.isMain && !b.isMain) return -1;
+      if (!a.isMain && b.isMain) return 1;
+      return (a.name || '').localeCompare(b.name || '', 'ko');
+    });
+  }, [warehouses]);
 
   // 컴포넌트 마운트 시 Firestore warehouses 컬렉션에서 원격 데이터를 직접 조회하여 누락된 창고 자동 동기화
   useEffect(() => {
@@ -43,7 +58,15 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
             mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...w });
           });
 
-          const mergedList = Array.from(mergedMap.values());
+          const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
+            const orderA = a.order !== undefined && a.order !== null ? Number(a.order) : (a.sequence !== undefined ? Number(a.sequence) : 9999);
+            const orderB = b.order !== undefined && b.order !== null ? Number(b.order) : (b.sequence !== undefined ? Number(b.sequence) : 9999);
+            if (orderA !== orderB) return orderA - orderB;
+            if (a.isMain && !b.isMain) return -1;
+            if (!a.isMain && b.isMain) return 1;
+            return (a.name || '').localeCompare(b.name || '', 'ko');
+          });
+
           if (mergedList.length !== warehouses.length || JSON.stringify(mergedList) !== JSON.stringify(warehouses)) {
             if (setWarehouses) setWarehouses(mergedList);
             await saveBundle(companyId, 'warehouses', mergedList);
@@ -58,6 +81,72 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
     syncFirestoreWarehouses();
     return () => { isMounted = false; };
   }, [currentUser?.companyId]);
+
+  // 순서 변경 함수
+  const handleReorder = async (fromIdx, toIdx) => {
+    if (fromIdx === null || fromIdx === undefined || toIdx === null || toIdx === undefined || fromIdx === toIdx) return;
+    if (fromIdx < 0 || toIdx < 0 || fromIdx >= sortedWarehouses.length || toIdx >= sortedWarehouses.length) return;
+
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정 권한이 없습니다.');
+      return;
+    }
+
+    const nextList = [...sortedWarehouses];
+    const [movedWh] = nextList.splice(fromIdx, 1);
+    nextList.splice(toIdx, 0, movedWh);
+
+    const reorderedList = nextList.map((wh, idx) => ({
+      ...wh,
+      order: idx + 1,
+      sequence: idx + 1,
+      updatedAt: new Date().toISOString()
+    }));
+
+    if (setWarehouses) setWarehouses(reorderedList);
+
+    const companyId = currentUser?.companyId || 'default';
+    await saveBundle(companyId, 'warehouses', reorderedList);
+    localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(reorderedList));
+    localStorage.setItem('warehouses', JSON.stringify(reorderedList));
+
+    try {
+      if (db) {
+        const batch = writeBatch(db);
+        reorderedList.forEach(wh => {
+          const docId = wh._docId || String(wh.id);
+          const whDocRef = doc(db, 'companies', companyId, 'warehouses', docId);
+          batch.set(whDocRef, { order: wh.order, sequence: wh.sequence, updatedAt: wh.updatedAt }, { merge: true });
+        });
+        await batch.commit();
+      }
+    } catch (err) {
+      console.warn('Warehouse reorder batch error:', err);
+    }
+
+    if (logOperation) {
+      await logOperation({
+        category: '수정',
+        subCategory: '창고',
+        type: '순서변경',
+        title: `창고 순서 변경 (${movedWh.name} ➔ ${toIdx + 1}번)`,
+        detail: `창고 [${movedWh.name}] 순서를 ${toIdx + 1}번째로 변경`,
+        user: currentUser?.name || '시스템',
+        targetId: String(movedWh._docId || movedWh.id)
+      });
+    }
+
+    setToastMsg(`창고 순서가 변경되었습니다. (${movedWh.name} ➔ ${toIdx + 1}번째)`);
+    setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  const handleMoveUp = (index) => {
+    if (index > 0) handleReorder(index, index - 1);
+  };
+
+  const handleMoveDown = (index) => {
+    if (index < sortedWarehouses.length - 1) handleReorder(index, index + 1);
+  };
 
   const handleToggleMainWarehouse = async (targetWh) => {
     if (!hasWritePermission()) {
@@ -100,9 +189,8 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       alert('메인창고 설정 중 오류가 발생했습니다: ' + (err.message || ''));
     }
   };
-  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredWarehouses = warehouses.filter(w => {
+  const filteredWarehouses = sortedWarehouses.filter(w => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     const assignedStaff = staffList.filter(s => s.warehouse === w.name).map(s => s.name.toLowerCase()).join(' ');
@@ -132,6 +220,8 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
         id: safeWhId,
         color: whData.color || editingWarehouse?.color || '#3b82f6',
         companyId,
+        order: editingWarehouse?.order ?? editingWarehouse?.sequence ?? (warehouses.length + 1),
+        sequence: editingWarehouse?.sequence ?? editingWarehouse?.order ?? (warehouses.length + 1),
         updatedAt: new Date().toISOString()
       };
 
@@ -180,6 +270,12 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
         );
       }
 
+      nextWarehouses.sort((a, b) => {
+        const orderA = a.order !== undefined && a.order !== null ? Number(a.order) : (a.sequence !== undefined ? Number(a.sequence) : 9999);
+        const orderB = b.order !== undefined && b.order !== null ? Number(b.order) : (b.sequence !== undefined ? Number(b.sequence) : 9999);
+        return orderA - orderB;
+      });
+
       if (setWarehouses) setWarehouses(nextWarehouses);
       await saveBundle(companyId, 'warehouses', nextWarehouses);
       localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(nextWarehouses));
@@ -190,7 +286,7 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
           subCategory: '창고',
           type: isNew ? '등록' : '수정',
           title: isNew ? `창고 등록 (${finalData.name})` : `창고 수정 (${finalData.name})`,
-          detail: `창고명: ${finalData.name} | 주소: ${finalData.address || '-'}`,
+          detail: `창고명: ${finalData.name} | 담당자: ${finalData.manager || '-'} | 주소: ${finalData.address || '-'}`,
           user: currentUser?.name || '시스템',
           targetId: String(docId)
         });
@@ -214,7 +310,10 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
       const docId = typeof wh === 'object' ? (wh._docId || String(wh.id)) : String(wh);
       await deleteDoc(doc(db, 'companies', companyId, 'warehouses', docId));
 
-      const nextWarehouses = warehouses.filter(w => String(w._docId || w.id) !== String(docId));
+      const nextWarehouses = warehouses
+        .filter(w => String(w._docId || w.id) !== String(docId))
+        .map((w, idx) => ({ ...w, order: idx + 1, sequence: idx + 1 }));
+
       if (setWarehouses) setWarehouses(nextWarehouses);
       await saveBundle(companyId, 'warehouses', nextWarehouses);
       localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(nextWarehouses));
@@ -238,12 +337,13 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
 
   const handleExcelExport = () => {
     const columnMap = {
+      order: '순서',
       name: '창고명',
       address: '주소',
       memo: '메모',
       isMain: '메인창고여부'
     };
-    const formattedData = formatDataForExcel(warehouses, columnMap);
+    const formattedData = formatDataForExcel(sortedWarehouses, columnMap);
     exportToExcel(formattedData, '창고목록');
   };
 
@@ -260,7 +360,31 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
   return (
     <>
       <WindowModal title="창고관리" onClose={onClose} width="100%">
-        <div style={{ padding: '10px' }}>
+        <div style={{ padding: '10px', position: 'relative' }}>
+          
+          {toastMsg && (
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}>
+              <CheckCircle2 size={15} /> {toastMsg}
+            </div>
+          )}
+
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -269,7 +393,7 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
               </div>
               <div>
                 <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>창고 관리</h2>
-                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>물류 거점(창고) 및 차량 창고 관리</p>
+                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>물류 거점 및 차량 창고 순서 관리</p>
               </div>
             </div>
             
@@ -312,8 +436,8 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
                 <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>등록된 창고가 없습니다.</div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>우측 상단의 '+ 창고 등록' 버튼을 눌러 등록하세요.</div>
               </div>
-            ) : filteredWarehouses.map(wh => (
-              <div key={wh.id} style={{
+            ) : filteredWarehouses.map((wh, index) => (
+              <div key={wh.id || wh._docId || index} style={{
                 backgroundColor: '#ffffff',
                 border: '1px solid #e2e8f0',
                 borderRadius: '10px',
@@ -325,6 +449,41 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* 순번 & 이동 버튼 */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', minWidth: '18px', textAlign: 'center' }}>
+                        {index + 1}
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0}
+                          style={{
+                            border: '1px solid #cbd5e1', borderRadius: '2px', background: '#fff',
+                            width: '16px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: index === 0 ? 'not-allowed' : 'pointer', opacity: index === 0 ? 0.3 : 1
+                          }}
+                          title="위로 이동"
+                        >
+                          <ChevronUp size={10} color="#475569" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === filteredWarehouses.length - 1}
+                          style={{
+                            border: '1px solid #cbd5e1', borderRadius: '2px', background: '#fff',
+                            width: '16px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: index === filteredWarehouses.length - 1 ? 'not-allowed' : 'pointer', opacity: index === filteredWarehouses.length - 1 ? 0.3 : 1
+                          }}
+                          title="아래로 이동"
+                        >
+                          <ChevronDown size={10} color="#475569" />
+                        </button>
+                      </div>
+                    </div>
+
                     <input 
                       type="checkbox"
                       checked={!!wh.isMain}
