@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 
 // Supported bundle collections
 export const BUNDLE_COLLECTIONS = [
@@ -17,6 +17,7 @@ export const BUNDLE_COLLECTIONS = [
   'purchaseOrders',
   'salesInvoices',
   'salesOrders',
+  'quotations',
   'expenses',
   'inventoryAdjustments',
   'inventoryTransferHistory',
@@ -268,3 +269,30 @@ export const listenBundleSyncState = (companyId, onBundleChange) => {
   syncBundlesOnce(companyId, onBundleChange);
   return () => {};
 };
+
+/**
+ * Completely clear all bundle documents and syncState from Firestore and localStorage
+ */
+export const clearAllBundles = async (companyId) => {
+  if (!companyId || !db) return;
+  try {
+    const allCols = [...BUNDLE_COLLECTIONS, 'quotations'];
+    const batch = writeBatch(db);
+    allCols.forEach(colName => {
+      const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
+      batch.delete(bundleDocRef);
+      try {
+        localStorage.removeItem(`bundle_${colName}_${companyId}`);
+        localStorage.removeItem(`${colName}_${companyId}`);
+        localStorage.removeItem(`bundle_ver_${colName}_${companyId}`);
+      } catch (e) {}
+    });
+    const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+    batch.delete(syncStateRef);
+    await batch.commit();
+    console.log(`[BundleSync] 🧹 All bundles and syncState completely cleared on Firestore for ${companyId}`);
+  } catch (err) {
+    console.warn('[BundleSync] Error clearing all bundles:', err);
+  }
+};
+

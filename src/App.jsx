@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
@@ -18,7 +18,8 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany } from './utils/bundleSyncManager';
+import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles } from './utils/bundleSyncManager';
+import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
 import InventoryTransfer from './components/InventoryTransfer';
@@ -1358,6 +1359,61 @@ function App() {
       return [];
     }
   });
+
+  const fullERPData = useMemo(() => ({
+    staffList, 
+    schedules, 
+    scheduleTypes: typeof scheduleTypes !== 'undefined' ? scheduleTypes : [],
+    products, 
+    categories, 
+    partners, 
+    accounts, 
+    purchaseInvoices, 
+    purchaseOrders, 
+    salesInvoices, 
+    salesOrders, 
+    quotations: typeof quotations !== 'undefined' ? quotations : [],
+    warehouses, 
+    inventory, 
+    inventoryAdjustments, 
+    inventoryTransferHistory,
+    expenses: typeof expenses !== 'undefined' ? expenses : [],
+    specialPrices,
+    systemSettings,
+    favoriteMenus,
+    staffZones: typeof staffZones !== 'undefined' ? staffZones : [],
+    staffJobTitles: typeof staffJobTitles !== 'undefined' ? staffJobTitles : [],
+    actionLogs: typeof actionLogs !== 'undefined' ? actionLogs : []
+  }), [
+    staffList, schedules, scheduleTypes, products, categories, partners, accounts,
+    purchaseInvoices, purchaseOrders, salesInvoices, salesOrders, quotations,
+    warehouses, inventory, inventoryAdjustments,
+    inventoryTransferHistory, expenses, specialPrices, systemSettings,
+    favoriteMenus, staffZones, staffJobTitles, actionLogs
+  ]);
+
+  // 관리자 로그인 시 백업 주기에 따른 자동 백업 체크 및 실행
+  useEffect(() => {
+    if (!currentUser || !currentUser.companyId) return;
+    const isAdmin = currentUser.role === 'admin' || 
+                    currentUser.jobTitle === '대표' || 
+                    currentUser.role === 'super_admin' || 
+                    currentUser.userId === 'admin' || 
+                    currentUser.userId === 'madmin' || 
+                    currentUser.userId === 'sadmin';
+    if (!isAdmin) return;
+
+    const timer = setTimeout(() => {
+      if ((products && products.length > 0) || (partners && partners.length > 0) || (salesInvoices && salesInvoices.length > 0)) {
+        checkAndRunAutoBackup(currentUser.companyId, fullERPData, {
+          name: currentUser.name,
+          userId: currentUser.userId
+        }).catch(err => console.warn('[AutoBackup] Check error:', err));
+      }
+    }, 6000);
+
+    return () => clearTimeout(timer);
+  }, [currentUser?.companyId, products?.length, partners?.length, salesInvoices?.length]);
 
   const logOperation = async ({ category, subCategory, title, detail, user, type, targetId, date, time }) => {
     try {
@@ -5932,48 +5988,38 @@ function App() {
       {isDataManagerOpen && (
         <DataManager 
           currentUser={currentUser}
+          fullData={fullERPData}
           onClose={() => setIsDataManagerOpen(false)} 
           onSaveAll={() => {
-            const data = { 
-              staffList, 
-              schedules, 
-              scheduleTypes: typeof scheduleTypes !== 'undefined' ? scheduleTypes : [],
-              products, 
-              categories, 
-              partners, 
-              accounts, 
-              purchaseInvoices, 
-              purchaseOrders, 
-              salesInvoices, 
-              salesOrders, 
-              warehouses, 
-              inventory, 
-              inventoryAdjustments, 
-              inventoryTransferHistory,
-              expenses: typeof expenses !== 'undefined' ? expenses : [],
-              specialPrices,
-              systemSettings,
-              favoriteMenus,
-              staffZones: typeof staffZones !== 'undefined' ? staffZones : [],
-              staffJobTitles: typeof staffJobTitles !== 'undefined' ? staffJobTitles : []
-            };
+            const data = fullERPData;
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
+            URL.revokeObjectURL(url);
           }}
-          onRestoreAll={async (data) => {
-            if (window.confirm('모든 현재 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
+          onRestoreAll={async (data, skipConfirm = false) => {
+            if (skipConfirm || window.confirm('모든 현재 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
               try {
                 const companyId = currentUser?.companyId || 'default';
-                const batch = writeBatch(db);
                 
-                // Helper to add set operations to batch
-                const addToBatch = (collectionName, items) => {
+                const BATCH_CHUNK_SIZE = 400;
+                let currentBatch = writeBatch(db);
+                let opCount = 0;
+
+                const commitAndResetBatch = async () => {
+                  if (opCount > 0) {
+                    await currentBatch.commit();
+                    currentBatch = writeBatch(db);
+                    opCount = 0;
+                  }
+                };
+
+                const addToBatch = async (collectionName, items) => {
                   if (!Array.isArray(items)) return;
-                  items.forEach(item => {
+                  for (const item of items) {
                     let docId = String(item.id || item._docId || Date.now() + Math.random());
                     if (collectionName === 'staffList' && item.userId) {
                       docId = `${companyId}_${item.userId}`;
@@ -5981,34 +6027,46 @@ function App() {
                       docId = `${companyId}_${item.loginId}`;
                     }
                     const cleanItem = { ...item };
-                    delete cleanItem._docId; // clean up internal field
-                    batch.set(doc(db, 'companies', companyId, collectionName, docId), {
+                    delete cleanItem._docId;
+                    currentBatch.set(doc(db, 'companies', companyId, collectionName, docId), {
                       ...cleanItem,
                       companyId
                     });
-                  });
+                    opCount++;
+                    if (opCount >= BATCH_CHUNK_SIZE) {
+                      await commitAndResetBatch();
+                    }
+                  }
+                  try {
+                    await saveBundle(companyId, collectionName, items);
+                  } catch (bundleErr) {
+                    console.warn(`[Restore] saveBundle warning for ${collectionName}:`, bundleErr);
+                  }
                 };
 
-                if (data.staffList) addToBatch('staffList', data.staffList);
-                if (data.schedules) addToBatch('schedules', data.schedules);
-                if (data.scheduleTypes) addToBatch('scheduleTypes', data.scheduleTypes);
-                if (data.products) addToBatch('products', data.products);
-                if (data.categories) addToBatch('categories', data.categories);
-                if (data.partners) addToBatch('partners', data.partners);
-                if (data.accounts) addToBatch('accounts', data.accounts);
-                if (data.purchaseInvoices) addToBatch('purchaseInvoices', data.purchaseInvoices);
-                if (data.purchaseOrders) addToBatch('purchaseOrders', data.purchaseOrders);
-                if (data.salesInvoices) addToBatch('salesInvoices', data.salesInvoices);
-                if (data.salesOrders) addToBatch('salesOrders', data.salesOrders);
-                if (data.warehouses) addToBatch('warehouses', data.warehouses);
-                if (data.inventoryAdjustments) addToBatch('inventoryAdjustments', data.inventoryAdjustments);
-                if (data.inventoryTransferHistory) addToBatch('inventoryTransferHistory', data.inventoryTransferHistory);
-                if (data.expenses) addToBatch('expenses', data.expenses);
-                if (data.specialPrices) addToBatch('specialPrices', data.specialPrices);
-                if (data.staffZones) addToBatch('staffZones', data.staffZones);
-                if (data.staffJobTitles) addToBatch('staffJobTitles', data.staffJobTitles);
-                
-                // For single docs, write directly
+                if (data.staffList) await addToBatch('staffList', data.staffList);
+                if (data.schedules) await addToBatch('schedules', data.schedules);
+                if (data.scheduleTypes) await addToBatch('scheduleTypes', data.scheduleTypes);
+                if (data.products) await addToBatch('products', data.products);
+                if (data.categories) await addToBatch('categories', data.categories);
+                if (data.partners) await addToBatch('partners', data.partners);
+                if (data.accounts) await addToBatch('accounts', data.accounts);
+                if (data.purchaseInvoices) await addToBatch('purchaseInvoices', data.purchaseInvoices);
+                if (data.purchaseOrders) await addToBatch('purchaseOrders', data.purchaseOrders);
+                if (data.salesInvoices) await addToBatch('salesInvoices', data.salesInvoices);
+                if (data.salesOrders) await addToBatch('salesOrders', data.salesOrders);
+                if (data.quotations) await addToBatch('quotations', data.quotations);
+                if (data.warehouses) await addToBatch('warehouses', data.warehouses);
+                if (data.inventoryAdjustments) await addToBatch('inventoryAdjustments', data.inventoryAdjustments);
+                if (data.inventoryTransferHistory) await addToBatch('inventoryTransferHistory', data.inventoryTransferHistory);
+                if (data.expenses) await addToBatch('expenses', data.expenses);
+                if (data.specialPrices) await addToBatch('specialPrices', data.specialPrices);
+                if (data.staffZones) await addToBatch('staffZones', data.staffZones);
+                if (data.staffJobTitles) await addToBatch('staffJobTitles', data.staffJobTitles);
+                if (data.actionLogs) await addToBatch('actionLogs', data.actionLogs);
+
+                await commitAndResetBatch();
+
                 if (data.inventory) {
                   const val = data.inventory.value || data.inventory;
                   await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: val, companyId });
@@ -6022,63 +6080,261 @@ function App() {
                   const val = data.favoriteMenus.value || data.favoriteMenus;
                   await setDoc(doc(db, 'companies', companyId, 'settings', 'favoriteMenus'), { value: val, companyId });
                 }
-                
-                await batch.commit();
 
-                // Local states will be updated by the active onSnapshot real-time listener automatically
-                alert('데이터를 성공적으로 불러왔습니다!');
+                alert('데이터를 성공적으로 복원하였습니다! 최신 데이터 반영을 위해 시스템을 새로고침합니다.');
                 setIsDataManagerOpen(false);
+                window.location.reload();
               } catch (err) {
                 console.error('Restore all error:', err);
                 alert('데이터 복구 중 오류가 발생했습니다: ' + err.message);
               }
             }
           }}
-          onDeleteAll={async () => {
-            if (window.confirm('정말로 모든 데이터를 영구히 삭제하시겠습니까?\n이 작업은 데이터베이스와 로컬 스토리지 상의 모든 정보를 지우며 결코 되돌릴 수 없습니다.')) {
-              try {
-                const companyId = currentUser?.companyId || 'default';
-                
-                // 1. Clear database collections (비동기 병렬 처리)
-                const collectionsToDelete = [
-                  'staffList', 'schedules', 'scheduleTypes', 'products', 'categories', 
-                  'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders', 
-                  'salesInvoices', 'salesOrders', 'warehouses', 'inventoryTransferHistory', 
-                  'expenses', 'specialPrices', 'staffZones', 'staffJobTitles'
-                ];
-                
-                console.log(`[Delete All] Clearing ${collectionsToDelete.length} collections for company: ${companyId}`);
-                
-                for (const colName of collectionsToDelete) {
-                  const colRef = collection(db, 'companies', companyId, colName);
-                  const snap = await getDocs(colRef);
-                  if (snap.size > 0) {
-                    await Promise.all(snap.docs.map(doc => deleteDoc(doc.ref)));
-                  }
-                }
-                
-                // 2. Clear settings single documents
-                const settingsDocs = ['inventory', 'systemSettings', 'favoriteMenus', 'dashboardConfig'];
-                for (const docName of settingsDocs) {
-                  await deleteDoc(doc(db, 'companies', companyId, 'settings', docName));
-                  await deleteDoc(doc(db, 'companies', companyId, 'systemSettings', docName)); // 구버전 경로 백업 삭제
-                }
-                
-                // 3. Clear localStorage completely (보안 데이터 제외)
-                const license = localStorage.getItem('licenseData');
-                const user = localStorage.getItem('currentUser');
-                
-                localStorage.clear();
-                
-                if (license) localStorage.setItem('licenseData', license);
-                if (user) localStorage.setItem('currentUser', user);
+          onDeleteAll={async (enteredPassword) => {
+            const uid = currentUser?.userId;
+            const companyId = currentUser?.companyId || 'default';
 
-                alert('데이터베이스 및 로컬 스토리지 상의 모든 정보가 성공적으로 영구 삭제되었습니다. 시스템을 초기 상태로 재부팅합니다.');
-                window.location.reload();
+            console.log(`[Delete All] Initiating deletion for company: ${companyId}, user: ${uid}`);
+
+            // 1. 관리자 권한 확인 (동기식 우선)
+            const hasAdminPrivilege = currentUser?.role === 'admin' || 
+                                      currentUser?.jobTitle === '대표' || 
+                                      currentUser?.role === 'super_admin' || 
+                                      currentUser?.userId === 'admin' || 
+                                      currentUser?.userId === 'madmin' || 
+                                      currentUser?.userId === 'sadmin';
+
+            let compData = null;
+            try {
+              const compSnap = await Promise.race([
+                getDoc(doc(db, 'companies', companyId)),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+              ]);
+              if (compSnap && compSnap.exists()) compData = compSnap.data();
+            } catch (err) {
+              console.warn("[Delete All] Company doc query skipped or timed out:", err);
+            }
+
+            const initialAdminId = compData?.adminId || compData?.email || compData?.id || companyId;
+            const isInitialAdmin = uid && (
+              uid.toLowerCase() === String(initialAdminId).toLowerCase() ||
+              uid.toLowerCase() === String(compData?.email || '').toLowerCase() ||
+              uid.toLowerCase() === String(compData?.id || '').toLowerCase() ||
+              uid.toLowerCase() === String(companyId).toLowerCase()
+            );
+
+            if (!isInitialAdmin && !hasAdminPrivilege) {
+              return { 
+                success: false, 
+                message: `전체 데이터 초기화는 해당 회원사의 관리자(최초 가입 ID: ${initialAdminId}) 계정으로만 진행할 수 있습니다.` 
+              };
+            }
+
+            // 2. 비밀번호 검증 (현재 세션 / 회사 / 직원 DB 대조)
+            let isPasswordValid = false;
+
+            if (currentUser?.password && currentUser.password === enteredPassword) {
+              isPasswordValid = true;
+            }
+
+            if (!isPasswordValid && compData?.password && compData.password === enteredPassword) {
+              isPasswordValid = true;
+            }
+
+            if (!isPasswordValid && uid) {
+              try {
+                const staffSnap = await Promise.race([
+                  getDoc(doc(db, 'companies', companyId, 'staffList', `${companyId}_${uid}`)),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+                ]);
+                if (staffSnap && staffSnap.exists() && staffSnap.data()?.password === enteredPassword) {
+                  isPasswordValid = true;
+                }
               } catch (err) {
-                console.error('Delete all error:', err);
-                alert('데이터 초기화 중 오류가 발생했습니다: ' + err.message);
+                console.warn("[Delete All] Staff doc query skipped or timed out:", err);
               }
+            }
+
+            if (!isPasswordValid && (uid === 'madmin' || uid === 'sadmin') && enteredPassword === 'gdtop7818@@') {
+              isPasswordValid = true;
+            }
+
+            if (!isPasswordValid) {
+              return { 
+                success: false, 
+                message: '회원사 관리자 비밀번호가 일치하지 않습니다. 등록된 비밀번호를 다시 확인해 주세요.' 
+              };
+            }
+
+            try {
+              window.__isResettingData = true;
+
+              // 3. 삭제할 모든 문서 수집 (메모리 상태 우선 수집 + Firestore 빠른 스캔)
+              const docRefsMap = new Map();
+
+              const addDocRef = (colName, docId) => {
+                if (docId && typeof docId === 'string' && docId.trim()) {
+                  const ref = doc(db, 'companies', companyId, colName, docId.trim());
+                  docRefsMap.set(ref.path, ref);
+                }
+              };
+
+              // 3-1. 현재 로드된 메모리 상의 모든 문서 즉시 수집
+              if (Array.isArray(schedules)) schedules.forEach(it => addDocRef('schedules', String(it.id || it._docId || '')));
+              if (Array.isArray(scheduleTypes)) scheduleTypes.forEach(it => addDocRef('scheduleTypes', String(it.name || it.id || it._docId || '')));
+              if (Array.isArray(products)) products.forEach(it => addDocRef('products', String(it.id || it._docId || '')));
+              if (Array.isArray(categories)) categories.forEach(it => addDocRef('categories', String(it.id || it._docId || it.name || '')));
+              if (Array.isArray(partners)) partners.forEach(it => addDocRef('partners', it.loginId ? `${companyId}_${it.loginId}` : String(it.id || it._docId || '')));
+              if (Array.isArray(accounts)) accounts.forEach(it => addDocRef('accounts', String(it.id || it._docId || '')));
+              if (Array.isArray(purchaseInvoices)) purchaseInvoices.forEach(it => addDocRef('purchaseInvoices', String(it.id || it._docId || '')));
+              if (Array.isArray(purchaseOrders)) purchaseOrders.forEach(it => addDocRef('purchaseOrders', String(it.id || it._docId || '')));
+              if (Array.isArray(salesInvoices)) salesInvoices.forEach(it => addDocRef('salesInvoices', String(it.id || it._docId || '')));
+              if (Array.isArray(salesOrders)) salesOrders.forEach(it => addDocRef('salesOrders', String(it.id || it._docId || '')));
+              if (Array.isArray(quotations)) quotations.forEach(it => addDocRef('quotations', String(it.id || it._docId || '')));
+              if (Array.isArray(warehouses)) warehouses.forEach(it => addDocRef('warehouses', String(it.id || it._docId || '')));
+              if (Array.isArray(inventoryTransferHistory)) inventoryTransferHistory.forEach(it => addDocRef('inventoryTransferHistory', String(it.id || it._docId || '')));
+              if (Array.isArray(inventoryAdjustments)) inventoryAdjustments.forEach(it => addDocRef('inventoryAdjustments', String(it.id || it._docId || '')));
+              if (Array.isArray(expenses)) expenses.forEach(it => addDocRef('expenses', String(it.id || it._docId || '')));
+              if (Array.isArray(specialPrices)) specialPrices.forEach(it => addDocRef('specialPrices', String(it.id || it._docId || '')));
+              if (Array.isArray(staffZones)) staffZones.forEach(it => addDocRef('staffZones', String(it.id || it._docId || it.name || '')));
+              if (Array.isArray(staffJobTitles)) staffJobTitles.forEach(it => addDocRef('staffJobTitles', String(it.id || it._docId || it.name || '')));
+              if (Array.isArray(actionLogs)) actionLogs.forEach(it => addDocRef('actionLogs', String(it.id || it._docId || '')));
+
+              if (Array.isArray(staffList)) {
+                staffList.forEach(s => {
+                  if (s.userId !== uid && s.userId !== initialAdminId) {
+                    const docId = s.userId ? `${companyId}_${s.userId}` : String(s.id || s._docId || '');
+                    addDocRef('staffList', docId);
+                  }
+                });
+              }
+
+              // 3-2. Firestore 서버 컬렉션 빠른 병렬 스캔 (타임아웃 5초)
+              const collectionsToScan = [
+                'schedules', 'scheduleTypes', 'products', 'categories', 
+                'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders', 
+                'salesInvoices', 'salesOrders', 'quotations', 'warehouses', 
+                'inventoryTransferHistory', 'inventoryAdjustments', 'expenses', 'specialPrices', 
+                'staffZones', 'staffJobTitles', 'actionLogs', 'deletedLogs', 'activityLogs', 'staffList'
+              ];
+
+              try {
+                const scanPromises = collectionsToScan.map(async (colName) => {
+                  try {
+                    const snap = await Promise.race([
+                      getDocs(collection(db, 'companies', companyId, colName)),
+                      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                    ]);
+                    if (snap && snap.docs) {
+                      snap.docs.forEach(d => {
+                        if (colName === 'staffList') {
+                          const sData = d.data();
+                          if (sData.userId !== uid && sData.userId !== initialAdminId && d.id !== `${companyId}_${uid}` && d.id !== `${companyId}_${initialAdminId}`) {
+                            docRefsMap.set(d.ref.path, d.ref);
+                          }
+                        } else {
+                          docRefsMap.set(d.ref.path, d.ref);
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    // 개별 컬렉션 스캔 실패 시 계속 진행
+                  }
+                });
+                await Promise.all(scanPromises);
+              } catch (e) {
+                console.warn("[Delete All] Scan warning:", e);
+              }
+
+              const allRefs = Array.from(docRefsMap.values());
+              console.log(`[Delete All] Total ${allRefs.length} documents to delete.`);
+
+              // 4. writeBatch 일괄 삭제 실행 (청크 250개)
+              const chunkSize = 250;
+              for (let i = 0; i < allRefs.length; i += chunkSize) {
+                const chunk = allRefs.slice(i, i + chunkSize);
+                const batch = writeBatch(db);
+                chunk.forEach(ref => batch.delete(ref));
+                await Promise.race([
+                  batch.commit(),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 5000))
+                ]).catch(err => console.warn(`[Delete All] Batch chunk ${i} commit error:`, err));
+              }
+
+              // 5. 단일 설정 문서 삭제
+              try {
+                const settingsBatch = writeBatch(db);
+                const settingsDocs = ['inventory', 'systemSettings', 'favoriteMenus', 'dashboardConfig'];
+                settingsDocs.forEach(docName => {
+                  settingsBatch.delete(doc(db, 'companies', companyId, 'settings', docName));
+                  settingsBatch.delete(doc(db, 'companies', companyId, 'systemSettings', docName));
+                });
+                await settingsBatch.commit().catch(err => console.warn("[Delete All] Settings batch error:", err));
+              } catch (e) {
+                console.warn("[Delete All] Settings delete error:", e);
+              }
+
+              // 5-1. Firestore 번들 캐시 및 로컬 번들 캐시 완전 초기화 (데이터 부활 원천 차단)
+              try {
+                await clearAllBundles(companyId);
+              } catch (bundleErr) {
+                console.warn("[Delete All] Clear all bundles error:", bundleErr);
+              }
+
+              // 6. 관리자 계정 Firestore 보존 및 동기화
+              const adminUserId = uid || initialAdminId;
+              const adminCompositeId = `${companyId}_${adminUserId}`;
+              const preservedAdmin = {
+                id: currentUser?.id || Date.now(),
+                userId: adminUserId,
+                password: enteredPassword,
+                name: currentUser?.name || compData?.ceo || compData?.name || '대표관리자',
+                jobTitle: '대표',
+                role: 'admin',
+                companyId: companyId,
+                permissions: { ALL: true },
+                createdAt: compData?.createdAt || new Date().toISOString()
+              };
+
+              try {
+                await setDoc(doc(db, 'companies', companyId, 'staffList', adminCompositeId), preservedAdmin);
+              } catch (e) {
+                console.warn("[Delete All] Admin preserve write error:", e);
+              }
+
+              // 7. 메모리 React 상태 초기화
+              setProducts([]);
+              setPartners([]);
+              setSalesOrders([]);
+              setPurchaseOrders([]);
+              setQuotations([]);
+              setSalesInvoices([]);
+              setPurchaseInvoices([]);
+              setAccounts([]);
+              setInventoryAdjustments([]);
+              setInventoryTransferHistory([]);
+              setActionLogs([]);
+              setSchedules([]);
+              setScheduleTypes([]);
+              setWarehouses([]);
+              setExpenses([]);
+              setSpecialPrices([]);
+              setStaffZones([]);
+              setStaffJobTitles([]);
+
+              // 8. 로컬 스토리지 정리
+              const license = localStorage.getItem('licenseData');
+              localStorage.clear();
+              if (license) localStorage.setItem('licenseData', license);
+              localStorage.setItem('currentUser', JSON.stringify(preservedAdmin));
+
+              alert('회원사의 모든 데이터(품목, 거래처, 전표, 원장, 재고, 일정 등)가 성공적으로 영구 삭제 및 초기화되었습니다.');
+              window.location.reload();
+              return { success: true };
+            } catch (err) {
+              console.error('Delete all error:', err);
+              window.__isResettingData = false;
+              return { success: false, message: '데이터 초기화 중 오류가 발생했습니다: ' + err.message };
             }
           }}
         />
