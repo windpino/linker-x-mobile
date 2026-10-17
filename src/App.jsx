@@ -49,6 +49,7 @@ import BulkEditor from './components/BulkEditor';
 import EditDeleteReport from './components/EditDeleteReport';
 import CashBook from './components/CashBook';
 import DepositSlipManagement from './components/DepositSlipManagement';
+import WithdrawalSlipManagement from './components/WithdrawalSlipManagement';
 import ExpenseRegistration from './components/ExpenseRegistration';
 import StaffPerformanceReport from './components/StaffPerformanceReport';
 import DataManager from './components/DataManager';
@@ -468,6 +469,7 @@ function App() {
   const [selectedAgencyForSignup, setSelectedAgencyForSignup] = useState(null);
   const [isCashBookOpen, setIsCashBookOpen] = useState(false);
   const [isDepositSlipManagementOpen, setIsDepositSlipManagementOpen] = useState(false);
+  const [isWithdrawalSlipManagementOpen, setIsWithdrawalSlipManagementOpen] = useState(false);
   const [isExpenseRegistrationOpen, setIsExpenseRegistrationOpen] = useState(false);
   const [isStaffPerformanceReportOpen, setIsStaffPerformanceReportOpen] = useState(false);
   const [isDataManagerOpen, setIsDataManagerOpen] = useState(false);
@@ -553,6 +555,7 @@ function App() {
       if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) count++;
       if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) count++;
       if (typeof isDepositSlipManagementOpen !== 'undefined' && isDepositSlipManagementOpen) count++;
+      if (typeof isWithdrawalSlipManagementOpen !== 'undefined' && isWithdrawalSlipManagementOpen) count++;
       if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) count++;
       if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) count++;
       if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) count++;
@@ -612,6 +615,7 @@ function App() {
       if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return true; }
       if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) { setIsCashBookOpen(false); return true; }
       if (typeof isDepositSlipManagementOpen !== 'undefined' && isDepositSlipManagementOpen) { setIsDepositSlipManagementOpen(false); return true; }
+      if (typeof isWithdrawalSlipManagementOpen !== 'undefined' && isWithdrawalSlipManagementOpen) { setIsWithdrawalSlipManagementOpen(false); return true; }
       if (typeof isExpenseRegistrationOpen !== 'undefined' && isExpenseRegistrationOpen) { setIsExpenseRegistrationOpen(false); return true; }
       if (typeof isStaffPerformanceReportOpen !== 'undefined' && isStaffPerformanceReportOpen) { setIsStaffPerformanceReportOpen(false); return true; }
       if (typeof isDataManagerOpen !== 'undefined' && isDataManagerOpen) { setIsDataManagerOpen(false); return true; }
@@ -1250,7 +1254,7 @@ function App() {
     isPurchaseInvoiceOpen || isPurchaseOrderOpen || isSalesInvoiceOpen ||
     isSalesOrderOpen || isOrderListOpen || isCashReportOpen || isSalesReportOpen ||
     isOrderReportOpen || isInventoryReportOpen || isReceivablesReportOpen ||
-    isRecentActivityModalOpen || isCashBookOpen || isDepositSlipManagementOpen ||
+    isRecentActivityModalOpen || isCashBookOpen || isDepositSlipManagementOpen || isWithdrawalSlipManagementOpen ||
     isExpenseRegistrationOpen || isStaffPerformanceReportOpen || isDataManagerOpen ||
     isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen || isInventoryTransferExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
@@ -2043,13 +2047,13 @@ function App() {
         }
       }
 
-      const targetWH = invData.warehouse;
+      const targetWH = invData.warehouse || (warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '창고');
       if (!nextInv[targetWH]) nextInv[targetWH] = {};
       const whInv = { ...nextInv[targetWH] };
       const processedTime = now.toLocaleTimeString('ko-KR', { hour12: false });
       
       const newHistoryEntries = [];
-      for (const item of invData.items) {
+      for (const item of (invData.items || [])) {
         whInv[item.name] = (whInv[item.name] || 0) + Number(item.qty);
         const historyId = Date.now() + Math.random();
         const purchaseEntry = {
@@ -5072,6 +5076,7 @@ function App() {
           onOpenEditDeleteReport={() => setIsEditDeleteReportOpen(true)}
           onOpenCashBook={() => setIsCashBookOpen(true)}
           onOpenDepositSlipManagement={() => setIsDepositSlipManagementOpen(true)}
+          onOpenWithdrawalSlipManagement={() => setIsWithdrawalSlipManagementOpen(true)}
           onOpenExpenseRegistration={() => setIsExpenseRegistrationOpen(true)}
           onOpenStaffPerformanceReport={() => setIsStaffPerformanceReportOpen(true)}
           onOpenDataManager={() => setIsDataManagerOpen(true)}
@@ -5142,6 +5147,7 @@ function App() {
               cash_report_3:              () => openCashReport('계좌별'),
               cash_book:                  () => setIsCashBookOpen(true),
               deposit_slip:               () => setIsDepositSlipManagementOpen(true),
+              withdrawal_slip:            () => setIsWithdrawalSlipManagementOpen(true),
               expense:                    () => setIsExpenseRegistrationOpen(true),
               sales_report:               () => setIsSalesReportOpen(true),
               order_report:               () => setIsOrderReportOpen(true),
@@ -5889,6 +5895,22 @@ function App() {
           onDeleteInvoice={handleDeleteSalesInvoice}
           onOpenSalesInvoice={openSalesInvoice}
           onOpenLedger={openSalesLedger}
+          zIndex={10000}
+        />
+      )}
+      {isWithdrawalSlipManagementOpen && (
+        <WithdrawalSlipManagement
+          onClose={() => setIsWithdrawalSlipManagementOpen(false)}
+          purchaseInvoices={purchaseInvoices}
+          partners={partners}
+          accounts={accounts}
+          staffList={staffList}
+          warehouses={warehouses}
+          currentUser={currentUser}
+          onSavePurchaseInvoice={handleSavePurchaseInvoice}
+          onDeleteInvoice={handleDeletePurchaseInvoice}
+          onOpenPurchaseInvoice={openPurchaseInvoice}
+          onOpenLedger={() => setIsPurchaseLedgerOpen(true)}
           zIndex={10000}
         />
       )}
