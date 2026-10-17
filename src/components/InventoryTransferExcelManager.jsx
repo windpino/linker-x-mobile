@@ -57,8 +57,8 @@ const InventoryTransferExcelManager = ({
     const dataToExport = validTransfers.map((item, idx) => ({
       'No': idx + 1,
       '이동일자': item.date || (item.createdAt ? item.createdAt.slice(0, 10) : ''),
-      '출발창고': item.from || '',
-      '도착창고': item.to || '',
+      '출고창고': item.from || '',
+      '입고창고': item.to || '',
       '품목명': item.item || item.productName || '',
       '규격': item.spec || '',
       '이동수량': Number(item.qty) || 0,
@@ -106,8 +106,8 @@ const InventoryTransferExcelManager = ({
 
         setMapping({
           date: findCol(['이동일자', '일자', '날짜', '이동일', '전표일자', 'date']),
-          from: findCol(['출발창고', '출고창고', '출발', '보내는창고', '출고지', 'from']),
-          to: findCol(['도착창고', '입고창고', '도착', '받는창고', '입고지', 'to']),
+          from: findCol(['출고창고', '출발창고', '출고', '출발', '보내는창고', '출고지', 'from']),
+          to: findCol(['입고창고', '도착창고', '입고', '도착', '받는창고', '입고지', 'to']),
           item: findCol(['품목명', '상품명', '품목', '품명', '물품명', 'item', 'product']),
           spec: findCol(['규격', '규격/모델', '모델', 'spec']),
           qty: findCol(['이동수량', '수량', '개수', 'qty', 'quantity']),
@@ -291,8 +291,8 @@ const InventoryTransferExcelManager = ({
   // 일괄 편집기(그리드) 컬럼 정의
   const gridColumns = [
     { field: 'date', header: '이동일자', type: 'string', width: 110, align: 'center' },
-    { field: 'from', header: '출발창고', type: 'string', width: 130, align: 'center' },
-    { field: 'to', header: '도착창고', type: 'string', width: 130, align: 'center' },
+    { field: 'from', header: '출고창고', type: 'string', width: 130, align: 'center' },
+    { field: 'to', header: '입고창고', type: 'string', width: 130, align: 'center' },
     { field: 'item', header: '품목명', type: 'string', width: 220, align: 'left' },
     { field: 'spec', header: '규격', type: 'string', width: 120, align: 'center' },
     { field: 'qty', header: '이동수량', type: 'number', width: 100, align: 'right' },
@@ -302,8 +302,8 @@ const InventoryTransferExcelManager = ({
 
   const MAPPING_LABELS = [
     { key: 'date', label: '이동일자', required: false },
-    { key: 'from', label: '출발창고', required: false },
-    { key: 'to', label: '도착창고', required: false },
+    { key: 'from', label: '출고창고', required: false },
+    { key: 'to', label: '입고창고', required: false },
     { key: 'item', label: '품목명', required: true },
     { key: 'spec', label: '규격', required: false },
     { key: 'qty', label: '이동수량', required: true },
@@ -422,7 +422,7 @@ const InventoryTransferExcelManager = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
-                  {['이동일자', '출발창고', '도착창고', '품목명', '규격', '수량', '처리자', '비고'].map(h => (
+                  {['이동일자', '출고창고', '입고창고', '품목명', '규격', '수량', '처리자', '비고'].map(h => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: h === '수량' ? 'right' : 'left', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
                   ))}
                 </tr>
@@ -475,7 +475,7 @@ const InventoryTransferExcelManager = ({
             <span>엑셀 파일로 저장</span>
           </div>
           <p>
-            등록된 전체 재고이동 내역(일자, 출발창고, 도착창고, 품목명, 규격, 수량, 처리자, 비고 등)을 엑셀 파일(.xlsx)로 내보내어 관리 및 백업용으로 활용합니다.
+            등록된 전체 재고이동 내역(일자, 출고창고, 입고창고, 품목명, 규격, 수량, 처리자, 비고 등)을 엑셀 파일(.xlsx)로 내보내어 관리 및 백업용으로 활용합니다.
           </p>
           <button className="btn-excel-primary blue" onClick={handleDownload}>
             재고이동 내역 다운로드 (.xlsx)
@@ -489,7 +489,7 @@ const InventoryTransferExcelManager = ({
             <span>일괄 편집 (그리드)</span>
           </div>
           <p>
-            재고이동 일자, 출발창고, 도착창고, 품목명, 규격, 수량, 처리자, 비고 등을 스마트 에디터 그리드에서 마우스 드래그와 더블클릭으로 편리하게 일괄 수정합니다.
+            재고이동 일자, 출고창고, 입고창고, 품목명, 규격, 수량, 처리자, 비고 등을 스마트 에디터 그리드에서 마우스 드래그와 더블클릭으로 편리하게 일괄 수정합니다.
           </p>
           <button className="btn-excel-primary green" onClick={() => setIsBulkOpen(true)}>
             일괄 편집기 열기
@@ -503,7 +503,7 @@ const InventoryTransferExcelManager = ({
             <span style={{ color: '#92400e' }}>엑셀 파일 분석 업로드</span>
           </div>
           <p style={{ color: '#78350f', marginBottom: '12px' }}>
-            대량의 재고이동 내역 엑셀 파일을 업로드하여, 일자, 출발/도착창고, 품목, 수량 속성을 똑똑하게 매핑하고 일괄 자동 등록합니다.
+            대량의 재고이동 내역 엑셀 파일을 업로드하여, 일자, 출고/입고창고, 품목, 수량 속성을 똑똑하게 매핑하고 일괄 자동 등록합니다.
           </p>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFileUpload} />
           <button className="btn-excel-primary orange" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
@@ -585,7 +585,7 @@ const InventoryTransferExcelManager = ({
           재고이동 엑셀 데이터 안전 관리 가이드
         </div>
         <ul className="guide-list">
-          <li>재고이동 엑셀 업로드 시 출발창고, 도착창고 및 품목명이 시스템에 등록된 창고명 및 품목명과 일치해야 정상 처리됩니다.</li>
+          <li>재고이동 엑셀 업로드 시 출고창고, 입고창고 및 품목명이 시스템에 등록된 창고명 및 품목명과 일치해야 정상 처리됩니다.</li>
           <li>기존 등록된 재고이동 내역의 큰 변화나 중요 변경 사항이 있을 때는 업로드 전 '재고이동 내역 다운로드'를 통해 백업 파일을 먼저 안전하게 저장하세요.</li>
           <li>'재고이동 데이터 삭제'는 되돌릴 수 없으므로 반드시 작업 전 백업 파일을 다운로드해 두시기 바랍니다.</li>
           <li>재고이동 내역 삭제 시 실시간 재고(현재고)는 변동되지 않으며, 과거 이동 기록 장부만 정리됩니다.</li>
