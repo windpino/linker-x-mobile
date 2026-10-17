@@ -1052,6 +1052,22 @@ function App() {
     loadCache('actionLogs', setActionLogs, []);
     loadCache('staffZones', setStaffZones, defaultZones);
     loadCache('staffJobTitles', setStaffJobTitles, defaultJobTitles);
+
+    // Hydrate recentActivity settings immediately from localStorage (prevents flashing of deleted items)
+    try {
+      const cachedDeleted = localStorage.getItem(`deletedActivityIds_${companyId}`);
+      if (cachedDeleted && cachedDeleted !== 'undefined' && cachedDeleted !== 'null') {
+        const parsed = JSON.parse(cachedDeleted);
+        if (Array.isArray(parsed)) setDeletedActivityIds(parsed);
+      }
+      const cachedPeriod = localStorage.getItem(`activityRetentionPeriod_${companyId}`);
+      if (cachedPeriod && cachedPeriod !== 'undefined' && cachedPeriod !== 'null') {
+        setActivityRetentionPeriod(cachedPeriod);
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate recentActivity settings in mobile:', e);
+    }
+
     hydratedCompanyRef.current = companyId;
   }, [currentUser?.companyId, currentView]);
 
@@ -1065,6 +1081,24 @@ function App() {
         setCompanySettings(companySnap.data());
       }
       
+      // 1-1. Recent Activity settings (fetch immediately so recent activity widget is filtered instantly)
+      try {
+        const raSnap = await getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'));
+        if (raSnap.exists()) {
+          const raData = raSnap.data();
+          if (raData.retentionPeriod !== undefined) {
+            setActivityRetentionPeriod(raData.retentionPeriod);
+            localStorage.setItem(`activityRetentionPeriod_${companyId}`, raData.retentionPeriod);
+          }
+          if (Array.isArray(raData.deletedActivityIds)) {
+            setDeletedActivityIds(raData.deletedActivityIds);
+            localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(raData.deletedActivityIds));
+          }
+        }
+      } catch (e) {
+        console.warn('Error fetching recentActivity settings in mobile:', e);
+      }
+
       // 2. Ultra-lightweight Bundle Sync (metadata/syncState 1 Read -> download only modified bundles)
       const setterMap = {
         staffList: setStaffList,
@@ -2597,6 +2631,7 @@ function App() {
     if (!period || period === 'none') return;
     const companyId = currentUser?.companyId || 'default';
     const now = Date.now();
+    let cutoff = null;
     if (period === '1day') cutoff = now - 24 * 60 * 60 * 1000;
     else if (period === '1week') cutoff = now - 7 * 24 * 60 * 60 * 1000;
     else if (period === '1month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
@@ -4482,6 +4517,24 @@ function App() {
 
               setCurrentUser(finalUser); 
               localStorage.setItem('currentUser', JSON.stringify(finalUser));
+
+              // Load deletedActivityIds and retentionPeriod immediately for target company
+              try {
+                const cachedDel = localStorage.getItem(`deletedActivityIds_${companyId}`);
+                if (cachedDel && cachedDel !== 'undefined' && cachedDel !== 'null') {
+                  const parsed = JSON.parse(cachedDel);
+                  if (Array.isArray(parsed)) setDeletedActivityIds(parsed);
+                } else {
+                  setDeletedActivityIds([]);
+                }
+                const cachedPer = localStorage.getItem(`activityRetentionPeriod_${companyId}`);
+                if (cachedPer && cachedPer !== 'undefined' && cachedPer !== 'null') {
+                  setActivityRetentionPeriod(cachedPer);
+                }
+              } catch (e) {
+                setDeletedActivityIds([]);
+              }
+
               if (u.role === 'super_admin') setCurrentView('super_admin');
               else setCurrentView('dashboard');
               

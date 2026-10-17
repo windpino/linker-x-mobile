@@ -791,36 +791,70 @@ const RecentActivityModal = ({
               </button>
             )}
 
-            {canDelete && selectedActIds.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  const targets = filteredActivities.filter(a => selectedActIds.includes(a.id));
-                  if (onDeleteMultipleActivities) {
-                    onDeleteMultipleActivities(targets);
-                  } else {
-                    targets.forEach(a => onDeleteActivity(a));
-                  }
-                  setSelectedActIds([]);
-                }}
-                style={{
-                  marginLeft: 'auto',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 10px',
-                  fontSize: '0.74rem',
-                  fontWeight: 800,
-                  color: '#dc2626',
-                  backgroundColor: '#fee2e2',
-                  border: '1px solid #fca5a5',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(220, 38, 38, 0.15)'
-                }}
-              >
-                <Trash2 size={12} /> 선택 삭제 ({selectedActIds.length}건)
-              </button>
+            {canDelete && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                {selectedActIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targets = filteredActivities.filter(a => selectedActIds.includes(a.id));
+                      if (onDeleteMultipleActivities) {
+                        onDeleteMultipleActivities(targets);
+                      } else {
+                        targets.forEach(a => onDeleteActivity(a));
+                      }
+                      setSelectedActIds([]);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      color: '#dc2626',
+                      backgroundColor: '#fee2e2',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(220, 38, 38, 0.15)'
+                    }}
+                  >
+                    <Trash2 size={12} /> 선택 삭제 ({selectedActIds.length}건)
+                  </button>
+                )}
+                {allActivities.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`현재 최근 처리현황에 남아있는 전체 내역(${allActivities.length}건)을 완전히 삭제하시겠습니까?\n\n※ 실제 등록된 원본 전표/주문서/재고 등은 안전하게 보존되며, 최근 처리현황 내역만 깨끗이 비워집니다.`)) {
+                        if (onDeleteMultipleActivities) {
+                          onDeleteMultipleActivities(allActivities);
+                        } else {
+                          allActivities.forEach(a => onDeleteActivity(a));
+                        }
+                        setSelectedActIds([]);
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      color: '#991b1b',
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                    title="최근 처리현황 목록 전체를 한 번에 비웁니다"
+                  >
+                    <Trash2 size={12} /> 전체 비우기
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
