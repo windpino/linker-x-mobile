@@ -54,6 +54,7 @@ import StaffPerformanceReport from './components/StaffPerformanceReport';
 import DataManager from './components/DataManager';
 import PartnerExcelManager from './components/PartnerExcelManager';
 import ProductExcelManager from './components/ProductExcelManager';
+import InventoryTransferExcelManager from './components/InventoryTransferExcelManager';
 import PurchaseLedgerExcelManager from './components/PurchaseLedgerExcelManager';
 import SalesLedgerExcelManager from './components/SalesLedgerExcelManager';
 import SettingsManager from './components/SettingsManager';
@@ -472,6 +473,7 @@ function App() {
   const [isDataManagerOpen, setIsDataManagerOpen] = useState(false);
   const [isPartnerExcelOpen, setIsPartnerExcelOpen] = useState(false);
   const [isProductExcelOpen, setIsProductExcelOpen] = useState(false);
+  const [isInventoryTransferExcelOpen, setIsInventoryTransferExcelOpen] = useState(false);
   const [isPurchaseLedgerExcelOpen, setIsPurchaseLedgerExcelOpen] = useState(false);
   const [isSalesLedgerExcelOpen, setIsSalesLedgerExcelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -558,6 +560,7 @@ function App() {
       if (typeof isProductBulkOpen !== 'undefined' && isProductBulkOpen) count++;
       if (typeof isPartnerExcelOpen !== 'undefined' && isPartnerExcelOpen) count++;
       if (typeof isProductExcelOpen !== 'undefined' && isProductExcelOpen) count++;
+      if (typeof isInventoryTransferExcelOpen !== 'undefined' && isInventoryTransferExcelOpen) count++;
       if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) count++;
       if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) count++;
       if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) count++;
@@ -616,6 +619,7 @@ function App() {
       if (typeof isProductBulkOpen !== 'undefined' && isProductBulkOpen) { setIsProductBulkOpen(false); return true; }
       if (typeof isPartnerExcelOpen !== 'undefined' && isPartnerExcelOpen) { setIsPartnerExcelOpen(false); return true; }
       if (typeof isProductExcelOpen !== 'undefined' && isProductExcelOpen) { setIsProductExcelOpen(false); return true; }
+      if (typeof isInventoryTransferExcelOpen !== 'undefined' && isInventoryTransferExcelOpen) { setIsInventoryTransferExcelOpen(false); return true; }
       if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) { setIsPurchaseLedgerExcelOpen(false); return true; }
       if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) { setIsSalesLedgerExcelOpen(false); return true; }
       if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) { setIsSettingsOpen(false); return true; }
@@ -1248,7 +1252,7 @@ function App() {
     isOrderReportOpen || isInventoryReportOpen || isReceivablesReportOpen ||
     isRecentActivityModalOpen || isCashBookOpen || isDepositSlipManagementOpen ||
     isExpenseRegistrationOpen || isStaffPerformanceReportOpen || isDataManagerOpen ||
-    isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen ||
+    isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen || isInventoryTransferExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
     isLicenseOpen || isDashboardSettingsOpen || isFavoriteSettingsOpen ||
     isInventoryAdjustmentOpen || isPhysicalInventoryOpen || isInventoryMismatchOpen || isTaxReportOpen ||
@@ -5073,6 +5077,7 @@ function App() {
           onOpenDataManager={() => setIsDataManagerOpen(true)}
           onOpenPartnerExcel={() => setIsPartnerExcelOpen(true)}
           onOpenProductExcel={() => setIsProductExcelOpen(true)}
+          onOpenInventoryTransferExcel={() => setIsInventoryTransferExcelOpen(true)}
           onOpenPurchaseLedgerExcel={() => setIsPurchaseLedgerExcelOpen(true)}
           onOpenSalesLedgerExcel={() => setIsSalesLedgerExcelOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
@@ -5149,6 +5154,7 @@ function App() {
               data_manager:               () => setIsDataManagerOpen(true),
               partner_excel:              () => setIsPartnerExcelOpen(true),
               product_excel:              () => setIsProductExcelOpen(true),
+              inventory_transfer_excel:   () => setIsInventoryTransferExcelOpen(true),
               sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
               purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
               settings:                   () => setIsSettingsOpen(true),
@@ -6184,6 +6190,16 @@ function App() {
       )}
       {isPartnerExcelOpen && <PartnerExcelManager onClose={() => setIsPartnerExcelOpen(false)} partners={partners} setPartners={setPartners} staffList={staffList} setStaffList={setStaffList} currentUser={currentUser} />}
       {isProductExcelOpen && <ProductExcelManager onClose={() => setIsProductExcelOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} currentUser={currentUser} />}
+      {isInventoryTransferExcelOpen && (
+        <InventoryTransferExcelManager 
+          onClose={() => setIsInventoryTransferExcelOpen(false)} 
+          inventoryTransferHistory={inventoryTransferHistory} 
+          setInventoryTransferHistory={setInventoryTransferHistory} 
+          warehouses={warehouses} 
+          products={products} 
+          currentUser={currentUser} 
+        />
+      )}
       {isPurchaseLedgerExcelOpen && <PurchaseLedgerExcelManager onClose={() => setIsPurchaseLedgerExcelOpen(false)} purchaseInvoices={purchaseInvoices} setPurchaseInvoices={setPurchaseInvoices} currentUser={currentUser} />}
       {isSalesLedgerExcelOpen && <SalesLedgerExcelManager onClose={() => setIsSalesLedgerExcelOpen(false)} salesInvoices={salesInvoices} setSalesInvoices={setSalesInvoices} currentUser={currentUser} />}
       {isSettingsOpen && (

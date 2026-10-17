@@ -11,7 +11,7 @@ const Header = ({
   onOpenCashReport, onOpenSalesReport, onOpenOrderReport, onOpenInventoryReport, onOpenEditDeleteReport, onOpenCashBook,
   onOpenDepositSlipManagement,
   onOpenExpenseRegistration, onOpenStaffPerformanceReport, onOpenDataManager,
-  onOpenPartnerExcel, onOpenProductExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
+  onOpenPartnerExcel, onOpenProductExcel, onOpenInventoryTransferExcel, onOpenPurchaseLedgerExcel, onOpenSalesLedgerExcel,
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
   onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenPhysicalInventory,
@@ -69,6 +69,7 @@ const Header = ({
     if (perm.startsWith('데이터 전체 저장/불러오기')) return Boolean(p['데이터 전체 저장/불러오기/삭제'] || p['데이터 전체 저장/불러오기']);
     if (perm.startsWith('거래처 엑셀파일로 저장/불러오기')) return Boolean(p['거래처 엑셀파일로 저장/불러오기/삭제'] || p['거래처 엑셀파일로 저장/불러오기']);
     if (perm.startsWith('품목 엑셀파일로 저장/불러오기')) return Boolean(p['품목 엑셀파일로 저장/불러오기/삭제'] || p['품목 엑셀파일로 저장/불러오기']);
+    if (perm.startsWith('재고이동 내역 저장/불러오기') || perm.startsWith('재고이동내역')) return Boolean(p['재고이동 내역 저장/불러오기/삭제'] || p['재고이동 내역 저장/불러오기'] || p['재고이동'] || p['데이터 전체 저장/불러오기/삭제']);
     if (perm.startsWith('매출처원장 저장/불러오기')) return Boolean(p['매출처원장 저장/불러오기/삭제'] || p['매출처원장 저장/불러오기']);
     if (perm.startsWith('매입처원장 저장/불러오기')) return Boolean(p['매입처원장 저장/불러오기/삭제'] || p['매입처원장 저장/불러오기']);
     if (perm === '환경설정') return Boolean(p['환경설정']);
@@ -382,6 +383,13 @@ const Header = ({
       keywords: '품목엑셀 상품엑셀 업로드 다운로드 품목삭제 상품삭제 삭제',
     },
     {
+      title: '재고이동 내역 저장/불러오기/삭제',
+      category: '데이터관리',
+      action: onOpenInventoryTransferExcel,
+      perm: hasPerm('재고이동 내역 저장/불러오기/삭제'),
+      keywords: '재고이동 엑셀 이동내역 창고이동 이동기록 엑셀저장 재고이동내역 이동삭제',
+    },
+    {
       title: '매출처원장 저장/불러오기/삭제',
       category: '데이터관리',
       action: onOpenSalesLedgerExcel,
@@ -525,6 +533,8 @@ const Header = ({
     '데이터 전체 저장/불러오기/삭제': '🗄️',
     '거래처 엑셀파일로 저장/불러오기/삭제': '📊',
     '품목 엑셀파일로 저장/불러오기/삭제': '📈',
+    '재고이동 내역 저장/불러오기/삭제': '🚚',
+    '재고이동 내역 저장/불러오기': '🚚',
     '매출처원장 저장/불러오기/삭제': '📋',
     '매입처원장 저장/불러오기/삭제': '📝',
     '데이터 전체 저장/불러오기': '🗄️',
@@ -714,6 +724,7 @@ const Header = ({
               { perm: hasPerm('데이터 전체 저장/불러오기/삭제'), label: '데이터 전체 저장/불러오기/삭제', action: onOpenDataManager },
               { perm: hasPerm('거래처 엑셀파일로 저장/불러오기/삭제'), label: '거래처 엑셀파일로 저장/불러오기/삭제', action: onOpenPartnerExcel },
               { perm: hasPerm('품목 엑셀파일로 저장/불러오기/삭제'), label: '품목 엑셀파일로 저장/불러오기/삭제', action: onOpenProductExcel },
+              { perm: hasPerm('재고이동 내역 저장/불러오기/삭제'), label: '재고이동 내역 저장/불러오기/삭제', action: onOpenInventoryTransferExcel },
               { perm: hasPerm('매출처원장 저장/불러오기/삭제'), label: '매출처원장 저장/불러오기/삭제', action: onOpenSalesLedgerExcel },
               { perm: hasPerm('매입처원장 저장/불러오기/삭제'), label: '매입처원장 저장/불러오기/삭제', action: onOpenPurchaseLedgerExcel },
             ]},
