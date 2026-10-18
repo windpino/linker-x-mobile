@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { flushSync } from 'react-dom';
 import { Save, Plus, Trash2, X, AlertCircle, Settings, Search, Undo2, Redo2, Edit3 } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
 import './BulkEditor.css';
 
 const PARTNER_COLUMNS = [
@@ -262,7 +263,7 @@ const isChosungOnly = (str) => {
   return str.split('').every(ch => CHO_LIST.includes(ch) || ch === ' ' || !isNaN(Number(ch)));
 };
 
-const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inputMode, isDirectInput, pendingChar, onPaste, list, onToggleKoreanMode, cursorAtEnd }) => {
+const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inputMode, isDirectInput, pendingChar, onPaste, list, onToggleKoreanMode, cursorAtEnd, isKoreanMode = true }) => {
   const inputRef = React.useRef(null);
   const isComposing = React.useRef(false);
 
@@ -304,6 +305,7 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
   
   const handleKeyDown = (e) => {
     if (e.key === 'HangulMode' || e.code === 'Lang1' || e.code === 'Lang2' || e.key === 'Hanja' || e.code === 'Hanja') {
+      e.stopPropagation();
       if (onToggleKoreanMode) onToggleKoreanMode();
       return;
     }
@@ -326,18 +328,18 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
     const input = e.target;
     const val = input.value;
     
-    const combined = combineInitialAndVowel(val);
-    if (combined !== val) {
-      // Fix for Chrome/Edge native IME corruption:
-      // Modifying input.value during an active composition fundamentally corrupts the native buffer.
-      // To reset the buffer cleanly, we synchronously blur and focus the input.
-      // CRUCIAL: We MUST update the value and set the selection range BEFORE blurring.
-      // This ensures that when focus() is called, the browser restores a collapsed cursor,
-      // rather than selecting the entire text which would cause the next keystroke to overwrite it.
-      const diff = val.length - combined.length;
+    let nextVal = val;
+    if (isKoreanMode && type !== 'number' && type !== 'boolean' && /[a-zA-Z]/.test(val)) {
+      nextVal = convertEnToKo(val);
+    } else {
+      nextVal = combineInitialAndVowel(val);
+    }
+
+    if (nextVal !== val) {
+      const diff = val.length - nextVal.length;
       const newCursorPos = Math.max(0, input.selectionStart - diff);
       
-      input.value = combined;
+      input.value = nextVal;
       input.setSelectionRange(newCursorPos, newCursorPos);
       input.blur();
       input.focus();
@@ -356,12 +358,16 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
       onCompositionEnd={(e) => { 
         isComposing.current = false; 
         const input = e.currentTarget;
-        const combined = combineInitialAndVowel(input.value);
-        if (combined !== input.value) {
+        let nextVal = input.value;
+        if (isKoreanMode && type !== 'number' && type !== 'boolean' && /[a-zA-Z]/.test(nextVal)) {
+          nextVal = convertEnToKo(nextVal);
+        } else {
+          nextVal = combineInitialAndVowel(nextVal);
+        }
+        if (nextVal !== input.value) {
           const start = input.selectionStart;
-          input.value = combined;
+          input.value = nextVal;
           input.setSelectionRange(start, start);
-          // Dispatch input event for any parent listeners
           const event = new Event('input', { bubbles: true });
           input.dispatchEvent(event);
         }
@@ -482,11 +488,51 @@ const BulkEditor = ({
   const [bulkInputValue, setBulkInputValue] = useState('');
   const [isBulkInputActive, setIsBulkInputActive] = useState(false);
   const [enterDirection, setEnterDirection] = useState('vertical'); // 'vertical' or 'horizontal'
-  const [isKoreanMode, setIsKoreanMode] = useState(true); // Default Korean mode (한글 기본)
+  const [isKoreanMode, setIsKoreanMode] = useState(() => {
+    const saved = localStorage.getItem('bulk_editor_is_korean_mode');
+    if (saved !== null) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return true; // Default Korean mode (한글 기본)
+  });
+
+  const toggleKoreanMode = useCallback(() => {
+    setIsKoreanMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('bulk_editor_is_korean_mode', JSON.stringify(next));
+      } catch (e) {}
+      if (next) {
+        setSearchTerm(curr => (curr && /[a-zA-Z]/.test(curr)) ? convertEnToKo(curr) : curr);
+      }
+      return next;
+    });
+  }, []);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const tableWrapperRef = React.useRef(null);
+  const searchInputRef = React.useRef(null);
 
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearchChange = (e) => {
+    const rawVal = e.target.value;
+    const input = e.target;
+    if (isKoreanMode && /[a-zA-Z]/.test(rawVal)) {
+      const converted = convertEnToKo(rawVal);
+      setSearchTerm(converted);
+      setTimeout(() => {
+        if (input && document.activeElement === input) {
+          const len = converted.length;
+          input.setSelectionRange(len, len);
+        }
+      }, 0);
+    } else {
+      setSearchTerm(rawVal);
+    }
+  };
 
   const warehouseOptions = React.useMemo(() => {
     const list = (warehouses || []).map(w => typeof w === 'string' ? w : w.name).filter(Boolean);
@@ -559,11 +605,15 @@ const BulkEditor = ({
     const term = searchTerm.trim().toLowerCase();
     if (term) {
       const isChosung = isChosungOnly(term);
+      const convertedTerm = convertEnToKo(term).toLowerCase();
       result = result.filter(item => {
         return Object.entries(item).some(([key, val]) => {
           if (val === undefined || val === null || key === 'id' || key === 'companyId') return false;
           const valStr = String(val).toLowerCase();
           if (valStr.includes(term)) return true;
+          if (convertedTerm && valStr.includes(convertedTerm)) return true;
+          if (matchesInitialSound(valStr, term)) return true;
+          if (convertedTerm && matchesInitialSound(valStr, convertedTerm)) return true;
           if (isChosung) {
             const chosungVal = getChosung(valStr).toLowerCase();
             if (chosungVal.includes(term)) return true;
@@ -899,7 +949,7 @@ const BulkEditor = ({
 
       // Handle Han/Eng key toggle (한/영 키 전환)
       if (e.key === 'HangulMode' || e.code === 'Lang1' || e.code === 'Lang2' || e.key === 'Hanja' || e.code === 'Hanja') {
-        setIsKoreanMode(prev => !prev);
+        toggleKoreanMode();
         return;
       }
 
@@ -1168,7 +1218,7 @@ const BulkEditor = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [selection, editingCell, isBulkInputActive, data, columns, visibleData, activeColumns, handlePaste, isPartner, isKoreanMode, handleUndo, handleRedo, updateData, recalcRow]);
+  }, [selection, editingCell, isBulkInputActive, data, columns, visibleData, activeColumns, handlePaste, isPartner, isKoreanMode, handleUndo, handleRedo, updateData, recalcRow, toggleKoreanMode]);
 
   const handleBulkInputChange = (val) => {
     setBulkInputValue(val);
@@ -1404,11 +1454,12 @@ const BulkEditor = ({
             <div className="bulk-search-box">
               <Search size={15} className="bulk-search-icon" />
               <input
+                ref={searchInputRef}
                 type="text"
                 className="bulk-search-input"
                 placeholder={isWarehouseStock ? "품목명, 코드, 규격 검색" : isProduct ? "품목명, 코드, 규격, 바코드 검색" : isPartner ? "거래처명, 대표자, 전화번호 검색" : "검색어 입력"}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     setSearchTerm('');
@@ -1484,7 +1535,7 @@ const BulkEditor = ({
             )}
 
             <div 
-              onClick={() => setIsKoreanMode(prev => !prev)}
+              onClick={toggleKoreanMode}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1499,7 +1550,7 @@ const BulkEditor = ({
                 userSelect: 'none',
                 transition: 'all 0.2s'
               }}
-              title="클릭하거나 키보드 [한/영] 키를 눌러 전환 (기본: 한글)"
+              title="클릭하거나 키보드 [한/영] 키를 눌러 전환 (설정한 상태가 유지됩니다)"
             >
               <span style={{ fontWeight: 600, color: isKoreanMode ? '#1e40af' : '#475569' }}>한/영:</span>
               <span style={{ 
@@ -1686,7 +1737,8 @@ const BulkEditor = ({
                             cursorAtEnd={editingCell?.cursorAtEnd}
                             pendingChar={editingCell?.pendingChar}
                             list={col.field === 'warehouse' ? 'bulk-editor-warehouse-options' : (col.field === 'manager' ? 'bulk-editor-manager-options' : (col.field === 'taxType' ? 'bulk-editor-taxtype-options' : undefined))}
-                            onToggleKoreanMode={() => setIsKoreanMode(prev => !prev)}
+                            isKoreanMode={isKoreanMode}
+                            onToggleKoreanMode={toggleKoreanMode}
                             onSave={(val, key) => {
                               handleChange(rIdx, col.field, col.type === 'boolean' ? parseBooleanValue(val) : (col.type === 'number' ? Number(val) || 0 : val));
                               if (key === 'Tab' || key === 'ShiftTab') {
@@ -1733,7 +1785,8 @@ const BulkEditor = ({
                             isDirectInput={true}
                             pendingChar={bulkInputValue}
                             list={col.field === 'warehouse' ? 'bulk-editor-warehouse-options' : (col.field === 'manager' ? 'bulk-editor-manager-options' : (col.field === 'taxType' ? 'bulk-editor-taxtype-options' : undefined))}
-                            onToggleKoreanMode={() => setIsKoreanMode(prev => !prev)}
+                            isKoreanMode={isKoreanMode}
+                            onToggleKoreanMode={toggleKoreanMode}
                             onSave={(val) => {
                               handleBulkInputChange(val);
                               setIsBulkInputActive(false);
