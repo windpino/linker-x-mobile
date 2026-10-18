@@ -1,8 +1,10 @@
-import { StrictMode } from 'react'
+import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import SingleInstanceModal from './components/SingleInstanceModal.jsx'
+import { singleInstanceManager } from './utils/singleInstanceManager'
 
 // ─────────────────────────────────────────────────────────
 // 모바일 뷰포트 높이 보정 (주소창 포함/제외 차이 해결)
@@ -21,6 +23,30 @@ window.addEventListener('orientationchange', () => {
   setTimeout(setVh, 100);
 });
 
+function AppWithSingleInstance() {
+  const [instanceState, setInstanceState] = useState({
+    isPrimary: true,
+    isDuplicate: false,
+    existingInfo: null
+  });
+
+  useEffect(() => {
+    const unsubscribe = singleInstanceManager.subscribe((state) => {
+      setInstanceState(state);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <>
+      {instanceState.isDuplicate && (
+        <SingleInstanceModal existingInfo={instanceState.existingInfo} />
+      )}
+      <App />
+    </>
+  );
+}
+
 try {
   const rootElement = document.getElementById('root');
   if (rootElement) {
@@ -28,7 +54,7 @@ try {
     createRoot(rootElement).render(
       <StrictMode>
         <ErrorBoundary>
-          <App />
+          <AppWithSingleInstance />
         </ErrorBoundary>
       </StrictMode>,
     );
