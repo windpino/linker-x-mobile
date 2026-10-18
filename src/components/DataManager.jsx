@@ -3,7 +3,8 @@ import {
   Save, Upload, Trash2, Download, FileJson, 
   AlertTriangle, Lock, Eye, EyeOff, Calendar, Cloud, 
   CloudUpload, RefreshCw, CheckCircle, Clock, Database, 
-  Search, ShieldAlert, Sparkles, FolderUp, Check
+  Search, ShieldAlert, Sparkles, FolderUp, Check,
+  Activity, BarChart3, CheckCircle2, ArrowRight
 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { db } from '../firebase';
@@ -33,6 +34,20 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 실시간 진행률 그래프 모달 상태
+  const [progressState, setProgressState] = useState({
+    isOpen: false,
+    mode: 'restore', // 'restore' | 'delete' | 'backup'
+    title: '',
+    subtitle: '',
+    percent: 0,
+    currentStep: '',
+    currentCount: 0,
+    totalCount: 0,
+    detail: '',
+    isComplete: false
+  });
 
   // 기간별 부분삭제 관련 상태
   const todayStr = new Date().toISOString().split('T')[0];
@@ -126,7 +141,27 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
 
     const targetData = fullData || {};
     setIsSavingServer(true);
+    setProgressState({
+      isOpen: true,
+      mode: 'backup',
+      title: '서버 백업 저장 진행 중...',
+      subtitle: '현재 회원사의 모든 ERP 데이터를 클라우드 서버에 안전하게 보관합니다.',
+      percent: 15,
+      currentStep: '백업 데이터 패키징 및 청크 분할 준비...',
+      currentCount: 0,
+      totalCount: 1,
+      detail: '품목, 거래처, 전표, 재고 등 전체 데이터셋 패키징...',
+      isComplete: false
+    });
+
     try {
+      setProgressState(prev => ({
+        ...prev,
+        percent: 45,
+        currentStep: '클라우드 저장소 업로드 중...',
+        detail: '파이어베이스 serverBackups 문서 및 청크 생성 중...'
+      }));
+
       const res = await saveServerBackup(companyId, targetData, {
         title: userTitle.trim() || defaultTitle,
         creator: currentUser?.name || '관리자',
@@ -134,10 +169,23 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
         cycleType: 'manual'
       });
 
+      setProgressState(prev => ({
+        ...prev,
+        percent: 100,
+        currentStep: '서버 백업 저장 완료!',
+        currentCount: res.totalCount,
+        totalCount: res.totalCount,
+        detail: `총 ${res.totalCount.toLocaleString()}건 (${res.sizeFormatted}) 안전 보관 완료`,
+        isComplete: true
+      }));
+
+      await new Promise(r => setTimeout(r, 700));
+      setProgressState(prev => ({ ...prev, isOpen: false }));
       alert(`[서버 백업 완료]\n총 ${res.totalCount.toLocaleString()}건의 데이터(${res.sizeFormatted})가 서버에 안전하게 저장되었습니다.`);
       await loadBackupsAndSettings();
     } catch (err) {
       console.error('[DataManager] Save to server error:', err);
+      setProgressState(prev => ({ ...prev, isOpen: false }));
       alert('서버 백업 저장 중 오류가 발생했습니다: ' + err.message);
     } finally {
       setIsSavingServer(false);
@@ -172,6 +220,19 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
         if (promptTitle === null) return;
 
         setIsSavingServer(true);
+        setProgressState({
+          isOpen: true,
+          mode: 'backup',
+          title: '백업 파일 서버 업로드 진행 중...',
+          subtitle: `[${promptTitle}] 로컬 백업 파일을 클라우드 보관함에 안전하게 등록합니다.`,
+          percent: 25,
+          currentStep: '로컬 파일 분석 및 데이터 패키징 중...',
+          currentCount: 0,
+          totalCount: counts.total,
+          detail: '클라우드 청크 전송 준비...',
+          isComplete: false
+        });
+
         const res = await saveServerBackup(companyId, parsed, {
           title: promptTitle.trim() || `[파일 업로드] ${fileName}`,
           memo: `로컬 파일(${file.name}) 업로드 백업`,
@@ -180,10 +241,23 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
           cycleType: 'file_upload'
         });
 
+        setProgressState(prev => ({
+          ...prev,
+          percent: 100,
+          currentStep: '서버 업로드 완료!',
+          currentCount: counts.total,
+          totalCount: counts.total,
+          detail: `${res.title} 백업(${res.sizeFormatted}) 보관 완료`,
+          isComplete: true
+        }));
+
+        await new Promise(r => setTimeout(r, 700));
+        setProgressState(prev => ({ ...prev, isOpen: false }));
         alert(`[서버 업로드 완료]\n${res.title} 백업(${res.sizeFormatted})이 서버에 정상 보관되었습니다.`);
         await loadBackupsAndSettings();
       } catch (err) {
         console.error('[DataManager] Upload file error:', err);
+        setProgressState(prev => ({ ...prev, isOpen: false }));
         alert('백업 파일 업로드 중 오류가 발생했습니다: ' + err.message);
       } finally {
         setIsSavingServer(false);
@@ -209,15 +283,45 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
     if (!window.confirm(confirmMsg)) return;
 
     setIsRestoringServer(true);
+    setProgressState({
+      isOpen: true,
+      mode: 'restore',
+      title: '서버 백업 데이터 불러오는 중...',
+      subtitle: `[${backup.title}] 클라우드 백업 데이터를 다운로드하여 시스템에 반영합니다.`,
+      percent: 5,
+      currentStep: '서버 백업 데이터 다운로드 중...',
+      currentCount: 0,
+      totalCount: backup.totalCount || 100,
+      detail: `클라우드 저장소로부터 백업 파일을 수신하고 있습니다 (${backup.sizeFormatted})...`,
+      isComplete: false
+    });
+
     try {
       const backupData = await loadServerBackupData(companyId, backup.id);
       if (!backupData || typeof backupData !== 'object') {
         throw new Error('백업 데이터 내용을 읽어올 수 없습니다.');
       }
 
-      await onRestoreAll(backupData, true);
+      setProgressState(prev => ({
+        ...prev,
+        percent: 12,
+        currentStep: '백업 데이터 무결성 검증 완료',
+        detail: `총 ${backup.totalCount?.toLocaleString() || ''}건 데이터 반영 준비...`
+      }));
+
+      await onRestoreAll(backupData, true, (prog) => {
+        setProgressState(prev => ({
+          ...prev,
+          isOpen: true,
+          mode: 'restore',
+          title: '서버 백업 데이터 불러오는 중...',
+          subtitle: `[${backup.title}] 데이터를 데이터베이스 및 시스템에 반영하고 있습니다.`,
+          ...prog
+        }));
+      });
     } catch (err) {
       console.error('[DataManager] Restore from server error:', err);
+      setProgressState(prev => ({ ...prev, isOpen: false }));
       alert('서버 백업 복원 중 오류가 발생했습니다: ' + err.message);
       setIsRestoringServer(false);
     }
@@ -321,6 +425,19 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
     }
 
     setIsDeleting(true);
+    setProgressState({
+      isOpen: true,
+      mode: 'delete',
+      title: `[${catLabel}] 데이터 삭제 진행 중...`,
+      subtitle: `${periodText} 기간의 ${catLabel} 데이터를 데이터베이스에서 안전하게 삭제하고 있습니다.`,
+      percent: 10,
+      currentStep: '삭제 대상 데이터 조회 및 스캔 중...',
+      currentCount: 0,
+      totalCount: 0,
+      detail: '파이어베이스 컬렉션 조회 중...',
+      isComplete: false
+    });
+
     try {
       const colMap = {
         partner: ['partners'],
@@ -336,7 +453,8 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
       const collections = colMap[catKey] || [catKey];
       let totalDeletedCount = 0;
 
-      for (const col of collections) {
+      for (let cIdx = 0; cIdx < collections.length; cIdx++) {
+        const col = collections[cIdx];
         const snap = await getDocs(collection(db, 'companies', companyId, col));
         const allDocs = snap.docs;
         
@@ -358,9 +476,26 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
           const batch = writeBatch(db);
           chunk.forEach(d => batch.delete(d.ref));
           await batch.commit();
+
+          const pct = 15 + Math.round(((i + chunk.length) / docsToDelete.length) * 70);
+          setProgressState(prev => ({
+            ...prev,
+            percent: Math.min(85, pct),
+            currentStep: `[${col}] 문서 일괄 삭제 중`,
+            currentCount: i + chunk.length,
+            totalCount: docsToDelete.length,
+            detail: `${col} 컬렉션 ${i + chunk.length} / ${docsToDelete.length}건 삭제 반영...`
+          }));
         }
 
         try {
+          setProgressState(prev => ({
+            ...prev,
+            percent: 92,
+            currentStep: '번들 캐시 갱신 중...',
+            detail: `${col} 남은 데이터 번들 재동기화 중...`
+          }));
+
           if (effectivePeriod) {
             const deletedIds = new Set(docsToDelete.map(d => d.id));
             const remainingDocs = allDocs
@@ -377,11 +512,22 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
         }
       }
 
-      alert(`[${catLabel}] (${periodText}) 데이터 ${totalDeletedCount}건이 성공적으로 삭제되었습니다.\n(최종재고는 변동 없이 보존되었습니다.)\n\n화면을 새로고침합니다.`);
+      setProgressState(prev => ({
+        ...prev,
+        percent: 100,
+        currentStep: '삭제 완료!',
+        currentCount: totalDeletedCount,
+        totalCount: totalDeletedCount,
+        detail: `총 ${totalDeletedCount.toLocaleString()}건 삭제 완료. 시스템을 새로고침합니다.`,
+        isComplete: true
+      }));
+
+      await new Promise(r => setTimeout(r, 800));
       window.location.reload();
     } catch (err) {
       console.error(`Delete ${catLabel} error:`, err);
-      alert(`${catLabel} 삭제 중 오류가 발생했습니다: ' + err.message`);
+      setProgressState(prev => ({ ...prev, isOpen: false }));
+      alert(`${catLabel} 삭제 중 오류가 발생했습니다: ` + err.message);
     } finally {
       setIsDeleting(false);
     }
@@ -395,12 +541,42 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const data = JSON.parse(event.target.result);
-          onRestoreAll(data);
+          if (!data || typeof data !== 'object') {
+            alert('올바른 데이터 파일이 아닙니다.');
+            return;
+          }
+
+          setProgressState({
+            isOpen: true,
+            mode: 'restore',
+            title: 'PC 백업 데이터 불러오는 중...',
+            subtitle: `[${file.name}] 파일의 데이터를 시스템에 반영합니다.`,
+            percent: 5,
+            currentStep: '백업 파일 데이터 분석 중...',
+            currentCount: 0,
+            totalCount: 0,
+            detail: '데이터 무결성 검증 및 반영 준비...',
+            isComplete: false
+          });
+
+          await onRestoreAll(data, false, (prog) => {
+            setProgressState(prev => ({
+              ...prev,
+              isOpen: true,
+              mode: 'restore',
+              title: 'PC 백업 데이터 불러오는 중...',
+              subtitle: `[${file.name}] 데이터를 데이터베이스 및 시스템에 반영하고 있습니다.`,
+              ...prog
+            }));
+          });
         } catch (err) {
-          alert('올바른 데이터 파일이 아닙니다.');
+          setProgressState(prev => ({ ...prev, isOpen: false }));
+          alert('올바른 데이터 파일이 아닙니다: ' + err.message);
+        } finally {
+          if (fileInputRef.current) fileInputRef.current.value = '';
         }
       };
       reader.readAsText(file);
@@ -426,24 +602,44 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
 
     setIsDeleting(true);
     setPasswordError('');
+    setIsPasswordModalOpen(false); // Close password modal so progress graph is clearly visible!
 
-    const timeoutId = setTimeout(() => {
-      setIsDeleting(false);
-      setPasswordError('처리 시간이 초과되었습니다. 네트워크 연결 상태를 확인 후 다시 시도해 주세요.');
-    }, 45000);
+    setProgressState({
+      isOpen: true,
+      mode: 'delete',
+      title: '모든 데이터 영구 삭제 진행 중...',
+      subtitle: '회원사의 모든 데이터베이스 내역 및 번들 캐시를 안전하게 영구 삭제하고 있습니다.',
+      percent: 5,
+      currentStep: '관리자 권한 및 비밀번호 대조 중...',
+      currentCount: 0,
+      totalCount: 0,
+      detail: '보안 검증 및 파이어베이스 데이터 스캔 준비...',
+      isComplete: false
+    });
 
     try {
-      const res = await onDeleteAll(trimmed);
-      clearTimeout(timeoutId);
+      const res = await onDeleteAll(trimmed, (prog) => {
+        setProgressState(prev => ({
+          ...prev,
+          isOpen: true,
+          mode: 'delete',
+          title: '모든 데이터 영구 삭제 진행 중...',
+          subtitle: '회원사의 모든 데이터베이스 내역 및 번들 캐시를 안전하게 영구 삭제하고 있습니다.',
+          ...prog
+        }));
+      });
+
       if (res && res.success === false) {
-        setPasswordError(res.message || '비밀번호가 일치하지 않습니다.');
         setIsDeleting(false);
+        setProgressState(prev => ({ ...prev, isOpen: false }));
+        setIsPasswordModalOpen(true);
+        setPasswordError(res.message || '비밀번호가 일치하지 않습니다.');
       }
     } catch (err) {
-      clearTimeout(timeoutId);
       console.error("Delete all error:", err);
-      setPasswordError('데이터 삭제 중 오류가 발생했습니다: ' + (err.message || String(err)));
       setIsDeleting(false);
+      setProgressState(prev => ({ ...prev, isOpen: false }));
+      alert('데이터 삭제 중 오류가 발생했습니다: ' + (err.message || String(err)));
     }
   };
 
@@ -1247,6 +1443,176 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
                 {isDeleting ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 {isDeleting ? '영구 삭제 진행 중...' : '확인 (영구 삭제)'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- 데이터 처리 실시간 진행률 그래프 모달 --- */}
+      {progressState.isOpen && (
+        <div className="data-progress-backdrop">
+          <div className={`data-progress-modal ${progressState.mode}`}>
+            {/* Header Badge & Title */}
+            <div className="data-progress-header">
+              <div className={`progress-badge ${progressState.mode}`}>
+                {progressState.mode === 'delete' ? (
+                  <>
+                    <Trash2 size={16} className="animate-bounce" />
+                    <span>데이터 영구 삭제 진행 중</span>
+                  </>
+                ) : progressState.mode === 'restore' ? (
+                  <>
+                    <Download size={16} className="animate-bounce" />
+                    <span>데이터 불러오기(복원) 진행 중</span>
+                  </>
+                ) : (
+                  <>
+                    <CloudUpload size={16} className="animate-bounce" />
+                    <span>서버 백업 보관 진행 중</span>
+                  </>
+                )}
+              </div>
+              <h3 className="progress-title">{progressState.title}</h3>
+              <p className="progress-subtitle">{progressState.subtitle}</p>
+            </div>
+
+            {/* Circular Gauge Graph & Statistics */}
+            <div className="progress-gauge-container">
+              <div className="progress-gauge-wrapper">
+                <svg className="progress-gauge-svg" viewBox="0 0 140 140">
+                  <defs>
+                    <linearGradient id="restoreGradMobile" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#06b6d4" />
+                      <stop offset="50%" stopColor="#3b82f6" />
+                      <stop offset="100%" stopColor="#10b981" />
+                    </linearGradient>
+                    <linearGradient id="deleteGradMobile" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#f43f5e" />
+                      <stop offset="50%" stopColor="#ef4444" />
+                      <stop offset="100%" stopColor="#f97316" />
+                    </linearGradient>
+                    <linearGradient id="backupGradMobile" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="50%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#a855f7" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Background Track */}
+                  <circle
+                    className="progress-gauge-track"
+                    cx="70"
+                    cy="70"
+                    r="54"
+                    fill="none"
+                    strokeWidth="10"
+                  />
+
+                  {/* Animated Progress Circle */}
+                  <circle
+                    className="progress-gauge-fill"
+                    cx="70"
+                    cy="70"
+                    r="54"
+                    fill="none"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    stroke={
+                      progressState.mode === 'delete'
+                        ? 'url(#deleteGradMobile)'
+                        : progressState.mode === 'backup'
+                        ? 'url(#backupGradMobile)'
+                        : 'url(#restoreGradMobile)'
+                    }
+                    style={{
+                      strokeDasharray: 339.292,
+                      strokeDashoffset: 339.292 * (1 - Math.min(100, Math.max(0, progressState.percent)) / 100),
+                      transition: 'stroke-dashoffset 0.35s ease'
+                    }}
+                    transform="rotate(-90 70 70)"
+                  />
+                </svg>
+
+                {/* Center Content */}
+                <div className="progress-gauge-center">
+                  <span className="gauge-percent-text">
+                    {Math.round(progressState.percent)}<span className="percent-sign">%</span>
+                  </span>
+                  <span className="gauge-status-label">
+                    {progressState.isComplete ? '완료' : '처리 중'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Real-time Status Metric Counters */}
+              <div className="progress-stats-box">
+                <div className="stat-row">
+                  <span className="stat-label">현재 처리 상태</span>
+                  <span className="stat-val highlight">{progressState.currentStep || '진행 준비 중...'}</span>
+                </div>
+                {progressState.totalCount > 0 && (
+                  <div className="stat-row">
+                    <span className="stat-label">처리 진행 건수</span>
+                    <span className="stat-val">
+                      <strong>{progressState.currentCount.toLocaleString()}</strong> / {progressState.totalCount.toLocaleString()}건
+                    </span>
+                  </div>
+                )}
+                <div className="stat-row">
+                  <span className="stat-label">상세 진행 로그</span>
+                  <span className="stat-val detail" title={progressState.detail}>
+                    {progressState.detail || '작업을 안전하게 수행하고 있습니다...'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Horizontal Linear Progress Bar */}
+            <div className="linear-progress-wrapper">
+              <div className="linear-progress-info">
+                <span className="linear-title">
+                  <Activity size={14} className="inline mr-1 text-slate-400" />
+                  전체 진행률
+                </span>
+                <span className="linear-percent">{Math.round(progressState.percent)}%</span>
+              </div>
+              <div className="linear-progress-track">
+                <div 
+                  className={`linear-progress-bar ${progressState.mode}`}
+                  style={{ width: `${Math.min(100, Math.max(3, progressState.percent))}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 4-Step Flow Indicator Graph */}
+            <div className="progress-steps-flow">
+              <div className={`step-node ${progressState.percent >= 10 ? 'completed' : progressState.percent > 0 ? 'active' : ''}`}>
+                <div className="step-circle">{progressState.percent >= 10 ? <Check size={12} /> : '1'}</div>
+                <span className="step-text">데이터 분석</span>
+              </div>
+              <div className={`step-connector ${progressState.percent >= 15 ? 'active' : ''}`} />
+              <div className={`step-node ${progressState.percent >= 80 ? 'completed' : progressState.percent >= 15 ? 'active' : ''}`}>
+                <div className="step-circle">{progressState.percent >= 80 ? <Check size={12} /> : '2'}</div>
+                <span className="step-text">{progressState.mode === 'delete' ? '일괄 삭제' : 'DB 쓰기'}</span>
+              </div>
+              <div className={`step-connector ${progressState.percent >= 85 ? 'active' : ''}`} />
+              <div className={`step-node ${progressState.percent >= 95 ? 'completed' : progressState.percent >= 80 ? 'active' : ''}`}>
+                <div className="step-circle">{progressState.percent >= 95 ? <Check size={12} /> : '3'}</div>
+                <span className="step-text">캐시 동기화</span>
+              </div>
+              <div className={`step-connector ${progressState.percent >= 100 ? 'active' : ''}`} />
+              <div className={`step-node ${progressState.percent >= 100 ? 'completed' : 'waiting'}`}>
+                <div className="step-circle">{progressState.percent >= 100 ? <Check size={12} /> : '4'}</div>
+                <span className="step-text">완료</span>
+              </div>
+            </div>
+
+            {/* Safety Warning Footnote */}
+            <div className="progress-warning-foot">
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+              <span>
+                <strong>안내:</strong> 데이터 무결성 보호를 위해 작업이 100% 완료될 때까지 브라우저 창이나 탭을 닫지 마세요.
+              </span>
             </div>
           </div>
         </div>

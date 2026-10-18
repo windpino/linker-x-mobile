@@ -6000,11 +6000,49 @@ function App() {
             a.click();
             URL.revokeObjectURL(url);
           }}
-          onRestoreAll={async (data, skipConfirm = false) => {
+          onRestoreAll={async (data, skipConfirm = false, onProgress = null) => {
             if (skipConfirm || window.confirm('모든 현재 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
               try {
                 const companyId = currentUser?.companyId || 'default';
                 
+                if (onProgress) {
+                  onProgress({
+                    percent: 5,
+                    currentStep: '복원 대상 데이터 검증 및 분석 중...',
+                    detail: '데이터 무결성 검증 및 컬렉션 수집'
+                  });
+                }
+
+                const collections = [
+                  { name: 'staffList', label: '직원 명부' },
+                  { name: 'schedules', label: '일정 내역' },
+                  { name: 'scheduleTypes', label: '일정 분류' },
+                  { name: 'products', label: '품목 마스터' },
+                  { name: 'categories', label: '품목 카테고리' },
+                  { name: 'partners', label: '거래처 정보' },
+                  { name: 'accounts', label: '금융/계좌' },
+                  { name: 'purchaseInvoices', label: '매입/지급 전표' },
+                  { name: 'purchaseOrders', label: '발주서' },
+                  { name: 'salesInvoices', label: '매출/입금 전표' },
+                  { name: 'salesOrders', label: '수주서' },
+                  { name: 'quotations', label: '주문서/견적서' },
+                  { name: 'warehouses', label: '창고 정보' },
+                  { name: 'inventoryAdjustments', label: '재고조정 내역' },
+                  { name: 'inventoryTransferHistory', label: '재고이동 내역' },
+                  { name: 'expenses', label: '경비지출 내역' },
+                  { name: 'specialPrices', label: '거래처별 특별단가' },
+                  { name: 'staffZones', label: '직원 구역' },
+                  { name: 'staffJobTitles', label: '직원 직책' },
+                  { name: 'actionLogs', label: '최근 처리현황 로그' }
+                ];
+
+                let totalItemCount = 0;
+                collections.forEach(c => {
+                  if (Array.isArray(data[c.name])) totalItemCount += data[c.name].length;
+                });
+                if (totalItemCount === 0) totalItemCount = 1;
+
+                let processedItemCount = 0;
                 const BATCH_CHUNK_SIZE = 400;
                 let currentBatch = writeBatch(db);
                 let opCount = 0;
@@ -6017,7 +6055,7 @@ function App() {
                   }
                 };
 
-                const addToBatch = async (collectionName, items) => {
+                const addToBatch = async (collectionName, label, items) => {
                   if (!Array.isArray(items)) return;
                   for (const item of items) {
                     let docId = String(item.id || item._docId || Date.now() + Math.random());
@@ -6033,10 +6071,25 @@ function App() {
                       companyId
                     });
                     opCount++;
+                    processedItemCount++;
+
                     if (opCount >= BATCH_CHUNK_SIZE) {
                       await commitAndResetBatch();
                     }
+
+                    if (onProgress && (processedItemCount % 50 === 0 || processedItemCount === totalItemCount)) {
+                      const pct = 5 + Math.round((processedItemCount / totalItemCount) * 82);
+                      onProgress({
+                        percent: Math.min(88, pct),
+                        currentStep: `[${label}] 데이터 복원 중`,
+                        currentCount: processedItemCount,
+                        totalCount: totalItemCount,
+                        detail: `${label} (${processedItemCount.toLocaleString()} / ${totalItemCount.toLocaleString()}건) 데이터베이스 반영 중...`
+                      });
+                    }
                   }
+                  await commitAndResetBatch();
+
                   try {
                     await saveBundle(companyId, collectionName, items);
                   } catch (bundleErr) {
@@ -6044,28 +6097,23 @@ function App() {
                   }
                 };
 
-                if (data.staffList) await addToBatch('staffList', data.staffList);
-                if (data.schedules) await addToBatch('schedules', data.schedules);
-                if (data.scheduleTypes) await addToBatch('scheduleTypes', data.scheduleTypes);
-                if (data.products) await addToBatch('products', data.products);
-                if (data.categories) await addToBatch('categories', data.categories);
-                if (data.partners) await addToBatch('partners', data.partners);
-                if (data.accounts) await addToBatch('accounts', data.accounts);
-                if (data.purchaseInvoices) await addToBatch('purchaseInvoices', data.purchaseInvoices);
-                if (data.purchaseOrders) await addToBatch('purchaseOrders', data.purchaseOrders);
-                if (data.salesInvoices) await addToBatch('salesInvoices', data.salesInvoices);
-                if (data.salesOrders) await addToBatch('salesOrders', data.salesOrders);
-                if (data.quotations) await addToBatch('quotations', data.quotations);
-                if (data.warehouses) await addToBatch('warehouses', data.warehouses);
-                if (data.inventoryAdjustments) await addToBatch('inventoryAdjustments', data.inventoryAdjustments);
-                if (data.inventoryTransferHistory) await addToBatch('inventoryTransferHistory', data.inventoryTransferHistory);
-                if (data.expenses) await addToBatch('expenses', data.expenses);
-                if (data.specialPrices) await addToBatch('specialPrices', data.specialPrices);
-                if (data.staffZones) await addToBatch('staffZones', data.staffZones);
-                if (data.staffJobTitles) await addToBatch('staffJobTitles', data.staffJobTitles);
-                if (data.actionLogs) await addToBatch('actionLogs', data.actionLogs);
+                for (const col of collections) {
+                  if (data[col.name]) {
+                    await addToBatch(col.name, col.label, data[col.name]);
+                  }
+                }
 
                 await commitAndResetBatch();
+
+                if (onProgress) {
+                  onProgress({
+                    percent: 92,
+                    currentStep: '시스템 설정 및 재고 동기화 중...',
+                    currentCount: processedItemCount,
+                    totalCount: totalItemCount,
+                    detail: '단일 설정 문서(재고, 환경설정, 즐겨찾기) 저장 중...'
+                  });
+                }
 
                 if (data.inventory) {
                   const val = data.inventory.value || data.inventory;
@@ -6081,20 +6129,42 @@ function App() {
                   await setDoc(doc(db, 'companies', companyId, 'settings', 'favoriteMenus'), { value: val, companyId });
                 }
 
-                alert('데이터를 성공적으로 복원하였습니다! 최신 데이터 반영을 위해 시스템을 새로고침합니다.');
+                if (onProgress) {
+                  onProgress({
+                    percent: 100,
+                    currentStep: '데이터 복원 완료!',
+                    currentCount: totalItemCount,
+                    totalCount: totalItemCount,
+                    detail: '모든 데이터가 성공적으로 복원되었습니다. 시스템을 새로고침합니다.',
+                    isComplete: true
+                  });
+                }
+
+                await new Promise(r => setTimeout(r, 800));
                 setIsDataManagerOpen(false);
                 window.location.reload();
               } catch (err) {
                 console.error('Restore all error:', err);
+                if (onProgress) onProgress({ percent: 0, currentStep: '복원 오류 발생', detail: err.message });
                 alert('데이터 복구 중 오류가 발생했습니다: ' + err.message);
               }
             }
           }}
-          onDeleteAll={async (enteredPassword) => {
+          onDeleteAll={async (enteredPassword, onProgress = null) => {
             const uid = currentUser?.userId;
             const companyId = currentUser?.companyId || 'default';
 
             console.log(`[Delete All] Initiating deletion for company: ${companyId}, user: ${uid}`);
+
+            if (onProgress) {
+              onProgress({
+                percent: 5,
+                currentStep: '관리자 권한 및 비밀번호 대조 중...',
+                currentCount: 0,
+                totalCount: 0,
+                detail: '보안 권한 확인 중...'
+              });
+            }
 
             // 1. 관리자 권한 확인 (동기식 우선)
             const hasAdminPrivilege = currentUser?.role === 'admin' || 
@@ -6168,6 +6238,16 @@ function App() {
 
             try {
               window.__isResettingData = true;
+
+              if (onProgress) {
+                onProgress({
+                  percent: 15,
+                  currentStep: '삭제 대상 데이터 스캔 및 수집 중...',
+                  currentCount: 0,
+                  totalCount: 0,
+                  detail: '파이어베이스 전체 컬렉션 문서 스캔 시작...'
+                });
+              }
 
               // 3. 삭제할 모든 문서 수집 (메모리 상태 우선 수집 + Firestore 빠른 스캔)
               const docRefsMap = new Map();
@@ -6247,10 +6327,22 @@ function App() {
               }
 
               const allRefs = Array.from(docRefsMap.values());
-              console.log(`[Delete All] Total ${allRefs.length} documents to delete.`);
+              const totalDocs = allRefs.length;
+              console.log(`[Delete All] Total ${totalDocs} documents to delete.`);
+
+              if (onProgress) {
+                onProgress({
+                  percent: 25,
+                  currentStep: '삭제 대상 문서 확인 완료',
+                  currentCount: 0,
+                  totalCount: totalDocs,
+                  detail: `총 ${totalDocs.toLocaleString()}개의 문서 일괄 삭제 작업 준비...`
+                });
+              }
 
               // 4. writeBatch 일괄 삭제 실행 (청크 250개)
               const chunkSize = 250;
+              let deletedCount = 0;
               for (let i = 0; i < allRefs.length; i += chunkSize) {
                 const chunk = allRefs.slice(i, i + chunkSize);
                 const batch = writeBatch(db);
@@ -6259,9 +6351,31 @@ function App() {
                   batch.commit(),
                   new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 5000))
                 ]).catch(err => console.warn(`[Delete All] Batch chunk ${i} commit error:`, err));
+
+                deletedCount += chunk.length;
+                if (onProgress) {
+                  const pct = 25 + Math.round((deletedCount / (totalDocs || 1)) * 55);
+                  onProgress({
+                    percent: Math.min(80, pct),
+                    currentStep: '데이터베이스 문서 일괄 삭제 중...',
+                    currentCount: deletedCount,
+                    totalCount: totalDocs,
+                    detail: `${deletedCount.toLocaleString()} / ${totalDocs.toLocaleString()} 문서 삭제 진행 중...`
+                  });
+                }
               }
 
               // 5. 단일 설정 문서 삭제
+              if (onProgress) {
+                onProgress({
+                  percent: 85,
+                  currentStep: '시스템 설정 문서 초기화 중...',
+                  currentCount: totalDocs,
+                  totalCount: totalDocs,
+                  detail: '재고, 시스템 설정, 대시보드 문서 삭제...'
+                });
+              }
+
               try {
                 const settingsBatch = writeBatch(db);
                 const settingsDocs = ['inventory', 'systemSettings', 'favoriteMenus', 'dashboardConfig'];
@@ -6275,6 +6389,16 @@ function App() {
               }
 
               // 5-1. Firestore 번들 캐시 및 로컬 번들 캐시 완전 초기화 (데이터 부활 원천 차단)
+              if (onProgress) {
+                onProgress({
+                  percent: 92,
+                  currentStep: '파이어베이스 번들 캐시 완전 소각 중...',
+                  currentCount: totalDocs,
+                  totalCount: totalDocs,
+                  detail: 'Firestore bundles 및 syncState 메타데이터 삭제...'
+                });
+              }
+
               try {
                 await clearAllBundles(companyId);
               } catch (bundleErr) {
@@ -6328,12 +6452,24 @@ function App() {
               if (license) localStorage.setItem('licenseData', license);
               localStorage.setItem('currentUser', JSON.stringify(preservedAdmin));
 
-              alert('회원사의 모든 데이터(품목, 거래처, 전표, 원장, 재고, 일정 등)가 성공적으로 영구 삭제 및 초기화되었습니다.');
+              if (onProgress) {
+                onProgress({
+                  percent: 100,
+                  currentStep: '전체 데이터 영구 삭제 완료!',
+                  currentCount: totalDocs,
+                  totalCount: totalDocs,
+                  detail: '모든 데이터가 완전히 삭제되었습니다. 시스템을 초기 상태로 재부팅합니다.',
+                  isComplete: true
+                });
+              }
+
+              await new Promise(r => setTimeout(r, 800));
               window.location.reload();
               return { success: true };
             } catch (err) {
               console.error('Delete all error:', err);
               window.__isResettingData = false;
+              if (onProgress) onProgress({ percent: 0, currentStep: '삭제 오류 발생', detail: err.message });
               return { success: false, message: '데이터 초기화 중 오류가 발생했습니다: ' + err.message };
             }
           }}
