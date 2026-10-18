@@ -137,6 +137,11 @@ input {
   font-family: inherit;
 }
 
+/* ERP Table Headers: Prevent vertical character breaking regardless of viewport resize */
+th {
+  white-space: nowrap;
+}
+
 /* Global Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
