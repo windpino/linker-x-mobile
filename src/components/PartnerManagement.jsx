@@ -8,7 +8,7 @@ import { ALL_COLUMNS } from '../constants/partnerColumns';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { saveBundle } from '../utils/bundleSyncManager';
+import { saveBundle, deduplicatePartners } from '../utils/bundleSyncManager';
 import './Partner.css';
 
 const PartnerManagement = ({ 
@@ -84,7 +84,18 @@ const PartnerManagement = ({
     window.addEventListener('mouseup', onUp);
   }, [colWidths]);
   const safeStaffList = Array.isArray(staffList) ? staffList : [];
-  const safePartners = Array.isArray(partners) ? partners : [];
+  const safePartners = useMemo(() => {
+    return deduplicatePartners(Array.isArray(partners) ? partners : []);
+  }, [partners]);
+
+  // Auto-clean duplicates on mount or when partners change
+  useEffect(() => {
+    if (Array.isArray(partners) && safePartners.length < partners.length && currentUser?.companyId) {
+      console.log(`[PartnerManagement] 🧹 Auto-cleaning duplicate partners (${partners.length} -> ${safePartners.length})`);
+      setPartners(safePartners);
+      saveBundle(currentUser.companyId, 'partners', safePartners).catch(console.warn);
+    }
+  }, [partners, safePartners, currentUser?.companyId, setPartners]);
 
   const hasWritePermission = () => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
@@ -227,6 +238,25 @@ const PartnerManagement = ({
         updatedAt: new Date().toISOString()
       };
 
+      // Check if a partner with the same name already exists
+      const existingPartner = safePartners.find(p => 
+        String(p.name || '').trim().toLowerCase() === String(finalData.name || '').trim().toLowerCase() &&
+        String(p.id) !== String(finalData.id)
+      );
+
+      if (existingPartner && !editingPartner) {
+        const confirmOverwrite = confirm(
+          `'${finalData.name}' 거래처는 이미 등록되어 있습니다.\n\n` +
+          `동일한 이름의 거래처가 2개 생기지 않도록 기존 거래처 정보를 수정하시겠습니까?\n\n` +
+          `[확인]을 누르면 기존 거래처 정보가 업데이트됩니다.\n` +
+          `[취소]를 누르면 중복 등록이 방지됩니다.`
+        );
+        if (!confirmOverwrite) {
+          return;
+        }
+        finalData.id = existingPartner.id;
+      }
+
       // Handle old document ID deletion if loginId or email changes
       if (editingPartner) {
         const oldDocId = editingPartner.loginId ? `${companyId}_${editingPartner.loginId}` : 
@@ -244,6 +274,7 @@ const PartnerManagement = ({
       let tempPartners = safePartners.some(p => p.id === finalData.id)
         ? safePartners.map(p => p.id === finalData.id ? finalData : p)
         : [...safePartners, finalData];
+      tempPartners = deduplicatePartners(tempPartners);
       
       // Sort tempPartners by sequence first so their relative order is preserved.
       // Pass finalData.id as explicitSaveId so it takes precedence on duplicate sequence clash!
@@ -349,10 +380,11 @@ const PartnerManagement = ({
   const savePartnerSequences = async (updatedPartners, explicitSaveId = null) => {
     try {
       const companyId = currentUser?.companyId || 'default';
+      const cleanPartners = deduplicatePartners(updatedPartners);
       const batch = writeBatch(db);
       let hasChanges = false;
 
-      updatedPartners.forEach(p => {
+      cleanPartners.forEach(p => {
         const original = safePartners.find(orig => orig.id === p.id);
         const isExplicitSave = explicitSaveId !== null && Number(p.id) === Number(explicitSaveId);
 
@@ -381,9 +413,9 @@ const PartnerManagement = ({
       }
 
       // 🛡️ Always sync bundle and local cache for instant 1-read and persistence across re-logins
-      await saveBundle(companyId, 'partners', updatedPartners);
-      localStorage.setItem(`partners_${companyId}`, JSON.stringify(updatedPartners));
-      localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(updatedPartners));
+      await saveBundle(companyId, 'partners', cleanPartners);
+      localStorage.setItem(`partners_${companyId}`, JSON.stringify(cleanPartners));
+      localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(cleanPartners));
     } catch (err) {
       console.error('Error saving partner sequences to Firestore:', err);
     }

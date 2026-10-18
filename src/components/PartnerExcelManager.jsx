@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
-import { saveBundle } from '../utils/bundleSyncManager';
+import { saveBundle, deduplicatePartners } from '../utils/bundleSyncManager';
 import './ExcelManager.css';
 
 const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = [], setStaffList, currentUser, onLogout }) => {
@@ -219,8 +219,13 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
   };
 
   const handleConfirmImport = async () => {
-    const existingNames = new Set(partners.map(p => p.name));
-    const newOnes = previewPartners.filter(p => !existingNames.has(p.name));
+    const existingNames = new Set(partners.map(p => String(p.name || '').trim().toLowerCase()));
+    
+    // 1. Deduplicate preview partners internally to eliminate duplicate rows in the Excel file
+    const uniquePreview = deduplicatePartners(previewPartners);
+    
+    // 2. Only import partners that do not already exist
+    const newOnes = uniquePreview.filter(p => !existingNames.has(String(p.name || '').trim().toLowerCase()));
     
     setIsLoading(true);
     try {
@@ -244,7 +249,7 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
       });
       await batch.commit();
 
-      const nextPartners = [...partners, ...savedNewOnes];
+      const nextPartners = deduplicatePartners([...partners, ...savedNewOnes]);
       setPartners(nextPartners);
       await saveBundle(companyId, 'partners', nextPartners);
       localStorage.setItem(`partners_${companyId}`, JSON.stringify(nextPartners));

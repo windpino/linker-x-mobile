@@ -18,7 +18,7 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles } from './utils/bundleSyncManager';
+import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners } from './utils/bundleSyncManager';
 import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
@@ -1141,16 +1141,11 @@ function App() {
         if (setter) {
           let processedData = filterBundleListForCompany(companyId, colName, data);
           if (colName === 'partners') {
-            const partnerMap = new Map();
-            processedData.forEach((p, idx) => {
-              if (!p) return;
-              const pId = (p.id !== undefined && p.id !== null && p.id !== '') 
-                ? p.id 
-                : (p._docId || p.loginId || p.businessNo || `partner_${idx}_${p.name}`);
-              const standardized = { ...p, id: pId };
-              partnerMap.set(String(pId), standardized);
-            });
-            processedData = Array.from(partnerMap.values());
+            processedData = deduplicatePartners(processedData);
+            if (data && Array.isArray(data) && data.length > processedData.length) {
+              console.log(`[MobileApp] 🧹 Duplicate partners detected in bundle (${data.length} -> ${processedData.length}). Auto-healing bundle...`);
+              saveBundle(companyId, 'partners', processedData).catch(console.warn);
+            }
           }
           if (colName === 'products') {
             const prodMap = new Map();
@@ -4947,7 +4942,7 @@ function App() {
 
               // 해당 회원사의 거래처 번들에도 추가 동기화
               const curPartners = getLocalBundle(data.companyId, 'partners') || [];
-              const updatedPartners = [...curPartners.filter(p => String(p.id) !== String(newPartner.id)), newPartner];
+              const updatedPartners = deduplicatePartners([...curPartners, newPartner]);
               await saveBundle(data.companyId, 'partners', updatedPartners);
 
               alert('거래처 가입 신청이 완료되었습니다! 관리자 승인 후 이용 가능합니다.');

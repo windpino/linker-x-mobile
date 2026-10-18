@@ -25,14 +25,86 @@ export const BUNDLE_COLLECTIONS = [
 ];
 
 /**
- * Filter bundle list strictly for the target companyId
+ * Deduplicate partners:
+ * Merges partners with duplicate names or IDs into a single unified record.
+ * Preserves numeric ID and combines fields from both records without data loss.
+ */
+export const deduplicatePartners = (list) => {
+  if (!Array.isArray(list)) return [];
+  const nameMap = new Map(); // normalizedName -> partner
+  const idMap = new Map();   // string(id) -> normalizedName
+
+  list.forEach(p => {
+    if (!p || typeof p !== 'object') return;
+    const rawName = String(p.name || '').trim();
+    if (!rawName) return;
+
+    const normName = rawName.toLowerCase();
+    const strId = (p.id !== undefined && p.id !== null && p.id !== '') ? String(p.id) : null;
+
+    // Check if duplicate by name or by ID
+    let existingKey = null;
+    if (nameMap.has(normName)) {
+      existingKey = normName;
+    } else if (strId && idMap.has(strId)) {
+      existingKey = idMap.get(strId);
+    }
+
+    if (existingKey && nameMap.has(existingKey)) {
+      const existing = nameMap.get(existingKey);
+
+      // Determine primary vs secondary: prefer record with valid numeric id over string/composite alias id
+      const existingIsNumeric = typeof existing.id === 'number' || (typeof existing.id === 'string' && /^\d+$/.test(existing.id));
+      const pIsNumeric = strId && (typeof p.id === 'number' || (typeof p.id === 'string' && /^\d+$/.test(p.id)));
+
+      const primary = (!existingIsNumeric && pIsNumeric) ? p : existing;
+      const secondary = primary === p ? existing : p;
+
+      // Merge non-empty properties so no details are lost
+      const merged = { ...secondary, ...primary };
+      Object.keys(secondary).forEach(k => {
+        if ((merged[k] === undefined || merged[k] === null || merged[k] === '' || merged[k] === '-') &&
+            secondary[k] !== undefined && secondary[k] !== null && secondary[k] !== '' && secondary[k] !== '-') {
+          merged[k] = secondary[k];
+        }
+      });
+
+      // Normalize numeric ID if applicable
+      const chosenId = primary.id || secondary.id;
+      if (chosenId !== undefined && chosenId !== null && /^\d+$/.test(String(chosenId))) {
+        merged.id = Number(chosenId);
+      } else {
+        merged.id = chosenId;
+      }
+      delete merged._docId;
+
+      nameMap.set(existingKey, merged);
+      if (strId) idMap.set(strId, existingKey);
+      if (merged.id) idMap.set(String(merged.id), existingKey);
+    } else {
+      const pCopy = { ...p };
+      delete pCopy._docId;
+      if (pCopy.id !== undefined && pCopy.id !== null && /^\d+$/.test(String(pCopy.id))) {
+        pCopy.id = Number(pCopy.id);
+      }
+      nameMap.set(normName, pCopy);
+      if (strId) idMap.set(strId, normName);
+      if (pCopy.id) idMap.set(String(pCopy.id), normName);
+    }
+  });
+
+  return Array.from(nameMap.values());
+};
+
+/**
+ * Filter bundle list strictly for the target companyId and deduplicate
  */
 export const filterBundleListForCompany = (companyId, colName, rawList) => {
   if (!Array.isArray(rawList) || !companyId) return [];
   const targetId = String(companyId);
   const requiresName = ['products', 'categories', 'partners', 'warehouses'].includes(colName);
 
-  return rawList.filter(item => {
+  const filtered = rawList.filter(item => {
     if (!item || typeof item !== 'object') return false;
     if (requiresName && (!item.name || !String(item.name).trim())) return false;
     
@@ -42,6 +114,21 @@ export const filterBundleListForCompany = (companyId, colName, rawList) => {
     }
     return String(item.companyId) === targetId;
   });
+
+  if (colName === 'partners') {
+    return deduplicatePartners(filtered);
+  }
+
+  if (colName === 'products') {
+    const prodMap = new Map();
+    filtered.forEach(p => {
+      if (!p || !p.id) return;
+      prodMap.set(String(p.id), p);
+    });
+    return Array.from(prodMap.values());
+  }
+
+  return filtered;
 };
 
 /**
@@ -96,6 +183,17 @@ export const fetchBundle = async (companyId, colName) => {
       const data = snap.data();
       const rawList = data.list || data.items || [];
       let list = filterBundleListForCompany(companyId, colName, rawList);
+
+      // Auto-heal bundle document if duplicates were detected and pruned
+      if (rawList.length > list.length) {
+        console.log(`[BundleSync] 🧹 Auto-healing bundle for [${colName}] (pruned ${rawList.length - list.length} duplicates)`);
+        const healVer = (Number(data.version) || 1) + 1;
+        setDoc(bundleDocRef, {
+          list: list,
+          version: healVer,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(console.warn);
+      }
 
       // 🛡️ RECONCILIATION SAFETY NET:
       // If the bundle is empty (e.g. deleted previously), but the actual collection in Firestore
