@@ -5938,6 +5938,10 @@ function App() {
         onOpenPurchaseInvoice={openPurchaseInvoice}
         onOpenInventoryTransfer={openInventoryTransfer}
         defaultTab={inventoryReportTab} 
+        staffList={staffList}
+        schedules={schedules}
+        setSchedules={setSchedules}
+        onMoveStock={onMoveStock}
       />}
       {isReceivablesReportOpen && <ReceivablesReport onClose={() => setIsReceivablesReportOpen(false)} partners={partners} salesInvoices={salesInvoices} setPartners={setPartners} staffList={staffList} />}
       {isEditDeleteReportOpen && <EditDeleteReport onClose={() => setIsEditDeleteReportOpen(false)} />}

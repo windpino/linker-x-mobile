@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Save, Edit3, Check } from 'lucide-react';
+import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, ArrowRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Save, Edit3, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import ProductCategoryModal from './ProductCategoryModal';
 import { db } from '../firebase';
-import { doc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch, setDoc } from 'firebase/firestore';
 import { saveBundle } from '../utils/bundleSyncManager';
 import { getProductWarehouseInitialStock, getProductTotalInitialStock } from '../utils/productStockUtils';
 import { BatchWarehouseInitialStockModal } from './WarehouseInitialStockModal';
@@ -16,7 +16,8 @@ const InventoryReport = ({
   inventory = {}, purchaseInvoices = [], historyData = [], defaultTab = 'daily',
   salesInvoices = [], salesOrders = [], onOpenSalesInvoice, onOpenSalesOrder,
   onOpenPurchaseInvoice, onOpenInventoryTransfer,
-  setCategories, currentUser
+  setCategories, currentUser,
+  staffList = [], schedules = [], setSchedules, onMoveStock
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobile = true;
@@ -1106,8 +1107,12 @@ const InventoryReport = ({
           product={selectedProductForWarehouseModal}
           warehouses={warehouses}
           inventory={inventory}
+          currentUser={currentUser}
+          staffList={staffList}
+          schedules={schedules}
+          setSchedules={setSchedules}
+          onMoveStock={onMoveStock}
           onClose={() => setSelectedProductForWarehouseModal(null)}
-          onSave={handleSaveSingleProductWarehouseStocks}
         />
       )}
       {isBatchWarehouseModalOpen && (
@@ -1127,101 +1132,270 @@ const InventoryReport = ({
 };
 
 // ─────────────────────────────────────────────────────────────
-// 단일 품목 창고별 재고 내역 및 기초 재고 설정 모달 (모바일)
+// 단일 품목 창고별 재고 내역 및 내 창고로 이동 모달 (모바일)
 // ─────────────────────────────────────────────────────────────
-function SingleProductWarehouseModal({ product, warehouses, inventory = {}, onClose, onSave }) {
-  const [localStocks, setLocalStocks] = useState(() => {
-    const initial = {};
-    (warehouses || []).forEach(w => {
-      initial[w.name] = getProductWarehouseInitialStock(product, w.name, warehouses);
-    });
-    return initial;
+function SingleProductWarehouseModal({ 
+  product, 
+  warehouses = [], 
+  inventory = {}, 
+  currentUser,
+  staffList = [],
+  schedules = [],
+  setSchedules,
+  onMoveStock,
+  onClose 
+}) {
+  const userAssignedWh = (currentUser?.warehouse && currentUser.warehouse !== '-')
+    ? currentUser.warehouse
+    : (staffList?.find(s => s.name === currentUser?.name)?.warehouse || '');
+
+  const [myWh, setMyWh] = useState(() => {
+    if (userAssignedWh && warehouses.some(w => w.name === userAssignedWh)) return userAssignedWh;
+    return warehouses[0]?.name || '';
   });
 
-  const handleChange = (whName, val) => {
+  const [moveQuantities, setMoveQuantities] = useState({});
+  const [isMoving, setIsMoving] = useState({});
+
+  const handleQtyChange = (whName, val) => {
     const clean = val.replace(/[^0-9]/g, '');
-    const num = clean === '' ? 0 : parseInt(clean, 10);
-    setLocalStocks(prev => ({ ...prev, [whName]: num }));
+    setMoveQuantities(prev => ({ ...prev, [whName]: clean }));
   };
 
-  const totalInit = (warehouses || []).reduce((sum, w) => sum + (Number(localStocks[w.name]) || 0), 0);
-  
-  const totalMove = (warehouses || []).reduce((sum, w) => {
-    return sum + (inventory[w.name]?.[product.name] || 0);
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getTimeStr = (offsetHours = 0) => {
+    const d = new Date(Date.now() + offsetHours * 3600000);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const totalCurrent = (warehouses || []).reduce((sum, w) => {
+    const init = getProductWarehouseInitialStock(product, w.name, warehouses);
+    const move = inventory[w.name]?.[product.name] || 0;
+    return sum + init + move;
   }, 0);
 
-  const totalCurrent = totalInit + totalMove;
+  const handleExecuteMove = async (sourceWarehouse) => {
+    const fromWh = sourceWarehouse.name;
+    const toWh = myWh;
+    const rawVal = moveQuantities[fromWh];
+    const qty = Number(rawVal);
 
-  const isChanged = (warehouses || []).some(w => {
-    const orig = getProductWarehouseInitialStock(product, w.name, warehouses);
-    return (localStocks[w.name] ?? 0) !== orig;
-  });
+    if (!qty || qty <= 0) {
+      alert('이동할 수량을 1개 이상 입력해 주세요.');
+      return;
+    }
+
+    if (fromWh === toWh) {
+      alert('출고 창고와 도착 창고가 동일합니다.');
+      return;
+    }
+
+    const targetManager = sourceWarehouse.manager || 
+      staffList?.find(s => s.warehouse === fromWh)?.name || 
+      '담당자';
+
+    const initVal = getProductWarehouseInitialStock(product, fromWh, warehouses);
+    const moveVal = inventory[fromWh]?.[product.name] || 0;
+    const currentStock = initVal + moveVal;
+
+    let confirmMsg = `[${product.name}] ${qty.toLocaleString()}개를 [${fromWh}]에서 [${toWh}]으로 이동하시겠습니까?\n\n출고 창고 담당자(${targetManager})의 일정에 개인 알림으로 등록됩니다.`;
+    if (qty > currentStock) {
+      confirmMsg = `⚠️ 주의: 이동 수량(${qty}개)이 현재 재고(${currentStock}개)보다 많습니다.\n\n계속 진행하시겠습니까?\n출고 창고 담당자(${targetManager})의 일정에 개인 알림으로 등록됩니다.`;
+    }
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsMoving(prev => ({ ...prev, [fromWh]: true }));
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const todayStr = getTodayStr();
+      const nowTime = getTimeStr(0);
+      const endTime = getTimeStr(1);
+
+      // 1. 재고 이동 실행
+      if (onMoveStock) {
+        await onMoveStock(fromWh, toWh, product.name, qty, false, todayStr, null, currentUser?.name);
+      }
+
+      // 2. 출고 창고 담당자 개인 알림 일정 등록
+      const schedId = Date.now();
+      const schedDoc = {
+        id: schedId,
+        title: `[재고이동 알림] ${product.name} ${qty}개 (${fromWh} ➔ ${toWh})`,
+        description: `[재고 이동 상세 내역]\n- 출고 창고: ${fromWh} (담당자: ${targetManager})\n- 도착 창고: ${toWh}\n- 품목명: ${product.name} ${product.spec ? `(${product.spec})` : ''}\n- 이동 수량: ${qty}개\n- 처리자: ${currentUser?.name || '시스템'}\n- 처리 일시: ${new Date().toLocaleString()}`,
+        type: '재고이동',
+        category: '재고이동',
+        date: todayStr,
+        startDate: todayStr,
+        endDate: todayStr,
+        startTime: nowTime,
+        endTime: endTime,
+        time: nowTime,
+        author: currentUser?.name || '시스템',
+        manager: targetManager,
+        targetUser: targetManager,
+        isPublic: true,
+        viewers: [currentUser?.name].filter(Boolean),
+        companyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'companies', companyId, 'schedules', String(schedId)), schedDoc);
+
+      if (setSchedules) {
+        const nextSchedules = [...(schedules || []), schedDoc];
+        setSchedules(nextSchedules);
+        await saveBundle(companyId, 'schedules', nextSchedules);
+      }
+
+      setMoveQuantities(prev => ({ ...prev, [fromWh]: '' }));
+      alert(`[${product.name}] ${qty.toLocaleString()}개가 [${toWh}](으)로 이동되었습니다.\n${fromWh} 담당자(${targetManager})의 일정에 개인 알림이 등록되었습니다.`);
+    } catch (err) {
+      console.error('Mobile single product warehouse move error:', err);
+      alert('재고 이동 처리 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      setIsMoving(prev => ({ ...prev, [fromWh]: false }));
+    }
+  };
 
   return (
-    <WindowModal title={`[${product.name}] 창고별 재고 내역`} onClose={onClose} width="95%" maxWidth="520px">
-      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>
-              {[product.categoryLarge, product.categoryMedium, product.categorySmall].filter(Boolean).join(' > ')}
+    <WindowModal title={`[${product.name}] 창고별 재고 / 내 창고로 이동`} onClose={onClose} width="96%" maxWidth="540px">
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* 상단 품목 및 입고지 정보 */}
+        <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                {[product.categoryLarge, product.categoryMedium, product.categorySmall].filter(Boolean).join(' > ')}
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e293b' }}>
+                {product.name} {product.spec && <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>({product.spec})</span>}
+              </div>
             </div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e293b' }}>
-              {product.name} {product.spec && <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>({product.spec})</span>}
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block' }}>전체 재고</span>
+              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b') }}>
+                {totalCurrent.toLocaleString()}개
+              </span>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>총 현재 재고</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b') }}>
-              {totalCurrent.toLocaleString()}개
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+              내 창고 (입고지):
             </span>
+            <select
+              value={myWh}
+              onChange={(e) => setMyWh(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1.5px solid #3b82f6',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: '#1e40af',
+                backgroundColor: '#eff6ff'
+              }}
+            >
+              {warehouses.map(w => (
+                <option key={w.id || w.name} value={w.name}>
+                  {w.name} {w.name === userAssignedWh ? '(내 담당)' : ''}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+        {/* 창고별 재고 및 이동 테이블 */}
+        <div style={{ maxHeight: '340px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
               <tr>
-                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#475569' }}>창고명</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#475569', textAlign: 'right', width: '90px' }}>기초재고</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#475569', textAlign: 'right', width: '80px' }}>변동</th>
-                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#1e40af', textAlign: 'right', width: '90px', fontWeight: 800 }}>현재재고</th>
+                <th style={{ padding: '8px 10px', fontSize: '0.74rem', color: '#475569' }}>창고/담당자</th>
+                <th style={{ padding: '8px 8px', fontSize: '0.74rem', color: '#1e40af', textAlign: 'right', width: '90px', fontWeight: 800 }}>현재재고</th>
+                <th style={{ padding: '8px 8px', fontSize: '0.74rem', color: '#475569', textAlign: 'center', width: '135px' }}>내 창고로 이동</th>
               </tr>
             </thead>
             <tbody>
               {(warehouses || []).map(w => {
-                const initVal = localStocks[w.name] !== undefined ? localStocks[w.name] : 0;
+                const initVal = getProductWarehouseInitialStock(product, w.name, warehouses);
                 const moveVal = inventory[w.name]?.[product.name] || 0;
                 const currentVal = initVal + moveVal;
+                const isTargetWh = w.name === myWh;
+                const manager = w.manager || staffList?.find(s => s.warehouse === w.name)?.name || '미지정';
 
                 return (
-                  <tr key={w.id || w.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155', fontSize: '0.82rem' }}>
-                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: w.color || '#3b82f6', marginRight: '6px' }}></span>
-                      {w.name}
+                  <tr key={w.id || w.name} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTargetWh ? '#f0fdf4' : 'transparent' }}>
+                    <td style={{ padding: '8px 10px' }}>
+                      <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: w.color || '#3b82f6', flexShrink: 0 }}></span>
+                        {w.name}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                        담당: {manager}
+                      </div>
                     </td>
-                    <td style={{ padding: '6px', textAlign: 'right' }}>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={initVal}
-                        onChange={(e) => handleChange(w.name, e.target.value)}
-                        style={{
-                          width: '60px',
-                          height: '28px',
-                          textAlign: 'right',
-                          padding: '0 4px',
-                          borderRadius: '4px',
-                          border: '1px solid #cbd5e1',
-                          fontWeight: 700,
-                          fontSize: '0.8rem'
-                        }}
-                      />
+                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: currentVal > 0 ? '#1d4ed8' : (currentVal < 0 ? '#ef4444' : '#64748b') }}>
+                        {currentVal.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                        기초 {initVal}
+                      </div>
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700, color: moveVal > 0 ? '#059669' : (moveVal < 0 ? '#ef4444' : '#64748b') }}>
-                      {moveVal > 0 ? `+${moveVal.toLocaleString()}` : moveVal.toLocaleString()}
-                    </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, color: currentVal > 0 ? '#1d4ed8' : (currentVal < 0 ? '#ef4444' : '#64748b') }}>
-                      {currentVal.toLocaleString()}
+                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                      {isTargetWh ? (
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', backgroundColor: '#e2e8f0', color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>
+                          도착 창고
+                        </span>
+                      ) : (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="수량"
+                            value={moveQuantities[w.name] ?? ''}
+                            onChange={(e) => handleQtyChange(w.name, e.target.value)}
+                            disabled={isMoving[w.name]}
+                            style={{
+                              width: '46px',
+                              height: '28px',
+                              textAlign: 'right',
+                              padding: '0 4px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              fontWeight: 700,
+                              fontSize: '0.8rem'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => handleExecuteMove(w)}
+                            disabled={isMoving[w.name] || !moveQuantities[w.name] || Number(moveQuantities[w.name]) <= 0}
+                            style={{
+                              height: '28px',
+                              padding: '0 7px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              whiteSpace: 'nowrap',
+                              opacity: isMoving[w.name] || !moveQuantities[w.name] || Number(moveQuantities[w.name]) <= 0 ? 0.6 : 1,
+                              cursor: isMoving[w.name] || !moveQuantities[w.name] || Number(moveQuantities[w.name]) <= 0 ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            <ArrowRight size={11} />
+                            이동
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -1229,31 +1403,22 @@ function SingleProductWarehouseModal({ product, warehouses, inventory = {}, onCl
             </tbody>
             <tfoot style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
               <tr>
-                <td style={{ padding: '10px', fontWeight: 800, color: '#1e293b', fontSize: '0.82rem' }}>합계</td>
-                <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 800, color: '#475569', fontSize: '0.82rem' }}>
-                  {totalInit.toLocaleString()}
-                </td>
-                <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 800, color: totalMove > 0 ? '#059669' : (totalMove < 0 ? '#ef4444' : '#64748b'), fontSize: '0.82rem' }}>
-                  {totalMove > 0 ? `+${totalMove.toLocaleString()}` : totalMove.toLocaleString()}
-                </td>
-                <td style={{ padding: '10px', textAlign: 'right', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b'), fontSize: '0.95rem' }}>
+                <td style={{ padding: '8px 10px', fontWeight: 800, color: '#1e293b', fontSize: '0.78rem' }}>합계</td>
+                <td style={{ padding: '8px', textAlign: 'right', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b'), fontSize: '0.88rem' }}>
                   {totalCurrent.toLocaleString()}
                 </td>
+                <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '4px' }}>
-          <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.82rem' }}>닫기</button>
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={!isChanged}
-            onClick={() => onSave(product.id, localStocks)}
-            style={{ padding: '6px 18px', fontWeight: 700, fontSize: '0.82rem', opacity: !isChanged ? 0.6 : 1, cursor: !isChanged ? 'not-allowed' : 'pointer' }}
-          >
-            기초재고 저장
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+            * 이동 시 출고 창고 담당자의 일정에 개인 알림이 등록됩니다.
+          </div>
+          <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 700 }}>
+            닫기
           </button>
         </div>
       </div>
