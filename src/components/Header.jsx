@@ -16,6 +16,7 @@ const Header = ({
   onOpenSettings, onOpenLicense, onOpenReceivablesReport, onOpenInventoryAdjustment,
   onOpenTaxReport, onOpenPartnerMall, onOpenPlatformManager, companyName,
   onOpenPartnerSpecialPriceManager, onOpenInventoryMismatch, onOpenPhysicalInventory,
+  onOpenWarehouseInitialStockBatch,
   onOpenRecentActivityReport,
   onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer,
   settings
@@ -58,6 +59,7 @@ const Header = ({
     if (perm === '재고 이동 현황 관리') return Boolean(p['재고이동']);
     if (perm === '재고조정 (손실처리)' || perm === '재고조정') return Boolean(p['재고조정 (손실처리)'] || p['재고조정'] || p['재고이동']);
     if (perm === '재고 불일치 현황') return Boolean(p['재고 불일치 현황'] || p['재고보고서']);
+    if (perm === '창고별 기초재고 일괄설정' || perm === '창고별 기초재고') return Boolean(p['창고별 기초재고 일괄설정'] || p['창고별 기초재고'] || p['재고보고서'] || p['품목관리'] || p['품목등록']);
     if (perm === '매출처 미수금현황' || perm === '미수금관리') return Boolean(p['매출처 미수금현황'] || p['매출원장'] || p['미수금 보고서'] || p['미수금관리']);
     if (perm === '매입처미지급현황') return Boolean(p['매입처미지급현황'] || p['매입원장']);
     if (perm === '수주보고서') return Boolean(p['수주보고서'] || p['수주']);
@@ -263,6 +265,13 @@ const Header = ({
       action: onOpenPhysicalInventory,
       perm: hasPerm('실재고 입력'),
       keywords: '실재고입력 재고실사 실사 재고입력 실재고',
+    },
+    {
+      title: '창고별 기초재고 일괄설정',
+      category: '재고관리',
+      action: onOpenWarehouseInitialStockBatch,
+      perm: hasPerm('창고별 기초재고 일괄설정'),
+      keywords: '창고별 기초재고 일괄설정 기초재고 창고기초재고 창고재고설정 초기재고',
     },
     {
       title: '재고이동',
@@ -688,6 +697,7 @@ const Header = ({
             ]},
             { id: 'inventory', label: '재고관리', items: [
               { perm: hasPerm('실재고 입력'), label: '실재고 입력', action: onOpenPhysicalInventory },
+              { perm: hasPerm('창고별 기초재고 일괄설정'), label: '창고별 기초재고 일괄설정', action: onOpenWarehouseInitialStockBatch },
               { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
               { perm: hasPerm('재고 이동 현황 관리'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
               { perm: hasPerm('재고조정 (손실처리)'), label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },

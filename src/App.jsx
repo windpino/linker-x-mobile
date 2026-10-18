@@ -3,7 +3,7 @@ import {
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
   CheckCircle2, Info, FileSearch, Percent, History, FileSpreadsheet,
-  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut
+  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut, Warehouse
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -64,6 +64,7 @@ import LicenseManager from './components/LicenseManager';
 import InventoryAdjustment from './components/InventoryAdjustment';
 import InventoryMismatch from './components/InventoryMismatch';
 import PhysicalInventoryInput from './components/PhysicalInventoryInput';
+import WarehouseInitialStockModal from './components/WarehouseInitialStockModal';
 import TaxReport from './components/TaxReport';
 import TaxInvoiceDocument from './components/TaxInvoiceDocument';
 import PartnerShoppingMall from './components/PartnerShoppingMall';
@@ -95,6 +96,7 @@ const ALL_FAVORITE_MENUS = [
   { id: 'partner',             name: '거래처등록/관리',  category: '기초자료등록',   emoji: '🤝' },
   { id: 'product',             name: '품목등록/관리',    category: '기초자료등록',   emoji: '📦' },
   { id: 'physical_inventory',  name: '실재고 입력',      category: '기초자료등록',   emoji: '📝' },
+  { id: 'warehouse_initial_stock', name: '창고별 기초재고 일괄설정', category: '기초자료등록', emoji: '🏢' },
   { id: 'inventory_transfer',  name: '재고이동',        category: '기초자료등록',   emoji: '🚚' },
   { id: 'inventory_movement_manager', name: '재고 이동 현황 관리', category: '기초자료등록', emoji: '📋' },
   { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
@@ -141,6 +143,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
     partner:                    <UserPlus size={size} />,
     product:                    <Package size={size} />,
     physical_inventory:         <ClipboardList size={size} />,
+    warehouse_initial_stock:    <Warehouse size={size} />,
     inventory_transfer:         <History size={size} />,
     inventory_movement_manager: <List size={size} />,
     inventory_adjustment:       <Box size={size} />,
@@ -485,6 +488,7 @@ function App() {
   const [isFavoriteSettingsOpen, setIsFavoriteSettingsOpen] = useState(false);
   const [isInventoryAdjustmentOpen, setIsInventoryAdjustmentOpen] = useState(false);
   const [isPhysicalInventoryOpen, setIsPhysicalInventoryOpen] = useState(false);
+  const [isWarehouseInitialStockOpen, setIsWarehouseInitialStockOpen] = useState(false);
   const [isInventoryMismatchOpen, setIsInventoryMismatchOpen] = useState(false);
   const [mismatchInitialWarehouse, setMismatchInitialWarehouse] = useState('');
   const [mismatchInitialSearchTerm, setMismatchInitialSearchTerm] = useState('');
@@ -1265,7 +1269,7 @@ function App() {
     isPartnerBulkOpen || isProductBulkOpen || isPartnerExcelOpen || isProductExcelOpen || isInventoryTransferExcelOpen ||
     isPurchaseLedgerExcelOpen || isSalesLedgerExcelOpen || isSettingsOpen ||
     isLicenseOpen || isDashboardSettingsOpen || isFavoriteSettingsOpen ||
-    isInventoryAdjustmentOpen || isPhysicalInventoryOpen || isInventoryMismatchOpen || isTaxReportOpen ||
+    isInventoryAdjustmentOpen || isPhysicalInventoryOpen || isWarehouseInitialStockOpen || isInventoryMismatchOpen || isTaxReportOpen ||
     isPartnerSpecialPriceManagerOpen || isInventoryMovementManagerOpen
   );
 
@@ -5146,6 +5150,7 @@ function App() {
           onOpenInventoryAdjustment={() => setIsInventoryAdjustmentOpen(true)}
           onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
           onOpenPhysicalInventory={() => setIsPhysicalInventoryOpen(true)}
+          onOpenWarehouseInitialStockBatch={() => setIsWarehouseInitialStockOpen(true)}
           onOpenTaxReport={() => setIsTaxReportOpen(true)}
           onOpenPartnerMall={() => setCurrentView('shopping')}
           onOpenPlatformManager={() => setCurrentView('super_admin')}
@@ -5177,6 +5182,7 @@ function App() {
               partner:                    () => setIsPartnerManagerOpen(true),
               product:                    () => setIsProductManagerOpen(true),
               physical_inventory:         () => setIsPhysicalInventoryOpen(true),
+              warehouse_initial_stock:    () => setIsWarehouseInitialStockOpen(true),
               inventory_transfer:         () => openInventoryTransfer(),
               inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
               inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
@@ -6828,6 +6834,16 @@ function App() {
           onSaveAdjustments={handleSaveStocktakeAdjustments}
           physicalInventory={physicalInventory}
           onUpdatePhysicalCount={handleUpdatePhysicalCount}
+        />
+      )}
+      {isWarehouseInitialStockOpen && (
+        <WarehouseInitialStockModal
+          onClose={() => setIsWarehouseInitialStockOpen(false)}
+          products={products}
+          setProducts={setProducts}
+          warehouses={warehouses}
+          categories={categories}
+          currentUser={currentUser}
         />
       )}
       {isInventoryMismatchOpen && (
