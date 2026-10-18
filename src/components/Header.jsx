@@ -268,7 +268,7 @@ const Header = ({
     },
     {
       title: '창고별 기초재고 일괄설정',
-      category: '재고관리',
+      category: '기초자료등록',
       action: onOpenWarehouseInitialStockBatch,
       perm: hasPerm('창고별 기초재고 일괄설정'),
       keywords: '창고별 기초재고 일괄설정 기초재고 창고기초재고 창고재고설정 초기재고',
@@ -694,10 +694,10 @@ const Header = ({
               { perm: hasPerm('창고관리'), label: '창고관리', action: onOpenWarehouseManager },
               { perm: (hasPerm('거래처등록') || hasPerm('거래처관리')), label: '거래처등록/관리', action: onOpenPartnerManager },
               { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
+              { perm: hasPerm('창고별 기초재고 일괄설정'), label: '창고별 기초재고 일괄설정', action: onOpenWarehouseInitialStockBatch },
             ]},
             { id: 'inventory', label: '재고관리', items: [
               { perm: hasPerm('실재고 입력'), label: '실재고 입력', action: onOpenPhysicalInventory },
-              { perm: hasPerm('창고별 기초재고 일괄설정'), label: '창고별 기초재고 일괄설정', action: onOpenWarehouseInitialStockBatch },
               { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
               { perm: hasPerm('재고 이동 현황 관리'), label: '재고 이동 현황 관리', action: onOpenInventoryMovementManager },
               { perm: hasPerm('재고조정 (손실처리)'), label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
