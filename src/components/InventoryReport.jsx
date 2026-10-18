@@ -1,13 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, Printer, Download, Search, Calendar, Warehouse, ArrowLeftRight, Package, AlertCircle, X, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Save, Edit3, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import ProductCategoryModal from './ProductCategoryModal';
+import { db } from '../firebase';
+import { doc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
+import { getProductWarehouseInitialStock, getProductTotalInitialStock } from '../utils/productStockUtils';
 import './InventoryReport.css';
 
 const InventoryReport = ({ 
-  onClose, products = [], categories = [], warehouses = [], partners = [], 
+  onClose, products = [], setProducts, categories = [], warehouses = [], partners = [], 
   inventory = {}, purchaseInvoices = [], historyData = [], defaultTab = 'daily',
   salesInvoices = [], salesOrders = [], onOpenSalesInvoice, onOpenSalesOrder,
   onOpenPurchaseInvoice, onOpenInventoryTransfer,
@@ -58,6 +62,123 @@ const InventoryReport = ({
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(0);
   const supplierDropdownRef = useRef(null);
+
+  // ─── 창고별 기초 재고 편집 및 일괄 설정 상태 ───
+  const [editedStocks, setEditedStocks] = useState({}); // { [productId]: { [warehouseName]: number } }
+  const [isSavingStocks, setIsSavingStocks] = useState(false);
+  const [selectedProductForWarehouseModal, setSelectedProductForWarehouseModal] = useState(null);
+  const [isBatchWarehouseModalOpen, setIsBatchWarehouseModalOpen] = useState(false);
+
+  const handleStockInputChange = (productId, warehouseName, rawValue) => {
+    const cleanValue = rawValue.replace(/[^0-9]/g, '');
+    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
+    setEditedStocks(prev => ({
+      ...prev,
+      [productId]: {
+        ...(prev[productId] || {}),
+        [warehouseName]: numValue
+      }
+    }));
+  };
+
+  const handleSaveInitialStocks = async (specificEdits = null) => {
+    const editsToSave = specificEdits || editedStocks;
+    const productIds = Object.keys(editsToSave);
+    if (productIds.length === 0) return;
+
+    setIsSavingStocks(true);
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
+      const updatedMap = new Map();
+
+      productIds.forEach(id => {
+        const prod = products.find(p => String(p.id) === String(id));
+        if (!prod) return;
+
+        const currentWhStock = { ...(prod.warehouseInitialStock || {}) };
+        
+        // 기존 단일 warehouse/initialStock 데이터가 있으면 초기 맵에 반영
+        if (Object.keys(currentWhStock).length === 0 && (prod.initialStock || prod.warehouse)) {
+          const mainWh = warehouses[0]?.name || '본사창고';
+          const defaultWh = prod.warehouse || mainWh;
+          currentWhStock[defaultWh] = Number(prod.initialStock) || 0;
+        }
+
+        const newWhChanges = editsToSave[id];
+        Object.entries(newWhChanges).forEach(([wh, val]) => {
+          currentWhStock[wh] = Number(val) || 0;
+        });
+
+        const totalInitial = Object.values(currentWhStock).reduce((sum, v) => sum + (Number(v) || 0), 0);
+
+        const updatedProd = {
+          ...prod,
+          warehouseInitialStock: currentWhStock,
+          initialStock: totalInitial,
+          companyId,
+          updatedAt: new Date().toISOString()
+        };
+
+        updatedMap.set(String(id), updatedProd);
+        batch.set(doc(db, 'companies', companyId, 'products', String(id)), updatedProd, { merge: true });
+      });
+
+      await batch.commit();
+
+      const nextProducts = products.map(p => updatedMap.get(String(p.id)) || p);
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
+
+      if (!specificEdits) {
+        setEditedStocks({});
+      }
+      alert('기초 재고가 성공적으로 저장되었습니다.');
+    } catch (err) {
+      console.error('Error saving initial stocks:', err);
+      alert('기초 재고 저장 중 오류가 발생했습니다: ' + err.message);
+      throw err;
+    } finally {
+      setIsSavingStocks(false);
+    }
+  };
+
+  const handleSaveSingleProductWarehouseStocks = async (productId, newWarehouseStocks) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const prod = products.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+
+      const currentWhStock = { ...(prod.warehouseInitialStock || {}) };
+      Object.entries(newWarehouseStocks).forEach(([wh, val]) => {
+        currentWhStock[wh] = Number(val) || 0;
+      });
+      const totalInitial = Object.values(currentWhStock).reduce((sum, v) => sum + (Number(v) || 0), 0);
+
+      const updatedProd = {
+        ...prod,
+        warehouseInitialStock: currentWhStock,
+        initialStock: totalInitial,
+        companyId,
+        updatedAt: new Date().toISOString()
+      };
+
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'companies', companyId, 'products', String(productId)), updatedProd, { merge: true });
+      await batch.commit();
+
+      const nextProducts = products.map(p => String(p.id) === String(productId) ? updatedProd : p);
+      if (setProducts) setProducts(nextProducts);
+      await saveBundle(companyId, 'products', nextProducts);
+
+      setSelectedProductForWarehouseModal(null);
+      alert(`[${prod.name}] 창고별 기초 재고가 저장되었습니다.`);
+    } catch (err) {
+      console.error('Error saving single product warehouse stock:', err);
+      alert('기초 재고 저장 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -300,10 +421,15 @@ const InventoryReport = ({
       }
       return { ...p, displayStock: stock };
     }).filter(p => {
-      const finalStock = (p.initialStock || 0) + p.displayStock;
+      const baseStock = filters.selectedWarehouse === '전체 창고'
+        ? getProductTotalInitialStock(p, warehouses)
+        : (editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined
+            ? (parseInt(editedStocks[p.id][filters.selectedWarehouse], 10) || 0)
+            : getProductWarehouseInitialStock(p, filters.selectedWarehouse, warehouses));
+      const finalStock = baseStock + p.displayStock;
       return !filters.hideZeroStock || finalStock !== 0;
     });
-  }, [products, inventory, filters]);
+  }, [products, inventory, filters, warehouses, editedStocks]);
 
   const filteredPartnerData = useMemo(() => {
     // Determine which products belong to which supplier based on product master OR purchase history
@@ -334,7 +460,7 @@ const InventoryReport = ({
       
       return matchesLarge && matchesMedium && matchesSmall && matchesSearch && matchesSupplier;
     }).map(p => {
-      const baseStock = p.initialStock || 0;
+      const baseStock = getProductTotalInitialStock(p, warehouses);
       const totalStock = baseStock + Object.values(inventory).reduce((sum, whStocks) => sum + (whStocks[p.name] || 0), 0);
       const optimal = p.optimalStock || 0;
       const status = totalStock < optimal ? 'shortage' : 'normal';
@@ -350,7 +476,7 @@ const InventoryReport = ({
     }).filter(p => {
       return !filters.hideZeroStock || p.totalStock !== 0;
     });
-  }, [products, inventory, purchaseInvoices, filters]);
+  }, [products, inventory, purchaseInvoices, filters, warehouses]);
 
   const handleExcelExport = () => {
     let data = [];
@@ -362,15 +488,41 @@ const InventoryReport = ({
       }));
       fileName = `일자별재고현황_${filters.startDate}_${filters.endDate}`;
     } else if (activeTab === 'final') {
-      data = filteredFinalData.map(row => {
-        const baseStock = row.initialStock || 0;
-        const finalStock = baseStock + row.displayStock;
-        const cat = [row.categoryLarge, row.categoryMedium, row.categorySmall].filter(c => c && c !== '전체').join(' > ');
-        return {
-          '카테고리': cat, '품목명': row.name, '규격': row.spec, '기초재고': baseStock, '현재재고': finalStock
-        };
-      });
-      fileName = `최종재고현황_${filters.selectedWarehouse}`;
+      if (filters.selectedWarehouse === '전체 창고') {
+        data = filteredFinalData.map(row => {
+          const cat = [row.categoryLarge, row.categoryMedium, row.categorySmall].filter(c => c && c !== '전체').join(' > ');
+          const rowData = {
+            '카테고리': cat,
+            '품목명': row.name,
+            '규격': row.spec || '-'
+          };
+          (warehouses || []).forEach(w => {
+            rowData[`기초재고_${w.name}`] = getProductWarehouseInitialStock(row, w.name, warehouses);
+          });
+          const totalBase = getProductTotalInitialStock(row, warehouses);
+          const totalFinal = totalBase + row.displayStock;
+          rowData['총 기초재고'] = totalBase;
+          rowData['총 현재재고'] = totalFinal;
+          return rowData;
+        });
+        fileName = `최종재고현황_전체창고`;
+      } else {
+        data = filteredFinalData.map(row => {
+          const baseStock = editedStocks[row.id]?.[filters.selectedWarehouse] !== undefined
+            ? (parseInt(editedStocks[row.id][filters.selectedWarehouse], 10) || 0)
+            : getProductWarehouseInitialStock(row, filters.selectedWarehouse, warehouses);
+          const finalStock = baseStock + row.displayStock;
+          const cat = [row.categoryLarge, row.categoryMedium, row.categorySmall].filter(c => c && c !== '전체').join(' > ');
+          return {
+            '카테고리': cat,
+            '품목명': row.name,
+            '규격': row.spec || '-',
+            [`기초재고 (${filters.selectedWarehouse})`]: baseStock,
+            [`현재재고 (${filters.selectedWarehouse})`]: finalStock
+          };
+        });
+        fileName = `최종재고현황_${filters.selectedWarehouse}`;
+      }
     } else if (activeTab === 'partner') {
       data = filteredPartnerData.map(row => {
         const cat = [row.categoryLarge, row.categoryMedium, row.categorySmall].filter(c => c && c !== '전체').join(' > ');
@@ -412,7 +564,29 @@ const InventoryReport = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {activeTab === 'final' && (
+              <>
+                <button 
+                  type="button" 
+                  onClick={() => setIsBatchWarehouseModalOpen(true)}
+                  style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #86efac', backgroundColor: '#f0fdf4', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                  title="창고별 기초재고 일괄 설정"
+                >
+                  <Warehouse size={12} /> 창고별설정
+                </button>
+                {Object.keys(editedStocks).length > 0 && (
+                  <button 
+                    type="button" 
+                    onClick={() => handleSaveInitialStocks()}
+                    disabled={isSavingStocks}
+                    style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #10b981', backgroundColor: '#10b981', color: '#fff', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                  >
+                    <Save size={12} /> 저장 ({Object.keys(editedStocks).length})
+                  </button>
+                )}
+              </>
+            )}
             <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               <Printer size={12} /> 인쇄
             </button>
@@ -820,21 +994,89 @@ const InventoryReport = ({
               </div>
             ) : (
               filteredFinalData.map(p => {
-                const baseStock = p.initialStock || 0;
+                const isAllWarehouses = filters.selectedWarehouse === '전체 창고';
+                const baseStock = isAllWarehouses
+                  ? getProductTotalInitialStock(p, warehouses)
+                  : (editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined
+                      ? (parseInt(editedStocks[p.id][filters.selectedWarehouse], 10) || 0)
+                      : getProductWarehouseInitialStock(p, filters.selectedWarehouse, warehouses));
                 const finalStock = baseStock + p.displayStock;
+                const isCellEdited = !isAllWarehouses && editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined;
+
                 return (
-                  <div key={p.id} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div key={p.id} style={{ backgroundColor: isCellEdited ? '#f0fdf4' : '#fff', border: isCellEdited ? '1.5px solid #10b981' : '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>{p.categoryLarge || '-'} {p.categoryMedium && `> ${p.categoryMedium}`} {p.spec && `| ${p.spec}`}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: finalStock <= 0 ? '#ef4444' : '#2563eb' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: finalStock <= 0 ? '#ef4444' : '#2563eb' }}>
                           {finalStock.toLocaleString()}개
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>기초: {baseStock.toLocaleString()}개</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>현재 재고</div>
                       </div>
+                    </div>
+
+                    {/* 기초 재고 입력 / 설정 행 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
+                        {isAllWarehouses ? '기초 재고 (전체 합계)' : `기초 재고 (${filters.selectedWarehouse})`}
+                      </span>
+
+                      {isAllWarehouses ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
+                            {baseStock.toLocaleString()}개
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProductForWarehouseModal(p)}
+                            style={{
+                              padding: '2px 7px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              borderRadius: '5px',
+                              border: '1px solid #3b82f6',
+                              backgroundColor: '#eff6ff',
+                              color: '#1d4ed8',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            창고별 입력
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <input
+                            type="text"
+                            lang="ko"
+                            inputMode="numeric"
+                            value={
+                              editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined
+                                ? editedStocks[p.id][filters.selectedWarehouse]
+                                : getProductWarehouseInitialStock(p, filters.selectedWarehouse, warehouses)
+                            }
+                            onChange={(e) => handleStockInputChange(p.id, filters.selectedWarehouse, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveInitialStocks();
+                            }}
+                            style={{
+                              width: '80px',
+                              height: '32px',
+                              textAlign: 'right',
+                              padding: '0 8px',
+                              borderRadius: '6px',
+                              border: isCellEdited ? '2px solid #10b981' : '1px solid #cbd5e1',
+                              backgroundColor: isCellEdited ? '#ecfdf5' : '#fff',
+                              color: '#0f172a',
+                              fontWeight: 700,
+                              fontSize: '0.88rem'
+                            }}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>개</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -891,9 +1133,322 @@ const InventoryReport = ({
           currentUser={currentUser} 
         />
       )}
+      {selectedProductForWarehouseModal && (
+        <SingleProductWarehouseModal
+          product={selectedProductForWarehouseModal}
+          warehouses={warehouses}
+          onClose={() => setSelectedProductForWarehouseModal(null)}
+          onSave={handleSaveSingleProductWarehouseStocks}
+        />
+      )}
+      {isBatchWarehouseModalOpen && (
+        <BatchWarehouseInitialStockModal
+          products={products}
+          warehouses={warehouses}
+          categories={categories}
+          onClose={() => setIsBatchWarehouseModalOpen(false)}
+          onSaveAll={handleSaveInitialStocks}
+        />
+      )}
     </WindowModal>
   </>
   );
 };
+
+// ─────────────────────────────────────────────────────────────
+// 단일 품목 창고별 기초 재고 상세 설정 모달 (모바일)
+// ─────────────────────────────────────────────────────────────
+function SingleProductWarehouseModal({ product, warehouses, onClose, onSave }) {
+  const [localStocks, setLocalStocks] = useState(() => {
+    const initial = {};
+    (warehouses || []).forEach(w => {
+      initial[w.name] = getProductWarehouseInitialStock(product, w.name, warehouses);
+    });
+    return initial;
+  });
+
+  const total = Object.values(localStocks).reduce((sum, v) => sum + (Number(v) || 0), 0);
+
+  const handleChange = (whName, val) => {
+    const clean = val.replace(/[^0-9]/g, '');
+    const num = clean === '' ? 0 : parseInt(clean, 10);
+    setLocalStocks(prev => ({ ...prev, [whName]: num }));
+  };
+
+  return (
+    <WindowModal title={`[${product.name}] 창고별 기초 재고`} onClose={onClose} width="95%" maxWidth="480px">
+      <div style={{ padding: '16px' }}>
+        <div style={{ marginBottom: '14px', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '2px' }}>
+            {[product.categoryLarge, product.categoryMedium, product.categorySmall].filter(Boolean).join(' > ')}
+          </div>
+          <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#1e293b' }}>
+            {product.name} {product.spec && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>({product.spec})</span>}
+          </div>
+        </div>
+
+        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '14px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: '0.78rem', color: '#475569' }}>창고명</th>
+                <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.78rem', color: '#475569', width: '120px' }}>기초 재고 입력</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(warehouses || []).map(w => (
+                <tr key={w.id || w.name} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155', fontSize: '0.85rem' }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: w.color || '#3b82f6', marginRight: '6px' }}></span>
+                    {w.name}
+                  </td>
+                  <td style={{ padding: '6px 10px', textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={localStocks[w.name] !== undefined ? localStocks[w.name] : 0}
+                        onChange={(e) => handleChange(w.name, e.target.value)}
+                        style={{
+                          width: '75px',
+                          height: '32px',
+                          textAlign: 'right',
+                          padding: '0 6px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontWeight: 700,
+                          fontSize: '0.85rem'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>개</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: '#eff6ff', borderRadius: '8px', marginBottom: '16px' }}>
+          <span style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.85rem' }}>총 기초 재고 합계</span>
+          <span style={{ fontWeight: 900, color: '#1d4ed8', fontSize: '1.1rem' }}>{total.toLocaleString()} 개</span>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>취소</button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => onSave(product.id, localStocks)}
+            style={{ padding: '6px 18px', fontWeight: 700, fontSize: '0.85rem' }}
+          >
+            저장하기
+          </button>
+        </div>
+      </div>
+    </WindowModal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 창고별 기초 재고 일괄 설정 모달 (모바일 그리드)
+// ─────────────────────────────────────────────────────────────
+function BatchWarehouseInitialStockModal({ products, warehouses, categories, onClose, onSaveAll }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCat, setSelectedCat] = useState('전체');
+  const [localBatchStocks, setLocalBatchStocks] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      const matchCat = selectedCat === '전체' || p.categoryLarge === selectedCat || p.categoryMedium === selectedCat;
+      const matchSearch = !searchTerm || matchesInitialSound(p.name, searchTerm) || (p.abbreviation && matchesInitialSound(p.abbreviation, searchTerm));
+      return matchCat && matchSearch;
+    });
+  }, [products, selectedCat, searchTerm]);
+
+  const handleCellChange = (prodId, whName, val) => {
+    const clean = val.replace(/[^0-9]/g, '');
+    const num = clean === '' ? 0 : parseInt(clean, 10);
+    setLocalBatchStocks(prev => ({
+      ...prev,
+      [prodId]: {
+        ...(prev[prodId] || {}),
+        [whName]: num
+      }
+    }));
+  };
+
+  const getCellValue = (p, whName) => {
+    if (localBatchStocks[p.id]?.[whName] !== undefined) {
+      return localBatchStocks[p.id][whName];
+    }
+    return getProductWarehouseInitialStock(p, whName, warehouses);
+  };
+
+  const getRowTotal = (p) => {
+    return (warehouses || []).reduce((sum, w) => {
+      const val = getCellValue(p, w.name);
+      return sum + (Number(val) || 0);
+    }, 0);
+  };
+
+  const editedCount = Object.keys(localBatchStocks).length;
+
+  const handleSave = async () => {
+    if (editedCount === 0) {
+      alert('변경된 기초 재고가 없습니다.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSaveAll(localBatchStocks);
+      onClose();
+    } catch (e) {
+      // handled
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <WindowModal title="창고별 기초 재고 일괄 설정" onClose={onClose} width="98%" maxWidth="960px">
+      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', height: '80vh', boxSizing: 'border-box' }}>
+        {/* 상단 검색 및 필터 */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>분류:</span>
+            <select
+              value={selectedCat}
+              onChange={(e) => setSelectedCat(e.target.value)}
+              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
+            >
+              <option value="전체">전체 카테고리</option>
+              {categories.filter(c => c.level === 1 || !c.parentId).map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ flex: 1, minWidth: '160px', position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="text"
+              placeholder="품목명/초성 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', padding: '5px 8px 5px 28px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+            />
+          </div>
+
+          {editedCount > 0 && (
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', backgroundColor: '#ecfdf5', padding: '4px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+              ✓ {editedCount}개 수정 중
+            </div>
+          )}
+        </div>
+
+        {/* 테이블 영역 */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+          <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f1f5f9', zIndex: 5, borderBottom: '2px solid #cbd5e1' }}>
+              <tr>
+                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#334155', minWidth: '130px' }}>품목명</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#334155', width: '70px' }}>규격</th>
+                {(warehouses || []).map(w => (
+                  <th key={w.id || w.name} style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#1e40af', textAlign: 'center', width: '90px' }}>
+                    {w.name}
+                  </th>
+                ))}
+                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#0f172a', textAlign: 'right', width: '85px' }}>합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={3 + (warehouses || []).length} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                    검색 조건에 일치하는 품목이 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map(p => {
+                  const isRowEdited = localBatchStocks[p.id] !== undefined;
+                  const rowTotal = getRowTotal(p);
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: isRowEdited ? '#f0fdf4' : 'transparent' }}>
+                      <td style={{ padding: '6px 10px', fontWeight: 700, color: '#1e293b', fontSize: '0.82rem' }}>
+                        {p.name}
+                      </td>
+                      <td style={{ padding: '6px 6px', fontSize: '0.72rem', color: '#64748b' }}>
+                        {p.spec || '-'}
+                      </td>
+                      {(warehouses || []).map(w => {
+                        const cellVal = getCellValue(p, w.name);
+                        const isCellEdited = localBatchStocks[p.id]?.[w.name] !== undefined;
+                        return (
+                          <td key={w.name} style={{ padding: '4px 6px', textAlign: 'center' }}>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={cellVal}
+                              onChange={(e) => handleCellChange(p.id, w.name, e.target.value)}
+                              style={{
+                                width: '65px',
+                                height: '28px',
+                                textAlign: 'right',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                border: isCellEdited ? '2px solid #10b981' : '1px solid #cbd5e1',
+                                backgroundColor: isCellEdited ? '#ecfdf5' : '#ffffff',
+                                fontWeight: 700,
+                                fontSize: '0.8rem'
+                              }}
+                            />
+                          </td>
+                        );
+                      })}
+                      <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1d4ed8', fontSize: '0.85rem' }}>
+                        {rowTotal.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 모달 하단 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            총 <strong>{filtered.length}</strong>개 품목
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.82rem' }}>닫기</button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={isSaving || editedCount === 0}
+              onClick={handleSave}
+              style={{
+                padding: '6px 18px',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                opacity: (isSaving || editedCount === 0) ? 0.6 : 1,
+                cursor: (isSaving || editedCount === 0) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Save size={14} />
+              {isSaving ? '저장 중...' : `일괄 저장 (${editedCount}건)`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </WindowModal>
+  );
+}
 
 export default InventoryReport;

@@ -5916,6 +5916,7 @@ function App() {
       {isInventoryReportOpen && <InventoryReport 
         onClose={() => setIsInventoryReportOpen(false)} 
         products={products} 
+        setProducts={setProducts}
         categories={categories}
         setCategories={setCategories}
         currentUser={currentUser}
