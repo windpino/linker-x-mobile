@@ -171,9 +171,33 @@ const Login = ({ onLogin, onNavigateToSignup, onFindAgency, prefilledAgencyId, o
         <div className="login-right">
           <div className="signup-link">
             {step === 1 ? (
-              <>계정이 없으신가요? <span onClick={() => onNavigateToSignup()} style={{ cursor: 'pointer', color: '#3b82f6', marginLeft: '4px' }}>회원사 등록</span></>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span>계정이 없으신가요?</span>
+                <span 
+                  onClick={() => onNavigateToSignup()} 
+                  style={{ cursor: 'pointer', color: '#3b82f6', fontWeight: 700, marginLeft: '2px' }}
+                >
+                  회원사 등록
+                </span>
+              </div>
             ) : (
-              <span onClick={handleBackToStep1} style={{ cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span 
+                onClick={handleBackToStep1} 
+                style={{ 
+                  cursor: 'pointer', 
+                  color: '#94a3b8', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseOver={e => { e.currentTarget.style.color = '#38bdf8'; e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.12)'; }}
+                onMouseOut={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+              >
                 <Package size={14} /> 다른 회원사로 로그인
               </span>
             )}

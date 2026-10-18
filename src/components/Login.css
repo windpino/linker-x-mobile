@@ -14,7 +14,7 @@
 .login-card {
   display: flex;
   width: 850px;
-  min-height: 480px;
+  min-height: 520px;
   max-height: 90vh;
   border-radius: 20px;
   overflow: hidden;
@@ -80,7 +80,7 @@
 .login-right {
   flex: 1;
   background-color: #0b0f19; /* Sophisticated deep dark slate for right panel */
-  padding: 30px;
+  padding: 28px 36px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -88,11 +88,14 @@
 }
 
 .signup-link {
-  position: absolute;
-  top: 40px;
-  right: 40px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
   font-size: 0.85rem;
   color: #94a3b8;
+  margin-bottom: 24px;
+  flex-shrink: 0;
 }
 
 .signup-link a {
