@@ -538,7 +538,7 @@ const InventoryReport = ({
     if (data.length > 0) exportToExcel(data, fileName);
   };
 
-  const currentTitle = activeTab === 'final' ? '최종재고' : activeTab === 'partner' ? '매입처별 재고' : '일자별 재고이동';
+  const currentTitle = activeTab === 'final' ? '최종 재고 현황' : activeTab === 'partner' ? '매입처별 재고현황' : '일자별 재고현황(이동현황)';
 
   return (
     <>
@@ -596,29 +596,6 @@ const InventoryReport = ({
               <Download size={12} /> 엑셀
             </button>
           </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', backgroundColor: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
-          {tabs.map(tab => (
-            <button 
-              key={tab.id} 
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '7px 4px',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: activeTab === tab.id ? 800 : 600,
-                backgroundColor: activeTab === tab.id ? '#fff' : 'transparent',
-                color: activeTab === tab.id ? '#2563eb' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.15s'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
 
         <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

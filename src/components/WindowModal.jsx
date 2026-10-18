@@ -52,6 +52,9 @@ const getMenuIdFromTitle = (title) => {
   if (title.includes('결산')) return 'cash_report_1';
   if (title.includes('입출금')) return 'cash_report_2';
   if (title.includes('매출보고서')) return 'sales_report';
+  if (title.includes('일자별 재고') || title.includes('일자별재고') || title.includes('일자별 재고이동')) return 'inventory_report_1';
+  if (title.includes('최종 재고') || title.includes('최종재고')) return 'inventory_report_2';
+  if (title.includes('매입처별 재고') || title.includes('매입처별재고')) return 'inventory_report_3';
   if (title.includes('재고보고서') || title.includes('재고 현황')) return 'inventory_report_1';
   if (title.includes('재고 손실 조정')) return 'inventory_adjustment';
   if (title.includes('미수금')) return 'receivables';

@@ -452,16 +452,25 @@ function App() {
   };
   const [isSalesReportOpen, setIsSalesReportOpen] = useState(false);
   const [isOrderReportOpen, setIsOrderReportOpen] = useState(false);
-  const [isInventoryReportOpen, setIsInventoryReportOpen] = useState(false);
+  const [isDailyInventoryReportOpen, setIsDailyInventoryReportOpen] = useState(false);
+  const [isFinalInventoryReportOpen, setIsFinalInventoryReportOpen] = useState(false);
+  const [isPartnerInventoryReportOpen, setIsPartnerInventoryReportOpen] = useState(false);
+  const isInventoryReportOpen = isDailyInventoryReportOpen || isFinalInventoryReportOpen || isPartnerInventoryReportOpen;
   const [isReceivablesReportOpen, setIsReceivablesReportOpen] = useState(false);
   const [inventoryReportTab, setInventoryReportTab] = useState('daily');
 
   const openInventoryReport = (tab = 'daily') => {
-    const norm = tab === '일자별' || tab === 'daily' ? 'daily' :
-                 tab === '최종' || tab === 'final' ? 'final' :
+    const norm = tab === '일자별' || tab === 'daily' || tab === '일자별 재고현황(창고별이동현황)' ? 'daily' :
+                 tab === '최종' || tab === 'final' || tab === '최종 재고 현황(창고별 최종재고현황)' ? 'final' :
                  tab === '매입처별' || tab === 'partner' ? 'partner' : 'daily';
     setInventoryReportTab(norm);
-    setIsInventoryReportOpen(true);
+    if (norm === 'final') {
+      setIsFinalInventoryReportOpen(true);
+    } else if (norm === 'partner') {
+      setIsPartnerInventoryReportOpen(true);
+    } else {
+      setIsDailyInventoryReportOpen(true);
+    }
   };
   const openInventoryTransfer = (date = null) => {
     setInventoryTransferInitialDate(date);
@@ -615,7 +624,9 @@ function App() {
       if (typeof isCashReportOpen !== 'undefined' && isCashReportOpen) { setIsCashReportOpen(false); return true; }
       if (typeof isSalesReportOpen !== 'undefined' && isSalesReportOpen) { setIsSalesReportOpen(false); return true; }
       if (typeof isOrderReportOpen !== 'undefined' && isOrderReportOpen) { setIsOrderReportOpen(false); return true; }
-      if (typeof isInventoryReportOpen !== 'undefined' && isInventoryReportOpen) { setIsInventoryReportOpen(false); return true; }
+      if (typeof isFinalInventoryReportOpen !== 'undefined' && isFinalInventoryReportOpen) { setIsFinalInventoryReportOpen(false); return true; }
+      if (typeof isPartnerInventoryReportOpen !== 'undefined' && isPartnerInventoryReportOpen) { setIsPartnerInventoryReportOpen(false); return true; }
+      if (typeof isDailyInventoryReportOpen !== 'undefined' && isDailyInventoryReportOpen) { setIsDailyInventoryReportOpen(false); return true; }
       if (typeof isReceivablesReportOpen !== 'undefined' && isReceivablesReportOpen) { setIsReceivablesReportOpen(false); return true; }
       if (typeof isEditDeleteReportOpen !== 'undefined' && isEditDeleteReportOpen) { setIsEditDeleteReportOpen(false); return true; }
       if (typeof isCashBookOpen !== 'undefined' && isCashBookOpen) { setIsCashBookOpen(false); return true; }
@@ -5919,8 +5930,8 @@ function App() {
           setIsOrderReportOpen(false);
         }}
       />}
-      {isInventoryReportOpen && <InventoryReport 
-        onClose={() => setIsInventoryReportOpen(false)} 
+      {isDailyInventoryReportOpen && <InventoryReport 
+        onClose={() => setIsDailyInventoryReportOpen(false)} 
         products={products} 
         setProducts={setProducts}
         categories={categories}
@@ -5937,7 +5948,55 @@ function App() {
         onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
         onOpenPurchaseInvoice={openPurchaseInvoice}
         onOpenInventoryTransfer={openInventoryTransfer}
-        defaultTab={inventoryReportTab} 
+        defaultTab="daily" 
+        staffList={staffList}
+        schedules={schedules}
+        setSchedules={setSchedules}
+        onMoveStock={onMoveStock}
+      />}
+      {isFinalInventoryReportOpen && <InventoryReport 
+        onClose={() => setIsFinalInventoryReportOpen(false)} 
+        products={products} 
+        setProducts={setProducts}
+        categories={categories}
+        setCategories={setCategories}
+        currentUser={currentUser}
+        warehouses={warehouses}
+        inventory={inventory}
+        historyData={inventoryTransferHistory}
+        partners={partners}
+        purchaseInvoices={purchaseInvoices}
+        salesInvoices={salesInvoices}
+        salesOrders={salesOrders}
+        onOpenSalesInvoice={openSalesInvoice}
+        onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
+        onOpenPurchaseInvoice={openPurchaseInvoice}
+        onOpenInventoryTransfer={openInventoryTransfer}
+        defaultTab="final" 
+        staffList={staffList}
+        schedules={schedules}
+        setSchedules={setSchedules}
+        onMoveStock={onMoveStock}
+      />}
+      {isPartnerInventoryReportOpen && <InventoryReport 
+        onClose={() => setIsPartnerInventoryReportOpen(false)} 
+        products={products} 
+        setProducts={setProducts}
+        categories={categories}
+        setCategories={setCategories}
+        currentUser={currentUser}
+        warehouses={warehouses}
+        inventory={inventory}
+        historyData={inventoryTransferHistory}
+        partners={partners}
+        purchaseInvoices={purchaseInvoices}
+        salesInvoices={salesInvoices}
+        salesOrders={salesOrders}
+        onOpenSalesInvoice={openSalesInvoice}
+        onOpenSalesOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); }}
+        onOpenPurchaseInvoice={openPurchaseInvoice}
+        onOpenInventoryTransfer={openInventoryTransfer}
+        defaultTab="partner" 
         staffList={staffList}
         schedules={schedules}
         setSchedules={setSchedules}
