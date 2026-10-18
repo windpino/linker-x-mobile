@@ -1018,65 +1018,32 @@ const InventoryReport = ({
                       </div>
                     </div>
 
-                    {/* 기초 재고 입력 / 설정 행 */}
+                    {/* 창고별 재고 현황 보기 버튼 */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
                       <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
-                        {isAllWarehouses ? '기초 재고 (전체 합계)' : `기초 재고 (${filters.selectedWarehouse})`}
+                        창고별 재고 현황
                       </span>
-
-                      {isAllWarehouses ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
-                            {baseStock.toLocaleString()}개
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedProductForWarehouseModal(p)}
-                            style={{
-                              padding: '2px 7px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              borderRadius: '5px',
-                              border: '1px solid #3b82f6',
-                              backgroundColor: '#eff6ff',
-                              color: '#1d4ed8',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            창고별 입력
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <input
-                            type="text"
-                            lang="ko"
-                            inputMode="numeric"
-                            value={
-                              editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined
-                                ? editedStocks[p.id][filters.selectedWarehouse]
-                                : getProductWarehouseInitialStock(p, filters.selectedWarehouse, warehouses)
-                            }
-                            onChange={(e) => handleStockInputChange(p.id, filters.selectedWarehouse, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveInitialStocks();
-                            }}
-                            style={{
-                              width: '80px',
-                              height: '32px',
-                              textAlign: 'right',
-                              padding: '0 8px',
-                              borderRadius: '6px',
-                              border: isCellEdited ? '2px solid #10b981' : '1px solid #cbd5e1',
-                              backgroundColor: isCellEdited ? '#ecfdf5' : '#fff',
-                              color: '#0f172a',
-                              fontWeight: 700,
-                              fontSize: '0.88rem'
-                            }}
-                          />
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>개</span>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProductForWarehouseModal(p)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: '1px solid #3b82f6',
+                          backgroundColor: '#eff6ff',
+                          color: '#1d4ed8',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        title="각 창고별 해당 품목의 재고 내역 보기"
+                      >
+                        <Warehouse size={12} />
+                        창고별내역
+                      </button>
                     </div>
                   </div>
                 );
@@ -1137,6 +1104,7 @@ const InventoryReport = ({
         <SingleProductWarehouseModal
           product={selectedProductForWarehouseModal}
           warehouses={warehouses}
+          inventory={inventory}
           onClose={() => setSelectedProductForWarehouseModal(null)}
           onSave={handleSaveSingleProductWarehouseStocks}
         />
@@ -1156,9 +1124,9 @@ const InventoryReport = ({
 };
 
 // ─────────────────────────────────────────────────────────────
-// 단일 품목 창고별 기초 재고 상세 설정 모달 (모바일)
+// 단일 품목 창고별 재고 내역 및 기초 재고 설정 모달 (모바일)
 // ─────────────────────────────────────────────────────────────
-function SingleProductWarehouseModal({ product, warehouses, onClose, onSave }) {
+function SingleProductWarehouseModal({ product, warehouses, inventory = {}, onClose, onSave }) {
   const [localStocks, setLocalStocks] = useState(() => {
     const initial = {};
     (warehouses || []).forEach(w => {
@@ -1167,82 +1135,122 @@ function SingleProductWarehouseModal({ product, warehouses, onClose, onSave }) {
     return initial;
   });
 
-  const total = Object.values(localStocks).reduce((sum, v) => sum + (Number(v) || 0), 0);
-
   const handleChange = (whName, val) => {
     const clean = val.replace(/[^0-9]/g, '');
     const num = clean === '' ? 0 : parseInt(clean, 10);
     setLocalStocks(prev => ({ ...prev, [whName]: num }));
   };
 
+  const totalInit = (warehouses || []).reduce((sum, w) => sum + (Number(localStocks[w.name]) || 0), 0);
+  
+  const totalMove = (warehouses || []).reduce((sum, w) => {
+    return sum + (inventory[w.name]?.[product.name] || 0);
+  }, 0);
+
+  const totalCurrent = totalInit + totalMove;
+
+  const isChanged = (warehouses || []).some(w => {
+    const orig = getProductWarehouseInitialStock(product, w.name, warehouses);
+    return (localStocks[w.name] ?? 0) !== orig;
+  });
+
   return (
-    <WindowModal title={`[${product.name}] 창고별 기초 재고`} onClose={onClose} width="95%" maxWidth="480px">
-      <div style={{ padding: '16px' }}>
-        <div style={{ marginBottom: '14px', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '2px' }}>
-            {[product.categoryLarge, product.categoryMedium, product.categorySmall].filter(Boolean).join(' > ')}
+    <WindowModal title={`[${product.name}] 창고별 재고 내역`} onClose={onClose} width="95%" maxWidth="520px">
+      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>
+              {[product.categoryLarge, product.categoryMedium, product.categorySmall].filter(Boolean).join(' > ')}
+            </div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e293b' }}>
+              {product.name} {product.spec && <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>({product.spec})</span>}
+            </div>
           </div>
-          <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#1e293b' }}>
-            {product.name} {product.spec && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>({product.spec})</span>}
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>총 현재 재고</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b') }}>
+              {totalCurrent.toLocaleString()}개
+            </span>
           </div>
         </div>
 
-        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '14px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: '0.78rem', color: '#475569' }}>창고명</th>
-                <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.78rem', color: '#475569', width: '120px' }}>기초 재고 입력</th>
+        <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+              <tr>
+                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#475569' }}>창고명</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#475569', textAlign: 'right', width: '90px' }}>기초재고</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.75rem', color: '#475569', textAlign: 'right', width: '80px' }}>변동</th>
+                <th style={{ padding: '8px 10px', fontSize: '0.75rem', color: '#1e40af', textAlign: 'right', width: '90px', fontWeight: 800 }}>현재재고</th>
               </tr>
             </thead>
             <tbody>
-              {(warehouses || []).map(w => (
-                <tr key={w.id || w.name} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155', fontSize: '0.85rem' }}>
-                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: w.color || '#3b82f6', marginRight: '6px' }}></span>
-                    {w.name}
-                  </td>
-                  <td style={{ padding: '6px 10px', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              {(warehouses || []).map(w => {
+                const initVal = localStocks[w.name] !== undefined ? localStocks[w.name] : 0;
+                const moveVal = inventory[w.name]?.[product.name] || 0;
+                const currentVal = initVal + moveVal;
+
+                return (
+                  <tr key={w.id || w.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 10px', fontWeight: 700, color: '#334155', fontSize: '0.82rem' }}>
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: w.color || '#3b82f6', marginRight: '6px' }}></span>
+                      {w.name}
+                    </td>
+                    <td style={{ padding: '6px', textAlign: 'right' }}>
                       <input
                         type="text"
                         inputMode="numeric"
-                        value={localStocks[w.name] !== undefined ? localStocks[w.name] : 0}
+                        value={initVal}
                         onChange={(e) => handleChange(w.name, e.target.value)}
                         style={{
-                          width: '75px',
-                          height: '32px',
+                          width: '60px',
+                          height: '28px',
                           textAlign: 'right',
-                          padding: '0 6px',
-                          borderRadius: '6px',
+                          padding: '0 4px',
+                          borderRadius: '4px',
                           border: '1px solid #cbd5e1',
                           fontWeight: 700,
-                          fontSize: '0.85rem'
+                          fontSize: '0.8rem'
                         }}
                       />
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>개</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700, color: moveVal > 0 ? '#059669' : (moveVal < 0 ? '#ef4444' : '#64748b') }}>
+                      {moveVal > 0 ? `+${moveVal.toLocaleString()}` : moveVal.toLocaleString()}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, color: currentVal > 0 ? '#1d4ed8' : (currentVal < 0 ? '#ef4444' : '#64748b') }}>
+                      {currentVal.toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
+            <tfoot style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
+              <tr>
+                <td style={{ padding: '10px', fontWeight: 800, color: '#1e293b', fontSize: '0.82rem' }}>합계</td>
+                <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 800, color: '#475569', fontSize: '0.82rem' }}>
+                  {totalInit.toLocaleString()}
+                </td>
+                <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 800, color: totalMove > 0 ? '#059669' : (totalMove < 0 ? '#ef4444' : '#64748b'), fontSize: '0.82rem' }}>
+                  {totalMove > 0 ? `+${totalMove.toLocaleString()}` : totalMove.toLocaleString()}
+                </td>
+                <td style={{ padding: '10px', textAlign: 'right', fontWeight: 900, color: totalCurrent > 0 ? '#1d4ed8' : (totalCurrent < 0 ? '#ef4444' : '#64748b'), fontSize: '0.95rem' }}>
+                  {totalCurrent.toLocaleString()}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: '#eff6ff', borderRadius: '8px', marginBottom: '16px' }}>
-          <span style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.85rem' }}>총 기초 재고 합계</span>
-          <span style={{ fontWeight: 900, color: '#1d4ed8', fontSize: '1.1rem' }}>{total.toLocaleString()} 개</span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>취소</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '4px' }}>
+          <button type="button" className="btn-outline" onClick={onClose} style={{ padding: '6px 14px', fontSize: '0.82rem' }}>닫기</button>
           <button
             type="button"
             className="btn-primary"
+            disabled={!isChanged}
             onClick={() => onSave(product.id, localStocks)}
-            style={{ padding: '6px 18px', fontWeight: 700, fontSize: '0.85rem' }}
+            style={{ padding: '6px 18px', fontWeight: 700, fontSize: '0.82rem', opacity: !isChanged ? 0.6 : 1, cursor: !isChanged ? 'not-allowed' : 'pointer' }}
           >
-            저장하기
+            기초재고 저장
           </button>
         </div>
       </div>
