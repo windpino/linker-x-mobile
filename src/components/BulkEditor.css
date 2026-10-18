@@ -34,6 +34,59 @@
   gap: 20px;
 }
 
+.bulk-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.bulk-search-box:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.bulk-search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.bulk-search-input {
+  border: none;
+  outline: none;
+  font-size: 0.82rem;
+  color: #1e293b;
+  background: transparent;
+  width: 220px;
+}
+
+.bulk-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.bulk-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all 0.15s;
+}
+
+.bulk-search-clear:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
 .add-row-group {
   display: flex;
   align-items: center;
@@ -346,4 +399,13 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.editable-cell.read-only-cell {
+  cursor: default;
+  user-select: text;
+}
+
+.editable-cell.read-only-cell:hover {
+  background-color: #f1f5f9;
 }

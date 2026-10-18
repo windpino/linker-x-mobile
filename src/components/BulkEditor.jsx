@@ -1,56 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Save, Plus, Trash2, X, AlertCircle, Settings } from 'lucide-react';
+import { Save, Plus, Trash2, X, AlertCircle, Settings, Search, Undo2, Redo2, Edit3 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import './BulkEditor.css';
 
 const PARTNER_COLUMNS = [
-  { field: 'type', header: '구분', type: 'string', width: 80 },
-  { field: 'name', header: '상호명', type: 'string', width: 150 },
-  { field: 'abbreviation', header: '약칭', type: 'string', width: 100 },
-  { field: 'barcode', header: '바코드', type: 'string', width: 120 },
-  { field: 'ceo', header: '대표자', type: 'string', width: 100 },
-  { field: 'businessNo', header: '사업자번호', type: 'string', width: 120 },
-  { field: 'address', header: '주소', type: 'string', width: 250 },
-  { field: 'phone', header: '일반전화', type: 'string', width: 120 },
-  { field: 'mobile', header: '휴대전화', type: 'string', width: 120 },
-  { field: 'fax', header: '팩스', type: 'string', width: 120 },
-  { field: 'email', header: '이메일', type: 'string', width: 150 },
-  { field: 'manager', header: '담당자', type: 'string', width: 100 },
-  { field: 'warehouse', header: '담당창고', type: 'string', width: 100 },
-  { field: 'bankAccount', header: '은행/계좌', type: 'string', width: 150 },
-  { field: 'creditLimit', header: '여신한도', type: 'number', width: 100 },
-  { field: 'receivables', header: '누적 미수금', type: 'number', width: 100 },
-  { field: 'receivableBase', header: '기초미수', type: 'number', width: 100 },
-  { field: 'grade', header: '등급', type: 'string', width: 80 },
-  { field: 'loginId', header: '아이디', type: 'string', width: 100 },
-  { field: 'password', header: '비밀번호', type: 'string', width: 100 },
-  { field: 'hideOrderInfo', header: '주문정보숨김', type: 'boolean', width: 100 },
-  { field: 'memo', header: '메모', type: 'string', width: 200 },
+  { field: 'type', header: '구분', type: 'string', width: 80, align: 'center' },
+  { field: 'name', header: '상호명', type: 'string', width: 150, align: 'center' },
+  { field: 'abbreviation', header: '약칭', type: 'string', width: 100, align: 'center' },
+  { field: 'barcode', header: '바코드', type: 'string', width: 120, align: 'center' },
+  { field: 'ceo', header: '대표자', type: 'string', width: 100, align: 'center' },
+  { field: 'businessNo', header: '사업자번호', type: 'string', width: 120, align: 'center' },
+  { field: 'address', header: '주소', type: 'string', width: 250, align: 'center' },
+  { field: 'phone', header: '일반전화', type: 'string', width: 120, align: 'center' },
+  { field: 'mobile', header: '휴대전화', type: 'string', width: 120, align: 'center' },
+  { field: 'fax', header: '팩스', type: 'string', width: 120, align: 'center' },
+  { field: 'email', header: '이메일', type: 'string', width: 150, align: 'center' },
+  { field: 'manager', header: '담당자', type: 'string', width: 100, align: 'center' },
+  { field: 'warehouse', header: '담당창고', type: 'string', width: 100, align: 'center' },
+  { field: 'bankAccount', header: '은행/계좌', type: 'string', width: 150, align: 'center' },
+  { field: 'creditLimit', header: '여신한도', type: 'number', width: 100, align: 'right' },
+  { field: 'receivables', header: '누적 미수금', type: 'number', width: 100, align: 'right' },
+  { field: 'receivableBase', header: '기초미수', type: 'number', width: 100, align: 'right' },
+  { field: 'grade', header: '등급', type: 'string', width: 80, align: 'center' },
+  { field: 'loginId', header: '아이디', type: 'string', width: 100, align: 'center' },
+  { field: 'password', header: '비밀번호', type: 'string', width: 100, align: 'center' },
+  { field: 'hideOrderInfo', header: '주문정보숨김', type: 'boolean', width: 100, align: 'center' },
+  { field: 'memo', header: '메모', type: 'string', width: 200, align: 'center' },
 ];
 
 const PRODUCT_COLUMNS = [
-  { field: 'code', header: '품목코드', type: 'string', width: 100 },
-  { field: 'name', header: '품목명', type: 'string', width: 200 },
-  { field: 'categoryLarge', header: '대분류', type: 'string', width: 100 },
-  { field: 'categoryMedium', header: '중분류', type: 'string', width: 100 },
-  { field: 'categorySmall', header: '소분류', type: 'string', width: 100 },
-  { field: 'spec', header: '규격', type: 'string', width: 100 },
-  { field: 'unit', header: '단위', type: 'string', width: 80 },
-  { field: 'innerQty', header: '내품수량', type: 'number', width: 80 },
-  { field: 'purchasePrice', header: '매입가', type: 'number', width: 120 },
-  { field: 'salesPriceSingle', header: '매출가(낱개)', type: 'number', width: 120 },
-  { field: 'salesPriceBox', header: '매출가(박스)', type: 'number', width: 120 },
-  { field: 'stock', header: '현재고', type: 'number', width: 100 },
-  { field: 'initialStock', header: '기초재고', type: 'number', width: 100 },
-  { field: 'optimalStock', header: '적정재고', type: 'number', width: 100 },
-  { field: 'safeStock', header: '안전재고', type: 'number', width: 100 },
-  { field: 'singleBarcode', header: '낱개바코드', type: 'string', width: 150 },
-  { field: 'boxBarcode', header: '박스바코드', type: 'string', width: 150 },
-  { field: 'warehouse', header: '보관창고', type: 'string', width: 120 },
-  { field: 'showInMall', header: '몰 노출', type: 'boolean', width: 80 },
-  { field: 'memo', header: '상품설명', type: 'string', width: 200 },
+  { field: 'code', header: '품목코드', type: 'string', width: 100, align: 'center' },
+  { field: 'name', header: '품목명', type: 'string', width: 200, align: 'center' },
+  { field: 'abbreviation', header: '약칭', type: 'string', width: 100, align: 'center' },
+  { field: 'manufacturer', header: '제조사', type: 'string', width: 120, align: 'center' },
+  { field: 'categoryLarge', header: '대분류', type: 'string', width: 100, align: 'center' },
+  { field: 'categoryMedium', header: '중분류', type: 'string', width: 100, align: 'center' },
+  { field: 'categorySmall', header: '소분류', type: 'string', width: 100, align: 'center' },
+  { field: 'spec', header: '규격', type: 'string', width: 100, align: 'center' },
+  { field: 'unit', header: '단위', type: 'string', width: 80, align: 'center' },
+  { field: 'innerQty', header: '내품수량', type: 'number', width: 80, align: 'center' },
+  { field: 'warehouse', header: '지정창고', type: 'string', width: 120, align: 'center' },
+  { field: 'showInMall', header: '몰노출', type: 'boolean', width: 80, align: 'center' },
+  { field: 'taxType', header: '과세구분', type: 'string', width: 90, align: 'center' },
+  { field: 'purchasePrice', header: '매입가', type: 'number', width: 120, align: 'right' },
+  { field: 'salesPriceSingle', header: '매출가(낱개)', type: 'number', width: 120, align: 'right' },
+  { field: 'salesPriceBox', header: '매출가(박스)', type: 'number', width: 120, align: 'right' },
+  { field: 'stock', header: '현재고', type: 'number', width: 100, align: 'center' },
+  { field: 'initialStock', header: '기초재고', type: 'number', width: 100, align: 'center' },
+  { field: 'optimalStock', header: '적정재고', type: 'number', width: 100, align: 'center' },
+  { field: 'safeStock', header: '안전재고', type: 'number', width: 100, align: 'center' },
+  { field: 'singleBarcode', header: '낱개바코드', type: 'string', width: 150, align: 'center' },
+  { field: 'boxBarcode', header: '박스바코드', type: 'string', width: 150, align: 'center' },
+  { field: 'memo', header: '상품설명', type: 'string', width: 200, align: 'center' },
 ];
+
+const getColumnAlign = (col) => {
+  if (col.align) return col.align;
+  const isAmount = ['purchasePrice', 'salesPriceSingle', 'salesPriceBox', 'creditLimit', 'receivables', 'receivableBase'].includes(col.field);
+  return isAmount ? 'right' : 'center';
+};
+
+const QWERTY_TO_HANGUL = {
+  'q': 'ㅂ', 'Q': 'ㅃ', 'w': 'ㅈ', 'W': 'ㅉ', 'e': 'ㄷ', 'E': 'ㄸ',
+  'r': 'ㄱ', 'R': 'ㄲ', 't': 'ㅅ', 'T': 'ㅆ', 'y': 'ㅛ', 'Y': 'ㅛ',
+  'u': 'ㅕ', 'U': 'ㅕ', 'i': 'ㅑ', 'I': 'ㅑ', 'o': 'ㅐ', 'O': 'ㅒ',
+  'p': 'ㅔ', 'P': 'ㅖ', 'a': 'ㅁ', 'A': 'ㅁ', 's': 'ㄴ', 'S': 'ㄴ',
+  'd': 'ㅇ', 'D': 'ㅇ', 'f': 'ㄹ', 'F': 'ㄹ', 'g': 'ㅎ', 'G': 'ㅎ',
+  'h': 'ㅗ', 'H': 'ㅗ', 'j': 'ㅓ', 'J': 'ㅓ', 'k': 'ㅏ', 'K': 'ㅏ',
+  'l': 'ㅣ', 'L': 'ㅣ', 'z': 'ㅋ', 'Z': 'ㅋ', 'x': 'ㅌ', 'X': 'ㅌ',
+  'c': 'ㅊ', 'C': 'ㅊ', 'v': 'ㅍ', 'V': 'ㅍ', 'b': 'ㅠ', 'B': 'ㅠ',
+  'n': 'ㅜ', 'N': 'ㅜ', 'm': 'ㅡ', 'M': 'ㅡ'
+};
+
+const parseBooleanValue = (val, defaultVal = true) => {
+  if (val === undefined || val === null || val === '') return defaultVal;
+  if (typeof val === 'boolean') return val;
+  if (typeof val === 'number') return val === 1;
+  const s = String(val).trim().toLowerCase();
+  if (['1', 'true', 'y', 'yes', 'o', '노출', '1 (노출)', '노출 (1)', '1: 노출', '1:노출'].includes(s)) return true;
+  if (['0', 'false', 'n', 'no', 'x', '비노출', '0 (비노출)', '비노출 (0)', '0: 비노출', '0:비노출'].includes(s)) return false;
+  return Boolean(val);
+};
 
 const CHO_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
 const JUNG_LIST = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
@@ -211,7 +242,27 @@ const combineInitialAndVowel = (val) => {
   return assembleJamos(jamos);
 };
 
-const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inputMode, isDirectInput, pendingChar, onPaste }) => {
+const getChosung = (str) => {
+  if (!str) return '';
+  let res = '';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 44032 && code <= 55203) {
+      const choIdx = Math.floor((code - 44032) / 588);
+      res += CHO_LIST[choIdx];
+    } else {
+      res += str[i];
+    }
+  }
+  return res;
+};
+
+const isChosungOnly = (str) => {
+  if (!str) return false;
+  return str.split('').every(ch => CHO_LIST.includes(ch) || ch === ' ' || !isNaN(Number(ch)));
+};
+
+const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inputMode, isDirectInput, pendingChar, onPaste, list, onToggleKoreanMode, cursorAtEnd }) => {
   const inputRef = React.useRef(null);
   const isComposing = React.useRef(false);
 
@@ -221,22 +272,22 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
       inputRef.current = node;
       // Focus synchronously immediately during mount commit phase
       node.focus();
-      if (isDirectInput) {
+      if (isDirectInput || cursorAtEnd) {
         const len = node.value.length;
         node.setSelectionRange(len, len);
       } else {
         node.select();
       }
     }
-  }, [isDirectInput]);
+  }, [isDirectInput, cursorAtEnd]);
 
   React.useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
-      if (!isDirectInput) {
+      if (!isDirectInput && !cursorAtEnd) {
         inputRef.current.select();
       } else {
-        // Position cursor at the end when starting directly
+        // Position cursor at the end when starting directly or via F2
         const len = inputRef.current.value.length;
         inputRef.current.setSelectionRange(len, len);
         
@@ -249,9 +300,13 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
         }, 10);
       }
     }
-  }, [isDirectInput]);
+  }, [isDirectInput, cursorAtEnd]);
   
   const handleKeyDown = (e) => {
+    if (e.key === 'HangulMode' || e.code === 'Lang1' || e.code === 'Lang2' || e.key === 'Hanja' || e.code === 'Hanja') {
+      if (onToggleKoreanMode) onToggleKoreanMode();
+      return;
+    }
     if (e.key === 'Enter') {
       if (isComposing.current) return;
       onSave(inputRef.current.value);
@@ -265,63 +320,11 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
       onSave(inputRef.current.value, e.shiftKey ? 'ShiftTab' : 'Tab');
       return;
     }
-
-    // Intercept English characters when last layout was Korean to prevent OS native layout conflict
-    const lastImeLang = localStorage.getItem('linkerx_last_ime_lang') || 'ko';
-    if (lastImeLang === 'ko' && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const engToKor = {
-        'a':'ㅁ', 'b':'ㅠ', 'c':'ㅊ', 'd':'ㅇ', 'e':'ㄷ', 'f':'ㄹ', 'g':'ㅎ', 'h':'ㅗ', 'i':'ㅑ', 'j':'ㅓ', 'k':'ㅏ', 'l':'ㅣ', 'm':'ㅡ', 'n':'ㅜ', 'o':'ㅐ', 'p':'ㅔ', 'q':'ㅂ', 'r':'ㄱ', 's':'ㄴ', 't':'ㅅ', 'u':'ㅕ', 'v':'ㅍ', 'w':'ㅈ', 'x':'ㅌ', 'y':'요', 'z':'ㅋ',
-        'A':'ㅁ', 'B':'ㅠ', 'C':'ㅊ', 'D':'ㅇ', 'E':'ㄸ', 'F':'ㄹ', 'G':'ㅎ', 'H':'ㅗ', 'I':'ㅑ', 'J':'ㅓ', 'K':'ㅏ', 'L':'ㅣ', 'M':'ㅡ', 'N':'ㅜ', 'O':'ㅒ', 'P':'ㅖ', 'Q':'ㅃ', 'R':'ㄲ', 'S':'ㄴ', 'T':'ㅆ', 'U':'ㅕ', 'V':'ㅍ', 'W':'ㅉ', 'X':'ㅌ', 'Y':'요', 'Z':'ㅋ'
-      };
-      
-      const mapped = engToKor[e.key];
-      if (mapped) {
-        e.preventDefault();
-        
-        const input = inputRef.current;
-        let start = input.selectionStart;
-        let end = input.selectionEnd;
-        const val = input.value;
-        
-        // Prevent auto select-all or default cursor position 0 from misplacing/overwriting the character in direct typing mode
-        if (isDirectInput && (val.length === 1 || (start === 0 && end === val.length) || (start === 0 && end === 0))) {
-          start = val.length;
-          end = val.length;
-        }
-        
-        // Decompose everything, insert new mapped Jamo, and reassemble
-        const textBefore = val.slice(0, start);
-        const textAfter = val.slice(end);
-        
-        const jamosBefore = decomposeHangul(textBefore);
-        const jamosAfter = decomposeHangul(textAfter);
-        
-        const allJamos = [...jamosBefore, mapped, ...jamosAfter];
-        const newText = assembleJamos(allJamos);
-        
-        input.value = newText;
-        
-        // Calculate new cursor position based on newly assembled prefix
-        const newBefore = assembleJamos([...jamosBefore, mapped]);
-        input.setSelectionRange(newBefore.length, newBefore.length);
-        
-        // Trigger manual input event to sync state if there are listeners
-        const event = new Event('input', { bubbles: true });
-        input.dispatchEvent(event);
-      }
-    }
   };
 
   const handleInput = (e) => {
     const input = e.target;
     const val = input.value;
-    
-    // Save last used keyboard language
-    if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)) {
-      localStorage.setItem('linkerx_last_ime_lang', 'ko');
-    } else if (/[a-zA-Z]/.test(val)) {
-      localStorage.setItem('linkerx_last_ime_lang', 'en');
-    }
     
     const combined = combineInitialAndVowel(val);
     if (combined !== val) {
@@ -346,6 +349,7 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
       ref={setInputRef}
       lang={lang}
       type="text"
+      list={list}
       inputMode={inputMode}
       defaultValue={isDirectInput ? (pendingChar || '') : initialValue}
       onCompositionStart={() => { isComposing.current = true; }}
@@ -392,14 +396,85 @@ const EditableInput = ({ initialValue, onSave, onCancel, type, style, lang, inpu
   );
 };
 
-const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData: oldInitialData, columns: columnsProp, onSave, onClose, categories = [] }) => {
+const BulkEditor = ({ 
+  type, 
+  data: initialDataProp, 
+  title: titleProp, 
+  initialData: oldInitialData, 
+  columns: columnsProp, 
+  onSave, 
+  onClose, 
+  categories = [], 
+  staffList = [], 
+  warehouses = [],
+  disableRowAddDelete = false 
+}) => {
   const isPartner = type === 'partner';
   const isProduct = type === 'product';
-  const title = titleProp || (isPartner ? '거래처 일괄 편집' : isProduct ? '품목 일괄 편집' : '일괄 편집');
+  const isWarehouseStock = type === 'warehouse_initial_stock';
+  const isProductOrWarehouseStock = isProduct || isWarehouseStock;
+  const canAddDeleteRows = !isWarehouseStock && !disableRowAddDelete;
+  const title = titleProp || (
+    isPartner ? '거래처 일괄 편집' : 
+    isProduct ? '품목 일괄 편집' : 
+    isWarehouseStock ? '창고별 기초재고 일괄설정' : 
+    '일괄 편집'
+  );
   const columns = columnsProp || (isPartner ? PARTNER_COLUMNS : isProduct ? PRODUCT_COLUMNS : []);
   const initialData = initialDataProp || oldInitialData || [];
 
   const [data, setData] = useState([...initialData]);
+  const [history, setHistory] = useState([]);
+  const [redoHistory, setRedoHistory] = useState([]);
+
+  const recalcRow = useCallback((row) => {
+    if (isWarehouseStock || row.totalInitialStock !== undefined) {
+      const sum = Object.keys(row)
+        .filter(k => k.startsWith('wh_'))
+        .reduce((acc, k) => acc + (Number(row[k]) || 0), 0);
+      return { ...row, totalInitialStock: sum };
+    }
+    return row;
+  }, [isWarehouseStock]);
+
+  const updateData = React.useCallback((nextDataOrUpdater) => {
+    setData(prevData => {
+      const nextData = typeof nextDataOrUpdater === 'function' ? nextDataOrUpdater(prevData) : nextDataOrUpdater;
+      // Record snapshot to undo history
+      setHistory(prevHist => [...prevHist.slice(-50), prevData]);
+      setRedoHistory([]); // Reset redo on new modification
+      return nextData;
+    });
+  }, []);
+
+  const handleUndo = React.useCallback(() => {
+    setHistory(prevHist => {
+      if (prevHist.length === 0) return prevHist;
+      const previousData = prevHist[prevHist.length - 1];
+      const newHist = prevHist.slice(0, prevHist.length - 1);
+      
+      setData(currentData => {
+        setRedoHistory(prevRedo => [...prevRedo.slice(-50), currentData]);
+        return previousData;
+      });
+      return newHist;
+    });
+  }, []);
+
+  const handleRedo = React.useCallback(() => {
+    setRedoHistory(prevRedo => {
+      if (prevRedo.length === 0) return prevRedo;
+      const nextData = prevRedo[prevRedo.length - 1];
+      const newRedo = prevRedo.slice(0, prevRedo.length - 1);
+      
+      setData(currentData => {
+        setHistory(prevHist => [...prevHist.slice(-50), currentData]);
+        return nextData;
+      });
+      return newRedo;
+    });
+  }, []);
+
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [selection, setSelection] = useState(null); // { r1, c1, r2, c2 }
   const [isSelecting, setIsSelecting] = useState(false);
@@ -407,63 +482,99 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
   const [bulkInputValue, setBulkInputValue] = useState('');
   const [isBulkInputActive, setIsBulkInputActive] = useState(false);
   const [enterDirection, setEnterDirection] = useState('vertical'); // 'vertical' or 'horizontal'
+  const [isKoreanMode, setIsKoreanMode] = useState(true); // Default Korean mode (한글 기본)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const tableWrapperRef = React.useRef(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const warehouseOptions = React.useMemo(() => {
+    const list = (warehouses || []).map(w => typeof w === 'string' ? w : w.name).filter(Boolean);
+    if (!list.includes('본사창고')) list.unshift('본사창고');
+    (data || []).forEach(item => {
+      if (item.warehouse && !list.includes(item.warehouse)) {
+        list.push(item.warehouse);
+      }
+    });
+    return [...new Set(list)];
+  }, [warehouses, data]);
 
   // Category Filtering States
   const [selectedLargeId, setSelectedLargeId] = useState('전체');
   const [selectedMediumId, setSelectedMediumId] = useState('전체');
   const [selectedSmallId, setSelectedSmallId] = useState('전체');
 
-  // Memoized visible rows after category filtering
+  // Memoized visible rows after category filtering and search
   const visibleData = React.useMemo(() => {
-    if (!isProduct || !categories || categories.length === 0) return data;
-    
-    let activeCatId = null;
-    if (selectedSmallId !== '전체') {
-      activeCatId = selectedSmallId;
-    } else if (selectedMediumId !== '전체') {
-      activeCatId = selectedMediumId;
-    } else if (selectedLargeId !== '전체') {
-      activeCatId = selectedLargeId;
-    }
-    
-    if (activeCatId) {
-      const allowedNames = new Set();
-      const getDescendants = (parentId) => {
-        categories.forEach(c => {
-          if (c.parentId && String(c.parentId) === String(parentId)) {
-            allowedNames.add(c.name.trim().toLowerCase());
-            getDescendants(c.id);
-          }
-        });
-      };
+    let result = data;
+
+    // 1. Category Filtering
+    if (isProductOrWarehouseStock && categories && categories.length > 0) {
+      let activeCatId = null;
+      if (selectedSmallId !== '전체') {
+        activeCatId = selectedSmallId;
+      } else if (selectedMediumId !== '전체') {
+        activeCatId = selectedMediumId;
+      } else if (selectedLargeId !== '전체') {
+        activeCatId = selectedLargeId;
+      }
       
-      const activeCat = categories.find(c => String(c.id) === String(activeCatId));
-      if (activeCat) {
-        allowedNames.add(activeCat.name.trim().toLowerCase());
-        getDescendants(activeCat.id);
+      if (activeCatId) {
+        const allowedNames = new Set();
+        const getDescendants = (parentId) => {
+          categories.forEach(c => {
+            if (c.parentId && String(c.parentId) === String(parentId)) {
+              allowedNames.add(c.name.trim().toLowerCase());
+              getDescendants(c.id);
+            }
+          });
+        };
         
-        return data.filter(p => {
-          const pLarge = (p.categoryLarge || '').trim().toLowerCase();
-          const pMedium = (p.categoryMedium || '').trim().toLowerCase();
-          const pSmall = (p.categorySmall || '').trim().toLowerCase();
-          const pCat = (p.category || '').trim().toLowerCase();
+        const activeCat = categories.find(c => String(c.id) === String(activeCatId));
+        if (activeCat) {
+          allowedNames.add(activeCat.name.trim().toLowerCase());
+          getDescendants(activeCat.id);
           
-          const hasMatchingPathPart = pCat.split('>').some(part => allowedNames.has(part.trim().toLowerCase()));
-          
-          return allowedNames.has(pLarge) || 
-                 allowedNames.has(pMedium) || 
-                 allowedNames.has(pSmall) || 
-                 allowedNames.has(pCat) || 
-                 hasMatchingPathPart;
-        });
-      } else {
-        return [];
+          result = result.filter(p => {
+            const pLarge = (p.categoryLarge || '').trim().toLowerCase();
+            const pMedium = (p.categoryMedium || '').trim().toLowerCase();
+            const pSmall = (p.categorySmall || '').trim().toLowerCase();
+            const pCat = (p.category || '').trim().toLowerCase();
+            
+            const hasMatchingPathPart = pCat.split('>').some(part => allowedNames.has(part.trim().toLowerCase()));
+            
+            return allowedNames.has(pLarge) || 
+                   allowedNames.has(pMedium) || 
+                   allowedNames.has(pSmall) || 
+                   allowedNames.has(pCat) || 
+                   hasMatchingPathPart;
+          });
+        } else {
+          result = [];
+        }
       }
     }
-    return data;
-  }, [data, selectedLargeId, selectedMediumId, selectedSmallId, categories, isProduct]);
+
+    // 2. Search Query Filtering
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      const isChosung = isChosungOnly(term);
+      result = result.filter(item => {
+        return Object.entries(item).some(([key, val]) => {
+          if (val === undefined || val === null || key === 'id' || key === 'companyId') return false;
+          const valStr = String(val).toLowerCase();
+          if (valStr.includes(term)) return true;
+          if (isChosung) {
+            const chosungVal = getChosung(valStr).toLowerCase();
+            if (chosungVal.includes(term)) return true;
+          }
+          return false;
+        });
+      });
+    }
+
+    return result;
+  }, [data, selectedLargeId, selectedMediumId, selectedSmallId, categories, isProductOrWarehouseStock, searchTerm]);
 
   // Column Visibility State
   const isCustomColumns = !!columnsProp;
@@ -605,8 +716,11 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
             const clipColIdx = (c - startCol) % C_clip;
             const cellVal = rowCells[clipColIdx] !== undefined ? rowCells[clipColIdx] : '';
             
-            const field = activeColumns[targetColIndex].field;
-            const type = activeColumns[targetColIndex].type;
+            const colDef = activeColumns[targetColIndex];
+            if (colDef?.readOnly) continue;
+
+            const field = colDef.field;
+            const type = colDef.type;
             
             if (isPartner && field === 'receivables') continue;
             
@@ -620,18 +734,18 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
             } else if (type === 'number') {
               newData[targetIdxInOriginal][field] = Number(cellVal.replace(/,/g, '')) || 0;
             } else if (type === 'boolean') {
-              const lower = cellVal.trim().toLowerCase();
-              newData[targetIdxInOriginal][field] = lower === 'true' || cellVal === '1' || lower === 'y' || lower === 'yes' || lower === 'o';
+              newData[targetIdxInOriginal][field] = parseBooleanValue(cellVal);
             } else {
               newData[targetIdxInOriginal][field] = cellVal;
             }
           }
         }
+        newData[targetIdxInOriginal] = recalcRow(newData[targetIdxInOriginal]);
       }
     }
     
-    setData(newData);
-  }, [data, visibleData, activeColumns, isPartner, selection]);
+    updateData(newData);
+  }, [data, visibleData, activeColumns, isPartner, selection, updateData, recalcRow]);
 
   const handleEnterNavigation = (r, c) => {
     if (enterDirection === 'vertical') {
@@ -783,6 +897,12 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
         }
       }
 
+      // Handle Han/Eng key toggle (한/영 키 전환)
+      if (e.key === 'HangulMode' || e.code === 'Lang1' || e.code === 'Lang2' || e.key === 'Hanja' || e.code === 'Hanja') {
+        setIsKoreanMode(prev => !prev);
+        return;
+      }
+
       if (!selection || editingCell || isBulkInputActive) return;
       
       const { r1, c1, r2, c2 } = selection;
@@ -869,15 +989,60 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
         return;
       }
 
+      // Space key to toggle boolean checkbox directly
+      if (e.key === ' ' && !isRange && activeColumns[c1]?.type === 'boolean' && !activeColumns[c1]?.readOnly) {
+        e.preventDefault();
+        const field = activeColumns[c1].field;
+        const currentVal = visibleData[r1]?.[field] !== false;
+        handleChange(r1, field, !currentVal);
+        return;
+      }
+
       // Enter key to start editing
       if (e.key === 'Enter') {
         e.preventDefault();
-        const field = activeColumns[c1]?.field;
+        if (isRange) return;
+        const colDef = activeColumns[c1];
+        if (colDef?.readOnly) return;
+        const field = colDef?.field;
         if (isPartner && field === 'receivables') return;
         
         flushSync(() => {
           setEditingCell({ r: r1, c: c1, isDirectInput: false });
         });
+        return;
+      }
+
+      // F2 key to start editing with cursor placed at the end of text (선택 블럭 수정 모드 및 커서 맨 뒤)
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (isRange) return;
+        const colDef = activeColumns[c1];
+        if (colDef?.readOnly) return;
+        const field = colDef?.field;
+        if (isPartner && field === 'receivables') return;
+        
+        flushSync(() => {
+          setEditingCell({ r: r1, c: c1, isDirectInput: false, cursorAtEnd: true });
+        });
+        return;
+      }
+
+      // Ctrl+Z Undo / Redo handler
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        return;
+      }
+
+      // Ctrl+Y Redo handler
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        handleRedo();
         return;
       }
 
@@ -898,7 +1063,11 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
             const col = activeColumns[c];
             if (!col) continue;
             const val = rowData[col.field];
-            rowCells.push(val !== undefined && val !== null ? String(val) : '');
+            if (col.type === 'boolean') {
+              rowCells.push(val !== false ? '1' : '0');
+            } else {
+              rowCells.push(val !== undefined && val !== null ? String(val) : '');
+            }
           }
           rowsStr.push(rowCells.join('\t'));
         }
@@ -909,47 +1078,28 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
         return;
       }
 
-      // Start edit on printable character keys (including space)
+      // Start edit on printable character keys (including space) - only for single cell selection
       if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault(); // Intercept initial keystroke to prevent raw English insertion
+        e.preventDefault();
+        if (isRange) return; // 영역 선택(다중 셀) 시 타이핑으로 인한 데이터 변경 방지
 
-        // Check the last remembered Han/Eng layout state
-        const lastImeLang = localStorage.getItem('linkerx_last_ime_lang') || 'ko';
+        const col = activeColumns[c1];
+        if (col?.readOnly) return;
+
         let mappedKey = e.key;
-
-        if (lastImeLang === 'ko') {
-          const engToKor = {
-            'a':'ㅁ', 'b':'ㅠ', 'c':'ㅊ', 'd':'ㅇ', 'e':'ㄷ', 'f':'ㄹ', 'g':'ㅎ', 'h':'ㅗ', 'i':'ㅑ', 'j':'ㅓ', 'k':'ㅏ', 'l':'ㅣ', 'm':'ㅡ', 'n':'ㅜ', 'o':'ㅐ', 'p':'ㅔ', 'q':'ㅂ', 'r':'ㄱ', 's':'ㄴ', 't':'ㅅ', 'u':'ㅕ', 'v':'ㅍ', 'w':'ㅈ', 'x':'ㅌ', 'y':'요', 'z':'ㅋ',
-            'A':'ㅁ', 'B':'ㅠ', 'C':'ㅊ', 'D':'ㅇ', 'E':'ㄷ', 'F':'ㄹ', 'G':'ㅎ', 'H':'ㅗ', 'I':'ㅑ', 'J':'ㅓ', 'K':'ㅏ', 'L':'ㅣ', 'M':'ㅡ', 'N':'ㅜ', 'O':'ㅒ', 'P':'ㅖ', 'Q':'ㅃ', 'R':'ㄲ', 'S':'ㄴ', 'T':'ㅅ', 'U':'ㅕ', 'V':'ㅍ', 'W':'ㅉ', 'X':'ㅌ', 'Y':'요', 'Z':'ㅋ'
-          };
-          mappedKey = engToKor[e.key] || e.key;
-        }
-
-        if (isRange) {
-          const startCol = Math.min(c1, c2);
-          const endCol = Math.max(c1, c2);
-          let allReceivables = true;
-          for (let c = startCol; c <= endCol; c++) {
-            if (!(isPartner && activeColumns[c]?.field === 'receivables')) {
-              allReceivables = false;
-              break;
-            }
+        if (col?.type !== 'number' && isKoreanMode) {
+          if (QWERTY_TO_HANGUL[e.key]) {
+            mappedKey = QWERTY_TO_HANGUL[e.key];
           }
-          if (allReceivables) return;
-
-          flushSync(() => {
-            setIsBulkInputActive(true);
-            setBulkInputValue(mappedKey); 
-          });
-        } else {
-          const field = activeColumns[c1]?.field;
-          if (isPartner && field === 'receivables') return;
-
-          // Render cell input synchronously so it instantly mounts and registers further keypresses
-          flushSync(() => {
-            setEditingCell({ r: r1, c: c1, isDirectInput: true, pendingChar: mappedKey });
-          });
         }
+
+        const field = activeColumns[c1]?.field;
+        if (isPartner && field === 'receivables') return;
+
+        // Render cell input synchronously so it instantly mounts and registers further keypresses
+        flushSync(() => {
+          setEditingCell({ r: r1, c: c1, isDirectInput: true, pendingChar: mappedKey });
+        });
       }
       
       // Delete/Backspace for range or single cell
@@ -959,16 +1109,18 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
         const startCol = Math.min(c1, c2);
         const endCol = Math.max(c1, c2);
 
-        const newData = [...data];
+        let newData = [...data];
         let hasChanges = false;
         for (let r = startRow; r <= endRow; r++) {
           const visibleRow = visibleData[r];
           if (!visibleRow) continue;
-          const idx = newData.findIndex(d => d.id === visibleRow.id);
+          const idx = newData.findIndex(d => (d.id ? d.id === visibleRow.id : d === visibleRow));
           if (idx < 0) continue;
 
           for (let c = startCol; c <= endCol; c++) {
-            const field = activeColumns[c].field;
+            const colDef = activeColumns[c];
+            if (!colDef || colDef.readOnly) continue;
+            const field = colDef.field;
             if (isPartner && field === 'receivables') continue;
             
             if (isPartner && field === 'receivableBase') {
@@ -982,14 +1134,20 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                 receivables: oldReceivables + delta
               };
               hasChanges = true;
-            } else if (activeColumns[c].type !== 'boolean') {
-              newData[idx] = { ...newData[idx], [field]: activeColumns[c].type === 'number' ? 0 : '' };
+            } else if (colDef.type === 'boolean') {
+              newData[idx] = { ...newData[idx], [field]: false };
+              hasChanges = true;
+            } else {
+              newData[idx] = { ...newData[idx], [field]: colDef.type === 'number' ? 0 : '' };
               hasChanges = true;
             }
           }
+          if (hasChanges) {
+            newData[idx] = recalcRow(newData[idx]);
+          }
         }
         if (hasChanges) {
-          setData(newData);
+          updateData(newData);
         }
       }
     };
@@ -1010,7 +1168,7 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [selection, editingCell, isBulkInputActive, data, columns, visibleData, activeColumns, handlePaste, isPartner]);
+  }, [selection, editingCell, isBulkInputActive, data, columns, visibleData, activeColumns, handlePaste, isPartner, isKoreanMode, handleUndo, handleRedo, updateData, recalcRow]);
 
   const handleBulkInputChange = (val) => {
     setBulkInputValue(val);
@@ -1030,8 +1188,10 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
       if (idx < 0) continue;
 
       for (let c = startCol; c <= endCol; c++) {
-        const field = activeColumns[c].field;
-        const type = activeColumns[c].type;
+        const colDef = activeColumns[c];
+        if (!colDef || colDef.readOnly) continue;
+        const field = colDef.field;
+        const type = colDef.type;
         
         if (isPartner && field === 'receivables') continue;
 
@@ -1045,6 +1205,11 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
             receivableBase: newBase,
             receivables: oldReceivables + delta
           };
+        } else if (type === 'boolean') {
+          newData[idx] = {
+            ...newData[idx],
+            [field]: parseBooleanValue(val)
+          };
         } else {
           newData[idx] = { 
             ...newData[idx], 
@@ -1052,8 +1217,9 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
           };
         }
       }
+      newData[idx] = recalcRow(newData[idx]);
     }
-    setData(newData);
+    updateData(newData);
   };
 
   const handleResizeStart = (e, field) => {
@@ -1089,30 +1255,36 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
         : String(bVal).localeCompare(String(aVal));
     });
 
-    setData(sortedData);
+    updateData(sortedData);
   };
 
   const handleChange = (visibleIndex, field, value) => {
     const visibleRow = visibleData[visibleIndex];
     if (!visibleRow) return;
+    const colDef = activeColumns.find(c => c.field === field);
+    if (colDef?.readOnly) return;
     if (isPartner && field === 'receivables') return;
     const idx = data.findIndex(d => d.id === visibleRow.id);
     if (idx >= 0) {
       const newData = [...data];
+      let finalVal = value;
+      if (colDef?.type === 'boolean') {
+        finalVal = typeof value === 'boolean' ? value : parseBooleanValue(value);
+      }
       if (isPartner && field === 'receivableBase') {
         const oldBase = Number(newData[idx].receivableBase) || 0;
         const newBase = Number(value) || 0;
         const delta = newBase - oldBase;
         const oldReceivables = Number(newData[idx].receivables) || 0;
-        newData[idx] = {
+        newData[idx] = recalcRow({
           ...newData[idx],
           receivableBase: newBase,
           receivables: oldReceivables + delta
-        };
+        });
       } else {
-        newData[idx] = { ...newData[idx], [field]: value };
+        newData[idx] = recalcRow({ ...newData[idx], [field]: finalVal });
       }
-      setData(newData);
+      updateData(newData);
     }
   };
 
@@ -1129,7 +1301,9 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
   };
 
   const handleCellDoubleClick = (r, c) => {
-    const field = activeColumns[c]?.field;
+    const colDef = activeColumns[c];
+    if (colDef?.readOnly) return;
+    const field = colDef?.field;
     if (isPartner && field === 'receivables') return;
     setEditingCell({ r, c });
     setSelection(null);
@@ -1146,13 +1320,24 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
   };
 
   const handleAddRows = (count) => {
+    const defaultWarehouse = warehouseOptions[0] || '본사창고';
     const newRows = Array.from({ length: count }, () => 
       activeColumns.reduce((acc, col) => {
-        acc[col.field] = col.type === 'number' ? 0 : '';
+        if (col.type === 'number') {
+          acc[col.field] = 0;
+        } else if (col.type === 'boolean') {
+          acc[col.field] = true;
+        } else if (col.field === 'warehouse') {
+          acc[col.field] = defaultWarehouse;
+        } else if (col.field === 'taxType') {
+          acc[col.field] = '과세';
+        } else {
+          acc[col.field] = '';
+        }
         return acc;
-      }, { id: Date.now() + Math.random() })
+      }, { id: Date.now() + Math.random(), warehouse: defaultWarehouse, showInMall: true })
     );
-    setData([...data, ...newRows]);
+    updateData([...data, ...newRows]);
   };
 
 
@@ -1160,30 +1345,90 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
     const visibleRow = visibleData[visibleIndex];
     if (!visibleRow) return;
     const newData = data.filter(d => d.id !== visibleRow.id);
-    setData(newData);
+    updateData(newData);
   };
 
-  const handleSave = () => {
-    onSave(data);
-    const message = isPartner ? '거래처 일괄 수정이 완료되었습니다.' : isProduct ? '품목 일괄 수정이 완료되었습니다.' : '변경사항이 성공적으로 적용되었습니다.';
-    alert(message);
-    onClose();
+  const handleSave = async () => {
+    try {
+      if (onSave) {
+        await onSave(data);
+      }
+      const message = isWarehouseStock
+        ? '창고별 기초재고 일괄 수정이 완료되었습니다.'
+        : isPartner 
+        ? '거래처 일괄 수정이 완료되었습니다.' 
+        : isProduct 
+        ? '품목 일괄 수정이 완료되었습니다.' 
+        : '변경사항이 성공적으로 적용되었습니다.';
+      alert(message);
+      onClose();
+    } catch (err) {
+      console.error('Save error in BulkEditor:', err);
+      alert('저장 중 오류가 발생했습니다: ' + (err.message || err));
+    }
   };
 
   return (
     <WindowModal title={title} onClose={onClose} width="95vw">
       <div className="bulk-editor-container">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <Edit3 size={24} color="#3b82f6" />
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+            {title}
+          </h2>
+        </div>
         <div className="bulk-editor-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div className="info-badge" style={{ padding: '8px 14px', borderRadius: '10px' }}>
             <AlertCircle size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
             <span style={{ fontSize: '0.85rem', color: '#1e3a8a', lineHeight: '1.4' }}>
-              드래그로 영역 선택이 가능하며, 선택 후 타이핑 시 일괄 수정됩니다.<br />
-              <strong>[복사/붙여넣기 안내]</strong> 셀 선택 후 <strong>Ctrl+C</strong>로 복사, <strong>Ctrl+V</strong>로 복수 셀이나 엑셀 데이터를 자유롭게 붙여넣기 할 수 있습니다.
+              {isWarehouseStock ? (
+                <>
+                  각 창고별 기초재고를 엑셀처럼 자유롭게 입력할 수 있습니다.<br />
+                  <strong>[단축키]</strong> 방향키(이동), Enter/F2/더블클릭(편집), <strong>드래그 선택 후 일괄입력</strong>, <strong>Ctrl+C/V</strong>(엑셀 복사/붙여넣기), <strong>Ctrl+Z</strong>(실행취소), <strong>Ctrl+Y</strong>(다시실행) 지원.
+                </>
+              ) : (
+                <>
+                  드래그로 영역 선택이 가능하며, 선택 후 타이핑 시 일괄 수정됩니다.<br />
+                  {isProduct && (
+                    <>
+                      <strong>[몰노출]</strong> 숫자 <strong>1</strong>은 노출, <strong>0</strong>은 비노출입니다.<br />
+                    </>
+                  )}
+                  <strong>[실행취소/단축키]</strong> 잘못 수정/삭제 시 <strong>Ctrl+Z</strong>(실행취소), <strong>Ctrl+Y</strong>(다시실행)로 되돌릴 수 있으며, <strong>Ctrl+C/V</strong> 복사/붙여넣기를 지원합니다.
+                </>
+              )}
             </span>
           </div>
           <div className="bulk-actions" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            {/* Search Box */}
+            <div className="bulk-search-box">
+              <Search size={15} className="bulk-search-icon" />
+              <input
+                type="text"
+                className="bulk-search-input"
+                placeholder={isWarehouseStock ? "품목명, 코드, 규격 검색" : isProduct ? "품목명, 코드, 규격, 바코드 검색" : isPartner ? "거래처명, 대표자, 전화번호 검색" : "검색어 입력"}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchTerm('');
+                  }
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="bulk-search-clear"
+                  onClick={() => setSearchTerm('')}
+                  title="검색어 초기화"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Category Filter Dropdowns like ProductManagement */}
-            {isProduct && categories && categories.length > 0 && (
+            {isProductOrWarehouseStock && categories && categories.length > 0 && (
               <div className="bulk-category-filters" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '10px', padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e40af' }}>대분류</span>
@@ -1238,6 +1483,86 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
               </div>
             )}
 
+            <div 
+              onClick={() => setIsKoreanMode(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginRight: '10px',
+                padding: '6px 12px',
+                background: isKoreanMode ? '#eff6ff' : '#f8fafc',
+                border: `1px solid ${isKoreanMode ? '#93c5fd' : '#cbd5e1'}`,
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.2s'
+              }}
+              title="클릭하거나 키보드 [한/영] 키를 눌러 전환 (기본: 한글)"
+            >
+              <span style={{ fontWeight: 600, color: isKoreanMode ? '#1e40af' : '#475569' }}>한/영:</span>
+              <span style={{ 
+                fontWeight: 800, 
+                color: isKoreanMode ? '#2563eb' : '#475569',
+                background: isKoreanMode ? '#dbeafe' : '#e2e8f0',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.8rem'
+              }}>
+                {isKoreanMode ? '한글' : '영문'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '10px' }}>
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={history.length === 0}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 10px',
+                  background: history.length > 0 ? '#eff6ff' : '#f8fafc',
+                  border: `1px solid ${history.length > 0 ? '#93c5fd' : '#e2e8f0'}`,
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: history.length > 0 ? '#1e40af' : '#94a3b8',
+                  cursor: history.length > 0 ? 'pointer' : 'not-allowed',
+                  boxShadow: history.length > 0 ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+                title="이전 작업으로 되돌리기 (단축키: Ctrl+Z)"
+              >
+                <Undo2 size={15} /> 실행취소{history.length > 0 ? ` (${history.length})` : ''}
+              </button>
+              <button
+                type="button"
+                onClick={handleRedo}
+                disabled={redoHistory.length === 0}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 10px',
+                  background: redoHistory.length > 0 ? '#eff6ff' : '#f8fafc',
+                  border: `1px solid ${redoHistory.length > 0 ? '#93c5fd' : '#e2e8f0'}`,
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: redoHistory.length > 0 ? '#1e40af' : '#94a3b8',
+                  cursor: redoHistory.length > 0 ? 'pointer' : 'not-allowed',
+                  boxShadow: redoHistory.length > 0 ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+                title="다시 실행 (단축키: Ctrl+Y 또는 Ctrl+Shift+Z)"
+              >
+                <Redo2 size={15} /> 다시실행
+              </button>
+            </div>
+
             <div className="enter-direction-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '10px', padding: '6px 12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.85rem' }}>
               <span style={{ fontWeight: 600, color: '#475569' }}>엔터 방향:</span>
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
@@ -1247,14 +1572,16 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                 <input type="checkbox" checked={enterDirection === 'horizontal'} onChange={() => setEnterDirection('horizontal')} /> 가로
               </label>
             </div>
-            <div className="add-row-group">
-              <span>행 추가:</span>
-              <button onClick={() => handleAddRows(1)}>+1</button>
-              <button onClick={() => handleAddRows(10)}>+10</button>
-              <button onClick={() => handleAddRows(20)}>+20</button>
-              <button onClick={() => handleAddRows(30)}>+30</button>
-              <button onClick={() => handleAddRows(50)}>+50</button>
-            </div>
+            {canAddDeleteRows && (
+              <div className="add-row-group">
+                <span>행 추가:</span>
+                <button onClick={() => handleAddRows(1)}>+1</button>
+                <button onClick={() => handleAddRows(10)}>+10</button>
+                <button onClick={() => handleAddRows(20)}>+20</button>
+                <button onClick={() => handleAddRows(30)}>+30</button>
+                <button onClick={() => handleAddRows(50)}>+50</button>
+              </div>
+            )}
             <button className="btn-settings-bulk" onClick={() => setIsSettingsOpen(!isSettingsOpen)} title="열 설정">
               <Settings size={18} color={isSettingsOpen ? '#3b82f6' : '#64748b'} />
             </button>
@@ -1320,7 +1647,7 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                     />
                   </th>
                 ))}
-                <th width="50px">삭제</th>
+                {canAddDeleteRows && <th width="50px">삭제</th>}
               </tr>
             </thead>
             <tbody>
@@ -1335,25 +1662,33 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                     const startRow = Math.min(r1, r2);
                     const startCol = Math.min(c1, c2);
                     const isFirstSelected = isBulkInputActive && rIdx === startRow && cIdx === startCol;
+                    const isReadOnly = !!col.readOnly;
 
                     return (
                       <td 
                         key={col.field} 
                         data-row={rIdx}
                         data-col={cIdx}
-                        className={`editable-cell ${isSelected ? 'selected' : ''} ${isEditing ? 'active-cell' : ''}`}
-                        style={{ width: `${colWidths[col.field]}px` }}
+                        className={`editable-cell ${isSelected ? 'selected' : ''} ${isEditing ? 'active-cell' : ''} ${isReadOnly ? 'read-only-cell' : ''}`}
+                        style={{ 
+                          width: `${colWidths[col.field]}px`,
+                          backgroundColor: isReadOnly ? (col.field === 'totalInitialStock' ? '#eff6ff' : '#f8fafc') : undefined,
+                          cursor: isReadOnly ? 'default' : undefined
+                        }}
                         onMouseDown={() => handleCellMouseDown(rIdx, cIdx)}
                         onMouseEnter={() => handleCellMouseEnter(rIdx, cIdx)}
                         onDoubleClick={() => handleCellDoubleClick(rIdx, cIdx)}
                       >
-                        {isEditing && col.type !== 'boolean' ? (
+                        {isEditing ? (
                           <EditableInput
-                            initialValue={row[col.field] || ''}
+                            initialValue={col.type === 'boolean' ? (row[col.field] !== false ? '1' : '0') : (row[col.field] || '')}
                             isDirectInput={editingCell?.isDirectInput}
+                            cursorAtEnd={editingCell?.cursorAtEnd}
                             pendingChar={editingCell?.pendingChar}
+                            list={col.field === 'warehouse' ? 'bulk-editor-warehouse-options' : (col.field === 'manager' ? 'bulk-editor-manager-options' : (col.field === 'taxType' ? 'bulk-editor-taxtype-options' : undefined))}
+                            onToggleKoreanMode={() => setIsKoreanMode(prev => !prev)}
                             onSave={(val, key) => {
-                              handleChange(rIdx, col.field, col.type === 'number' ? Number(val) || 0 : val);
+                              handleChange(rIdx, col.field, col.type === 'boolean' ? parseBooleanValue(val) : (col.type === 'number' ? Number(val) || 0 : val));
                               if (key === 'Tab' || key === 'ShiftTab') {
                                 const shift = key === 'ShiftTab';
                                 let nextC = shift ? cIdx - 1 : cIdx + 1;
@@ -1386,17 +1721,19 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                             }}
                             type={col.type}
                             lang="ko"
-                            inputMode={col.type === 'number' ? 'numeric' : 'text'}
+                            inputMode={col.type === 'number' || col.type === 'boolean' ? 'numeric' : 'text'}
                             style={{ 
-                              textAlign: col.type === 'number' ? 'right' : 'left',
+                              textAlign: getColumnAlign(col) === 'right' ? 'right' : (getColumnAlign(col) === 'left' ? 'left' : 'center'),
                               imeMode: 'active'
                             }}
                           />
-                        ) : isFirstSelected && col.type !== 'boolean' ? (
+                        ) : isFirstSelected ? (
                           <EditableInput
                             initialValue={bulkInputValue}
                             isDirectInput={true}
                             pendingChar={bulkInputValue}
+                            list={col.field === 'warehouse' ? 'bulk-editor-warehouse-options' : (col.field === 'manager' ? 'bulk-editor-manager-options' : (col.field === 'taxType' ? 'bulk-editor-taxtype-options' : undefined))}
+                            onToggleKoreanMode={() => setIsKoreanMode(prev => !prev)}
                             onSave={(val) => {
                               handleBulkInputChange(val);
                               setIsBulkInputActive(false);
@@ -1411,23 +1748,32 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                             }}
                             type={col.type}
                             lang="ko"
-                            inputMode={col.type === 'number' ? 'numeric' : 'text'}
+                            inputMode={col.type === 'number' || col.type === 'boolean' ? 'numeric' : 'text'}
                             style={{ 
                               width: '100%', border: 'none', background: '#fff', 
                               boxShadow: '0 0 0 2px #3b82f6', outline: 'none',
                               zIndex: 30,
-                              textAlign: col.type === 'number' ? 'right' : 'left',
+                              textAlign: getColumnAlign(col) === 'right' ? 'right' : (getColumnAlign(col) === 'left' ? 'left' : 'center'),
                               imeMode: 'active'
                             }}
                           />
                         ) : (
-                          <div className="cell-display" style={{ justifyContent: col.type === 'number' ? 'flex-end' : 'center' }}>
+                          <div className="cell-display" style={{ 
+                            justifyContent: getColumnAlign(col) === 'right' ? 'flex-end' : (getColumnAlign(col) === 'left' ? 'flex-start' : 'center'),
+                            textAlign: getColumnAlign(col) === 'right' ? 'right' : (getColumnAlign(col) === 'left' ? 'left' : 'center'),
+                            fontWeight: col.field === 'totalInitialStock' ? 800 : (col.field === 'name' ? 600 : undefined),
+                            color: col.field === 'totalInitialStock' ? '#1d4ed8' : (isReadOnly ? '#475569' : undefined)
+                          }}>
                             {col.type === 'boolean' ? (
-                              <input 
-                                type="checkbox" 
-                                checked={row[col.field] !== false} 
-                                onChange={(e) => handleChange(rIdx, col.field, e.target.checked)}
-                              />
+                              <span style={{ 
+                                fontWeight: 700, 
+                                fontSize: '0.9rem',
+                                color: row[col.field] !== false ? '#1e293b' : '#64748b',
+                                width: '100%',
+                                textAlign: 'center'
+                              }}>
+                                {row[col.field] !== false ? '1' : '0'}
+                              </span>
                             ) : col.type === 'number' ? (
                               Number(row[col.field] || 0).toLocaleString()
                             ) : (
@@ -1438,24 +1784,52 @@ const BulkEditor = ({ type, data: initialDataProp, title: titleProp, initialData
                       </td>
                     );
                   })}
-                  <td className="action-cell">
-                    <button className="btn-delete-row" onClick={() => handleRemoveRow(rIdx)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
+                  {canAddDeleteRows && (
+                    <td className="action-cell">
+                      <button className="btn-delete-row" onClick={() => handleRemoveRow(rIdx)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
           {visibleData.length === 0 && (
             <div className="empty-bulk">
-              {isProduct && selectedLargeId !== '전체' ? '선택한 카테고리에 해당하는 품목이 없습니다.' : '편집할 데이터가 없습니다. 행 추가를 클릭하여 데이터를 입력하세요.'}
+              {searchTerm ? (
+                <span>&apos;{searchTerm}&apos;에 대한 검색 결과가 없습니다.</span>
+              ) : isProductOrWarehouseStock && selectedLargeId !== '전체' ? (
+                '선택한 카테고리에 해당하는 품목이 없습니다.'
+              ) : isWarehouseStock ? (
+                '표시할 품목이 없습니다.'
+              ) : (
+                '편집할 데이터가 없습니다. 행 추가를 클릭하여 데이터를 입력하세요.'
+              )}
             </div>
           )}
         </div>
+        <datalist id="bulk-editor-warehouse-options">
+          {warehouseOptions.map((w, idx) => (
+            <option key={idx} value={w} />
+          ))}
+        </datalist>
+        {staffList && staffList.length > 0 && (
+          <datalist id="bulk-editor-manager-options">
+            {staffList.map((s, idx) => (
+              <option key={idx} value={s.name || s} />
+            ))}
+          </datalist>
+        )}
+        <datalist id="bulk-editor-taxtype-options">
+          <option value="과세" />
+          <option value="면세" />
+          <option value="영세" />
+        </datalist>
       </div>
     </WindowModal>
   );
 };
 
 export default BulkEditor;
+
