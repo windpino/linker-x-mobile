@@ -6,9 +6,10 @@ import * as XLSX from 'xlsx';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './ExcelManager.css';
 
-const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = [], setStaffList, currentUser }) => {
+const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = [], setStaffList, currentUser, onLogout }) => {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [step, setStep] = useState('main'); // main | mapping | preview
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +63,9 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
       const count = partners.length;
       setPartners([]);
       try {
+        await saveBundle(companyId, 'partners', []);
         localStorage.removeItem(`partners_${companyId}`);
+        localStorage.removeItem(`bundle_partners_${companyId}`);
       } catch (e) {}
       alert(`모든 거래처 데이터(${count}개)가 성공적으로 삭제되었습니다.`);
     } catch (err) {
@@ -223,22 +226,82 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
     try {
       const companyId = currentUser?.companyId || 'default';
       const batch = writeBatch(db);
-      newOnes.forEach(partnerData => {
-        const docId = partnerData.loginId ? `${companyId}_${partnerData.loginId}` : 
-                      partnerData.email ? `${companyId}_${partnerData.email}` : 
-                      String(partnerData.id || Date.now() + Math.random());
+      const savedNewOnes = newOnes.map((partnerData, idx) => {
+        const partnerId = Number(partnerData.id || Date.now() + idx);
+        const docId = String(partnerId);
         const finalData = {
           ...partnerData,
+          id: partnerId,
           companyId,
           manager: partnerData.manager || '-',
           updatedAt: new Date().toISOString()
         };
         batch.set(doc(db, 'companies', companyId, 'partners', docId), finalData);
+        if (finalData.loginId) {
+          batch.set(doc(db, 'companies', companyId, 'partners', `${companyId}_${finalData.loginId}`), finalData);
+        }
+        return finalData;
       });
       await batch.commit();
 
-      setPartners([...partners, ...newOnes]);
-      alert(`✅ 거래처 ${newOnes.length}곳이 파이어베이스에 성공적으로 등록되었습니다! (중복 ${previewPartners.length - newOnes.length}곳 제외)`);
+      const nextPartners = [...partners, ...savedNewOnes];
+      setPartners(nextPartners);
+      await saveBundle(companyId, 'partners', nextPartners);
+      localStorage.setItem(`partners_${companyId}`, JSON.stringify(nextPartners));
+      localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(nextPartners));
+
+      // Sync new managers with StaffList
+      if (setStaffList && staffList) {
+        const currentStaffNames = new Set(staffList.map(s => s.name));
+        const newManagers = [...new Set(savedNewOnes.map(p => p.manager))].filter(name => name && name !== '-' && !currentStaffNames.has(name));
+        
+        if (newManagers.length > 0) {
+          const newStaffEntries = newManagers.map(name => ({
+            id: Date.now() + Math.random(),
+            name,
+            jobTitle: '자동등록담당자',
+            phone: '',
+            email: '',
+            memo: '거래처 엑셀 등록을 통해 자동 등록됨'
+          }));
+          
+          const staffBatch = writeBatch(db);
+          newStaffEntries.forEach(staff => {
+            const staffCompositeId = `${companyId}_${staff.name}`;
+            staffBatch.set(doc(db, 'companies', companyId, 'staffList', staffCompositeId), {
+              ...staff,
+              companyId
+            });
+          });
+          await staffBatch.commit();
+          const nextStaff = [...staffList, ...newStaffEntries];
+          setStaffList(nextStaff);
+          await saveBundle(companyId, 'staffList', nextStaff);
+        }
+      }
+
+      const count = savedNewOnes.length;
+      const skippedCount = previewPartners.length - savedNewOnes.length;
+      const doRelogin = window.confirm(
+        `✅ 거래처 ${count}곳이 파이어베이스 및 시스템에 성공적으로 등록되었습니다!\n` +
+        (skippedCount > 0 ? `(중복 ${skippedCount}곳 제외)\n\n` : '\n') +
+        `새롭게 등록된 거래처 데이터로 깨끗하게 시작하기 위해 로그인 창으로 이동하시겠습니까?\n\n` +
+        `• [확인]: 로그인 창으로 이동 (자동 로그아웃)\n` +
+        `• [취소]: 현재 화면에서 즉시 계속 사용`
+      );
+
+      if (doRelogin) {
+        if (onLogout) {
+          onLogout();
+        } else {
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('autoLogin');
+          localStorage.removeItem('autoLoginUser');
+          window.location.reload();
+        }
+        return;
+      }
+
       setStep('main');
     } catch (err) {
       console.error('Import partners error:', err);
@@ -279,27 +342,34 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
           try {
             const companyId = currentUser?.companyId || 'default';
             const batch = writeBatch(db);
-            d.forEach(partnerData => {
-              const docId = partnerData.loginId ? `${companyId}_${partnerData.loginId}` : 
-                            partnerData.email ? `${companyId}_${partnerData.email}` : 
-                            String(partnerData.id || Date.now() + Math.random());
+            const savedList = d.map((partnerData, idx) => {
+              const partnerId = Number(partnerData.id || Date.now() + idx);
+              const docId = String(partnerId);
               const finalData = {
                 ...partnerData,
+                id: partnerId,
                 companyId,
                 manager: partnerData.manager || '-',
                 updatedAt: new Date().toISOString()
               };
               batch.set(doc(db, 'companies', companyId, 'partners', docId), finalData);
+              if (finalData.loginId) {
+                batch.set(doc(db, 'companies', companyId, 'partners', `${companyId}_${finalData.loginId}`), finalData);
+              }
+              return finalData;
             });
             await batch.commit();
 
-            // Sync with Partners
-            setPartners(d); 
+            // Sync with Partners & Bundles
+            setPartners(savedList); 
+            await saveBundle(companyId, 'partners', savedList);
+            localStorage.setItem(`partners_${companyId}`, JSON.stringify(savedList));
+            localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(savedList));
             
             // Sync new managers with StaffList
             if (setStaffList && staffList) {
               const currentStaffNames = new Set(staffList.map(s => s.name));
-              const newManagers = [...new Set(d.map(p => p.manager))].filter(name => name && name !== '-' && !currentStaffNames.has(name));
+              const newManagers = [...new Set(savedList.map(p => p.manager))].filter(name => name && name !== '-' && !currentStaffNames.has(name));
               
               if (newManagers.length > 0) {
                 const newStaffEntries = newManagers.map(name => ({
@@ -322,7 +392,9 @@ const PartnerExcelManager = ({ onClose, partners = [], setPartners, staffList = 
                 });
                 await staffBatch.commit();
                 
-                setStaffList(prev => [...prev, ...newStaffEntries]);
+                const nextStaff = [...staffList, ...newStaffEntries];
+                setStaffList(nextStaff);
+                await saveBundle(companyId, 'staffList', nextStaff);
               }
             }
             alert('변경하신 사항을 저장하였습니다');

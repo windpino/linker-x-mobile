@@ -1136,9 +1136,13 @@ function App() {
           let processedData = filterBundleListForCompany(companyId, colName, data);
           if (colName === 'partners') {
             const partnerMap = new Map();
-            processedData.forEach(p => {
-              if (!p || !p.id) return;
-              partnerMap.set(String(p.id), p);
+            processedData.forEach((p, idx) => {
+              if (!p) return;
+              const pId = (p.id !== undefined && p.id !== null && p.id !== '') 
+                ? p.id 
+                : (p._docId || p.loginId || p.businessNo || `partner_${idx}_${p.name}`);
+              const standardized = { ...p, id: pId };
+              partnerMap.set(String(pId), standardized);
             });
             processedData = Array.from(partnerMap.values());
           }
@@ -6602,7 +6606,7 @@ function App() {
           categories={categories}
         />
       )}
-      {isPartnerExcelOpen && <PartnerExcelManager onClose={() => setIsPartnerExcelOpen(false)} partners={partners} setPartners={setPartners} staffList={staffList} setStaffList={setStaffList} currentUser={currentUser} />}
+      {isPartnerExcelOpen && <PartnerExcelManager onClose={() => setIsPartnerExcelOpen(false)} partners={partners} setPartners={setPartners} staffList={staffList} setStaffList={setStaffList} currentUser={currentUser} onLogout={handleLogout} />}
       {isProductExcelOpen && <ProductExcelManager onClose={() => setIsProductExcelOpen(false)} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} currentUser={currentUser} />}
       {isInventoryTransferExcelOpen && (
         <InventoryTransferExcelManager 

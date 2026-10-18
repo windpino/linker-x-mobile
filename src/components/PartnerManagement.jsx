@@ -8,6 +8,7 @@ import { ALL_COLUMNS } from '../constants/partnerColumns';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { saveBundle } from '../utils/bundleSyncManager';
 import './Partner.css';
 
 const PartnerManagement = ({ 
@@ -378,6 +379,11 @@ const PartnerManagement = ({
         await batch.commit();
         console.log('Successfully saved updated partner sequences to Firestore');
       }
+
+      // 🛡️ Always sync bundle and local cache for instant 1-read and persistence across re-logins
+      await saveBundle(companyId, 'partners', updatedPartners);
+      localStorage.setItem(`partners_${companyId}`, JSON.stringify(updatedPartners));
+      localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(updatedPartners));
     } catch (err) {
       console.error('Error saving partner sequences to Firestore:', err);
     }

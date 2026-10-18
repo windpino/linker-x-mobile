@@ -95,7 +95,49 @@ export const fetchBundle = async (companyId, colName) => {
     if (snap.exists()) {
       const data = snap.data();
       const rawList = data.list || data.items || [];
-      const list = filterBundleListForCompany(companyId, colName, rawList);
+      let list = filterBundleListForCompany(companyId, colName, rawList);
+
+      // 🛡️ RECONCILIATION SAFETY NET:
+      // If the bundle is empty (e.g. deleted previously), but the actual collection in Firestore
+      // has documents (e.g. imported via Excel or batch-inserted without updating bundle),
+      // automatically reconcile and recover from the collection!
+      if (list.length === 0 && (colName === 'partners' || colName === 'products' || colName === 'warehouses' || colName === 'staffList')) {
+        try {
+          const colRef = collection(db, 'companies', companyId, colName);
+          const colSnap = await getDocs(colRef);
+          if (!colSnap.empty) {
+            const rawColList = colSnap.docs.map(d => {
+              const docData = d.data();
+              return {
+                ...docData,
+                _docId: d.id,
+                id: docData.id !== undefined && docData.id !== null ? docData.id : (isNaN(Number(d.id)) ? d.id : Number(d.id))
+              };
+            });
+            const filteredColList = filterBundleListForCompany(companyId, colName, rawColList);
+            if (filteredColList.length > 0) {
+              console.log(`[BundleSync] 🔄 Reconciled empty bundle for [${colName}] with ${filteredColList.length} documents from Firestore!`);
+              const nextVer = (Number(data.version) || 1) + 1;
+              await setDoc(bundleDocRef, {
+                list: filteredColList,
+                version: nextVer,
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+
+              const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
+              await setDoc(syncStateRef, {
+                [colName]: { version: nextVer, updatedAt: new Date().toISOString() }
+              }, { merge: true });
+
+              setLocalBundle(companyId, colName, filteredColList, nextVer);
+              return filteredColList;
+            }
+          }
+        } catch (reconcileErr) {
+          console.warn(`[BundleSync] Reconcile error for ${colName}:`, reconcileErr);
+        }
+      }
+
       const version = Number(data.version || 1);
       setLocalBundle(companyId, colName, list, version);
       return list;
@@ -106,7 +148,14 @@ export const fetchBundle = async (companyId, colName) => {
     const legacySnap = await getDocs(legacyColRef);
 
     if (!legacySnap.empty) {
-      const rawList = legacySnap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      const rawList = legacySnap.docs.map(d => {
+        const docData = d.data();
+        return {
+          ...docData,
+          _docId: d.id,
+          id: docData.id !== undefined && docData.id !== null ? docData.id : (isNaN(Number(d.id)) ? d.id : Number(d.id))
+        };
+      });
       const list = filterBundleListForCompany(companyId, colName, rawList);
       // Save as bundle on Firestore for future 1-read lookups
       await setDoc(bundleDocRef, {
@@ -249,7 +298,12 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       } else {
         const localList = getLocalBundle(companyId, colName);
         if (localList !== null && onBundleChange) {
-          onBundleChange(colName, localList);
+          if (localList.length === 0 && (colName === 'partners' || colName === 'products')) {
+            const updatedList = await fetchBundle(companyId, colName);
+            if (onBundleChange) onBundleChange(colName, updatedList);
+          } else {
+            onBundleChange(colName, localList);
+          }
         } else {
           const updatedList = await fetchBundle(companyId, colName);
           if (onBundleChange) onBundleChange(colName, updatedList);
