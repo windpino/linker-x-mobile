@@ -996,6 +996,12 @@ function App() {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('autoLogin');
+    localStorage.removeItem('autoLoginUser');
+    localStorage.removeItem('autoLoginAgency');
+    if (window.location.search || window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    setCurrentView('login');
     window.location.reload();
   };
 
@@ -5042,13 +5048,8 @@ function App() {
         systemSettings={systemSettings}
         salesOrders={salesOrders}
         currentUser={currentUser || { name: '미로그인', role: 'partner' }}
-        onLogout={() => {
-          if (currentUser && currentUser.role !== 'partner') {
-            setCurrentView('dashboard');
-          } else {
-            handleLogout();
-          }
-        }}
+        onBackToERP={currentUser && currentUser.role !== 'partner' ? () => setCurrentView('dashboard') : null}
+        onLogout={handleLogout}
         onOrder={handleMallOrder}
         onUpdateOrder={async (id, data) => {
           try {
@@ -5151,10 +5152,7 @@ function App() {
           onOpenInventoryMismatch={() => setIsInventoryMismatchOpen(true)}
           onOpenPhysicalInventory={() => setIsPhysicalInventoryOpen(true)}
           onOpenTaxReport={() => setIsTaxReportOpen(true)}
-          onOpenPartnerMall={() => {
-            const url = `${window.location.origin}${window.location.pathname}?view=shopping`;
-            window.open(url, '_blank', 'noopener,noreferrer');
-          }}
+          onOpenPartnerMall={() => setCurrentView('shopping')}
           onOpenPlatformManager={() => setCurrentView('super_admin')}
           onOpenPartnerSpecialPriceManager={() => setIsPartnerSpecialPriceManagerOpen(true)}
           onOpenRecentActivityReport={() => setIsRecentActivityModalOpen(true)}

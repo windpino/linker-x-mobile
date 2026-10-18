@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Plus, Minus,
-  LogOut, Package, Heart, X, Truck, Star, Gift, Bell, RotateCcw, FileText
+  LogOut, Package, Heart, X, Truck, Star, Gift, Bell, RotateCcw, FileText, ArrowLeft
 } from 'lucide-react';
 import './PartnerShoppingMall.css';
 
@@ -286,6 +286,7 @@ const PartnerShoppingMall = ({
   salesInvoices = [],
   partners = [],
   currentUser,
+  onBackToERP,
   onLogout,
   onOrder,
   onUpdateOrder,
@@ -468,6 +469,14 @@ const PartnerShoppingMall = ({
             <span>안녕하세요, <strong style={{ color: '#333' }}>{currentUser.name}</strong> 님</span>
           </div>
           <div className="mall-topbar-links">
+            {onBackToERP && (
+              <>
+                <span onClick={onBackToERP} style={{ color: '#2563eb', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <ArrowLeft size={13} /> ERP 메인으로 돌아가기
+                </span>
+                <span className="mall-topbar-divider">|</span>
+              </>
+            )}
             <span onClick={() => { setIsOrderHistoryOpen(true); setHistoryTab('frequent'); }}>자주 주문하는 상품</span>
             <span className="mall-topbar-divider">|</span>
             <span onClick={() => { setIsOrderHistoryOpen(true); setHistoryTab('pending'); }}>주문현황</span>
@@ -506,6 +515,17 @@ const PartnerShoppingMall = ({
 
           {/* Actions */}
           <div className="mall-header-actions">
+            {onBackToERP && (
+              <div
+                className="mall-action-item"
+                onClick={onBackToERP}
+                title="ERP 메인으로 돌아가기"
+                style={{ color: '#2563eb' }}
+              >
+                <ArrowLeft size={22} />
+                <span style={{ fontWeight: 600, color: '#2563eb' }}>ERP 메인</span>
+              </div>
+            )}
             <div
               className="mall-action-item"
               onClick={() => { setIsOrderHistoryOpen(true); setHistoryTab('frequent'); }}
