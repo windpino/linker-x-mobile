@@ -58,7 +58,9 @@ const WarehouseInitialStockModal = ({
     });
   }, [products, warehouses]);
 
-  const handleSave = async (updatedRows) => {
+  const handleSave = async (updatedRows, onProgress) => {
+    if (onProgress) onProgress({ percent: 10, message: '기초재고 변경 데이터 분석 중...' });
+
     if (onSaveAll) {
       const batchStockMap = {};
       updatedRows.forEach(row => {
@@ -69,13 +71,15 @@ const WarehouseInitialStockModal = ({
         });
         batchStockMap[row.id] = whStock;
       });
+      if (onProgress) onProgress({ percent: 50, message: '전체 데이터 적용 중...' });
       await onSaveAll(batchStockMap);
+      if (onProgress) onProgress({ percent: 100, message: '저장 완료!' });
       return;
     }
 
     const companyId = currentUser?.companyId || 'default';
-    const batch = writeBatch(db);
     const updatedMap = new Map();
+    const rowsToSave = [];
 
     updatedRows.forEach(row => {
       const currentWhStock = {};
@@ -94,14 +98,42 @@ const WarehouseInitialStockModal = ({
         updatedAt: new Date().toISOString()
       };
       updatedMap.set(String(row.id), updatedProd);
-      batch.set(doc(db, 'companies', companyId, 'products', String(row.id)), updatedProd, { merge: true });
+      rowsToSave.push(updatedProd);
     });
 
-    await batch.commit();
+    const totalCount = rowsToSave.length;
+    const chunkSize = 350; // Firestore batch maximum is 500
+    const chunks = [];
+    for (let i = 0; i < totalCount; i += chunkSize) {
+      chunks.push(rowsToSave.slice(i, i + chunkSize));
+    }
 
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const batch = writeBatch(db);
+      chunk.forEach(prod => {
+        batch.set(doc(db, 'companies', companyId, 'products', String(prod.id)), prod, { merge: true });
+      });
+
+      const processed = Math.min((i + 1) * chunkSize, totalCount);
+      const percent = Math.round(15 + ((i + 1) / chunks.length) * 65);
+      if (onProgress) {
+        onProgress({
+          percent,
+          message: `서버(Firestore)에 기초재고 저장 중... (${processed}/${totalCount}건)`
+        });
+      }
+      await batch.commit();
+    }
+
+    if (onProgress) onProgress({ percent: 85, message: '로컬 데이터 동기화 중...' });
     const nextProducts = (products || []).map(p => updatedMap.get(String(p.id)) || p);
     if (setProducts) setProducts(nextProducts);
+
+    if (onProgress) onProgress({ percent: 92, message: '오프라인 캐시 및 번들 동기화 중...' });
     await saveBundle(companyId, 'products', nextProducts);
+
+    if (onProgress) onProgress({ percent: 100, message: '저장 완료!' });
   };
 
   return (

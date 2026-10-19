@@ -409,3 +409,8 @@
 .editable-cell.read-only-cell:hover {
   background-color: #f1f5f9;
 }
+
+@keyframes bulkProgressStripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 24px 0; }
+}

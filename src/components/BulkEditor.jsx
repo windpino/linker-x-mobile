@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Save, Plus, Trash2, X, AlertCircle, Settings, Search, Undo2, Redo2, Edit3 } from 'lucide-react';
+import { Save, Plus, Trash2, X, AlertCircle, Settings, Search, Undo2, Redo2, Edit3, Loader2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
 import './BulkEditor.css';
@@ -533,6 +533,9 @@ const BulkEditor = ({
       setSearchTerm(rawVal);
     }
   };
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(null); // { percent: 0, message: '' }
 
   const warehouseOptions = React.useMemo(() => {
     const list = (warehouses || []).map(w => typeof w === 'string' ? w : w.name).filter(Boolean);
@@ -1399,10 +1402,29 @@ const BulkEditor = ({
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveProgress({ percent: 10, message: '저장 준비 중...' });
+
+    let progressTimer = null;
+    let currentP = 10;
+    progressTimer = setInterval(() => {
+      currentP = Math.min(85, currentP + Math.floor(Math.random() * 4 + 2));
+      setSaveProgress(prev => (prev && prev.percent >= currentP ? prev : { percent: currentP, message: prev?.message || '데이터 저장 중...' }));
+    }, 300);
+
     try {
       if (onSave) {
-        await onSave(data);
+        await onSave(data, (p) => {
+          if (progressTimer) clearInterval(progressTimer);
+          setSaveProgress(typeof p === 'number' ? { percent: p, message: '데이터 저장 중...' } : p);
+        });
       }
+      if (progressTimer) clearInterval(progressTimer);
+      setSaveProgress({ percent: 100, message: '저장 완료!' });
+
+      await new Promise(r => setTimeout(r, 600));
+
       const message = isWarehouseStock
         ? '창고별 기초재고 일괄 수정이 완료되었습니다.'
         : isPartner 
@@ -1413,13 +1435,18 @@ const BulkEditor = ({
       alert(message);
       onClose();
     } catch (err) {
+      if (progressTimer) clearInterval(progressTimer);
       console.error('Save error in BulkEditor:', err);
       alert('저장 중 오류가 발생했습니다: ' + (err.message || err));
+    } finally {
+      if (progressTimer) clearInterval(progressTimer);
+      setIsSaving(false);
+      setSaveProgress(null);
     }
   };
 
   return (
-    <WindowModal title={title} onClose={onClose} width="95vw">
+    <WindowModal title={title} onClose={isSaving ? undefined : onClose} width="95vw">
       <div className="bulk-editor-container">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <Edit3 size={24} color="#3b82f6" />
@@ -1636,8 +1663,20 @@ const BulkEditor = ({
             <button className="btn-settings-bulk" onClick={() => setIsSettingsOpen(!isSettingsOpen)} title="열 설정">
               <Settings size={18} color={isSettingsOpen ? '#3b82f6' : '#64748b'} />
             </button>
-            <button className="btn-save-bulk" onClick={handleSave}>
-              <Save size={16} /> 변경사항 적용
+            <button 
+              className="btn-save-bulk" 
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ 
+                opacity: isSaving ? 0.75 : 1, 
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSaving ? '저장 중...' : '변경사항 적용'}
             </button>
           </div>
         </div>
@@ -1879,6 +1918,108 @@ const BulkEditor = ({
           <option value="면세" />
           <option value="영세" />
         </datalist>
+
+        {/* 저장 진행률 그래프 모달 / 오버레이 */}
+        {isSaving && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '12px'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              padding: '36px 40px',
+              width: '90%',
+              maxWidth: '480px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              textAlign: 'center',
+              border: '1px solid #e2e8f0'
+            }}>
+              {/* Spinning/pulsing Icon */}
+              <div style={{
+                width: '68px',
+                height: '68px',
+                margin: '0 auto 16px',
+                borderRadius: '50%',
+                background: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              }}>
+                <Loader2 className="animate-spin" size={36} color="#2563eb" />
+              </div>
+
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                {isWarehouseStock ? '기초재고 변경사항 저장 중...' : `${title} 저장 중...`}
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '22px', minHeight: '22px' }}>
+                {saveProgress?.message || '데이터를 안전하게 처리하고 있습니다. 잠시만 기다려주세요.'}
+              </p>
+
+              {/* Progress Graph / Bar */}
+              <div style={{
+                width: '100%',
+                height: '24px',
+                background: '#f1f5f9',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                position: 'relative',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
+                border: '1px solid #cbd5e1'
+              }}>
+                <div style={{
+                  width: `${Math.min(100, Math.max(5, saveProgress?.percent || 0))}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+                  borderRadius: '12px',
+                  transition: 'width 0.3s ease-out',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Shimmer/Stripes effect */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)',
+                    backgroundSize: '24px 24px',
+                    animation: 'bulkProgressStripes 1s linear infinite'
+                  }} />
+                </div>
+              </div>
+
+              {/* Progress Counter */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '12px',
+                fontSize: '0.88rem',
+                fontWeight: 700
+              }}>
+                <span style={{ color: '#64748b' }}>
+                  {saveProgress?.percent === 100 ? '✅ 완료되었습니다' : '⏳ 저장 진행 중'}
+                </span>
+                <span style={{ color: '#2563eb', fontSize: '1.1rem', fontWeight: 900 }}>
+                  {saveProgress?.percent || 0}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </WindowModal>
   );
