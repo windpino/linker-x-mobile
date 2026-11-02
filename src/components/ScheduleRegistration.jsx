@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, Bell, FileText, Save, ArrowRight, Plus } from
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import WindowModal from './WindowModal';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -213,6 +214,12 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                 {/* 시작 일시 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '28px' }}>시작</span>
+                  <DateNavButton
+                    direction="prev"
+                    onClick={() => handleStartChange('startDate', addDays(formData.startDate, -1))}
+                    size={12}
+                    style={{ width: '20px', height: '20px' }}
+                  />
                   <input 
                     type="date" 
                     value={formData.startDate} 
@@ -226,6 +233,12 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                       backgroundColor: '#ffffff',
                       color: '#334155'
                     }}
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => handleStartChange('startDate', addDays(formData.startDate, 1))}
+                    size={12}
+                    style={{ width: '20px', height: '20px' }}
                   />
                   <input 
                     type="time" 
@@ -247,6 +260,12 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                 {/* 종료 일시 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%', marginTop: '4px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '28px' }}>종료</span>
+                  <DateNavButton
+                    direction="prev"
+                    onClick={() => setFormData(prev => ({ ...prev, endDate: addDays(prev.endDate, -1) }))}
+                    size={12}
+                    style={{ width: '20px', height: '20px' }}
+                  />
                   <input 
                     type="date" 
                     name="endDate"
@@ -261,6 +280,12 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                       backgroundColor: '#ffffff',
                       color: '#334155'
                     }}
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => setFormData(prev => ({ ...prev, endDate: addDays(prev.endDate, 1) }))}
+                    size={12}
+                    style={{ width: '20px', height: '20px' }}
                   />
                   <input 
                     type="time" 

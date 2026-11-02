@@ -7,6 +7,7 @@ import {
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import PartnerSearchInput from './PartnerSearchInput';
 
 const WithdrawalSlipManagement = ({
@@ -717,18 +718,46 @@ const WithdrawalSlipManagement = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-            <input
-              type="date"
-              value={dateFilter.startDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, preset: '직접', startDate: e.target.value }))}
-              style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 600 }}
-            />
-            <input
-              type="date"
-              value={dateFilter.endDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, preset: '직접', endDate: e.target.value }))}
-              style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 600 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <DateNavButton
+                direction="prev"
+                onClick={() => setDateFilter(prev => ({ ...prev, preset: '직접', startDate: addDays(prev.startDate, -1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <input
+                type="date"
+                value={dateFilter.startDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, preset: '직접', startDate: e.target.value }))}
+                style={{ flex: 1, minWidth: 0, padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setDateFilter(prev => ({ ...prev, preset: '직접', startDate: addDays(prev.startDate, 1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <DateNavButton
+                direction="prev"
+                onClick={() => setDateFilter(prev => ({ ...prev, preset: '직접', endDate: addDays(prev.endDate, -1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <input
+                type="date"
+                value={dateFilter.endDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, preset: '직접', endDate: e.target.value }))}
+                style={{ flex: 1, minWidth: 0, padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setDateFilter(prev => ({ ...prev, preset: '직접', endDate: addDays(prev.endDate, 1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px', alignItems: 'center' }}>
@@ -893,20 +922,38 @@ const WithdrawalSlipManagement = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '3px' }}>출금/지급 일자</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  min={!canIssuePastDateWithdrawal ? todayStr : undefined}
-                  onChange={(e) => {
-                    const newDate = e.target.value;
-                    if (!canIssuePastDateWithdrawal && newDate < todayStr) {
-                      alert('과거일자 출금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                      return;
-                    }
-                    setFormData({ ...formData, date: newDate });
-                  }}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <DateNavButton
+                    direction="prev"
+                    disabled={!canIssuePastDateWithdrawal && formData.date <= todayStr}
+                    onClick={() => {
+                      const prevDate = addDays(formData.date, -1);
+                      if (!canIssuePastDateWithdrawal && prevDate < todayStr) {
+                        alert('과거일자 출금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                        return;
+                      }
+                      setFormData({ ...formData, date: prevDate });
+                    }}
+                  />
+                  <input
+                    type="date"
+                    value={formData.date}
+                    min={!canIssuePastDateWithdrawal ? todayStr : undefined}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      if (!canIssuePastDateWithdrawal && newDate < todayStr) {
+                        alert('과거일자 출금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                        return;
+                      }
+                      setFormData({ ...formData, date: newDate });
+                    }}
+                    style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => setFormData({ ...formData, date: addDays(formData.date, 1) })}
+                  />
+                </div>
               </div>
 
               <div>

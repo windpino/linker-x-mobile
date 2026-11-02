@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BarChart3, Printer, Download, Filter, User, Warehouse, Search, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
+import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 import './CashReport.css';
 
 const CashReport = ({ onClose, purchaseInvoices = [], salesInvoices = [], staffList = [] }) => {
@@ -213,19 +214,23 @@ const CashReport = ({ onClose, purchaseInvoices = [], salesInvoices = [], staffL
         {/* Filters Panel */}
         <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Date Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input 
-              type="date" 
-              value={filters.startDate} 
-              onChange={e => setFilters({...filters, startDate: e.target.value})} 
-              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <DateInputWithArrows
+              value={filters.startDate}
+              onChange={e => setFilters({...filters, startDate: e.target.value})}
+              onPrev={() => setFilters(prev => ({ ...prev, startDate: addDays(prev.startDate, -1) }))}
+              onNext={() => setFilters(prev => ({ ...prev, startDate: addDays(prev.startDate, 1) }))}
+              style={{ flex: 1, padding: '5px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
-            <input 
-              type="date" 
-              value={filters.endDate} 
-              onChange={e => setFilters({...filters, endDate: e.target.value})} 
-              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            <DateInputWithArrows
+              value={filters.endDate}
+              onChange={e => setFilters({...filters, endDate: e.target.value})}
+              onPrev={() => setFilters(prev => ({ ...prev, endDate: addDays(prev.endDate, -1) }))}
+              onNext={() => setFilters(prev => ({ ...prev, endDate: addDays(prev.endDate, 1) }))}
+              style={{ flex: 1, padding: '5px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
           </div>
 

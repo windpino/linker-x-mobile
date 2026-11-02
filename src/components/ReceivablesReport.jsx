@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { AlertCircle, TrendingDown, TrendingUp, Search, Download, Printer, RefreshCw, Save } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import { db } from '../firebase';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import './ReceivablesReport.css';
@@ -610,13 +611,25 @@ const ReceivablesReport = ({ onClose, partners = [], salesInvoices = [], setPart
 
                       {/* Row 3: Promise Date & Grade Selector */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '6px 8px', borderRadius: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                           <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>약속일:</span>
+                          <DateNavButton
+                            direction="prev"
+                            onClick={() => handleSettingChange(row.id, 'promiseDate', addDays(setting.promiseDate || new Date().toISOString().split('T')[0], -1))}
+                            size={10}
+                            style={{ width: '16px', height: '16px' }}
+                          />
                           <input 
                             type="date" 
                             value={setting.promiseDate || ''} 
                             onChange={e => handleSettingChange(row.id, 'promiseDate', e.target.value)}
                             style={{ padding: '2px 4px', fontSize: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none', backgroundColor: '#fff', color: isOverdue ? '#ef4444' : 'inherit', minWidth: 0, flex: 1 }}
+                          />
+                          <DateNavButton
+                            direction="next"
+                            onClick={() => handleSettingChange(row.id, 'promiseDate', addDays(setting.promiseDate || new Date().toISOString().split('T')[0], 1))}
+                            size={10}
+                            style={{ width: '16px', height: '16px' }}
                           />
                         </div>
 

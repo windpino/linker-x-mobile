@@ -3,7 +3,7 @@ import {
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
   CheckCircle2, Info, FileSearch, Percent, History, FileSpreadsheet,
-  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut, Warehouse
+  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut, Warehouse, Trash2
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -18,7 +18,8 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners } from './utils/bundleSyncManager';
+import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners, getLocalBundle } from './utils/bundleSyncManager';
+import { getIdbBundle, setIdbBundle } from './utils/idbBundleCache';
 import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
@@ -98,7 +99,6 @@ const ALL_FAVORITE_MENUS = [
   { id: 'physical_inventory',  name: '실재고 입력',      category: '기초자료등록',   emoji: '📝' },
   { id: 'warehouse_initial_stock', name: '창고별 기초재고 일괄설정', category: '기초자료등록', emoji: '🏢' },
   { id: 'inventory_transfer',  name: '재고이동',        category: '기초자료등록',   emoji: '🚚' },
-  { id: 'inventory_movement_manager', name: '재고 이동 현황 관리', category: '기초자료등록', emoji: '📋' },
   { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
   { id: 'inventory_mismatch',  name: '재고 불일치 현황', category: '기초자료등록',   emoji: '⚠️' },
   { id: 'inventory_report_1',  name: '일자별 재고현황',  category: '기초자료등록',   emoji: '🗃️' },
@@ -263,6 +263,31 @@ function App() {
     return null;
   });
   const [staffList, setStaffList] = useState(() => getInitialStateFromCache('staffList', []));
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const getCompanyPrefix = () => {
+    try {
+      if (currentUser?.companyId) return `_${currentUser.companyId}`;
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+        const u = JSON.parse(savedUser);
+        if (u && u.companyId) return `_${u.companyId}`;
+      }
+    } catch (e) {}
+    return '';
+  };
+
+  const cleanForFirestore = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const cleaned = Array.isArray(obj) ? [] : {};
+    Object.keys(obj).forEach(key => {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleaned[key] = (val && typeof val === 'object' && !(val instanceof Date)) ? cleanForFirestore(val) : val;
+      }
+    });
+    return cleaned;
+  };
 
   const checkWritePermission = (docCreator = null, isMasterData = false) => {
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
@@ -281,6 +306,7 @@ function App() {
   const [isInventoryTransferOpen, setIsInventoryTransferOpen] = useState(false);
   const [isInventoryMovementManagerOpen, setIsInventoryMovementManagerOpen] = useState(false);
   const [inventoryTransferInitialDate, setInventoryTransferInitialDate] = useState(null);
+  const [inventoryTransferInitialRecord, setInventoryTransferInitialRecord] = useState(null);
   const [syncedCollections, setSyncedCollections] = useState({});
   const [isPartnerManagerOpen, setIsPartnerManagerOpen] = useState(false);
   const [partnerInitialFilter, setPartnerInitialFilter] = useState('all');
@@ -360,26 +386,40 @@ function App() {
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [copiedSchedule, setCopiedSchedule] = useState(null);
   
+  const [activeSalesModal, setActiveSalesModal] = useState(null);
   const [isPurchaseInvoiceOpen, setIsPurchaseInvoiceOpen] = useState(false);
   const [editingPurchaseInvoice, setEditingPurchaseInvoice] = useState(null);
   const [isPurchaseLedgerOpen, setIsPurchaseLedgerOpen] = useState(false);
+  const [purchaseLedgerInitialPartner, setPurchaseLedgerInitialPartner] = useState('');
+  const [purchaseLedgerInitialDate, setPurchaseLedgerInitialDate] = useState('');
 
   const openPurchaseInvoice = (invoice = null) => {
     setEditingPurchaseInvoice(invoice);
     setIsPurchaseInvoiceOpen(true);
+    setActiveSalesModal('purchase_invoice');
+  };
+  const openPurchaseLedger = (partner = '', date = '') => {
+    setPurchaseLedgerInitialPartner(typeof partner === 'string' ? partner : (partner?.name || ''));
+    setPurchaseLedgerInitialDate(typeof date === 'string' ? date : '');
+    setIsPurchaseLedgerOpen(true);
   };
   const [isPurchaseOrderOpen, setIsPurchaseOrderOpen] = useState(false);
   const [isSalesInvoiceOpen, setIsSalesInvoiceOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [isSalesLedgerOpen, setIsSalesLedgerOpen] = useState(false);
+  const [salesLedgerInitialPartner, setSalesLedgerInitialPartner] = useState('');
+  const [salesLedgerInitialDate, setSalesLedgerInitialDate] = useState('');
   const [isSalesInvoiceListOpen, setIsSalesInvoiceListOpen] = useState(false);
   const [salesInvoiceListInitialDate, setSalesInvoiceListInitialDate] = useState(null);
 
-  const [activeSalesModal, setActiveSalesModal] = useState(null);
   const openSalesInvoice = (invoice = null) => {
     setEditingInvoice(invoice);
     setIsSalesInvoiceOpen(true);
     setActiveSalesModal('invoice');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('focusWindow', { detail: '매출전표' }));
+      window.dispatchEvent(new CustomEvent('focusWindow', { detail: '입금전표' }));
+    }, 50);
   };
   const openDepositSlip = (slipOrDate = null) => {
     let invoice = null;
@@ -415,13 +455,19 @@ function App() {
     setEditingInvoice(invoice);
     setIsSalesInvoiceOpen(true);
     setActiveSalesModal('invoice');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('focusWindow', { detail: '매출전표' }));
+      window.dispatchEvent(new CustomEvent('focusWindow', { detail: '입금전표' }));
+    }, 50);
   };
   const openSalesInvoiceList = () => {
     setSalesInvoiceListInitialDate(null);
     setIsSalesInvoiceListOpen(true);
     setActiveSalesModal('invoice_list');
   };
-  const openSalesLedger = () => {
+  const openSalesLedger = (partner = '', date = '') => {
+    setSalesLedgerInitialPartner(typeof partner === 'string' ? partner : (partner?.name || ''));
+    setSalesLedgerInitialDate(typeof date === 'string' ? date : '');
     setIsSalesLedgerOpen(true);
     setActiveSalesModal('ledger');
   };
@@ -472,8 +518,18 @@ function App() {
       setIsDailyInventoryReportOpen(true);
     }
   };
-  const openInventoryTransfer = (date = null) => {
+  const openInventoryTransfer = (dateOrRecord = null, targetRecord = null) => {
+    let date = null;
+    let record = null;
+    if (dateOrRecord && typeof dateOrRecord === 'object') {
+      record = dateOrRecord;
+      date = record.date || null;
+    } else {
+      date = dateOrRecord;
+      record = targetRecord;
+    }
     setInventoryTransferInitialDate(date);
+    setInventoryTransferInitialRecord(record);
     setIsInventoryTransferOpen(true);
   };
   const [isEditDeleteReportOpen, setIsEditDeleteReportOpen] = useState(false);
@@ -1036,14 +1092,22 @@ function App() {
 
     const loadCache = (key, setter, defaultVal = []) => {
       try {
+        if (key === 'salesInvoices') {
+          getIdbBundle(companyId, 'salesInvoices').then(idbData => {
+            if (idbData && Array.isArray(idbData) && idbData.length > 0) {
+              const filtered = filterBundleListForCompany(companyId, 'salesInvoices', idbData);
+              setter(prev => (Array.isArray(prev) && prev.length > filtered.length) ? prev : filtered);
+            }
+          }).catch(() => {});
+        }
         const cached = localStorage.getItem(`${key}_${companyId}`) || localStorage.getItem(`bundle_${key}_${companyId}`);
         if (cached && cached !== 'undefined' && cached !== 'null') {
           const parsed = JSON.parse(cached);
           if (parsed !== null && parsed !== undefined) {
             if (Array.isArray(parsed)) {
               const filtered = filterBundleListForCompany(companyId, key, parsed);
-              if (filtered.length !== parsed.length) {
-                localStorage.setItem(`${key}_${companyId}`, JSON.stringify(filtered));
+              if (filtered.length !== parsed.length && key !== 'salesInvoices' && filtered.length < 1000) {
+                try { localStorage.setItem(`${key}_${companyId}`, JSON.stringify(filtered)); } catch (e) {}
               }
               setter(filtered);
               return;
@@ -1193,7 +1257,15 @@ function App() {
               return prevUser;
             });
           }
-          localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(processedData));
+          if (colName === 'salesInvoices' || (Array.isArray(processedData) && processedData.length >= 1000)) {
+            setIdbBundle(companyId, colName, processedData);
+          } else {
+            try {
+              localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(processedData));
+            } catch (e) {
+              setIdbBundle(companyId, colName, processedData);
+            }
+          }
           setSyncedCollections(prev => ({ ...prev, [colName]: true }));
         }
       });
@@ -1625,11 +1697,43 @@ function App() {
   const onUpdateInventoryTransfer = async (id, updatedEntry) => {
     try {
       const companyId = currentUser?.companyId || 'default';
+      const oldRecord = inventoryTransferHistory.find(h => String(h.id) === String(id));
       const cleanEntry = cleanForFirestore({ ...updatedEntry, updatedAt: new Date().toISOString() });
       await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(id)), cleanEntry);
       const nextTransfers = inventoryTransferHistory.map(h => String(h.id) === String(id) ? { ...h, ...cleanEntry } : h);
       setInventoryTransferHistory(nextTransfers);
       await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
+
+      // 창고 재고 수량 동기화 (기존 이동 복원 후 새 이동 적용)
+      if (oldRecord) {
+        const nextInv = { ...inventory };
+        const oldFrom = oldRecord.from;
+        const oldTo = oldRecord.to;
+        const oldItem = oldRecord.item;
+        const oldQty = Number(oldRecord.qty || 0);
+
+        if (oldFrom && oldTo && oldItem && oldQty > 0) {
+          if (!nextInv[oldFrom]) nextInv[oldFrom] = {};
+          if (!nextInv[oldTo]) nextInv[oldTo] = {};
+          nextInv[oldFrom][oldItem] = (nextInv[oldFrom][oldItem] || 0) + oldQty;
+          nextInv[oldTo][oldItem] = (nextInv[oldTo][oldItem] || 0) - oldQty;
+        }
+
+        const newFrom = cleanEntry.from || oldFrom;
+        const newTo = cleanEntry.to || oldTo;
+        const newItem = cleanEntry.item || oldItem;
+        const newQty = Number(cleanEntry.qty !== undefined ? cleanEntry.qty : oldQty);
+
+        if (newFrom && newTo && newItem && newQty > 0) {
+          if (!nextInv[newFrom]) nextInv[newFrom] = {};
+          if (!nextInv[newTo]) nextInv[newTo] = {};
+          nextInv[newFrom][newItem] = (nextInv[newFrom][newItem] || 0) - newQty;
+          nextInv[newTo][newItem] = (nextInv[newTo][newItem] || 0) + newQty;
+        }
+
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+        setInventory(nextInv);
+      }
     } catch (err) {
       console.error('Error updating inventory transfer history:', err);
     }
@@ -1746,6 +1850,7 @@ function App() {
 
       // 3. 만약 이동 이력이 없었던 품목이 전표에 있다면, 기본 출고창고 재고에 환원 복구
       if (targetInv && Array.isArray(targetInv.items)) {
+        const userWarehouse = getStaffWarehouse(currentUser?.name, staffList, warehouses, currentUser);
         const targetWH = targetInv.warehouse || userWarehouse || warehouses[0]?.name || '창고';
         for (const item of targetInv.items) {
           const itemQty = Number(item.qty) || 0;
@@ -2890,7 +2995,15 @@ function App() {
             const existing = localStorage.getItem(storageKey);
             if (existing && existing !== '[]') return;
           }
-          localStorage.setItem(storageKey, JSON.stringify(filtered));
+          if (colName === 'salesInvoices' || filtered.length >= 1000) {
+            setIdbBundle(companyId, colName, filtered);
+            return;
+          }
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(filtered));
+          } catch (e) {
+            setIdbBundle(companyId, colName, filtered);
+          }
           return;
         } else if (stateValue && typeof stateValue === 'object') {
           if (Object.keys(stateValue).length === 0 && !syncedCollections[colName]) {
@@ -2898,7 +3011,9 @@ function App() {
             if (existing && existing !== '{}') return;
           }
         }
-        localStorage.setItem(storageKey, JSON.stringify(stateValue));
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(stateValue));
+        } catch (e) {}
       };
 
       // We still keep localStorage as a fallback/cache
@@ -3352,7 +3467,7 @@ function App() {
               className="widget-header-more-btn" 
               onClick={(e) => {
                 e.stopPropagation();
-                if (widgetId === 'Inventory') setIsInventoryReportOpen(true);
+                if (widgetId === 'Inventory') setIsDailyInventoryReportOpen(true);
                 if (widgetId === 'Sales') setIsSalesReportOpen(true);
                 if (widgetId === 'Purchase') setIsPurchaseLedgerOpen(true);
                 if (widgetId === 'Partners') setIsPartnerManagerOpen(true);
@@ -3412,12 +3527,12 @@ function App() {
                     { id: 'product', name: '품목 관리', icon: <Package size={20} />, action: () => setIsProductManagerOpen(true) },
                     { id: 'account', name: '계좌 관리', icon: <CreditCard size={20} />, action: () => setIsAccountManagerOpen(true) },
                     { id: 'schedule', name: '일정 추가', icon: <CalendarIcon size={20} />, action: () => setIsScheduleRegistrationOpen(true) },
-                    { id: 'purchase_invoice', name: '매입 전표', icon: <FileInput size={20} />, action: () => setIsPurchaseInvoiceOpen(true) },
+                    { id: 'purchase_invoice', name: '매입 전표', icon: <FileInput size={20} />, action: () => openPurchaseInvoice() },
                     { id: 'purchase_ledger', name: '매입 관리', icon: <FileText size={20} />, action: () => setIsPurchaseLedgerOpen(true) },
                     { id: 'purchase_order', name: '발주 등록', icon: <Send size={20} />, action: () => setIsPurchaseOrderOpen(true) },
-                    { id: 'sales_invoice', name: '매출 전표', icon: <FileOutput size={20} />, action: () => setIsSalesInvoiceOpen(true) },
-                    { id: 'sales_invoice_list', name: '매출전표내역', icon: <List size={20} />, action: () => setIsSalesInvoiceListOpen(true) },
-                    { id: 'sales_ledger', name: '매출 원장', icon: <List size={20} />, action: () => setIsSalesLedgerOpen(true) },
+                    { id: 'sales_invoice', name: '매출 전표', icon: <FileOutput size={20} />, action: () => openSalesInvoice() },
+                    { id: 'sales_invoice_list', name: '매출전표내역', icon: <List size={20} />, action: () => openSalesInvoiceList() },
+                    { id: 'sales_ledger', name: '매출 원장', icon: <List size={20} />, action: () => openSalesLedger() },
                     { id: 'sales_order', name: '수주 추가', icon: <ShoppingCart size={20} />, action: () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }, highlight: true },
                     { id: 'cash_report_1', name: '결산 보고', icon: <BarChart2 size={20} />, action: () => openCashReport('결산') },
                     { id: 'cash_report_2', name: '입출금 현황', icon: <TrendingUp size={20} />, action: () => openCashReport('일자별') },
@@ -3901,6 +4016,23 @@ function App() {
             });
 
             (inventoryTransferHistory || []).filter(isSameCompany).forEach(mov => {
+              const isPhysicalAdjustment =
+                mov.from === '실사재고조정' ||
+                mov.to === '실사재고조정' ||
+                (typeof mov.memo === 'string' && (mov.memo.includes('실사') || mov.memo.includes('재고조정'))) ||
+                (typeof mov.description === 'string' && (mov.description.includes('실사') || mov.description.includes('재고조정')));
+              if (isPhysicalAdjustment) return;
+
+              // 매출출고 제외: 매출전표로 인한 출고는 '매출' 카테고리에서 표시되므로 재고이동 목록에서 제외
+              if (
+                mov.to === '매출출고' || 
+                mov.salesInvoiceId || 
+                (typeof mov.to === 'string' && mov.to.includes('매출')) ||
+                (typeof mov.memo === 'string' && (mov.memo.startsWith('[매출]') || mov.memo.includes('매출출고')))
+              ) {
+                return;
+              }
+
               activities.push({
                 id: `mov-${mov.id}`,
                 rawId: mov.id,
@@ -5129,8 +5261,8 @@ function App() {
           onOpenProductManager={() => setIsProductManagerOpen(true)}
           onOpenAccountManager={() => setIsAccountManagerOpen(true)}
           onOpenScheduleList={() => setIsScheduleListOpen(true)}
-          onOpenPurchaseInvoice={() => setIsPurchaseInvoiceOpen(true)}
-          onOpenPurchaseLedger={() => setIsPurchaseLedgerOpen(true)}
+          onOpenPurchaseInvoice={() => openPurchaseInvoice()}
+          onOpenPurchaseLedger={() => openPurchaseLedger()}
           onOpenPurchaseOrder={() => setIsPurchaseOrderOpen(true)}
           onOpenSalesInvoice={openSalesInvoice}
           onOpenSalesInvoiceList={openSalesInvoiceList}
@@ -5201,12 +5333,12 @@ function App() {
               inventory_report_1:         () => openInventoryReport('일자별'),
               inventory_report_2:         () => openInventoryReport('최종'),
               inventory_report_3:         () => openInventoryReport('partner'),
-              purchase_invoice:           () => setIsPurchaseInvoiceOpen(true),
+              purchase_invoice:           () => openPurchaseInvoice(),
               purchase_ledger:            () => setIsPurchaseLedgerOpen(true),
               purchase_order:             () => setIsPurchaseOrderOpen(true),
-              sales_invoice:              () => setIsSalesInvoiceOpen(true),
-              sales_invoice_list:         () => setIsSalesInvoiceListOpen(true),
-              sales_ledger:               () => setIsSalesLedgerOpen(true),
+              sales_invoice:              () => openSalesInvoice(),
+              sales_invoice_list:         () => openSalesInvoiceList(),
+              sales_ledger:               () => openSalesLedger(),
               sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
               order_list:                 () => openOrderList(),
               quotation:                  () => { setEditingQuotation(null); setIsQuotationOpen(true); },
@@ -5395,6 +5527,7 @@ function App() {
                 openInventoryTransfer(date);
               }}
               onOpenScheduleDetail={handleOpenScheduleDetail}
+              onOpenSalesInvoice={openSalesInvoice}
             />
           </div>
         </WindowModal>
@@ -5415,7 +5548,11 @@ function App() {
       {isWarehouseManagerOpen && <WarehouseManagement onClose={() => setIsWarehouseManagerOpen(false)} warehouses={warehouses} setWarehouses={setWarehouses} currentUser={currentUser} staffList={staffList} logOperation={logOperation} />}
       {isStaffManagerOpen && <StaffManagement onClose={() => setIsStaffManagerOpen(false)} staffList={staffList} setStaffList={setStaffList} warehouses={warehouses} currentUser={currentUser} setCurrentUser={setCurrentUser} staffZones={staffZones} setStaffZones={setStaffZones} staffJobTitles={staffJobTitles} setStaffJobTitles={setStaffJobTitles} logOperation={logOperation} />}
       {isInventoryTransferOpen && <InventoryTransfer 
-        onClose={() => { setIsInventoryTransferOpen(false); setInventoryTransferInitialDate(null); }} 
+        onClose={() => { 
+          setIsInventoryTransferOpen(false); 
+          setInventoryTransferInitialDate(null); 
+          setInventoryTransferInitialRecord(null);
+        }} 
         currentUser={currentUser} 
         warehouses={warehouses} 
         products={products}
@@ -5433,6 +5570,7 @@ function App() {
         purchaseInvoices={purchaseInvoices}
         onOpenPurchaseInvoice={openPurchaseInvoice}
         initialDate={inventoryTransferInitialDate}
+        initialRecord={inventoryTransferInitialRecord}
       />}
       {isPartnerManagerOpen && (
         <PartnerManagement 
@@ -5467,7 +5605,15 @@ function App() {
           staffList={staffList}
         />
       )}
-      {isAccountManagerOpen && <AccountManagement onClose={() => setIsAccountManagerOpen(false)} accounts={accounts} setAccounts={setAccounts} currentUser={currentUser} />}
+      {isAccountManagerOpen && (
+        <AccountManagement 
+          onClose={() => setIsAccountManagerOpen(false)} 
+          accounts={accounts} 
+          setAccounts={setAccounts} 
+          currentUser={currentUser} 
+          logOperation={logOperation} 
+        />
+      )}
       {isScheduleDetailOpen && (
         <ScheduleDetailModal 
           schedule={selectedScheduleForDetail} 
@@ -5618,14 +5764,22 @@ function App() {
         staffList={staffList} 
         purchaseInvoices={purchaseInvoices}
         editingInvoice={editingPurchaseInvoice}
-        onOpenLedger={() => setIsPurchaseLedgerOpen(true)}
+        onOpenLedger={(partnerName, dateVal) => {
+          openPurchaseLedger(partnerName, dateVal);
+        }}
         onDeleteInvoice={handleDeletePurchaseInvoice}
         warehouses={warehouses}
         onSave={handleSavePurchaseInvoice} 
       />}
 
       {isPurchaseLedgerOpen && <PurchaseLedger 
-        onClose={() => setIsPurchaseLedgerOpen(false)} 
+        onClose={() => {
+          setIsPurchaseLedgerOpen(false);
+          setPurchaseLedgerInitialPartner('');
+          setPurchaseLedgerInitialDate('');
+        }}
+        initialPartner={purchaseLedgerInitialPartner}
+        initialDate={purchaseLedgerInitialDate}
         purchaseInvoices={purchaseInvoices} 
         products={products} 
         partners={partners}
@@ -5659,7 +5813,13 @@ function App() {
       />}
       
       {isSalesLedgerOpen && <SalesLedger
-        onClose={() => setIsSalesLedgerOpen(false)}
+        onClose={() => {
+          setIsSalesLedgerOpen(false);
+          setSalesLedgerInitialPartner('');
+          setSalesLedgerInitialDate('');
+        }}
+        initialPartner={salesLedgerInitialPartner}
+        initialDate={salesLedgerInitialDate}
         salesInvoices={salesInvoices}
         products={products}
         partners={partners}
@@ -5668,7 +5828,7 @@ function App() {
         categories={categories}
         onOpenInvoice={(inv) => openSalesInvoice(inv)}
         currentUser={currentUser}
-        zIndex={activeSalesModal === 'ledger' ? 5000 : 4000}
+        zIndex={activeSalesModal === 'ledger' ? 7000 : 4000}
         onUpdateInvoice={async (updatedInv) => {
           try {
             const companyId = currentUser?.companyId || 'default';
@@ -5692,7 +5852,7 @@ function App() {
 
       {isSalesInvoiceOpen && <SalesInvoice
         themeColor={systemSettings.display?.salesThemeColor || '#3b82f6'}
-        zIndex={activeSalesModal === 'invoice' ? 6000 : 3000}
+        zIndex={activeSalesModal === 'invoice' ? 8500 : 3000}
         onClose={() => { setIsSalesInvoiceOpen(false); setEditingInvoice(null); }}
         selectedDate={selectedDate}
         products={products}
@@ -5919,7 +6079,20 @@ function App() {
       />}
       
       {isCashReportOpen && <CashReport onClose={() => setIsCashReportOpen(false)} purchaseInvoices={purchaseInvoices} salesInvoices={salesInvoices} staffList={staffList} defaultTab={cashReportTab} />}
-      {isSalesReportOpen && <SalesReport onClose={() => setIsSalesReportOpen(false)} salesInvoices={salesInvoices} salesOrders={salesOrders} products={products} />}
+      {isSalesReportOpen && (
+        <SalesReport 
+          onClose={() => setIsSalesReportOpen(false)} 
+          salesInvoices={salesInvoices} 
+          salesOrders={salesOrders} 
+          products={products} 
+          partners={partners}
+          warehouses={warehouses}
+          categories={categories}
+          staffList={staffList}
+          inventory={inventory}
+          currentUser={currentUser}
+        />
+      )}
        {isOrderReportOpen && <OrderReport 
         onClose={() => setIsOrderReportOpen(false)} 
         salesOrders={salesOrders} 
@@ -6004,7 +6177,28 @@ function App() {
       />}
       {isReceivablesReportOpen && <ReceivablesReport onClose={() => setIsReceivablesReportOpen(false)} partners={partners} salesInvoices={salesInvoices} setPartners={setPartners} staffList={staffList} />}
       {isEditDeleteReportOpen && <EditDeleteReport onClose={() => setIsEditDeleteReportOpen(false)} />}
-      {isCashBookOpen && <CashBook onClose={() => setIsCashBookOpen(false)} />}
+      {isCashBookOpen && (
+        <CashBook 
+          onClose={() => setIsCashBookOpen(false)} 
+          expenses={expenses}
+          salesInvoices={salesInvoices}
+          purchaseInvoices={purchaseInvoices}
+          staffList={staffList}
+          currentUser={currentUser}
+          partners={partners}
+          accounts={accounts}
+          onOpenExpenseRegistration={() => {
+            setIsCashBookOpen(false);
+            setIsExpenseRegistrationOpen(true);
+          }}
+          onOpenSalesInvoice={(inv) => {
+            openSalesInvoice(inv);
+          }}
+          onOpenPurchaseInvoice={(inv) => {
+            openPurchaseInvoice(inv);
+          }}
+        />
+      )}
       {isDepositSlipManagementOpen && (
         <DepositSlipManagement
           onClose={() => setIsDepositSlipManagementOpen(false)}
@@ -6033,7 +6227,7 @@ function App() {
           onSavePurchaseInvoice={handleSavePurchaseInvoice}
           onDeleteInvoice={handleDeletePurchaseInvoice}
           onOpenPurchaseInvoice={openPurchaseInvoice}
-          onOpenLedger={() => setIsPurchaseLedgerOpen(true)}
+          onOpenLedger={openPurchaseLedger}
           zIndex={10000}
         />
       )}
@@ -6926,6 +7120,7 @@ function App() {
           initialSearchTerm={mismatchInitialSearchTerm}
           physicalInventory={physicalInventory}
           onUpdatePhysicalCount={handleUpdatePhysicalCount}
+          historyData={inventoryTransferHistory}
         />
       )}
       {isTaxReportOpen && (

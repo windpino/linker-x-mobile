@@ -4,6 +4,7 @@ import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './PurchaseInvoice.css';
 
 const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, purchaseOrders = [], currentUser, staffList = [], warehouses = [], themeColor: propThemeColor }) => {
@@ -282,7 +283,13 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
           <div className="so-title">
             <Package size={isMobileView ? 20 : 24} />
             발주 등록 (매입관리)
-            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+              <DateNavButton
+                direction="prev"
+                onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, -1) }))}
+                size={12}
+                style={{ width: '20px', height: '20px' }}
+              />
               <input 
                 type="date"
                 value={orderData.date}
@@ -304,6 +311,12 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                   fontFamily: 'inherit',
                   width: isMobileView ? '105px' : '120px'
                 }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                size={12}
+                style={{ width: '20px', height: '20px' }}
               />
             </span>
           </div>
@@ -365,7 +378,17 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                   <div className="so-grid-2" style={{ marginBottom: '12px', animation: 'so-fade-in 0.2s' }}>
                     <div className="form-group">
                       <label>발주 일자</label>
-                      <input type="date" value={orderData.date} onChange={(e) => setOrderData({...orderData, date: e.target.value})} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <DateNavButton
+                          direction="prev"
+                          onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, -1) }))}
+                        />
+                        <input type="date" value={orderData.date} onChange={(e) => setOrderData({...orderData, date: e.target.value})} style={{ flex: 1 }} />
+                        <DateNavButton
+                          direction="next"
+                          onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                        />
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>담당자</label>

@@ -22,6 +22,10 @@ class SingleInstanceManager {
     this.releaseLockPromise = null;
     this.heartbeatTimer = null;
     this.isInitialized = false;
+    this.focusAlert = false;
+    this.focusAlertTimer = null;
+    this.titleFlashTimer = null;
+    this.originalTitle = null;
 
     if (typeof window !== 'undefined') {
       this.init();
@@ -33,7 +37,8 @@ class SingleInstanceManager {
       isPrimary: this.isPrimary,
       isDuplicate: this.isDuplicate,
       existingInfo: this.existingInfo,
-      instanceId: this.instanceId
+      instanceId: this.instanceId,
+      focusAlert: this.focusAlert
     };
     this.listeners.forEach(fn => {
       try { fn(state); } catch (e) { console.error(e); }
@@ -46,7 +51,8 @@ class SingleInstanceManager {
       isPrimary: this.isPrimary,
       isDuplicate: this.isDuplicate,
       existingInfo: this.existingInfo,
-      instanceId: this.instanceId
+      instanceId: this.instanceId,
+      focusAlert: this.focusAlert
     });
     return () => this.listeners.delete(listener);
   }
@@ -121,12 +127,12 @@ class SingleInstanceManager {
     // When a new window pings asking who is active:
     if (msg.type === 'PING_WHO_IS_ACTIVE') {
       if (this.isPrimary) {
-        // Send back that this window is primary and active
         this.postMessage({
           type: 'PONG_I_AM_ACTIVE',
           ownerId: this.instanceId,
           info: this.getCurrentUserInfo()
         });
+        this.bringToFront();
       }
     }
 
@@ -142,14 +148,7 @@ class SingleInstanceManager {
     // When requested to bring this window to front:
     if (msg.type === 'FOCUS_EXISTING_WINDOW') {
       if (this.isPrimary) {
-        try {
-          window.focus();
-        } catch (e) {}
-        const originalTitle = document.title;
-        document.title = '🔔 링커엑스가 이미 실행 중입니다';
-        setTimeout(() => {
-          document.title = originalTitle;
-        }, 4000);
+        this.bringToFront();
       }
     }
 
@@ -164,7 +163,6 @@ class SingleInstanceManager {
     // When active instance closed:
     if (msg.type === 'INSTANCE_CLOSED') {
       if (this.isDuplicate) {
-        // Attempt to claim primary lock now!
         this.acquireLock();
       }
     }
@@ -190,23 +188,18 @@ class SingleInstanceManager {
   }
 
   async acquireLock() {
-    // Check if navigator.locks is supported
     if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function') {
       try {
         navigator.locks.request(LOCK_NAME, { ifAvailable: true }, async (lock) => {
           if (!lock) {
-            // Lock held by another window!
             this.isPrimary = false;
             this.isDuplicate = true;
             this.existingInfo = this.getStoredInfo()?.user || this.getCurrentUserInfo();
             this.notify();
-
-            // Ping existing window to acknowledge and bring to front
             this.postMessage({ type: 'PING_WHO_IS_ACTIVE', senderId: this.instanceId });
             return;
           }
 
-          // Lock acquired! This window is Primary!
           this.isPrimary = true;
           this.isDuplicate = false;
           this.existingInfo = null;
@@ -214,12 +207,10 @@ class SingleInstanceManager {
           this.startHeartbeat();
           this.notify();
 
-          // Keep lock held until releaseLockPromise resolves
           await new Promise((resolve) => {
             this.releaseLockPromise = resolve;
           });
 
-          // After lock released
           this.isPrimary = false;
           this.stopHeartbeat();
         }).catch(err => {
@@ -235,18 +226,15 @@ class SingleInstanceManager {
   }
 
   fallbackLockCheck() {
-    // Fallback using localStorage timestamp
     const stored = this.getStoredInfo();
     const now = Date.now();
     if (stored && stored.id !== this.instanceId && (now - (stored.timestamp || 0)) < 4000) {
-      // Active window exists
       this.isPrimary = false;
       this.isDuplicate = true;
       this.existingInfo = stored.user || this.getCurrentUserInfo();
       this.notify();
       this.postMessage({ type: 'PING_WHO_IS_ACTIVE', senderId: this.instanceId });
     } else {
-      // We can be primary
       this.isPrimary = true;
       this.isDuplicate = false;
       this.existingInfo = null;
@@ -283,15 +271,85 @@ class SingleInstanceManager {
     this.notify();
   }
 
+  bringToFront() {
+    try {
+      window.focus();
+    } catch (e) {}
+    try {
+      if (window.parent) window.parent.focus();
+    } catch (e) {}
+
+    this.playAttentionChime();
+    this.flashTitle('🔔 [실행 중] 링커엑스 창입니다');
+
+    this.focusAlert = true;
+    this.notify();
+    if (this.focusAlertTimer) clearTimeout(this.focusAlertTimer);
+    this.focusAlertTimer = setTimeout(() => {
+      this.focusAlert = false;
+      this.notify();
+    }, 4500);
+  }
+
+  playAttentionChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.setValueAtTime(880, now + 0.1);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (e) {}
+  }
+
+  flashTitle(flashMsg) {
+    if (this.titleFlashTimer) {
+      clearInterval(this.titleFlashTimer);
+      this.titleFlashTimer = null;
+    }
+    const orig = this.originalTitle || document.title || '링커엑스 (Linker-X)';
+    this.originalTitle = orig;
+    let count = 0;
+    this.titleFlashTimer = setInterval(() => {
+      document.title = (count % 2 === 0) ? flashMsg : orig;
+      count++;
+      if (count > 8) {
+        clearInterval(this.titleFlashTimer);
+        this.titleFlashTimer = null;
+        document.title = orig;
+      }
+    }, 500);
+  }
+
   focusExistingWindow() {
     this.postMessage({ type: 'FOCUS_EXISTING_WINDOW', target: 'primary' });
     try {
       window.close();
     } catch (e) {}
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch (e) {}
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch (e) {}
+    }, 100);
   }
 
   takeoverToThisWindow() {
-    // Notify the other window to yield
     this.postMessage({ type: 'FORCE_TAKEOVER', newOwnerId: this.instanceId });
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     setTimeout(() => {
@@ -319,5 +377,4 @@ class SingleInstanceManager {
   }
 }
 
-// Global Singleton
 export const singleInstanceManager = new SingleInstanceManager();

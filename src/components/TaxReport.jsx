@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { FileSpreadsheet, Download, Calculator, TrendingUp, TrendingDown, Users, FileText, Calendar as CalendarIcon, PieChart } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 
 const TaxReport = ({ onClose, salesInvoices = [], purchaseInvoices = [], expenses = [] }) => {
   const [dateRange, setDateRange] = useState({
@@ -170,19 +171,23 @@ const TaxReport = ({ onClose, salesInvoices = [], purchaseInvoices = [], expense
           </div>
 
           {/* Date Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input 
-              type="date" 
-              value={dateRange.start} 
-              onChange={e => setDateRange({...dateRange, start: e.target.value})} 
-              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <DateInputWithArrows
+              value={dateRange.start}
+              onChange={e => setDateRange({...dateRange, start: e.target.value})}
+              onPrev={() => setDateRange(prev => ({ ...prev, start: addDays(prev.start, -1) }))}
+              onNext={() => setDateRange(prev => ({ ...prev, start: addDays(prev.start, 1) }))}
+              style={{ flex: 1, padding: '5px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
-            <input 
-              type="date" 
-              value={dateRange.end} 
-              onChange={e => setDateRange({...dateRange, end: e.target.value})} 
-              style={{ flex: 1, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            <DateInputWithArrows
+              value={dateRange.end}
+              onChange={e => setDateRange({...dateRange, end: e.target.value})}
+              onPrev={() => setDateRange(prev => ({ ...prev, end: addDays(prev.end, -1) }))}
+              onNext={() => setDateRange(prev => ({ ...prev, end: addDays(prev.end, 1) }))}
+              style={{ flex: 1, padding: '5px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
           </div>
 

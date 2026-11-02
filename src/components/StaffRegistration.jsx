@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy, Trash2, Plus, X } from 'lucide-react';
+import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy, Trash2, Plus, X, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -11,7 +11,7 @@ const MENU_PERMISSIONS = [
   },
   {
     category: '재고관리',
-    items: ['실재고 입력', '재고이동', '재고 이동 현황 관리', '재고조정 (손실처리)', '재고 불일치 현황', '재고보고서']
+    items: ['실재고 입력', '재고이동', '재고조정 (손실처리)', '재고 불일치 현황', '재고보고서']
   },
   {
     category: '매출/수주관리',
@@ -27,7 +27,7 @@ const MENU_PERMISSIONS = [
   },
   {
     category: '스마트지원',
-    items: ['일정', '매출보고서', '수주보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '미수금 보고서', '세금신고 지원 보고서', '최근 처리 현황']
+    items: ['일정', '매출보고서', '수주보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '미수금 보고서', '세금신고 지원 보고서', '최근 처리 현황 보고서']
   },
   {
     category: '데이터관리',
@@ -40,7 +40,7 @@ const MENU_PERMISSIONS = [
 ];
 
 const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], nextSequence, staffZones = [], setStaffZones, staffJobTitles = [], setStaffJobTitles, currentUser, onDeleteStaff }) => {
-  const mainWH = warehouses.find(w => w.isMain)?.name || '메인창고';
+  const mainWH = warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '메인창고';
   const isEditing = !!initialData;
   const titleText = isEditing ? "직원 정보 수정" : "신규 직원 등록";
   
@@ -50,12 +50,32 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
 
   const isRepUser = (user) => {
     if (!user) return false;
+    const uid = String(user.userId || '').trim().toLowerCase();
+    const cid = String(user.companyId || currentUser?.companyId || '').trim().toLowerCase();
     return user.role === 'admin' || 
            user.role === 'super_admin' || 
-           user.userId === 'admin' || 
-           isRepTitle(user.jobTitle) ||
+           user.role === 'company' ||
+           user.role === 'owner' ||
            user.role === 'representative' || 
-           user.role === 'ceo';
+           user.role === 'ceo' ||
+           user.isCompanyAdmin === true ||
+           user.isMasterAdmin === true ||
+           uid === 'admin' ||
+           uid === 'sadmin' ||
+           uid === 'madmin' ||
+           (cid && uid && uid === cid) ||
+           isRepTitle(user.jobTitle);
+  };
+
+  const normalizePermissions = (perm) => {
+    if (!perm) return {};
+    if (Array.isArray(perm)) {
+      const obj = {};
+      perm.forEach(k => { if (typeof k === 'string') obj[k] = true; });
+      return obj;
+    }
+    if (typeof perm === 'object') return { ...perm };
+    return {};
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -66,8 +86,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     name: '',
     phone: '',
     sequence: isEditing ? '' : (nextSequence || ''),
-    warehouse: mainWH,
+    warehouse: isEditing ? (initialData?.warehouse || '') : (mainWH || ''),
     jobTitle: isEditing ? (initialData.jobTitle || '사원') : (staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')),
+    hireDate: isEditing ? (initialData?.hireDate || '') : '',
     address: '',
     zone: '',
     viewAllInventoryMovements: false,
@@ -76,6 +97,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     viewOtherWarehouseOrders: false,
     viewRecentActivity: false,
     deleteRecentActivity: false,
+    restrictPartnerSearch: false,
     allowPastDateSlip: false,
     allowPastDateDeposit: false,
     showPurchasePrice: isEditing ? (
@@ -87,8 +109,21 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                 ? Boolean(initialData.permissions['발주_상품금액노출']) 
                 : isRepUser(initialData)))
     ) : false,
-    permissions: {} // { '재고이동': true, ... }
+    permissions: normalizePermissions(initialData?.permissions)
   });
+
+  // 대표 관리자 아이디 여부 판별 (최초 가입 계정 또는 최고 관리자)
+  const isRepAdmin = Boolean(
+    (isEditing && !isCloning && (
+      isRepUser(initialData) ||
+      (currentUser?.companyId && initialData?.userId && String(initialData.userId).trim().toLowerCase() === String(currentUser.companyId).trim().toLowerCase())
+    )) ||
+    (formData?.userId && (
+      String(formData.userId).trim().toLowerCase() === 'admin' ||
+      (currentUser?.companyId && String(formData.userId).trim().toLowerCase() === String(currentUser.companyId).trim().toLowerCase())
+    )) ||
+    isRepTitle(formData?.jobTitle)
+  );
 
   const [mgmtModalType, setMgmtModalType] = useState(null); // 'zone' | 'jobTitle' | null
 
@@ -110,6 +145,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         sequence: initialData.sequence !== undefined && initialData.sequence !== null ? initialData.sequence : '',
         warehouse: initialData.warehouse || mainWH,
         jobTitle: initialData.jobTitle || (staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원')),
+        hireDate: initialData.hireDate || '',
         address: initialData.address || '',
         zone: initialData.zone || '',
         userId: initialData.userId || '', 
@@ -118,12 +154,13 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         allowSpecialPriceSave: initialData.allowSpecialPriceSave || false,
         allowAllEditDelete: initialData.allowAllEditDelete || false,
         viewOtherWarehouseOrders: initialData.viewOtherWarehouseOrders || false,
-        viewRecentActivity: Boolean(initialData.viewRecentActivity || initialData.permissions?.viewRecentActivity || initialData.permissions?.['최근 처리 현황']),
+        viewRecentActivity: Boolean(initialData.viewRecentActivity || initialData.permissions?.viewRecentActivity || initialData.permissions?.['최근 처리 현황'] || initialData.permissions?.['최근 처리 현황 보고서']),
         deleteRecentActivity: Boolean(initialData.deleteRecentActivity || initialData.permissions?.deleteRecentActivity || initialData.permissions?.['최근 처리 이력 삭제 권한']),
+        restrictPartnerSearch: initialData.restrictPartnerSearch || false,
         allowPastDateSlip: Boolean(initialData.allowPastDateSlip || initialData.permissions?.allowPastDateSlip || initialData.permissions?.['과거일자 전표발행']),
         allowPastDateDeposit: Boolean(initialData.allowPastDateDeposit || initialData.permissions?.allowPastDateDeposit || initialData.permissions?.['과거일자 입금전표발행']),
         showPurchasePrice: initialShowPrice,
-        permissions: initialData.permissions || {}
+        permissions: normalizePermissions(initialData?.permissions)
       });
     } else {
       setFormData({
@@ -132,8 +169,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         name: '',
         phone: '',
         sequence: nextSequence || '',
-        warehouse: mainWH,
+        warehouse: mainWH || '',
         jobTitle: staffJobTitles.includes('사원') ? '사원' : (staffJobTitles[0] || '사원'),
+        hireDate: '',
         address: '',
         zone: '',
         viewAllInventoryMovements: false,
@@ -142,6 +180,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         viewOtherWarehouseOrders: false,
         viewRecentActivity: false,
         deleteRecentActivity: false,
+        restrictPartnerSearch: false,
         allowPastDateSlip: false,
         allowPastDateDeposit: false,
         showPurchasePrice: false,
@@ -179,6 +218,16 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         [itemName]: checked
       }
     }));
+  };
+
+  const handleAllCategoriesToggle = (checked) => {
+    const newPermissions = { ...formData.permissions };
+    MENU_PERMISSIONS.forEach(group => {
+      group.items.forEach(item => {
+        newPermissions[item] = checked;
+      });
+    });
+    setFormData(prev => ({ ...prev, permissions: newPermissions }));
   };
 
   const handleCategoryToggle = (category, checked) => {
@@ -226,20 +275,32 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
 
       const enrichedPermissions = {
         ...(formData.permissions || {}),
-        deleteRecentActivity: isDeleteActivity,
-        '최근 처리 이력 삭제 권한': isDeleteActivity,
-        viewRecentActivity: isViewActivity,
-        '최근 처리 현황 보고서': isViewActivity,
-        '최근 처리 현황': isViewActivity,
-        '최근 처리 현황 권한': isViewActivity,
-        '상품금액노출': isShowPurchasePrice,
-        '발주_상품금액노출': isShowPurchasePrice,
-        showPurchasePrice: isShowPurchasePrice,
-        allowPastDateSlip: isAllowPastDateSlip,
-        '과거일자 전표발행': isAllowPastDateSlip,
-        allowPastDateDeposit: isAllowPastDateDeposit,
-        '과거일자 입금전표발행': isAllowPastDateDeposit
+        deleteRecentActivity: isRepAdmin ? true : isDeleteActivity,
+        '최근 처리 이력 삭제 권한': isRepAdmin ? true : isDeleteActivity,
+        viewRecentActivity: isRepAdmin ? true : isViewActivity,
+        '최근 처리 현황 보고서': isRepAdmin ? true : isViewActivity,
+        '최근 처리 현황': isRepAdmin ? true : isViewActivity,
+        '최근 처리 현황 권한': isRepAdmin ? true : isViewActivity,
+        '상품금액노출': isRepAdmin ? true : isShowPurchasePrice,
+        '발주_상품금액노출': isRepAdmin ? true : isShowPurchasePrice,
+        showPurchasePrice: isRepAdmin ? true : isShowPurchasePrice,
+        allowPastDateSlip: isRepAdmin ? true : isAllowPastDateSlip,
+        '과거일자 전표발행': isRepAdmin ? true : isAllowPastDateSlip,
+        allowPastDateDeposit: isRepAdmin ? true : isAllowPastDateDeposit,
+        '과거일자 입금전표발행': isRepAdmin ? true : isAllowPastDateDeposit
       };
+
+      if (isRepAdmin) {
+        MENU_PERMISSIONS.forEach(g => {
+          g.items.forEach(item => {
+            enrichedPermissions[item] = true;
+          });
+        });
+        enrichedPermissions['ALL'] = true;
+        enrichedPermissions['상품금액노출'] = true;
+        enrichedPermissions['발주_상품금액노출'] = true;
+        enrichedPermissions['타창고주문확인'] = true;
+      }
 
       if (isCloning) {
         if (!formData.userId || !formData.userId.trim()) {
@@ -264,11 +325,16 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
       } else {
         const payload = {
           ...formData,
-          showPurchasePrice: isShowPurchasePrice,
-          deleteRecentActivity: isDeleteActivity,
-          viewRecentActivity: isViewActivity,
-          allowPastDateSlip: isAllowPastDateSlip,
-          allowPastDateDeposit: isAllowPastDateDeposit,
+          showPurchasePrice: isRepAdmin ? true : isShowPurchasePrice,
+          deleteRecentActivity: isRepAdmin ? true : isDeleteActivity,
+          viewRecentActivity: isRepAdmin ? true : isViewActivity,
+          allowPastDateSlip: isRepAdmin ? true : isAllowPastDateSlip,
+          allowPastDateDeposit: isRepAdmin ? true : isAllowPastDateDeposit,
+          allowAllEditDelete: isRepAdmin ? true : Boolean(formData.allowAllEditDelete),
+          allowSpecialPriceSave: isRepAdmin ? true : Boolean(formData.allowSpecialPriceSave),
+          viewAllInventoryMovements: isRepAdmin ? true : Boolean(formData.viewAllInventoryMovements),
+          viewOtherWarehouseOrders: isRepAdmin ? true : Boolean(formData.viewOtherWarehouseOrders),
+          restrictPartnerSearch: isRepAdmin ? false : Boolean(formData.restrictPartnerSearch),
           password: formData.password || initialData?.password || '',
           permissions: enrichedPermissions
         };
@@ -361,6 +427,20 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
             <div className="staff-input-wrapper">
               <Phone size={16} className="staff-input-icon" />
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="010-0000-0000" className="staff-input" />
+            </div>
+          </div>
+          <div className="staff-input-group">
+            <label>입사일</label>
+            <div className="staff-input-wrapper">
+              <Calendar size={16} className="staff-input-icon" />
+              <input 
+                type="date" 
+                name="hireDate" 
+                value={formData.hireDate || ''} 
+                onChange={handleChange} 
+                className="staff-input" 
+                style={{ width: '100%', cursor: 'pointer' }} 
+              />
             </div>
           </div>
         </div>
@@ -458,136 +538,259 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         </div>
 
         {/* Additional Permissions */}
+        {isRepAdmin && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            backgroundColor: '#eff6ff',
+            border: '1.5px solid #93c5fd',
+            borderRadius: '8px',
+            padding: '12px 14px',
+            marginBottom: '8px',
+            color: '#1e40af'
+          }}>
+            <Lock size={20} color="#2563eb" style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#1d4ed8', marginBottom: '2px' }}>
+                👑 대표 관리자 계정 (모든 시스템 권한 자동 보유)
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#3b82f6', fontWeight: 500, lineHeight: 1.4 }}>
+                최초 가입된 대표 관리자 아이디는 시스템 내 모든 메뉴 및 데이터에 대한 최고 권한을 항상 보유하므로, 별도의 권한 설정이 필요하지 않아 체크박스가 비활성화됩니다.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="permission-section">
-          <h4 className="permission-title">추가 권한 설정</h4>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="viewAllInventoryMovements" checked={formData.viewAllInventoryMovements} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">전체 재고이동 목록 보기 (관리자 권한)</span>
-                <span className="checkbox-sub-text">체크 시 본인이 작성하지 않은 다른 직원의 재고이동 내역도 모두 조회할 수 있습니다.</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="allowSpecialPriceSave" checked={formData.allowSpecialPriceSave || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">직원별 특별단가관리 (매출전표 단가 수정 시 특별단가 저장 허용)</span>
-                <span className="checkbox-sub-text">매출전표에서 품목 단가 수정 시 해당 단가를 거래처 특별단가로 저장할지 묻는 팝업을 표시하고 저장할 수 있습니다.</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="viewRecentActivity" checked={formData.viewRecentActivity || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">최근 처리 현황 위젯 및 이력 조회 권한</span>
-                <span className="checkbox-sub-text">체크 시 대시보드에서 최근 전표 등록, 변경, 이동, 삭제 등 처리 이력 위젯을 조회할 수 있습니다.</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="deleteRecentActivity" checked={formData.deleteRecentActivity || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">최근 처리 현황 & 작업 이력 내역 삭제 권한</span>
-                <span className="checkbox-sub-text">체크 시 최근 처리 현황 보고서 및 작업 이력에서 개별 및 선택 처리 이력 내역을 삭제할 수 있습니다.</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="allowAllEditDelete" checked={formData.allowAllEditDelete || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">모든 데이터 삭제/수정 권한 부여</span>
-                <span className="checkbox-sub-text">체크 시 매출/매입전표, 품목, 거래처, 계좌 등 시스템 내 모든 마스터 데이터를 수정하고 삭제할 수 있습니다. (미체크 시 본인이 작성한 데이터만 관리 가능)</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="allowPastDateSlip" checked={formData.allowPastDateSlip || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">과거일자 전표발행</span>
-                <span className="checkbox-sub-text">체크 시 당일 이전(과거 일자)으로 수주, 견적서, 매출전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)</span>
-              </div>
-            </label>
-          </div>
-          <div className="permission-box mb-4">
-            <label className="checkbox-label">
-              <input type="checkbox" name="allowPastDateDeposit" checked={formData.allowPastDateDeposit || false} onChange={handleChange} />
-              <div className="checkbox-text-group">
-                <span className="checkbox-main-text">과거일자 입금전표발행</span>
-                <span className="checkbox-sub-text">체크 시 당일 이전(과거 일자)으로 입금전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)</span>
-              </div>
-            </label>
+          <h4 className="permission-title" style={{ marginBottom: '12px' }}>추가 권한 설정</h4>
+          <div className="additional-permissions-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '8px',
+            marginBottom: '12px'
+          }}>
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 본인이 작성하지 않은 다른 직원의 재고이동 내역도 모두 조회할 수 있습니다.">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="viewAllInventoryMovements" checked={isRepAdmin ? true : Boolean(formData.viewAllInventoryMovements)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>전체 재고이동 목록 보기</span>
+              </label>
+            </div>
+            
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="매출전표에서 품목 단가 수정 시 해당 단가를 거래처 특별단가로 저장할지 묻는 팝업을 표시하고 저장할 수 있습니다.">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="allowSpecialPriceSave" checked={isRepAdmin ? true : Boolean(formData.allowSpecialPriceSave)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>직원별 특별단가관리</span>
+              </label>
+            </div>
+            
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 대시보드에서 최근 전표 등록, 변경, 이동, 삭제 등 처리 이력 위젯을 조회할 수 있습니다.">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="viewRecentActivity" checked={isRepAdmin ? true : Boolean(formData.viewRecentActivity)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>최근 처리 현황 권한</span>
+              </label>
+            </div>
+
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 최근 처리 현황 보고서 및 작업 이력에서 개별 처리 이력 내역을 삭제할 수 있습니다.">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="deleteRecentActivity" checked={isRepAdmin ? true : Boolean(formData.deleteRecentActivity)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>최근 처리 이력 삭제 권한</span>
+              </label>
+            </div>
+            
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 해당 직원은 본인이 담당자로 지정된 거래처만 검색 및 조회할 수 있도록 제한됩니다. (미체크 시 전체 거래처 검색 가능)">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="restrictPartnerSearch" checked={isRepAdmin ? false : Boolean(formData.restrictPartnerSearch)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>전체 거래처 검색제한</span>
+              </label>
+            </div>
+            
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 매출/매입전표, 품목, 거래처, 계좌 등 시스템 내 모든 마스터 데이터를 수정하고 삭제할 수 있습니다. (미체크 시 본인이 작성한 데이터만 관리 가능)">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="allowAllEditDelete" checked={isRepAdmin ? true : Boolean(formData.allowAllEditDelete)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>모든 데이터 삭제/수정 권한</span>
+              </label>
+            </div>
+
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 당일 이전(과거 일자)으로 수주, 견적서, 매출전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="allowPastDateSlip" checked={isRepAdmin ? true : Boolean(formData.allowPastDateSlip)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>과거일자 전표발행</span>
+              </label>
+            </div>
+
+            <div className="permission-box" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', minHeight: '48px', backgroundColor: isRepAdmin ? '#f1f5f9' : '#f8fafc', cursor: isRepAdmin ? 'not-allowed' : 'default', opacity: isRepAdmin ? 0.85 : 1 }} title="체크 시 당일 이전(과거 일자)으로 입금전표를 발행할 수 있습니다. (미체크 시 당일 및 미래 일자만 발행 가능)">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', width: '100%' }}>
+                <input type="checkbox" name="allowPastDateDeposit" checked={isRepAdmin ? true : Boolean(formData.allowPastDateDeposit)} disabled={isRepAdmin} onChange={handleChange} style={{ margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', flexShrink: 0 }} />
+                <span className="checkbox-main-text" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', whiteSpace: 'normal', wordBreak: 'keep-all' }}>과거일자 입금전표발행</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        {/* Menu Access Permissions */}
-        <div className="permission-section menu-permissions">
-          <h4 className="permission-title">메뉴 접근 권한</h4>
-          <p className="permission-desc">직원이 접근할 수 있는 메뉴를 선택하세요.</p>
+        {/* Menu Access Permissions (상세 필터 형태 카드 구성) */}
+        <div className="permission-section menu-permissions" style={{ marginTop: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h4 className="permission-title" style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                메뉴 접근 권한 설정
+              </h4>
+              <p className="permission-desc" style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                직원이 접근할 수 있는 메뉴를 카테고리별로 선택하세요. (상세 필터 형태)
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                disabled={isRepAdmin}
+                onClick={() => handleAllCategoriesToggle(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: isRepAdmin ? '#94a3b8' : '#2563eb',
+                  backgroundColor: isRepAdmin ? '#f1f5f9' : '#eff6ff',
+                  border: isRepAdmin ? '1px solid #cbd5e1' : '1px solid #bfdbfe',
+                  borderRadius: '6px',
+                  cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                  opacity: isRepAdmin ? 0.6 : 1
+                }}
+              >
+                ✓ 전체 메뉴 선택
+              </button>
+              <button
+                type="button"
+                disabled={isRepAdmin}
+                onClick={() => handleAllCategoriesToggle(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                  opacity: isRepAdmin ? 0.6 : 1
+                }}
+              >
+                ✕ 전체 선택 해제
+              </button>
+            </div>
+          </div>
           
-          <div className="menu-permission-list">
+          <div 
+            className="menu-permission-cards-grid" 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(4, 1fr)', 
+              gap: '10px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '10px'
+            }}
+          >
             {MENU_PERMISSIONS.map((group) => {
-              const allChecked = group.items.every(item => formData.permissions[item]);
-              const someChecked = group.items.some(item => formData.permissions[item]);
+              const currentPermissions = formData?.permissions || {};
+              const allChecked = group.items.every(item => Boolean(currentPermissions[item]));
+              const someChecked = group.items.some(item => Boolean(currentPermissions[item]));
               
               return (
-                <div key={group.category} className="menu-group-card">
-                  <div className="menu-group-header">
-                    <label className="checkbox-label category-label">
+                <div 
+                  key={group.category} 
+                  style={{
+                    backgroundColor: isRepAdmin ? '#f8fafc' : '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    overflow: 'hidden',
+                    opacity: isRepAdmin ? 0.9 : 1
+                  }}
+                >
+                  {/* Card Header (Category Title & 전체 선택) */}
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#f1f5f9',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                      {group.category}
+                    </span>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: isRepAdmin ? 'not-allowed' : 'pointer', fontSize: '0.74rem', color: isRepAdmin ? '#94a3b8' : '#64748b', fontWeight: 600, userSelect: 'none' }}>
                       <input 
                         type="checkbox" 
-                        checked={allChecked} 
+                        checked={isRepAdmin ? true : allChecked} 
+                        disabled={isRepAdmin}
                         ref={input => {
                           if (input) {
-                            input.indeterminate = someChecked && !allChecked;
+                            input.indeterminate = !isRepAdmin && someChecked && !allChecked;
                           }
                         }}
                         onChange={(e) => handleCategoryToggle(group.category, e.target.checked)} 
+                        style={{ width: '13px', height: '13px', cursor: isRepAdmin ? 'not-allowed' : 'pointer', accentColor: '#2563eb' }}
                       />
-                      <span className="category-text">{group.category}</span>
+                      <span>전체 선택</span>
                     </label>
-                    <span className="item-count">{group.items.length}개 메뉴</span>
                   </div>
                   
-                  <div className="menu-items-grid">
+                  {/* Card Body (Vertical Checkbox List) */}
+                  <div style={{
+                    padding: '10px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '7px',
+                    flex: 1
+                  }}>
                     {group.items.map(item => {
+                      const isChecked = isRepAdmin ? true : Boolean(formData?.permissions?.[item]);
                       if (item === '발주') {
                         return (
-                          <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <label className="checkbox-label item-label" style={{ margin: 0 }}>
+                          <div key={item} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.8rem', color: isChecked ? '#1e293b' : '#475569', fontWeight: isChecked ? 600 : 500, cursor: isRepAdmin ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
                               <input 
                                 type="checkbox" 
-                                checked={formData.permissions[item] || false} 
+                                checked={isChecked} 
+                                disabled={isRepAdmin}
                                 onChange={(e) => handlePermissionChange(item, e.target.checked)} 
+                                style={{ width: '14px', height: '14px', cursor: isRepAdmin ? 'not-allowed' : 'pointer', accentColor: '#2563eb', margin: 0 }}
                               />
-                              <span className="item-text">{item}</span>
+                              <span>{item}</span>
                             </label>
                             <label 
                               style={{ 
                                 display: 'inline-flex', 
                                 alignItems: 'center', 
                                 gap: '4px', 
-                                padding: '2px 8px', 
-                                background: formData.showPurchasePrice ? '#fff7ed' : '#f8fafc', 
-                                border: formData.showPurchasePrice ? '1px solid #fed7aa' : '1px solid #cbd5e1', 
-                                borderRadius: '6px', 
-                                cursor: 'pointer',
-                                fontSize: '0.78rem',
-                                color: formData.showPurchasePrice ? '#c2410c' : '#64748b',
+                                padding: '2px 6px', 
+                                marginLeft: '21px',
+                                background: isRepAdmin ? '#eff6ff' : (formData.showPurchasePrice ? '#fff7ed' : '#f8fafc'), 
+                                border: isRepAdmin ? '1px solid #bfdbfe' : (formData.showPurchasePrice ? '1px solid #fed7aa' : '1px solid #cbd5e1'), 
+                                borderRadius: '4px', 
+                                cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                                fontSize: '0.72rem',
+                                color: isRepAdmin ? '#1d4ed8' : (formData.showPurchasePrice ? '#c2410c' : '#64748b'),
                                 fontWeight: 700,
                                 userSelect: 'none',
-                                transition: 'all 0.15s ease'
+                                width: 'fit-content'
                               }}
                               title="발주 등록 시 품목 단가, 금액 및 총액 노출 여부 (대표자 외 기본 가리기)"
                             >
                               <input 
                                 type="checkbox" 
-                                checked={Boolean(formData.showPurchasePrice || formData.permissions?.['상품금액노출'] || formData.permissions?.['발주_상품금액노출'])} 
+                                checked={isRepAdmin ? true : Boolean(formData.showPurchasePrice || formData.permissions?.['상품금액노출'] || formData.permissions?.['발주_상품금액노출'])} 
+                                disabled={isRepAdmin}
                                 onChange={(e) => {
                                   const checked = e.target.checked;
                                   setFormData(prev => ({
@@ -600,7 +803,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                                     }
                                   }));
                                 }} 
-                                style={{ margin: 0, cursor: 'pointer' }}
+                                style={{ width: '12px', height: '12px', margin: 0, cursor: isRepAdmin ? 'not-allowed' : 'pointer', accentColor: '#ea580c' }}
                               />
                               <span>상품금액노출</span>
                             </label>
@@ -608,25 +811,55 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                         );
                       }
                       return (
-                        <label key={item} className="checkbox-label item-label">
+                        <label 
+                          key={item} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '7px', 
+                            fontSize: '0.8rem', 
+                            color: isChecked ? '#1e293b' : '#475569', 
+                            fontWeight: isChecked ? 600 : 500, 
+                            cursor: isRepAdmin ? 'not-allowed' : 'pointer', 
+                            userSelect: 'none' 
+                          }}
+                        >
                           <input 
                             type="checkbox" 
-                            checked={formData.permissions[item] || false} 
+                            checked={isChecked} 
+                            disabled={isRepAdmin}
                             onChange={(e) => handlePermissionChange(item, e.target.checked)} 
+                            style={{ width: '14px', height: '14px', cursor: isRepAdmin ? 'not-allowed' : 'pointer', accentColor: '#2563eb', margin: 0 }}
                           />
-                          <span className="item-text">{item}</span>
+                          <span>{item}</span>
                         </label>
                       );
                     })}
                     {group.category === '매출/수주관리' && (
-                      <label className="checkbox-label item-label" style={{ gridColumn: 'span 2', color: '#2563eb', fontWeight: 'bold', borderTop: '1px dotted #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                      <label 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          color: '#2563eb', 
+                          fontWeight: 700, 
+                          borderTop: '1px dotted #e2e8f0', 
+                          paddingTop: '6px', 
+                          marginTop: '2px', 
+                          fontSize: '0.76rem',
+                          cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
                         <input 
                           type="checkbox" 
                           name="viewOtherWarehouseOrders" 
-                          checked={formData.viewOtherWarehouseOrders || false} 
+                          checked={isRepAdmin ? true : (formData.viewOtherWarehouseOrders || false)} 
+                          disabled={isRepAdmin}
                           onChange={handleChange} 
+                          style={{ width: '14px', height: '14px', cursor: isRepAdmin ? 'not-allowed' : 'pointer', accentColor: '#2563eb', margin: 0 }}
                         />
-                        <span className="item-text">★ 타창고주문확인 (타직원 주문 조회 허용)</span>
+                        <span>★ 타창고주문확인 (타직원 주문 조회)</span>
                       </label>
                     )}
                   </div>
@@ -636,9 +869,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           </div>
         </div>
 
-        <div className="staff-reg-footer">
+        <div className="staff-reg-footer" style={{ flexWrap: 'wrap' }}>
           {isEditing && !isCloning && (
-            <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 className="btn-clone" 
@@ -646,21 +879,21 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '8px', 
-                  padding: '10px 16px', 
+                  gap: '6px', 
+                  padding: '9px 14px', 
                   background: '#f8fafc', 
                   border: '1px solid #e2e8f0', 
                   borderRadius: '8px', 
                   color: '#475569', 
                   fontWeight: '600', 
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
               >
-                <Copy size={16} /> 이 권한으로 신규 등록
+                <Copy size={15} /> 이 권한으로 신규 등록
               </button>
-              {onDeleteStaff && (
+              {onDeleteStaff && !isRepAdmin && (
                 <button
                   type="button"
                   onClick={() => {
@@ -671,18 +904,18 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '10px 16px',
+                    padding: '9px 14px',
                     background: '#fef2f2',
                     border: '1px solid #fecaca',
                     borderRadius: '8px',
                     color: '#ef4444',
                     fontWeight: '700',
-                    fontSize: '0.85rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <Trash2 size={16} /> 직원 삭제
+                  <Trash2 size={15} /> 직원 삭제
                 </button>
               )}
             </div>

@@ -3,6 +3,7 @@ import {
   Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Plus, Minus,
   LogOut, Package, Heart, X, Truck, Star, Gift, Bell, RotateCcw, FileText, ArrowLeft
 } from 'lucide-react';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './PartnerShoppingMall.css';
 
 /* =========================================
@@ -305,6 +306,8 @@ const PartnerShoppingMall = ({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [historyTab, setHistoryTab] = useState('pending');
+  const [historyStartDate, setHistoryStartDate] = useState('');
+  const [historyEndDate, setHistoryEndDate] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -433,9 +436,13 @@ const PartnerShoppingMall = ({
   const myOrders = useMemo(() => salesOrders.filter(o => o.partner === currentUser.name), [salesOrders, currentUser]);
   const myPendingOrders = useMemo(() => myOrders.filter(o => o.status === '주문대기'), [myOrders]);
   const myPastInvoices = useMemo(() =>
-    (salesInvoices || []).filter(inv => inv.partner === currentUser.name)
-      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id),
-    [salesInvoices, currentUser.name]);
+    (salesInvoices || []).filter(inv => {
+      if (inv.partner !== currentUser.name) return false;
+      if (historyStartDate && inv.date < historyStartDate) return false;
+      if (historyEndDate && inv.date > historyEndDate) return false;
+      return true;
+    }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id),
+    [salesInvoices, currentUser.name, historyStartDate, historyEndDate]);
   const frequentProducts = useMemo(() => products.filter(p => favorites.includes(p.name)), [favorites, products]);
 
   const handleHistoryItemQty = (order, itemIdx, delta) => {
@@ -1059,7 +1066,40 @@ const PartnerShoppingMall = ({
               {/* Past Invoices */}
               {historyTab === 'past' && (
                 <div>
-                  <div style={{ fontSize: 15, color: '#888', marginBottom: 16 }}>완료된 이전 주문 내역입니다.</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                    <div style={{ fontSize: 15, color: '#888' }}>완료된 이전 주문 내역입니다.</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        <DateNavButton direction="prev" onClick={() => setHistoryStartDate(addDays(historyStartDate || new Date().toISOString().split('T')[0], -1))} size={12} style={{ width: '20px', height: '20px' }} />
+                        <input
+                          type="date"
+                          value={historyStartDate}
+                          onChange={(e) => setHistoryStartDate(e.target.value)}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                        />
+                        <DateNavButton direction="next" onClick={() => setHistoryStartDate(addDays(historyStartDate || new Date().toISOString().split('T')[0], 1))} size={12} style={{ width: '20px', height: '20px' }} />
+                      </span>
+                      <span style={{ color: '#94a3b8' }}>~</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        <DateNavButton direction="prev" onClick={() => setHistoryEndDate(addDays(historyEndDate || new Date().toISOString().split('T')[0], -1))} size={12} style={{ width: '20px', height: '20px' }} />
+                        <input
+                          type="date"
+                          value={historyEndDate}
+                          onChange={(e) => setHistoryEndDate(e.target.value)}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                        />
+                        <DateNavButton direction="next" onClick={() => setHistoryEndDate(addDays(historyEndDate || new Date().toISOString().split('T')[0], 1))} size={12} style={{ width: '20px', height: '20px' }} />
+                      </span>
+                      {(historyStartDate || historyEndDate) && (
+                        <button
+                          onClick={() => { setHistoryStartDate(''); setHistoryEndDate(''); }}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: 12, cursor: 'pointer' }}
+                        >
+                          전체초기화
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {myPastInvoices.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '50px 0', color: '#bbb' }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>

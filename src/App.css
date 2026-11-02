@@ -1472,3 +1472,167 @@ body {
 }
 
 
+
+
+/* Calendar Enlarged Day Modal & Date Click Affordance Styles */
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.calendar-day-expanded-popover {
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-expanded-backdrop {
+  animation: backdropFadeIn 0.2s ease-out;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.calendar-expanded-window {
+  animation: modalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.calendar-custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.calendar-custom-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.calendar-custom-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.calendar-custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.calendar-custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.calendar-cell-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+}
+
+.calendar-cell-scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.calendar-cell-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.6);
+  border-radius: 2px;
+}
+
+.day-number-interactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.day-number-interactive:hover {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8 !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+  transform: translateY(-0.5px);
+}
+
+.day-number-interactive.sunday {
+  color: var(--red);
+}
+
+.day-number-interactive.today {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.day-number-interactive .day-expand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.45;
+  color: inherit;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.calendar-day:hover .day-number-interactive .day-expand-badge {
+  opacity: 0.85;
+}
+
+.day-number-interactive:hover .day-expand-badge {
+  opacity: 1;
+  color: #2563eb;
+  transform: scale(1.15);
+}
+
+.day-more-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #475569;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin-top: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+  user-select: none;
+}
+
+.day-more-footer-btn:hover {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  transform: translateY(-0.5px);
+}
+
+.calendar-guide-pill {
+  animation: guidePillFade 0.3s ease-out;
+}
+
+@keyframes guidePillFade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}

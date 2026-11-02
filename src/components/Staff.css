@@ -360,3 +360,15 @@
     padding: 10px;
   }
 }
+
+/* Responsive Menu Permission Cards Grid */
+@media (max-width: 1100px) {
+  .menu-permission-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 650px) {
+  .menu-permission-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

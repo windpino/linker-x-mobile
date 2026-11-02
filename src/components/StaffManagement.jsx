@@ -168,6 +168,48 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
         console.warn('Firestore staffList individual doc write warning:', staffDocErr);
       }
 
+      // 1-1. 창고 관리자 양방향 동기화 (창고 관련 오류가 발생해도 직원 저장이 중단되지 않도록 독립 처리)
+      if (warehouses && warehouses.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          let hasWarehouseUpdates = false;
+
+          if (staffData.warehouse) {
+            const warehouse = warehouses.find(w => w.name === staffData.warehouse);
+            if (warehouse) {
+              const whDocId = warehouse._docId || String(warehouse.id);
+              const whDocRef = doc(db, 'companies', companyId, 'warehouses', whDocId);
+              batch.set(whDocRef, { manager: staffData.name, updatedAt: new Date().toISOString() }, { merge: true });
+              hasWarehouseUpdates = true;
+            }
+
+            warehouses.forEach(w => {
+              const otherDocId = w._docId || String(w.id);
+              if (w.name !== staffData.warehouse && w.manager === staffData.name) {
+                const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+                batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+                hasWarehouseUpdates = true;
+              }
+            });
+          } else {
+            warehouses.forEach(w => {
+              const otherDocId = w._docId || String(w.id);
+              if (w.manager === staffData.name) {
+                const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
+                batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+                hasWarehouseUpdates = true;
+              }
+            });
+          }
+
+          if (hasWarehouseUpdates) {
+            await batch.commit();
+          }
+        } catch (whErr) {
+          console.warn('Warehouse manager sync warning:', whErr);
+        }
+      }
+
       // 2. Reliable matching helper to filter out the old staff
       const isSameStaff = (s) => {
         if (targetDocId && s._docId && String(s._docId) === String(targetDocId)) return true;
@@ -219,7 +261,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
     }
   };
 
-  const handleDeleteStaff = async (staffOrId) => {
+  const handleDeleteStaff = async (staffOrId, skipConfirm = false) => {
     if (!hasWritePermission()) {
       alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
       return false;
@@ -445,6 +487,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       name: '성명',
       jobTitle: '직위',
       phone: '전화번호',
+      hireDate: '입사일',
       warehouse: '담당창고',
       email: '이메일',
       memo: '메모'
@@ -708,7 +751,11 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
                         {staff.phone || '-'}
                       </a>
                     </div>
-                    <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ color: '#94a3b8', fontWeight: 600 }}>입사일:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{staff.hireDate || '-'}</span>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       <span style={{ color: '#94a3b8', fontWeight: 600 }}>창고:</span>
                       <Building2 size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
                       <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

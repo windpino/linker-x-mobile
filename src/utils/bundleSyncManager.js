@@ -1,5 +1,6 @@
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { getIdbBundle, setIdbBundle } from './idbBundleCache';
 
 // Supported bundle collections
 export const BUNDLE_COLLECTIONS = [
@@ -33,19 +34,25 @@ export const deduplicatePartners = (list) => {
   if (!Array.isArray(list)) return [];
   const nameMap = new Map(); // normalizedName -> partner
   const idMap = new Map();   // string(id) -> normalizedName
+  const clientIdMap = new Map(); // string(clientId) -> normalizedName
 
   list.forEach(p => {
     if (!p || typeof p !== 'object') return;
+    if (p.isDeleted === true || p.status === 'deleted') return;
+
     const rawName = String(p.name || '').trim();
     if (!rawName) return;
 
     const normName = rawName.toLowerCase();
     const strId = (p.id !== undefined && p.id !== null && p.id !== '') ? String(p.id) : null;
+    const strClientId = (p.clientId || p._docId) ? String(p.clientId || p._docId) : null;
 
-    // Check if duplicate by name or by ID
+    // Check if duplicate by name, by clientId, or by ID
     let existingKey = null;
     if (nameMap.has(normName)) {
       existingKey = normName;
+    } else if (strClientId && clientIdMap.has(strClientId)) {
+      existingKey = clientIdMap.get(strClientId);
     } else if (strId && idMap.has(strId)) {
       existingKey = idMap.get(strId);
     }
@@ -53,11 +60,17 @@ export const deduplicatePartners = (list) => {
     if (existingKey && nameMap.has(existingKey)) {
       const existing = nameMap.get(existingKey);
 
-      // Determine primary vs secondary: prefer record with valid numeric id over string/composite alias id
+      // Determine primary vs secondary: prefer newer record by updatedAt
+      const timeExisting = existing.updatedAt ? Date.parse(existing.updatedAt) : 0;
+      const timeP = p.updatedAt ? Date.parse(p.updatedAt) : 0;
+
       const existingIsNumeric = typeof existing.id === 'number' || (typeof existing.id === 'string' && /^\d+$/.test(existing.id));
       const pIsNumeric = strId && (typeof p.id === 'number' || (typeof p.id === 'string' && /^\d+$/.test(p.id)));
 
-      const primary = (!existingIsNumeric && pIsNumeric) ? p : existing;
+      // If timestamps differ, the newer record is primary; otherwise prefer valid numeric id or the latest in list
+      const primary = (timeP !== timeExisting)
+        ? (timeP > timeExisting ? p : existing)
+        : ((!existingIsNumeric && pIsNumeric) ? p : (existingIsNumeric && !pIsNumeric ? existing : p));
       const secondary = primary === p ? existing : p;
 
       // Merge non-empty properties so no details are lost
@@ -69,6 +82,20 @@ export const deduplicatePartners = (list) => {
         }
       });
 
+      // Preserve previous partner names as aliases for historical invoice mapping
+      const aliases = new Set([
+        ...(Array.isArray(primary.aliases) ? primary.aliases : []),
+        ...(Array.isArray(secondary.aliases) ? secondary.aliases : [])
+      ]);
+      const priName = String(primary.name || '').trim();
+      const secName = String(secondary.name || '').trim();
+      if (secName && secName.toLowerCase() !== priName.toLowerCase()) {
+        aliases.add(secName);
+      }
+      if (aliases.size > 0) {
+        merged.aliases = Array.from(aliases);
+      }
+
       // Normalize numeric ID if applicable
       const chosenId = primary.id || secondary.id;
       if (chosenId !== undefined && chosenId !== null && /^\d+$/.test(String(chosenId))) {
@@ -76,13 +103,22 @@ export const deduplicatePartners = (list) => {
       } else {
         merged.id = chosenId;
       }
+      merged.clientId = String(primary.clientId || secondary.clientId || primary._docId || secondary._docId || merged.id);
       delete merged._docId;
 
-      nameMap.set(existingKey, merged);
-      if (strId) idMap.set(strId, existingKey);
-      if (merged.id) idMap.set(String(merged.id), existingKey);
+      const primaryNormName = priName.toLowerCase();
+      if (existingKey !== primaryNormName) {
+        nameMap.delete(existingKey);
+      }
+      nameMap.set(primaryNormName, merged);
+
+      if (strId) idMap.set(strId, primaryNormName);
+      if (merged.id) idMap.set(String(merged.id), primaryNormName);
+      if (strClientId) clientIdMap.set(strClientId, primaryNormName);
+      if (merged.clientId) clientIdMap.set(String(merged.clientId), primaryNormName);
     } else {
       const pCopy = { ...p };
+      pCopy.clientId = String(pCopy.clientId || p._docId || pCopy.id);
       delete pCopy._docId;
       if (pCopy.id !== undefined && pCopy.id !== null && /^\d+$/.test(String(pCopy.id))) {
         pCopy.id = Number(pCopy.id);
@@ -90,6 +126,8 @@ export const deduplicatePartners = (list) => {
       nameMap.set(normName, pCopy);
       if (strId) idMap.set(strId, normName);
       if (pCopy.id) idMap.set(String(pCopy.id), normName);
+      if (strClientId) clientIdMap.set(strClientId, normName);
+      if (pCopy.clientId) clientIdMap.set(String(pCopy.clientId), normName);
     }
   });
 
@@ -136,6 +174,8 @@ export const filterBundleListForCompany = (companyId, colName, rawList) => {
  */
 export const getLocalBundle = (companyId, colName) => {
   if (!companyId) return null;
+  // Large collections (>3MB like salesInvoices) are stored in IndexedDB, not localStorage
+  if (colName === 'salesInvoices') return null;
   try {
     const raw = localStorage.getItem(`bundle_${colName}_${companyId}`) || localStorage.getItem(`${colName}_${companyId}`);
     if (!raw) return null;
@@ -149,17 +189,34 @@ export const getLocalBundle = (companyId, colName) => {
 };
 
 /**
- * Save bundle data and version to localStorage
+ * Save bundle data and version to localStorage (and IndexedDB for large datasets)
  */
 export const setLocalBundle = (companyId, colName, list, version = null) => {
   try {
-    localStorage.setItem(`bundle_${colName}_${companyId}`, JSON.stringify(list));
-    localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(list));
+    const serialized = JSON.stringify(list || []);
+    // Don't attempt to write to localStorage if payload exceeds 3MB to prevent QuotaExceededError
+    if (serialized.length < 3000000) {
+      localStorage.setItem(`bundle_${colName}_${companyId}`, serialized);
+      localStorage.setItem(`${colName}_${companyId}`, serialized);
+    } else {
+      // Store large bundles safely in IndexedDB
+      setIdbBundle(companyId, colName, list);
+      try {
+        localStorage.removeItem(`bundle_${colName}_${companyId}`);
+        localStorage.removeItem(`${colName}_${companyId}`);
+      } catch (e) {}
+    }
     if (version !== null) {
       localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(version));
     }
   } catch (e) {
     console.warn(`[BundleSync] Error caching bundle for ${colName}:`, e);
+    setIdbBundle(companyId, colName, list);
+    try {
+      if (version !== null) {
+        localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(version));
+      }
+    } catch (verErr) {}
   }
 };
 
@@ -171,7 +228,7 @@ export const getLocalVersion = (companyId, colName) => {
 };
 
 /**
- * Fetch a single bundle document from Firestore
+ * Fetch a single bundle document from Firestore (supports chunked bundles transparently)
  */
 export const fetchBundle = async (companyId, colName) => {
   if (!companyId || !db) return [];
@@ -181,11 +238,25 @@ export const fetchBundle = async (companyId, colName) => {
 
     if (snap.exists()) {
       const data = snap.data();
-      const rawList = data.list || data.items || [];
+      let rawList = [];
+
+      // Support transparent multi-document chunking for large datasets (> 1MB)
+      if (data.isChunked && data.chunkCount > 0) {
+        const chunkPromises = [];
+        for (let i = 0; i < data.chunkCount; i++) {
+          const chunkRef = doc(db, 'companies', companyId, 'bundles', `${colName}_chunk_${i}`);
+          chunkPromises.push(getDoc(chunkRef));
+        }
+        const chunkSnaps = await Promise.all(chunkPromises);
+        rawList = chunkSnaps.flatMap(s => (s.exists() && s.data()?.list) ? s.data().list : []);
+      } else {
+        rawList = data.list || data.items || [];
+      }
+
       let list = filterBundleListForCompany(companyId, colName, rawList);
 
-      // Auto-heal bundle document if duplicates were detected and pruned
-      if (rawList.length > list.length) {
+      // Auto-heal bundle document if duplicates were detected and pruned (non-chunked only)
+      if (!data.isChunked && rawList.length > list.length) {
         console.log(`[BundleSync] 🧹 Auto-healing bundle for [${colName}] (pruned ${rawList.length - list.length} duplicates)`);
         const healVer = (Number(data.version) || 1) + 1;
         setDoc(bundleDocRef, {
@@ -198,9 +269,15 @@ export const fetchBundle = async (companyId, colName) => {
       // 🛡️ RECONCILIATION SAFETY NET:
       // If the bundle is empty (e.g. deleted previously), but the actual collection in Firestore
       // has documents (e.g. imported via Excel or batch-inserted without updating bundle),
-      // automatically reconcile and recover from the collection!
-      if (list.length === 0 && (colName === 'partners' || colName === 'products' || colName === 'warehouses' || colName === 'staffList')) {
+      // automatically reconcile and recover from the collection (only once per empty state)!
+      const reconciledFlagKey = `bundle_reconciled_${colName}_${companyId}`;
+      if (
+        list.length === 0 &&
+        localStorage.getItem(reconciledFlagKey) !== 'true' &&
+        (colName === 'partners' || colName === 'products' || colName === 'warehouses' || colName === 'staffList')
+      ) {
         try {
+          localStorage.setItem(reconciledFlagKey, 'true');
           const colRef = collection(db, 'companies', companyId, colName);
           const colSnap = await getDocs(colRef);
           if (!colSnap.empty) {
@@ -234,6 +311,8 @@ export const fetchBundle = async (companyId, colName) => {
         } catch (reconcileErr) {
           console.warn(`[BundleSync] Reconcile error for ${colName}:`, reconcileErr);
         }
+      } else if (list.length > 0) {
+        localStorage.removeItem(reconciledFlagKey);
       }
 
       const version = Number(data.version || 1);
@@ -281,7 +360,8 @@ export const fetchBundle = async (companyId, colName) => {
 };
 
 /**
- * Save whole list as bundle in a single write operation (Write count: 1)
+ * Save whole list as bundle in a single write operation (Write count: 1 or chunks)
+ * Automatically chunks datasets that exceed ~700KB (Firestore 1MB limit safe).
  */
 export const saveBundle = async (companyId, colName, list) => {
   if (!companyId || !db) return;
@@ -294,14 +374,59 @@ export const saveBundle = async (companyId, colName, list) => {
 
     const nextVer = getLocalVersion(companyId, colName) + 1;
     const nowIso = new Date().toISOString();
-
-    // 1. Write Bundle Document
     const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
-    await setDoc(bundleDocRef, {
-      list: cleanList,
-      version: nextVer,
-      updatedAt: nowIso
-    });
+    const jsonStr = JSON.stringify(cleanList);
+
+    // If total payload exceeds 700KB, split into 500-item chunks to strictly respect Firestore 1MB doc limit
+    if (jsonStr.length > 700000) {
+      const CHUNK_SIZE = 500;
+      const chunks = [];
+      for (let i = 0; i < cleanList.length; i += CHUNK_SIZE) {
+        chunks.push(cleanList.slice(i, i + CHUNK_SIZE));
+      }
+
+      // Read existing chunkCount if any to prune surplus chunks
+      let oldChunkCount = 0;
+      try {
+        const oldSnap = await getDoc(bundleDocRef);
+        if (oldSnap.exists() && oldSnap.data()?.isChunked) {
+          oldChunkCount = Number(oldSnap.data().chunkCount) || 0;
+        }
+      } catch (e) {}
+
+      // Write chunk documents in parallel
+      await Promise.all(chunks.map((chunkList, idx) => {
+        const chunkRef = doc(db, 'companies', companyId, 'bundles', `${colName}_chunk_${idx}`);
+        return setDoc(chunkRef, { list: chunkList, updatedAt: nowIso });
+      }));
+
+      // Delete surplus chunks if new chunk count is smaller
+      if (oldChunkCount > chunks.length) {
+        const delPromises = [];
+        for (let i = chunks.length; i < oldChunkCount; i++) {
+          delPromises.push(deleteDoc(doc(db, 'companies', companyId, 'bundles', `${colName}_chunk_${i}`)));
+        }
+        await Promise.all(delPromises).catch(console.warn);
+      }
+
+      // Write master index document
+      await setDoc(bundleDocRef, {
+        isChunked: true,
+        chunkCount: chunks.length,
+        chunkSize: CHUNK_SIZE,
+        totalItems: cleanList.length,
+        version: nextVer,
+        updatedAt: nowIso
+      });
+    } else {
+      // 1. Write Single Bundle Document
+      await setDoc(bundleDocRef, {
+        list: cleanList,
+        isChunked: false,
+        version: nextVer,
+        updatedAt: nowIso
+      });
+    }
 
     // 2. Update Live syncState Metadata
     const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
@@ -388,6 +513,21 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
 
       const serverVer = Number(serverColState.version || 0);
 
+      // Special handling for large collections (e.g. salesInvoices) stored in IndexedDB:
+      if (colName === 'salesInvoices') {
+        const idbList = await getIdbBundle(companyId, colName);
+        if (idbList && Array.isArray(idbList) && idbList.length > 0 && localVer >= serverVer) {
+          console.log(`[BundleSync] ⚡ Loaded ${idbList.length} items from IndexedDB for [${colName}]`);
+          if (onBundleChange) onBundleChange(colName, idbList);
+          continue;
+        } else {
+          console.log(`[BundleSync] 🔄 Syncing chunked bundle from Firestore for [${colName}] (Local v${localVer} -> Server v${serverVer})...`);
+          const updatedList = await fetchBundle(companyId, colName);
+          if (onBundleChange) onBundleChange(colName, updatedList);
+          continue;
+        }
+      }
+
       // Only fetch from Firestore if local version is outdated or not present!
       if (serverVer > localVer || localVer === 0) {
         console.log(`[BundleSync] 🔄 Syncing outdated bundle [${colName}] (Local v${localVer} -> Server v${serverVer})`);
@@ -396,7 +536,11 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       } else {
         const localList = getLocalBundle(companyId, colName);
         if (localList !== null && onBundleChange) {
-          if (localList.length === 0 && (colName === 'partners' || colName === 'products')) {
+          const reconciledFlagKey = `bundle_reconciled_${colName}_${companyId}`;
+          if (
+            localList.length === 0 &&
+            localStorage.getItem(reconciledFlagKey) !== 'true'
+          ) {
             const updatedList = await fetchBundle(companyId, colName);
             if (onBundleChange) onBundleChange(colName, updatedList);
           } else {
@@ -447,4 +591,3 @@ export const clearAllBundles = async (companyId) => {
     console.warn('[BundleSync] Error clearing all bundles:', err);
   }
 };
-

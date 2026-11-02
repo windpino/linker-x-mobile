@@ -3,6 +3,7 @@ import { BookOpen, Printer, Download, Search, Wallet, CreditCard, Landmark, File
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
@@ -192,13 +193,20 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
           <div className="filter-row" style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '16px', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>시작일</label>
-              <input 
-                type="date" 
-                value={startDate} 
+              <DateInputWithArrows
+                value={startDate}
                 onChange={e => {
                   setStartDate(e.target.value);
                   setFilter('');
-                }} 
+                }}
+                onPrev={() => {
+                  setStartDate(addDays(startDate, -1));
+                  setFilter('');
+                }}
+                onNext={() => {
+                  setStartDate(addDays(startDate, 1));
+                  setFilter('');
+                }}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '6px',
@@ -212,13 +220,20 @@ const SalesInvoiceList = ({ onClose, salesInvoices = [], onOpenInvoice, zIndex, 
             <span style={{ marginBottom: '10px', color: '#64748b', fontWeight: 600 }}>~</span>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>종료일</label>
-              <input 
-                type="date" 
-                value={endDate} 
+              <DateInputWithArrows
+                value={endDate}
                 onChange={e => {
                   setEndDate(e.target.value);
                   setFilter('');
-                }} 
+                }}
+                onPrev={() => {
+                  setEndDate(addDays(endDate, -1));
+                  setFilter('');
+                }}
+                onNext={() => {
+                  setEndDate(addDays(endDate, 1));
+                  setFilter('');
+                }}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '6px',

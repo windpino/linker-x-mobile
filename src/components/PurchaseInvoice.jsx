@@ -4,8 +4,9 @@ import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound, convertEnToKo } from '../utils/koreanUtils';
 import './PurchaseInvoice.css';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
-const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purchaseInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, selectedDate, themeColor: propThemeColor, warehouses = [] }) => {
+const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purchaseInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, selectedDate, themeColor: propThemeColor, warehouses = [], currentUser }) => {
   const themeColor = propThemeColor || '#3b82f6';
 
   // ─── 컬럼 너비 (localStorage 복원) ───
@@ -51,8 +52,10 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
   };
 
   const [invoiceData, setInvoiceData] = useState(() => editingInvoice ? { ...editingInvoice } : {
+    id: Date.now(),
     date: (() => {
-      const d = selectedDate || new Date();
+      if (selectedDate && typeof selectedDate === 'string') return selectedDate;
+      const d = (selectedDate instanceof Date && !isNaN(selectedDate.getTime())) ? selectedDate : new Date();
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     })(),
     partner: '',
@@ -60,17 +63,96 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
     manager: staffList[0]?.name || '',
     items: [],
     paidAmount: 0,
+    discount: 0,
     payments: { cash: 0, account: 0, card: 0, bill: 0 }
   });
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
-  const openPaymentModal = () => {
+  const openPaymentModal = (slipOrEvent = null) => {
+    const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+    const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+    const curPrevBalance = previousBalance > 0 ? previousBalance : 0;
+    const curPaid = Number(invoiceData.paidAmount) || 0;
+    const curDiscount = Number(invoiceData.discount) || 0;
+
+    // 전미지급금을 포함한 전체 금액
+    const fullTarget = Math.max(0, curPrevBalance + currentTotal - curPaid - curDiscount);
+    const targetTotal = fullTarget > 0 ? fullTarget : (curPrevBalance + currentTotal);
+
+    const others = (Number(invoiceData.payments?.account) || 0) + (Number(invoiceData.payments?.card) || 0) + (Number(invoiceData.payments?.bill) || 0);
+    const initialCash = Math.max(0, targetTotal - curDiscount - others);
+
     setTempPaymentState({
-      payments: { ...invoiceData.payments }
+      targetTotal: targetTotal,
+      payments: {
+        cash: initialCash,
+        account: Number(invoiceData.payments?.account) || 0,
+        card: Number(invoiceData.payments?.card) || 0,
+        bill: Number(invoiceData.payments?.bill) || 0
+      },
+      discount: curDiscount
     });
     setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentChange = (type, value) => {
+    const cleanStr = String(value).replace(/[^0-9]/g, '');
+    const val = cleanStr === '' ? 0 : Number(cleanStr);
+
+    setTempPaymentState(prev => {
+      if (!prev) return prev;
+      const defaultTarget = (previousBalance > 0 ? previousBalance : 0) + (totalAmount > 0 ? totalAmount : 0);
+      const target = (prev.targetTotal !== undefined)
+        ? prev.targetTotal
+        : defaultTarget;
+
+      if (type === 'cash') {
+        const others = (Number(prev.payments?.account) || 0) + 
+                       (Number(prev.payments?.card) || 0) + 
+                       (Number(prev.payments?.bill) || 0) + 
+                       (Number(prev.discount) || 0);
+        return {
+          ...prev,
+          targetTotal: val + others,
+          payments: {
+            ...(prev.payments || {}),
+            cash: val
+          }
+        };
+      }
+
+      if (type === 'discount') {
+        const others = (Number(prev.payments?.account) || 0) + 
+                       (Number(prev.payments?.card) || 0) + 
+                       (Number(prev.payments?.bill) || 0);
+        const newCash = Math.max(0, target - val - others);
+        return {
+          ...prev,
+          discount: val,
+          payments: {
+            ...(prev.payments || {}),
+            cash: newCash
+          }
+        };
+      }
+
+      const newPayments = {
+        ...(prev.payments || {}),
+        [type]: val
+      };
+      const others = (Number(newPayments.account) || 0) + 
+                     (Number(newPayments.card) || 0) + 
+                     (Number(newPayments.bill) || 0);
+      const curDiscount = Number(prev.discount) || 0;
+      newPayments.cash = Math.max(0, target - curDiscount - others);
+
+      return {
+        ...prev,
+        payments: newPayments
+      };
+    });
   };
 
   useEffect(() => {
@@ -230,38 +312,17 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
     }
   };
 
-  const handlePaymentChange = (type, value, localState, setLocalState) => {
-    const val = Number(value) || 0;
-    const newPayments = { ...localState.payments, [type]: val };
-    
-    // If card, account, or bill is entered, adjust cash to cover the difference
-    const others = (newPayments.account || 0) + (newPayments.card || 0) + (newPayments.bill || 0);
-    const calculatedCash = Math.max(0, totalAmount - others);
-    
-    if (type !== 'cash') {
-      newPayments.cash = calculatedCash;
-    }
-
-    setLocalState({ ...localState, payments: newPayments });
-  };
-
-  const currentPartner = partners.find(p => p.name === invoiceData.partner);
+  const currentPartner = (partners || []).find(p => p.name === invoiceData.partner);
 
   const getPreviousBalance = () => {
     if (!invoiceData.partner || !currentPartner) return 0;
-    const currentReceivables = Number(currentPartner.receivables) || 0;
-    if (editingInvoice) {
-      const oldTotal = editingInvoice.items.reduce((sum, item) => sum + item.total, 0);
-      const oldOutstanding = oldTotal - (editingInvoice.paidAmount || 0);
-      return currentReceivables - oldOutstanding;
-    }
-    return currentReceivables;
+    return Number(currentPartner.payables || currentPartner.receivables || 0);
   };
 
   const previousBalance = getPreviousBalance();
-  const totalAmount = invoiceData.items.reduce((sum, item) => sum + item.total, 0);
-  const finalBalance = previousBalance + totalAmount - invoiceData.paidAmount;
-  const outstandingBalance = totalAmount - invoiceData.paidAmount;
+  const totalAmount = (invoiceData.items || []).reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+  const finalBalance = previousBalance + totalAmount - (Number(invoiceData.paidAmount) || 0) - (Number(invoiceData.discount) || 0);
+  const outstandingBalance = totalAmount - (Number(invoiceData.paidAmount) || 0) - (Number(invoiceData.discount) || 0);
 
   const InvoiceDateHeader = (
     <div 
@@ -269,26 +330,47 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
       style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        gap: '6px', 
-        padding: '2px 8px', 
+        gap: '4px', 
+        padding: '2px 6px', 
         backgroundColor: 'rgba(255, 255, 255, 0.95)', 
         borderRadius: '6px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
       }}
     >
-      <span style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 800 }}>전표일자:</span>
+      <DateNavButton
+        direction="prev"
+        size={11}
+        style={{ width: '18px', height: '18px', minWidth: '18px' }}
+        onClick={() => {
+          const newDate = addDays(invoiceData.date, -1);
+          const updatedInvoice = {...invoiceData, date: newDate};
+          setInvoiceData(updatedInvoice);
+          if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+        }}
+      />
       <input 
         type="date" 
         value={invoiceData.date} 
         onChange={(e) => {
           const updatedInvoice = {...invoiceData, date: e.target.value};
           setInvoiceData(updatedInvoice);
-          if (updatedInvoice.items.length > 0) {
+          if (updatedInvoice.items?.length > 0) {
             handleAutoSave(updatedInvoice);
           }
         }} 
         style={{ border: 'none', background: 'transparent', fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', outline: 'none' }}
+      />
+      <DateNavButton
+        direction="next"
+        size={11}
+        style={{ width: '18px', height: '18px', minWidth: '18px' }}
+        onClick={() => {
+          const newDate = addDays(invoiceData.date, 1);
+          const updatedInvoice = {...invoiceData, date: newDate};
+          setInvoiceData(updatedInvoice);
+          if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+        }}
       />
     </div>
   );
@@ -328,13 +410,13 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
               <Plus size={12} /> 새전표
             </button>
             <button 
-              onClick={openPaymentModal}
+              onClick={() => openPaymentModal(null)}
               style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontWeight: 700 }}
             >
               <Wallet size={12} /> 출금
             </button>
             <button 
-              onClick={onOpenLedger}
+              onClick={() => onOpenLedger && onOpenLedger(invoiceData.partner, invoiceData.date)}
               style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #fed7aa', backgroundColor: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontWeight: 700 }}
             >
               <BookOpen size={12} /> 원장
@@ -674,42 +756,105 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
               </button>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>미지급 잔액</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>{totalAmount.toLocaleString()}원</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '10px', marginBottom: '14px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>전표 합계금액:</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: themeColor }}>{totalAmount.toLocaleString()}원</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700 }}>지급 대상 총액:</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#059669' }}>
+                  {(tempPaymentState.targetTotal || 0).toLocaleString()}원
+                </span>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {[
-                { id: 'card', label: '카드 출금', color: '#ef4444' },
-                { id: 'account', label: '계좌 이체', color: '#3b82f6' },
-                { id: 'bill', label: '어음 지급', color: '#f59e0b' },
-                { id: 'cash', label: '현금 지급 (차액 자동)', color: '#10b981' },
-              ].map(item => (
-                <div key={item.id} className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ color: item.color }}>{item.label}</label>
-                  <input
-                    type="number"
-                    value={tempPaymentState.payments[item.id] || ''}
-                    onChange={(e) => handlePaymentChange(item.id, e.target.value, tempPaymentState, setTempPaymentState)}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                    style={{ fontSize: '1rem', fontWeight: 600 }}
-                  />
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 700, display: 'block', marginBottom: '4px' }}>현장 할인 (D.C)</label>
+                <input
+                  type="text"
+                  value={tempPaymentState.discount ? tempPaymentState.discount.toLocaleString() : ''}
+                  onChange={(e) => handlePaymentChange('discount', e.target.value)}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700, color: '#dc2626', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 700, display: 'block', marginBottom: '4px' }}>현금 지급</label>
+                <input
+                  type="text"
+                  value={tempPaymentState.payments.cash ? tempPaymentState.payments.cash.toLocaleString() : ''}
+                  onChange={(e) => handlePaymentChange('cash', e.target.value)}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700, display: 'block', marginBottom: '4px' }}>계좌 이체</label>
+                <input
+                  type="text"
+                  value={tempPaymentState.payments.account ? tempPaymentState.payments.account.toLocaleString() : ''}
+                  onChange={(e) => handlePaymentChange('account', e.target.value)}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 700, display: 'block', marginBottom: '4px' }}>카드 결제</label>
+                <input
+                  type="text"
+                  value={tempPaymentState.payments.card ? tempPaymentState.payments.card.toLocaleString() : ''}
+                  onChange={(e) => handlePaymentChange('card', e.target.value)}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 700, display: 'block', marginBottom: '4px' }}>어음 지급</label>
+                <input
+                  type="text"
+                  value={tempPaymentState.payments.bill ? tempPaymentState.payments.bill.toLocaleString() : ''}
+                  onChange={(e) => handlePaymentChange('bill', e.target.value)}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
 
-            <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px 12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#166534' }}>실제 지급 합계:</span>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#15803d' }}>
+                  {((Number(tempPaymentState?.payments?.cash) || 0) + 
+                    (Number(tempPaymentState?.payments?.account) || 0) + 
+                    (Number(tempPaymentState?.payments?.card) || 0) + 
+                    (Number(tempPaymentState?.payments?.bill) || 0)).toLocaleString()}원
+                </span>
+                {(Number(tempPaymentState?.discount) || 0) > 0 && (
+                  <span style={{ fontSize: '0.75rem', color: '#dc2626', marginLeft: '6px', fontWeight: 700 }}>
+                    (할인 -{Number(tempPaymentState.discount).toLocaleString()}원)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
               <button 
                 className="btn-primary" 
                 style={{ flex: 1, backgroundColor: themeColor }}
                 onClick={() => {
-                  const totalPaid = Object.values(tempPaymentState.payments).reduce((a, b) => a + b, 0);
+                  const totalPaid = Object.values(tempPaymentState.payments).reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
                   const updatedInvoice = { 
                     ...invoiceData, 
                     payments: tempPaymentState.payments, 
-                    paidAmount: totalPaid 
+                    paidAmount: totalPaid,
+                    discount: Number(tempPaymentState.discount) || 0
                   };
                   setInvoiceData(updatedInvoice);
                   if (updatedInvoice.items.length > 0) {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Minus, Maximize2, Minimize2, Star } from 'lucide-react';
 import './WindowModal.css';
 
@@ -134,11 +135,28 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   };
 
   const bringToFront = () => {
-    if (localZIndex < globalZIndex) {
-      globalZIndex += 10;
-      setLocalZIndex(globalZIndex);
-    }
+    globalZIndex += 10;
+    setLocalZIndex(globalZIndex);
   };
+
+  useEffect(() => {
+    if (zIndex) {
+      if (zIndex > globalZIndex) globalZIndex = zIndex;
+      setLocalZIndex(prev => Math.max(prev, zIndex));
+    }
+  }, [zIndex]);
+
+  useEffect(() => {
+    const handleFocusEvent = (e) => {
+      const targetTitle = e.detail;
+      if (targetTitle && title && title.includes(targetTitle)) {
+        if (isMinimized) setIsMinimized(false);
+        bringToFront();
+      }
+    };
+    window.addEventListener('focusWindow', handleFocusEvent);
+    return () => window.removeEventListener('focusWindow', handleFocusEvent);
+  }, [title, isMinimized]);
 
   useEffect(() => {
     const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
@@ -272,7 +290,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     ? (desktopOnly ? (windowSize.height / 2) - 20 - 20 : 300) 
     : position.y;
 
-  return (
+  const modalContent = (
     <div className={`window-overlay ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
       <div 
         ref={containerRef}
@@ -362,6 +380,8 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default WindowModal;

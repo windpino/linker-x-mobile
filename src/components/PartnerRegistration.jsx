@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, ScanBarcode, Phone, Users, Contact, Lock, Save, MapPin } from 'lucide-react';
+import { Building2, ScanBarcode, Phone, Users, Contact, Lock, Save, MapPin, FileText } from 'lucide-react';
 import WindowModal from './WindowModal';
 
 const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], warehouses = [], accounts = [] }) => {
@@ -45,14 +45,40 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
     hidePrice3: false,
     hideOrderInfo: false,
     hideAmountInInvoice: false,
-    memo: ''
+    memo: '',
+    orderAccounts: [
+      { loginId: '', password: '', isMain: true, hidePrice: false },
+      { loginId: '', password: '', isMain: false, hidePrice: false },
+      { loginId: '', password: '', isMain: false, hidePrice: false }
+    ]
   });
 
   useEffect(() => {
     if (initialData) {
+      const orderAccounts = [
+        {
+          loginId: initialData.contacts?.[0]?.loginId || initialData.orderAccounts?.[0]?.loginId || initialData.loginId || '',
+          password: initialData.contacts?.[0]?.password || initialData.orderAccounts?.[0]?.password || initialData.password || '',
+          isMain: initialData.contacts?.[0]?.isMain !== undefined ? Boolean(initialData.contacts[0].isMain) : (initialData.isMain1 !== undefined ? Boolean(initialData.isMain1) : true),
+          hidePrice: Boolean(initialData.contacts?.[0]?.hidePrice || initialData.orderAccounts?.[0]?.hidePrice || initialData.hidePrice1)
+        },
+        {
+          loginId: initialData.contacts?.[1]?.loginId || initialData.orderAccounts?.[1]?.loginId || initialData.loginId2 || '',
+          password: initialData.contacts?.[1]?.password || initialData.orderAccounts?.[1]?.password || initialData.password2 || '',
+          isMain: Boolean(initialData.contacts?.[1]?.isMain || initialData.isMain2),
+          hidePrice: Boolean(initialData.contacts?.[1]?.hidePrice || initialData.orderAccounts?.[1]?.hidePrice || initialData.hidePrice2)
+        },
+        {
+          loginId: initialData.contacts?.[2]?.loginId || initialData.orderAccounts?.[2]?.loginId || initialData.loginId3 || '',
+          password: initialData.contacts?.[2]?.password || initialData.orderAccounts?.[2]?.password || initialData.password3 || '',
+          isMain: Boolean(initialData.contacts?.[2]?.isMain || initialData.isMain3),
+          hidePrice: Boolean(initialData.contacts?.[2]?.hidePrice || initialData.orderAccounts?.[2]?.hidePrice || initialData.hidePrice3)
+        }
+      ];
       setFormData(prev => ({
         ...prev,
         ...initialData,
+        orderAccounts,
         no: initialData.no?.toString() || '0',
         type: initialData.type || '매출처',
         name: initialData.name || '',
@@ -117,6 +143,30 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
       }
       
       return nextState;
+    });
+  };
+
+  const handleAccountChange = (idx, field, value) => {
+    setFormData(prev => {
+      const nextAccounts = [...(prev.orderAccounts || [
+        { loginId: prev.loginId || '', password: prev.password || '', isMain: true, hidePrice: !!prev.hidePrice1 },
+        { loginId: prev.loginId2 || '', password: prev.password2 || '', isMain: !!prev.isMain2, hidePrice: !!prev.hidePrice2 },
+        { loginId: prev.loginId3 || '', password: prev.password3 || '', isMain: !!prev.isMain3, hidePrice: !!prev.hidePrice3 }
+      ])];
+      nextAccounts[idx] = { ...nextAccounts[idx], [field]: value };
+      return {
+        ...prev,
+        orderAccounts: nextAccounts,
+        loginId: nextAccounts[0]?.loginId || '',
+        password: nextAccounts[0]?.password || '',
+        hidePrice1: !!nextAccounts[0]?.hidePrice,
+        loginId2: nextAccounts[1]?.loginId || '',
+        password2: nextAccounts[1]?.password || '',
+        hidePrice2: !!nextAccounts[1]?.hidePrice,
+        loginId3: nextAccounts[2]?.loginId || '',
+        password3: nextAccounts[2]?.password || '',
+        hidePrice3: !!nextAccounts[2]?.hidePrice
+      };
     });
   };
 

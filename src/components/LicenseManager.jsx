@@ -5,6 +5,7 @@ import {
   Copy, Check, Headphones, Award, TrendingUp, CheckCircle, Clock, ExternalLink
 } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './LicenseManager.css';
 
 const LicenseManager = ({ onClose, currentUser, licenseData, onUpdateLicense, systemSettings }) => {
@@ -367,11 +368,16 @@ const LicenseManager = ({ onClose, currentUser, licenseData, onUpdateLicense, sy
                   </div>
                   <div className="control-group">
                     <label>시스템 만료일 직접 수정</label>
-                    <input 
-                      type="date" 
-                      value={adminDate} 
-                      onChange={e => setAdminDate(e.target.value)} 
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <DateNavButton direction="prev" onClick={() => setAdminDate(addDays(adminDate || new Date().toISOString().split('T')[0], -1))} />
+                      <input 
+                        type="date" 
+                        value={adminDate} 
+                        onChange={e => setAdminDate(e.target.value)} 
+                        style={{ flex: 1 }}
+                      />
+                      <DateNavButton direction="next" onClick={() => setAdminDate(addDays(adminDate || new Date().toISOString().split('T')[0], 1))} />
+                    </div>
                   </div>
                   <div className="control-group" style={{ paddingBottom: '10px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const OrderList = ({ 
   onClose, 
@@ -45,10 +46,21 @@ const OrderList = ({
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'waiting', 'completed'
   
-  const dateStr = (() => {
+  const [dateStr, setDateStr] = useState(() => {
     const d = selectedDate || new Date();
+    if (typeof d === 'string') return d.split('T')[0];
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  });
+
+  React.useEffect(() => {
+    if (selectedDate) {
+      if (typeof selectedDate === 'string') {
+        setDateStr(selectedDate.split('T')[0]);
+      } else {
+        setDateStr(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`);
+      }
+    }
+  }, [selectedDate]);
 
   const isOrderCompleted = React.useCallback((o) => {
     if (o.status === '완료' || o.status === '배송완료' || o.isCompleted === true) return true;
@@ -282,13 +294,39 @@ const OrderList = ({
         
         {/* Mobile View Top Filter Bar */}
         {isMobileView ? (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              background: '#1e293b',
+              padding: '5px 8px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={11} style={{ width: '18px', height: '18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+              <input
+                type="date"
+                value={dateStr}
+                onChange={(e) => e.target.value && setDateStr(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: '#f8fafc',
+                  outline: 'none',
+                  width: '102px'
+                }}
+              />
+              <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={11} style={{ width: '18px', height: '18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+            </div>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px', 
               background: '#1e293b', 
-              padding: '6px 12px', 
+              padding: '6px 10px', 
               borderRadius: '8px', 
               border: '1px solid rgba(255,255,255,0.08)',
               flex: 1,
@@ -325,6 +363,33 @@ const OrderList = ({
           </div>
         ) : (
           <div className="acc-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#f8fafc',
+              padding: '4px 8px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <Calendar size={14} color="#3b82f6" />
+              <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={12} style={{ width: '20px', height: '20px' }} />
+              <input
+                type="date"
+                value={dateStr}
+                onChange={(e) => e.target.value && setDateStr(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              />
+              <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={12} style={{ width: '20px', height: '20px' }} />
+            </div>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 

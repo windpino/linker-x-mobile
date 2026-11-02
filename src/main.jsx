@@ -27,7 +27,8 @@ function AppWithSingleInstance() {
   const [instanceState, setInstanceState] = useState({
     isPrimary: true,
     isDuplicate: false,
-    existingInfo: null
+    existingInfo: null,
+    focusAlert: false
   });
 
   useEffect(() => {
@@ -41,6 +42,33 @@ function AppWithSingleInstance() {
     <>
       {instanceState.isDuplicate && (
         <SingleInstanceModal existingInfo={instanceState.existingInfo} />
+      )}
+      {instanceState.focusAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '14px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100vw - 24px)',
+          maxWidth: '400px',
+          zIndex: 9999999,
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          padding: '12px 16px',
+          borderRadius: '14px',
+          boxShadow: '0 16px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 2px #3b82f6',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '0.84rem',
+          fontWeight: 700,
+          pointerEvents: 'none',
+          boxSizing: 'border-box',
+          animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <span style={{ fontSize: '1.15rem', flexShrink: 0 }}>🔔</span>
+          <span style={{ lineHeight: 1.4 }}>새 창 실행이 감지되어 <strong>기존 링커엑스 창</strong>이 활성화되었습니다.</span>
+        </div>
       )}
       <App />
     </>

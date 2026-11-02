@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeftRight, Search, Calendar, Edit2, Trash2, ShieldAlert } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { addDays, DateInputWithArrows, DateNavButton } from '../utils/dateNavigationUtils';
 import './InventoryTransfer.css';
 
 const InventoryMovementManager = ({ 
@@ -83,6 +84,13 @@ const InventoryMovementManager = ({
           (typeof h.to === 'string' && (h.to.includes('실사') || h.to.includes('재고조정'))) ||
           (typeof h.description === 'string' && (h.description.includes('실사') || h.description.includes('재고조정')));
         if (isPhysicalAdjustment) return false;
+
+        // 매출전표 발행으로 인한 매출출고(차감) 내역은 창고 간 재고이동 현황에서 제외
+        const isSalesOutbound =
+          h.to === '매출출고' ||
+          h.salesInvoiceId ||
+          (typeof h.memo === 'string' && h.memo.includes('매출출고'));
+        if (isSalesOutbound) return false;
 
         if (h.date < filters.startDate || h.date > filters.endDate) return false;
         if (filters.fromWarehouse !== '전체' && h.from !== filters.fromWarehouse) return false;
@@ -220,19 +228,23 @@ const InventoryMovementManager = ({
         {/* Filters Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
           {/* Date Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input 
-              type="date" 
-              value={filters.startDate} 
-              onChange={e => setFilters({...filters, startDate: e.target.value})} 
-              style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <DateInputWithArrows
+              value={filters.startDate}
+              onChange={e => setFilters({...filters, startDate: e.target.value})}
+              onPrev={() => setFilters(prev => ({ ...prev, startDate: addDays(prev.startDate, -1) }))}
+              onNext={() => setFilters(prev => ({ ...prev, startDate: addDays(prev.startDate, 1) }))}
+              style={{ flex: 1, padding: '6px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>~</span>
-            <input 
-              type="date" 
-              value={filters.endDate} 
-              onChange={e => setFilters({...filters, endDate: e.target.value})} 
-              style={{ flex: 1, padding: '6px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0 }} 
+            <DateInputWithArrows
+              value={filters.endDate}
+              onChange={e => setFilters({...filters, endDate: e.target.value})}
+              onPrev={() => setFilters(prev => ({ ...prev, endDate: addDays(prev.endDate, -1) }))}
+              onNext={() => setFilters(prev => ({ ...prev, endDate: addDays(prev.endDate, 1) }))}
+              style={{ flex: 1, padding: '6px 6px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: '105px' }}
+              btnSize={11}
             />
           </div>
 
@@ -301,12 +313,16 @@ const InventoryMovementManager = ({
                   <div key={row.id} style={{ backgroundColor: '#eff6ff', border: '1.5px solid #3b82f6', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb' }}>내역 수정</span>
-                      <input 
-                        type="date" 
-                        value={editForm.date} 
-                        onChange={e => setEditForm({...editForm, date: e.target.value})} 
-                        style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', outline: 'none' }} 
-                      />
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                        <DateNavButton direction="prev" onClick={() => setEditForm({...editForm, date: addDays(editForm.date, -1)})} size={11} style={{ width: '18px', height: '18px' }} />
+                        <input 
+                          type="date" 
+                          value={editForm.date} 
+                          onChange={e => setEditForm({...editForm, date: e.target.value})} 
+                          style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', outline: 'none' }} 
+                        />
+                        <DateNavButton direction="next" onClick={() => setEditForm({...editForm, date: addDays(editForm.date, 1)})} size={11} style={{ width: '18px', height: '18px' }} />
+                      </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>

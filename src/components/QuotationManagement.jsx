@@ -17,6 +17,7 @@ import {
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
@@ -297,32 +298,40 @@ const QuotationManagement = ({
 
           {/* Secondary Filter Row: Date Pickers + Staff + Search Input */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setDatePreset(''); }}
-                style={{
-                  padding: '5px 8px',
-                  borderRadius: '5px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.78rem',
-                  backgroundColor: '#ffffff'
-                }}
-              />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                <DateNavButton direction="prev" onClick={() => { setStartDate(addDays(startDate || formatDateStr(new Date()), -1)); setDatePreset(''); }} size={12} style={{ width: '20px', height: '20px' }} />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setDatePreset(''); }}
+                  style={{
+                    padding: '5px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.78rem',
+                    backgroundColor: '#ffffff'
+                  }}
+                />
+                <DateNavButton direction="next" onClick={() => { setStartDate(addDays(startDate || formatDateStr(new Date()), 1)); setDatePreset(''); }} size={12} style={{ width: '20px', height: '20px' }} />
+              </span>
               <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>~</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setDatePreset(''); }}
-                style={{
-                  padding: '5px 8px',
-                  borderRadius: '5px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.78rem',
-                  backgroundColor: '#ffffff'
-                }}
-              />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                <DateNavButton direction="prev" onClick={() => { setEndDate(addDays(endDate || formatDateStr(new Date()), -1)); setDatePreset(''); }} size={12} style={{ width: '20px', height: '20px' }} />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setDatePreset(''); }}
+                  style={{
+                    padding: '5px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.78rem',
+                    backgroundColor: '#ffffff'
+                  }}
+                />
+                <DateNavButton direction="next" onClick={() => { setEndDate(addDays(endDate || formatDateStr(new Date()), 1)); setDatePreset(''); }} size={12} style={{ width: '20px', height: '20px' }} />
+              </span>
             </div>
 
             {/* Staff Selector */}

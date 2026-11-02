@@ -17,7 +17,8 @@ const InventoryReport = ({
   salesInvoices = [], salesOrders = [], onOpenSalesInvoice, onOpenSalesOrder,
   onOpenPurchaseInvoice, onOpenInventoryTransfer,
   setCategories, currentUser,
-  staffList = [], schedules = [], setSchedules, onMoveStock
+  staffList = [], schedules = [], setSchedules, onMoveStock,
+  onOpenWarehouseDetail
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobile = true;
@@ -371,9 +372,20 @@ const InventoryReport = ({
     // 4. 수동이동 (Manual warehouse transfer)
     else if (row.memo === '수동이동' || row.memo === '창고이동' || (!row.salesInvoiceId && !row.purchaseInvoiceId && !row.salesOrderId)) {
       if (onOpenInventoryTransfer) {
-        onOpenInventoryTransfer(row.date);
+        onOpenInventoryTransfer(row);
         onClose();
       }
+    }
+  };
+
+  const handleDailyRowDoubleClick = (row) => {
+    if (row.memo === '수동이동' || row.memo === '창고이동' || (!row.salesInvoiceId && !row.purchaseInvoiceId && !row.salesOrderId)) {
+      if (onOpenInventoryTransfer) {
+        onOpenInventoryTransfer(row);
+        onClose();
+      }
+    } else {
+      handleMemoClick(row);
     }
   };
 
@@ -390,6 +402,16 @@ const InventoryReport = ({
 
   const filteredDailyData = useMemo(() => {
     return historyData.filter(item => {
+      // 매출출고 제외: 각 차량/창고에서 매출로 출고된 내역은 창고이동 현황에서 제외 (실제 상차 및 창고간 이동만 표시)
+      if (
+        item.to === '매출출고' || 
+        item.salesInvoiceId || 
+        (typeof item.to === 'string' && item.to.includes('매출')) ||
+        (typeof item.memo === 'string' && (item.memo.startsWith('[매출]') || item.memo.includes('매출출고')))
+      ) {
+        return false;
+      }
+
       const matchesDate = item.date >= filters.startDate && item.date <= filters.endDate;
       const matchesFrom = filters.fromWarehouse === '전체 창고' || item.from === filters.fromWarehouse;
       const matchesTo = filters.toWarehouse === '전체 창고' || item.to === filters.toWarehouse;
@@ -696,30 +718,75 @@ const InventoryReport = ({
 
           {activeTab === 'final' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>창고 선택</label>
-                <select 
-                  value={filters.selectedWarehouse} 
-                  onChange={e => setFilters({...filters, selectedWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
-                >
-                  <option value="전체 창고">전체 창고 (총 합계)</option>
-                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                </select>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>조회 창고</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#334155', fontWeight: 700, margin: 0, userSelect: 'none' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={filters.hideZeroStock} 
+                    onChange={e => {
+                      const checked = e.target.checked;
+                      localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
+                      setFilters(prev => ({ ...prev, hideZeroStock: checked }));
+                    }} 
+                    style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#2563eb' }}
+                  />
+                  재고가 0인 품목 가리기
+                </label>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#334155', fontWeight: 700, marginTop: '2px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={filters.hideZeroStock} 
-                  onChange={e => {
-                    const checked = e.target.checked;
-                    localStorage.setItem('linkerx_inventory_report_hide_zero', String(checked));
-                    setFilters(prev => ({ ...prev, hideZeroStock: checked }));
-                  }} 
-                  style={{ width: '15px', height: '15px' }}
-                />
-                재고가 0인 품목 가리기
-              </label>
+              <select 
+                value={filters.selectedWarehouse} 
+                onChange={e => setFilters({...filters, selectedWarehouse: e.target.value})}
+                style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
+              >
+                <option value="전체 창고">전체 창고 (총 합계)</option>
+                {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+              </select>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="품목명 또는 초성 검색..." 
+                    value={filters.searchTerm} 
+                    onChange={e => setFilters({...filters, searchTerm: e.target.value})}
+                    style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <button 
+                  type="button" 
+                  style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#1e293b', color: '#fff', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                  <Search size={12} /> 검색
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: showCategoryFilter ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                    backgroundColor: showCategoryFilter ? '#eff6ff' : '#f8fafc',
+                    color: showCategoryFilter ? '#2563eb' : '#475569',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  {showCategoryFilter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  카테고리 {showCategoryFilter ? '접기' : '선택'}
+                  {filters.categoryLarge !== '전체' && (
+                    <span style={{ background: '#2563eb', color: '#fff', borderRadius: '8px', padding: '1px 5px', fontSize: '0.66rem', fontWeight: 800 }}>
+                      적용중
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
@@ -898,72 +965,116 @@ const InventoryReport = ({
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <button 
-              type="button" 
-              onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                padding: '6px 8px',
-                borderRadius: '6px',
-                border: showCategoryFilter ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                backgroundColor: showCategoryFilter ? '#eff6ff' : '#f8fafc',
-                color: showCategoryFilter ? '#2563eb' : '#475569',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {showCategoryFilter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-              카테고리 {showCategoryFilter ? '접기' : '선택'}
-            </button>
+          {activeTab !== 'final' && (
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  border: showCategoryFilter ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                  backgroundColor: showCategoryFilter ? '#eff6ff' : '#f8fafc',
+                  color: showCategoryFilter ? '#2563eb' : '#475569',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {showCategoryFilter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                카테고리 {showCategoryFilter ? '접기' : '선택'}
+                {filters.categoryLarge !== '전체' && (
+                  <span style={{ background: '#2563eb', color: '#fff', borderRadius: '8px', padding: '1px 5px', fontSize: '0.66rem', fontWeight: 800 }}>
+                    적용중
+                  </span>
+                )}
+              </button>
 
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
-                type="text" 
-                placeholder="품목명 검색..." 
-                value={filters.searchTerm} 
-                onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-                style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
-              />
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input 
+                  type="text" 
+                  placeholder="품목명 검색..." 
+                  value={filters.searchTerm} 
+                  onChange={e => setFilters({...filters, searchTerm: e.target.value})}
+                  style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {activeTab === 'daily' && (
-            filteredDailyData.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
-                해당 조건의 재고 이동 내역이 없습니다.
+            <>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 10px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                fontSize: '0.73rem',
+                color: '#1d4ed8',
+                gap: '6px'
+              }}>
+                <span>💡 <b>내역 카드를 터치/더블클릭</b>하면 <b>재고이동 수정 창</b>이 바로 열립니다.</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', flexShrink: 0, fontWeight: 700 }}>총 {filteredDailyData.length}건</span>
               </div>
-            ) : (
-              filteredDailyData.map((row, idx) => (
-                <div key={idx} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{row.date} {row.processedAt && `(${row.processedAt})`}</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#2563eb' }}>{row.qty?.toLocaleString()}개</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
-                    <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}18`, color: getWarehouseColor(row.from), fontSize: '0.75rem' }}>{row.from}</span>
-                    <span style={{ color: '#94a3b8' }}>➔</span>
-                    <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}18`, color: getWarehouseColor(row.to), fontSize: '0.75rem' }}>{row.to}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#475569' }}>
-                    <div>
-                      <span style={{ fontWeight: 700, color: '#1e293b' }}>{row.item}</span>
-                      {row.spec && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: '4px' }}>({row.spec})</span>}
-                    </div>
-                    {row.operator && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{row.operator}</span>}
-                  </div>
+              {filteredDailyData.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                  해당 조건의 재고 이동 내역이 없습니다.
                 </div>
-              ))
-            )
+              ) : (
+                filteredDailyData.map((row, idx) => (
+                  <div
+                    key={row.id || idx}
+                    onClick={() => handleDailyRowDoubleClick(row)}
+                    onDoubleClick={() => handleDailyRowDoubleClick(row)}
+                    style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer' }}
+                    title="터치/더블클릭하여 재고이동 수정 창 열기"
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{row.date} {row.processedAt && `(${row.processedAt})`}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#2563eb' }}>{row.qty?.toLocaleString()}개</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}18`, color: getWarehouseColor(row.from), fontSize: '0.75rem' }}>{row.from}</span>
+                        <span style={{ color: '#94a3b8' }}>➔</span>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}18`, color: getWarehouseColor(row.to), fontSize: '0.75rem' }}>{row.to}</span>
+                      </div>
+                      {row.memo && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMemoClick(row);
+                          }}
+                          className="clickable-memo"
+                          style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}
+                        >
+                          {row.memo}
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#475569' }}>
+                      <div>
+                        <span style={{ fontWeight: 700, color: '#1e293b' }}>{row.item}</span>
+                        {row.spec && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: '4px' }}>({row.spec})</span>}
+                      </div>
+                      {row.operator && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{row.operator}</span>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
           )}
 
           {activeTab === 'final' && (
@@ -1004,7 +1115,13 @@ const InventoryReport = ({
                       </span>
                       <button
                         type="button"
-                        onClick={() => setSelectedProductForWarehouseModal(p)}
+                        onClick={() => {
+                          if (onOpenWarehouseDetail) {
+                            onOpenWarehouseDetail(p);
+                          } else {
+                            setSelectedProductForWarehouseModal(p);
+                          }
+                        }}
                         style={{
                           padding: '4px 10px',
                           fontSize: '0.75rem',

@@ -5,15 +5,20 @@ import {
   Building2, Calendar, ShieldCheck, X, Search, Plus, Trash2, Edit2, Lock, 
   MessageSquare, Bell, LayoutDashboard, Users, Clock, AlertCircle, ExternalLink,
   ChevronRight, Save, Phone, Send, ChevronDown, ChevronLeft, Filter, BookOpen, Settings,
-  Globe
+  Globe, Menu, Maximize, Server, BarChart2, PieChart, CalendarPlus, FileText, CheckCircle2,
+  DollarSign, UploadCloud, UserPlus, UserCheck, ChevronUp, Database, ArrowRight
 } from 'lucide-react';
+import SuperAdminDashboard from './SuperAdminDashboard';
 import ScheduleTypeManagement from './ScheduleTypeManagement';
 import ChatAssistant from './ChatAssistant';
 import PwaInstallPrompt from './PwaInstallPrompt';
 import { saveBundle } from '../utils/bundleSyncManager';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const SuperAdmin = ({ onClose, onEnterCompany }) => {
-  const [activeTab, setActiveTab] = useState('schedules');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 900 : false);
+  const [expandedMenus, setExpandedMenus] = useState({ reports: true, agencies: false });
   const [companies, setCompanies] = useState([]);
   const [csHistory, setCsHistory] = useState([]);
   const [notices, setNotices] = useState([]);
@@ -899,197 +904,518 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     };
   };
 
+  const handleSelectNav = (tabId) => {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined' && window.innerWidth < 900) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="sa-wrapper" style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: '#0f172a', zIndex: 9999, display: 'flex', flexDirection: 'column',
-      padding: '16px'
+      backgroundColor: '#0b192c', zIndex: 9999, display: 'flex', overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Top Navigation Header */}
-      <div className="sa-header-nav" style={{
-        backgroundColor: '#1e293b', borderRadius: '16px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 32px', color: 'white', marginBottom: '16px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="sa-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.5)', zIndex: 99,
+            display: typeof window !== 'undefined' && window.innerWidth < 900 ? 'block' : 'none'
+          }}
+        />
+      )}
+
+      {/* 1. LEFT SIDEBAR (DARK NAVY) */}
+      <aside className="sa-sidebar" style={{
+        width: isSidebarOpen ? '250px' : '0px',
+        minWidth: isSidebarOpen ? '250px' : '0px',
+        backgroundColor: '#0b192c',
+        color: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+        flexShrink: 0,
+        zIndex: 100,
+        position: typeof window !== 'undefined' && window.innerWidth < 900 ? 'fixed' : 'relative',
+        left: 0,
+        top: 0,
+        bottom: 0
       }}>
-        {/* Brand Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ backgroundColor: '#3b82f6', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}>
-            <ShieldCheck size={20} color="white" />
+        {/* Brand Logo Header */}
+        <div style={{
+          padding: '18px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)'
+            }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M2 12h20" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.3px', lineHeight: 1.15 }}>
+                Linker X
+              </div>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '1px', opacity: 0.9 }}>
+                ERP SYSTEM
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Master Hub</h2>
-            <p style={{ margin: 0, fontSize: '0.65rem', opacity: 0.5, lineHeight: 1 }}>Link X Operations</p>
-          </div>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Horizontal Navigation Menu Tabs */}
-        <nav style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {[
-            { id: 'schedules', icon: Calendar, label: '일정 및 대리점' },
-            { id: 'agencies', icon: Building2, label: '회원사 관리' },
-            { id: 'cs', icon: MessageSquare, label: 'CS/상담 관리' },
-            { id: 'notices', icon: Bell, label: '시스템 공지' },
-            { id: 'linkerx_home', icon: Globe, label: '링커엑스 홈페이지' },
-            { id: 'settings', icon: Settings, label: '환경설정' }
-          ].map(item => (
-            <button 
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'linkerx_home') {
-                  window.open('./?home=true', '_blank');
-                }
-                setActiveTab(item.id);
-              }}
+        {/* Navigation Menu List */}
+        <nav style={{
+          flex: 1,
+          padding: '14px 12px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          {/* 1. 대시보드 */}
+          <button
+            onClick={() => handleSelectNav('dashboard')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'dashboard' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'dashboard' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'dashboard' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <LayoutDashboard size={17} />
+              <span>대시보드</span>
+            </div>
+            {activeTab === 'dashboard' && <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ffffff' }}></span>}
+          </button>
+
+          {/* 2. 회원사 관리 */}
+          <button
+            onClick={() => handleSelectNav('agencies')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'agencies' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'agencies' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'agencies' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Building2 size={17} />
+              <span>회원사 관리</span>
+            </div>
+            <ChevronDown size={14} style={{ opacity: 0.6 }} />
+          </button>
+
+          {/* 3. 직원 관리 */}
+          <button
+            onClick={() => alert('직원 관리 메뉴로 이동합니다.')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: 'transparent', color: '#94a3b8', fontWeight: 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Users size={17} />
+              <span>직원 관리</span>
+            </div>
+          </button>
+
+          {/* 4. 기초자료 관리 */}
+          <button
+            onClick={() => alert('기초자료 관리 메뉴로 이동합니다.')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: 'transparent', color: '#94a3b8', fontWeight: 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Database size={17} />
+              <span>기초자료 관리</span>
+            </div>
+            <ChevronDown size={14} style={{ opacity: 0.6 }} />
+          </button>
+
+          {/* 5. 일정 관리 (달력) */}
+          <button
+            onClick={() => handleSelectNav('schedules')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'schedules' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'schedules' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'schedules' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Calendar size={17} />
+              <span>일정 관리 (달력)</span>
+            </div>
+            <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(59, 130, 246, 0.25)', color: '#93c5fd', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+              {masterSchedules.length}
+            </span>
+          </button>
+
+          {/* 6. 통계 / 리포트 */}
+          <div>
+            <button
+              onClick={() => setExpandedMenus(prev => ({ ...prev, reports: !prev.reports }))}
               style={{
-                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-                borderRadius: '10px', border: 'none', cursor: 'pointer',
-                backgroundColor: activeTab === item.id ? '#3b82f6' : 'transparent',
-                color: activeTab === item.id ? 'white' : '#94a3b8',
-                fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.2s'
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                backgroundColor: 'transparent', color: '#94a3b8', fontWeight: 600, fontSize: '0.84rem'
               }}
             >
-              <item.icon size={16} />
-              {item.label}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <BarChart2 size={17} />
+                <span>통계 / 리포트</span>
+              </div>
+              <ChevronDown size={14} style={{ transform: expandedMenus.reports ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
-          ))}
+            {expandedMenus.reports && (
+              <div style={{ paddingLeft: '38px', display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 6px 0' }}>
+                {['매출 통계', '재고 통계', '회원사별 통계', '시스템 사용 현황'].map(sub => (
+                  <div 
+                    key={sub}
+                    onClick={() => handleSelectNav('dashboard')}
+                    style={{
+                      fontSize: '0.76rem',
+                      color: sub === '매출 통계' && activeTab === 'dashboard' ? '#60a5fa' : '#64748b',
+                      padding: '4px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500
+                    }}
+                  >
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#64748b' }}></span>
+                    {sub}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 7. 시스템 관리 */}
+          <button
+            onClick={() => handleSelectNav('settings')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'settings' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'settings' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'settings' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Server size={17} />
+              <span>시스템 관리</span>
+            </div>
+            <ChevronDown size={14} style={{ opacity: 0.6 }} />
+          </button>
+
+          {/* 8. 공지사항 */}
+          <button
+            onClick={() => handleSelectNav('notices')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'notices' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'notices' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'notices' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Bell size={17} />
+              <span>공지사항</span>
+            </div>
+          </button>
+
+          {/* 9. 이벤트 관리 */}
+          <button
+            onClick={() => {
+              setScheduleForm({ id: '', title: '', date: new Date().toISOString().split('T')[0], companyId: '', type: '업무', content: '', startTime: '', endTime: '', priority: '보통', category: '' });
+              setIsScheduleModalOpen(true);
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: 'transparent', color: '#94a3b8', fontWeight: 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <CalendarPlus size={17} />
+              <span>이벤트 관리</span>
+            </div>
+          </button>
+
+          {/* 10. 로그 관리 */}
+          <button
+            onClick={() => handleSelectNav('cs')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'cs' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'cs' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'cs' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FileText size={17} />
+              <span>로그 관리</span>
+            </div>
+          </button>
+
+          {/* 11. 설정 */}
+          <button
+            onClick={() => handleSelectNav('settings')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'settings' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'settings' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'settings' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Settings size={17} />
+              <span>설정</span>
+            </div>
+          </button>
         </nav>
 
-        {/* Top Summary Stats */}
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem' }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <span style={{ color: '#94a3b8' }}>회원사</span>
-            <span style={{ fontWeight: 700, color: '#10b981' }}>{companies.length}</span>
-          </div>
-          <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <span style={{ color: '#94a3b8' }}>대기CS</span>
-            <span style={{ fontWeight: 700, color: '#f59e0b' }}>{csHistory.filter(h => h.status === '대기').length}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="sa-main" style={{
-        flex: 1, backgroundColor: '#f8fafc', borderRadius: '16px',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 4px 30px rgba(0,0,0,0.02)'
-      }}>
-        <div className="sa-top-bar" style={{
-          padding: '20px 40px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+        {/* Bottom Profile Area */}
+        <div style={{
+          padding: '14px 16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flex: 1 }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
-              {activeTab === 'agencies' && '회원사 통합 관리'}
-              {activeTab === 'schedules' && '일정 및 대리점 관리 (마스터 달력)'}
-              {activeTab === 'cs' && '고객 지원 및 상담 내역'}
-              {activeTab === 'notices' && '시스템 공지 사항'}
-              {activeTab === 'linkerx_home' && '링커엑스 홈페이지'}
-              {activeTab === 'settings' && '시스템 환경설정 (Master Settings)'}
-            </h1>
-            
-            {activeTab === 'agencies' && (
-              <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '50%', backgroundColor: '#1e3a8a',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#93c5fd',
+              fontWeight: 800, fontSize: '0.8rem', border: '1.5px solid #3b82f6'
+            }}>
+              관리
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff' }}>슈퍼 관리자</div>
+              <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>시스템 관리자</div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', padding: '6px', backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#fca5a5',
+              fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', gap: '6px'
+            }}
+          >
+            <X size={12} /> 관리자 화면 닫기 (메인으로)
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. RIGHT MAIN CONTENT AREA */}
+      <main style={{
+        flex: 1, display: 'flex', flexDirection: 'column', height: '100%',
+        overflow: 'hidden', backgroundColor: '#f1f5f9', minWidth: 0
+      }}>
+        {/* Top Header Bar */}
+        <header style={{
+          minHeight: '56px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 14px', flexShrink: 0, gap: '10px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
+        }}>
+          {/* Left: Hamburger & Search */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b',
+                padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}
+              title={isSidebarOpen ? "사이드바 접기" : "사이드바 열기"}
+            >
+              <Menu size={20} />
+            </button>
+
+            <div style={{ position: 'relative', flex: 1, maxWidth: '420px', minWidth: 0 }}>
+              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                placeholder="회원사, 사업자번호, 담당자로 검색..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '7px 12px 7px 34px', borderRadius: '20px',
+                  border: '1px solid #e2e8f0', backgroundColor: '#f8fafc',
+                  fontSize: '0.78rem', outline: 'none', color: '#1e293b', boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Right Header Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div style={{ position: 'relative', cursor: 'pointer', padding: '4px' }} onClick={() => setActiveTab('notices')}>
+              <Bell size={18} color="#64748b" />
+              <span style={{
+                position: 'absolute', top: '0px', right: '0px', backgroundColor: '#ef4444', color: 'white',
+                fontSize: '0.58rem', fontWeight: 800, width: '15px', height: '15px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #ffffff'
+              }}>
+                10
+              </span>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                padding: '6px 10px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0',
+                borderRadius: '8px', color: '#475569', fontSize: '0.74rem', fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
+              }}
+              title="관리자 화면 닫기"
+            >
+              <X size={14} /> 나가기
+            </button>
+          </div>
+        </header>
+
+        {/* Tab Subheader (for tabs other than dashboard) */}
+        {activeTab !== 'dashboard' && (
+          <div style={{
+            padding: '10px 14px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0',
+            display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                {activeTab === 'agencies' && '회원사 통합 관리'}
+                {activeTab === 'schedules' && '일정 및 회원사 관리 (마스터 달력)'}
+                {activeTab === 'cs' && '고객 지원 및 상담 내역'}
+                {activeTab === 'notices' && '시스템 공지 사항'}
+                {activeTab === 'linkerx_home' && '홈페이지 회원사 가입 & 상담 센터'}
+                {activeTab === 'settings' && '시스템 환경설정'}
+              </h1>
+
+              {activeTab === 'agencies' && (
                 <select 
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   style={{
-                    padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0',
-                    backgroundColor: '#f8fafc', fontSize: '0.9rem', outline: 'none', minWidth: '120px'
+                    padding: '5px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                    backgroundColor: '#f8fafc', fontSize: '0.76rem', outline: 'none'
                   }}
                 >
                   <option value="">전체 카테고리</option>
                   {agencyCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input 
-                    type="text" 
-                    placeholder="회원사명 또는 ID로 검색..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{
-                      width: '100%', padding: '10px 16px 10px 44px', borderRadius: '12px',
-                      border: '1px solid #e2e8f0', backgroundColor: '#f8fafc',
-                      fontSize: '0.9rem', outline: 'none', transition: 'all 0.2s'
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {activeTab === 'agencies' && (
+                <>
+                  <button 
+                    onClick={handleGitPush}
+                    disabled={isPushing}
+                    style={{ 
+                      padding: '6px 10px', backgroundColor: '#10b981', color: 'white', 
+                      border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem',
+                      cursor: isPushing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {activeTab === 'agencies' && (
-              <>
+                  >
+                    <Send size={13} />
+                    {isPushing ? '전송 중...' : '깃허브 전송'}
+                  </button>
+                  <button 
+                    onClick={() => setIsCategoryManageModalOpen(true)}
+                    style={{ padding: '6px 10px', backgroundColor: 'white', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '8px', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    카테고리 관리
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      setAgencyForm({ id: '', name: '', ceo: '', email: '', password: '', expiryDate: '', status: 'active', managerContact: '', category: '' }); 
+                      setOriginalAgencyId(null);
+                      setIsAgencyModalOpen(true); 
+                    }}
+                    style={{ padding: '6px 10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={14} /> 신규 회원사 등록
+                  </button>
+                </>
+              )}
+              {activeTab === 'cs' && (
                 <button 
-                  onClick={handleGitPush}
-                  disabled={isPushing}
-                  style={{ 
-                    padding: '10px 18px', 
-                    backgroundColor: '#10b981', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '10px', 
-                    fontWeight: 700, 
-                    cursor: isPushing ? 'not-allowed' : 'pointer', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                    transition: 'all 0.2s',
-                    opacity: isPushing ? 0.7 : 1
-                  }}
-                  onMouseEnter={e => { if(!isPushing) e.currentTarget.style.backgroundColor = '#059669'; }}
-                  onMouseLeave={e => { if(!isPushing) e.currentTarget.style.backgroundColor = '#10b981'; }}
+                  onClick={() => { setCsForm({ companyId: '', companyName: '', type: '일반상담', content: '', status: '완료', contact: '' }); setIsCsModalOpen(true); }}
+                  style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  <Send size={16} />
-                  {isPushing ? '전송 중...' : '깃허브로 전송'}
+                  <Plus size={14} /> 상담 일지 작성
                 </button>
+              )}
+              {activeTab === 'notices' && (
                 <button 
-                  onClick={() => setIsCategoryManageModalOpen(true)}
-                  style={{ padding: '10px 16px', backgroundColor: 'white', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => { setNoticeForm({ title: '', content: '', type: 'info', isActive: true }); setIsNoticeModalOpen(true); }}
+                  style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  카테고리 관리
+                  <Bell size={14} /> 신규 공지 배포
                 </button>
-                <button 
-                  onClick={() => { 
-                  setAgencyForm({ id: '', name: '', ceo: '', email: '', password: '', expiryDate: '', status: 'active', managerContact: '', category: '' }); 
-                  setOriginalAgencyId(null);
-                  setIsAgencyModalOpen(true); 
-                }}
-                style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Plus size={18} /> 신규 회원사 등록
-                </button>
-              </>
-            )}
-            {activeTab === 'cs' && (
-              <button 
-                onClick={() => { setCsForm({ companyId: '', companyName: '', type: '일반상담', content: '', status: '완료', contact: '' }); setIsCsModalOpen(true); }}
-                style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Plus size={18} /> 상담 일지 작성
-              </button>
-            )}
-            {activeTab === 'notices' && (
-              <button 
-                onClick={() => { setNoticeForm({ title: '', content: '', type: 'info', isActive: true }); setIsNoticeModalOpen(true); }}
-                style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Bell size={18} /> 신규 공지 배포
-              </button>
-            )}
-            <button onClick={onClose} style={{ padding: '10px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
-              <X size={20} color="#64748b" />
-            </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="sa-view-content" style={{ flex: 1, padding: '32px 40px', overflowY: 'auto' }}>
+        {/* View Content Body */}
+        <div className="sa-view-content" style={{ flex: 1, padding: '14px', overflowY: 'auto' }}>
+          {activeTab === 'dashboard' && (
+            <SuperAdminDashboard 
+              companies={companies}
+              notices={notices}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenAgencyModal={() => { 
+                setAgencyForm({ id: '', name: '', ceo: '', email: '', password: '', expiryDate: '', status: 'active', managerContact: '', category: '' }); 
+                setOriginalAgencyId(null);
+                setIsAgencyModalOpen(true); 
+              }}
+              onOpenNoticeModal={() => { 
+                setNoticeForm({ title: '', content: '', type: 'info', isActive: true }); 
+                setIsNoticeModalOpen(true); 
+              }}
+              onOpenScheduleModal={() => { 
+                setScheduleForm({ id: '', title: '', date: new Date().toISOString().split('T')[0], companyId: '', type: '업무', content: '', startTime: '', endTime: '', priority: '보통', category: '' }); 
+                setIsScheduleModalOpen(true); 
+              }}
+            />
+          )}
           {activeTab === 'agencies' && (
             <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1120,8 +1446,9 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                           {c.managerContact && <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={10} /> {c.managerContact}</div>}
                         </td>
                         <td style={{ padding: '16px 20px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Calendar size={14} color={expiring ? '#e11d48' : '#64748b'} />
+                            <DateNavButton direction="prev" onClick={() => handleUpdateExpiryDate(c.id, addDays(c.expiryDate || new Date().toISOString().split('T')[0], -1))} size={11} style={{ width: '18px', height: '18px' }} />
                             <input 
                               type="date" 
                               value={c.expiryDate || ''} 
@@ -1134,6 +1461,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                                 outline: 'none'
                               }}
                             />
+                            <DateNavButton direction="next" onClick={() => handleUpdateExpiryDate(c.id, addDays(c.expiryDate || new Date().toISOString().split('T')[0], 1))} size={11} style={{ width: '18px', height: '18px' }} />
                             {expiring && <button 
                               onClick={() => { setCsForm({ ...csForm, companyId: c.id, companyName: c.name, type: '연장상담', content: '라이선스 만료 예정 안내' }); setIsCsModalOpen(true); }}
                               style={{ padding: '2px 8px', fontSize: '0.7rem', backgroundColor: '#e11d48', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -2267,7 +2595,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Agency Modal */}
       {isAgencyModalOpen && (
@@ -2333,7 +2661,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               <div>
                 <label style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>서비스 만료일</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input type="date" value={agencyForm.expiryDate} onChange={e => setAgencyForm({...agencyForm, expiryDate: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <DateNavButton direction="prev" onClick={() => setAgencyForm({...agencyForm, expiryDate: addDays(agencyForm.expiryDate || new Date().toISOString().split('T')[0], -1)})} />
+                    <input type="date" value={agencyForm.expiryDate} onChange={e => setAgencyForm({...agencyForm, expiryDate: e.target.value})} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <DateNavButton direction="next" onClick={() => setAgencyForm({...agencyForm, expiryDate: addDays(agencyForm.expiryDate || new Date().toISOString().split('T')[0], 1)})} />
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {[
                       { label: '1달', months: 1 },
@@ -2688,7 +3020,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>일정 날짜</label>
-                  <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} style={{ width: '100%', padding: '11px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <DateNavButton direction="prev" onClick={() => setScheduleForm({...scheduleForm, date: addDays(scheduleForm.date, -1)})} />
+                    <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} style={{ flex: 1, padding: '11px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <DateNavButton direction="next" onClick={() => setScheduleForm({...scheduleForm, date: addDays(scheduleForm.date, 1)})} />
+                  </div>
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>일정 유형</label>

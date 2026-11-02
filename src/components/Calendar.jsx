@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Settings, Lock, Unlock, ChevronDown, Filter } from 'lucide-react';
+import { 
+  ChevronLeft, ChevronRight, Plus, Settings, Lock, Unlock, ChevronDown, Filter
+} from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths, startOfDay, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOrder, onOpenDashboardSettings, isDashboardLocked, onToggleDashboardLock, schedules = [], salesOrders = [], salesInvoices = [], purchaseOrders = [], purchaseInvoices = [], inventoryTransferHistory = [], staffList = [], currentUser, onOpenOrderListForDate, onOpenSalesInvoiceListForDate, onOpenDepositSlip, onOpenPurchaseLedgerForDate, onOpenInventoryTransferForDate, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [], onToggleScheduleType, onOpenTypeManagement }) => {
+const Calendar = ({ 
+  selectedDate, 
+  onDateSelect, 
+  onLogout, 
+  onAddSchedule, 
+  onAddOrder, 
+  onOpenDashboardSettings, 
+  isDashboardLocked, 
+  onToggleDashboardLock, 
+  schedules = [], 
+  staffList = [], 
+  currentUser, 
+  onOpenScheduleDetail, 
+  scheduleTypes = [], 
+  hiddenScheduleTypes = [], 
+  onToggleScheduleType, 
+  onOpenTypeManagement 
+}) => {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const [showTypeFilter, setShowTypeFilter] = useState(false);
   const typeFilterRef = useRef(null);
@@ -20,9 +39,10 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
     }
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showTypeFilter]);
+
   const getBadgeStyles = (type) => {
-    const match = scheduleTypes.find(t => t.name === type);
-    if (match) {
+    const match = scheduleTypes.find(t => (typeof t === 'object' ? t.name : t) === type);
+    if (match && typeof match === 'object' && match.color) {
       const baseColor = match.color;
       const bgColor = baseColor.startsWith('#') ? `${baseColor}26` : baseColor;
       return {
@@ -50,19 +70,25 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
     };
   };
 
-  const monthStart = startOfMonth(selectedDate);
+  // 날짜 안전성 검증
+  const safeDate = (selectedDate instanceof Date && !isNaN(selectedDate.getTime()))
+    ? selectedDate
+    : (selectedDate ? new Date(selectedDate) : new Date());
+  const validSelectedDate = (!isNaN(safeDate.getTime())) ? safeDate : new Date();
+
+  const monthStart = startOfMonth(validSelectedDate);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
 
   const prevMonth = () => {
     playMenuClickSound();
-    onDateSelect(subMonths(selectedDate, 1));
+    onDateSelect(subMonths(validSelectedDate, 1));
   };
 
   const nextMonth = () => {
     playMenuClickSound();
-    onDateSelect(addMonths(selectedDate, 1));
+    onDateSelect(addMonths(validSelectedDate, 1));
   };
 
   // Generate calendar days
@@ -78,7 +104,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
       playMenuClickSound();
       onAddSchedule();
     } else {
-      alert(`${format(selectedDate, 'yyyy년 M월 d일', { locale: ko })}에 일정을 추가합니다.`);
+      alert(`${format(validSelectedDate, 'yyyy년 M월 d일', { locale: ko })}에 일정을 추가합니다.`);
     }
   };
 
@@ -88,9 +114,21 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
       onAddOrder();
     } else {
       playMenuClickSound();
-      alert(`${format(selectedDate, 'yyyy년 M월 d일', { locale: ko })}에 수주를 추가합니다.`);
+      alert(`${format(validSelectedDate, 'yyyy년 M월 d일', { locale: ko })}에 수주를 추가합니다.`);
     }
   };
+
+  const filterSchedulesForDateStr = (targetDateStr) => {
+    return (schedules || []).filter(s => {
+      const sStart = s.startDate || s.date;
+      if (!sStart) return false;
+      const sEnd = s.endDate || s.startDate || s.date;
+      if (s.isPublic === false && s.author !== currentUser?.name && s.creator !== currentUser?.name && !isAdmin) return false;
+      if ((hiddenScheduleTypes || []).includes(s.type)) return false;
+      return targetDateStr >= sStart && targetDateStr <= sEnd;
+    });
+  };
+
   return (
     <div className="calendar-container" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: '0px', boxSizing: 'border-box' }}>
       {/* 달력 상단 조작부 (모바일 초컴팩트 2행 레이아웃) */}
@@ -111,7 +149,7 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
               <ChevronLeft size={14} />
             </button>
             <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-              {format(selectedDate, 'yyyy년 M월')}
+              {format(validSelectedDate, 'yyyy년 M월')}
             </h3>
             <button onClick={nextMonth} style={{ padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <ChevronRight size={14} />
@@ -245,10 +283,11 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
         </div>
       </div>
 
+      {/* 달력 그리드 (일정 전용 한 줄 표시 및 날짜 선택) */}
       <div className="calendar-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '2px', // 주별 및 요일별 틈을 2px로 좁힘
+        gap: '2px',
         marginTop: '2px'
       }}>
         {/* Day names */}
@@ -270,302 +309,116 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
 
         {/* Days */}
         {calendarDays.map((d, i) => {
-          const isSelected = isSameDay(d, selectedDate);
+          const isSelected = isSameDay(d, validSelectedDate);
           const isCurrentMonth = isSameMonth(d, monthStart);
           const isSunday = d.getDay() === 0;
           const isSaturday = d.getDay() === 6;
-          
-          const daySchedules = schedules.filter(s => {
-            const dayStr = format(d, 'yyyy-MM-dd');
-            const sStart = s.startDate || s.date;
-            const sEnd = s.endDate || s.startDate || s.date;
-            if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
-            return dayStr >= sStart && dayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
-          });
+          const dayStr = format(d, 'yyyy-MM-dd');
 
           if (!isCurrentMonth) {
-            return <div key={i} className="calendar-day empty" style={{ border: '1px solid #f1f5f9', backgroundColor: '#f8fafc', height: '36px', borderRadius: '4px' }}></div>;
+            return (
+              <div 
+                key={i} 
+                className="calendar-day empty" 
+                style={{ 
+                  border: '1px solid #f1f5f9', 
+                  backgroundColor: '#f8fafc', 
+                  minHeight: '56px', 
+                  borderRadius: '4px' 
+                }} 
+              />
+            );
           }
 
+          const daySchedules = filterSchedulesForDateStr(dayStr);
           const isToday = isSameDay(d, new Date());
           const hasHoliday = daySchedules.some(s => s.type === '휴무일');
-
-          const roleFilteredOrders = (salesOrders || []).filter(o => 
-            isAdmin || o.manager === currentUser?.name
-          );
-          const dayOrders = roleFilteredOrders.filter(o => o.date === format(d, 'yyyy-MM-dd'));
-
-          const dayPurchaseOrders = (purchaseOrders || []).filter(o => o.date === format(d, 'yyyy-MM-dd'));
-          const dayPurchaseInvoices = (purchaseInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd'));
-          const dayAllSalesInvoices = (salesInvoices || []).filter(inv => inv.date === format(d, 'yyyy-MM-dd') && (isAdmin || inv.creator === currentUser?.name));
-          const isDepositSlip = (inv) => {
-            const isDepType = Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
-            if (!isDepType) return false;
-            const hasReceived = (Number(inv?.receivedAmount) || 0) > 0;
-            const hasPaymentList = Array.isArray(inv?.paymentList) && inv.paymentList.length > 0;
-            const hasPayments = Boolean(inv?.payments && (
-              (Number(inv.payments.cash) || 0) > 0 ||
-              (Number(inv.payments.account) || 0) > 0 ||
-              (Number(inv.payments.card) || 0) > 0 ||
-              (Number(inv.payments.bill) || 0) > 0
-            ));
-            return hasReceived || hasPaymentList || hasPayments;
-          };
-          const daySalesInvoices = dayAllSalesInvoices.filter(inv => Array.isArray(inv?.items) && inv.items.length > 0 && !inv?.isDepositOnly);
-          const dayDepositSlips = dayAllSalesInvoices.filter(inv => isDepositSlip(inv));
-          const dayTransfers = (inventoryTransferHistory || []).filter(h => h.date === format(d, 'yyyy-MM-dd'));
-
-          // 각 일정/내역별 점(Dot) 색상 목록 생성
-          const dayDots = [];
-          
-          // 1. 일정
-          daySchedules.forEach(s => {
-            const badgeStyle = getBadgeStyles(s.type);
-            dayDots.push({ id: `dot-sch-${s.id}`, color: badgeStyle.color || '#3b82f6' });
-          });
-          // 2. 수주
-          dayOrders.forEach(o => {
-            dayDots.push({ id: `dot-so-${o.id}`, color: '#f59e0b' });
-          });
-          // 3. 매출
-          daySalesInvoices.forEach(inv => {
-            dayDots.push({ id: `dot-si-${inv.id}`, color: '#be185d' });
-          });
-          // 3-1. 입금전표
-          dayDepositSlips.forEach(inv => {
-            dayDots.push({ id: `dot-dep-${inv.id}`, color: '#0d9488' });
-          });
-          // 4. 발주
-          dayPurchaseOrders.forEach(po => {
-            dayDots.push({ id: `dot-po-${po.id}`, color: '#047857' });
-          });
-          // 5. 매입
-          dayPurchaseInvoices.forEach(pi => {
-            dayDots.push({ id: `dot-pi-${pi.id}`, color: '#b91c1c' });
-          });
-          // 6. 창고이동
-          dayTransfers.forEach(t => {
-            dayDots.push({ id: `dot-t-${t.id}`, color: '#1e40af' });
-          });
 
           return (
             <div
               key={i}
               className={`calendar-day ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
-              onClick={() => { playMenuClickSound(); onDateSelect(d); }}
+              onClick={() => {
+                playMenuClickSound();
+                onDateSelect(d);
+              }}
               style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems: 'stretch',
+                justifyContent: 'flex-start',
                 overflow: 'hidden',
-                height: '36px', // 컴팩트 세로 고정 높이 48px -> 36px 대폭 단축
-                backgroundColor: hasHoliday ? 'rgba(239, 68, 68, 0.08)' : (isSelected ? 'rgba(59, 130, 246, 0.1)' : 'inherit'),
+                minHeight: '56px',
+                backgroundColor: hasHoliday ? 'rgba(239, 68, 68, 0.08)' : (isSelected ? 'rgba(59, 130, 246, 0.1)' : '#ffffff'),
                 border: `1px solid ${isSelected ? '#3b82f6' : '#e2e8f0'}`,
                 borderRadius: '4px',
                 cursor: 'pointer',
                 position: 'relative',
-                padding: '1px 0',
-                boxSizing: 'border-box'
+                padding: '2px',
+                boxSizing: 'border-box',
+                gap: '1.5px'
               }}
             >
-              <div className={`day-number ${isSunday ? 'sunday' : ''}`} style={{
-                fontSize: '0.76rem', // 날짜 크기 축소
-                fontWeight: isToday ? '800' : '600',
-                color: isToday ? '#2563eb' : (isSunday ? '#ef4444' : (isSaturday ? '#2563eb' : '#1e293b')),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: isToday ? '16px' : 'auto',
-                height: isToday ? '16px' : 'auto',
-                borderRadius: isToday ? '50%' : '0',
-                backgroundColor: isToday ? '#eff6ff' : 'transparent'
-              }}>
-                {format(d, 'd')}
+              {/* 날짜 숫자 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div 
+                  className={`day-number ${isSunday ? 'sunday' : ''} ${isToday ? 'today' : ''}`}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: isToday ? '800' : '700',
+                    color: isToday ? '#2563eb' : (isSunday ? '#ef4444' : (isSaturday ? '#2563eb' : '#1e293b'))
+                  }}
+                >
+                  <span className="day-number-val">{format(d, 'd')}</span>
+                </div>
               </div>
 
-              {/* 점(Dot) 모음 표시 */}
-              {dayDots.length > 0 && (
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  gap: '1.5px', // 틈 단축
-                  marginTop: '1px', 
-                  flexWrap: 'wrap',
-                  width: '100%',
-                  padding: '0 2px',
-                  boxSizing: 'border-box'
-                }}>
-                  {dayDots.slice(0, 4).map(dot => (
-                    <span 
-                      key={dot.id} 
-                      style={{ 
-                        width: '4px', // 5px -> 4px
-                        height: '4px', 
-                        borderRadius: '50%', 
-                        backgroundColor: dot.color,
-                        display: 'inline-block'
-                      }} 
-                    />
-                  ))}
-                  {dayDots.length > 4 && (
-                    <span style={{ fontSize: '0.5rem', color: '#94a3b8', lineHeight: '4px', fontWeight: 900 }}>+</span>
-                  )}
-                </div>
-              )}
+              {/* 일정 목록 (한 줄 말줄임 표시) */}
+              <div className="calendar-cell-scrollable" style={{ display: 'flex', flexDirection: 'column', gap: '1.5px', minWidth: 0, flex: 1, overflowY: 'auto' }}>
+                {daySchedules.map(schedule => {
+                  const badgeStyle = getBadgeStyles(schedule.type);
+                  const cleanContent = (schedule.description || schedule.title || '').replace(/[\r\n]+/g, ' ').trim();
+
+                  return (
+                    <div
+                      key={schedule.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onOpenScheduleDetail) onOpenScheduleDetail(schedule);
+                      }}
+                      title={`${schedule.time ? `[${schedule.time}] ` : ''}[${schedule.type}] ${cleanContent}`.trim()}
+                      style={{
+                        fontSize: '0.58rem',
+                        backgroundColor: badgeStyle.backgroundColor,
+                        color: badgeStyle.color,
+                        border: badgeStyle.border,
+                        padding: '0px 2px',
+                        borderRadius: '3px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        fontWeight: 600,
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        lineHeight: 1.25
+                      }}
+                    >
+                      [{schedule.type}]{cleanContent ? ` ${cleanContent}` : ''}{schedule.isPublic === false ? ' 🔒' : ''}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* 해당일 클릭 시 아래에 해당일 목록 형태로 나열해서 보여주는 영역 */}
+      {/* 해당일 선택 시 하단 일정 요약 리스트 (일정 전용) */}
       {(() => {
-        const selectedDayStr = format(selectedDate, 'yyyy-MM-dd');
-        const selectedDayItems = [];
-
-        // 1. 일정 필터링
-        const selectedSchedules = schedules.filter(s => {
-          const sStart = s.startDate || s.date;
-          const sEnd = s.endDate || s.startDate || s.date;
-          if (s.isPublic === false && s.author !== currentUser?.name && !isAdmin) return false;
-          return selectedDayStr >= sStart && selectedDayStr <= sEnd && !(hiddenScheduleTypes || []).includes(s.type);
-        });
-        selectedSchedules.forEach(s => {
-          const badgeStyle = getBadgeStyles(s.type);
-          selectedDayItems.push({
-            uniqueId: `list-sch-${s.id}`,
-            tag: s.type,
-            title: s.description || s.type,
-            subtitle: s.location ? `📍 ${s.location}` : '',
-            time: s.time || '',
-            color: badgeStyle.color || '#3b82f6',
-            bgColor: `${badgeStyle.color || '#3b82f6'}08`,
-            onClick: () => {
-              if (onOpenScheduleDetail) onOpenScheduleDetail(s);
-            }
-          });
-        });
-
-        // 2. 수주 필터링
-        const roleFilteredOrders = (salesOrders || []).filter(o => 
-          isAdmin || o.manager === currentUser?.name
-        );
-        const selectedOrders = roleFilteredOrders.filter(o => o.date === selectedDayStr);
-        selectedOrders.forEach(o => {
-          const staff = staffList?.find(s => s.name === o.manager);
-          const wh = staff?.warehouse || o.inWarehouse || '본사';
-          selectedDayItems.push({
-            uniqueId: `list-so-${o.id}`,
-            tag: '수주',
-            title: `${o.partnerName} 수주 등록`,
-            subtitle: `담당: ${o.manager} | 창고: ${wh} | 품목: ${o.items?.[0]?.name || ''} 외 ${o.items?.length - 1 || 0}건`,
-            time: o.time || '',
-            color: '#f59e0b',
-            bgColor: '#fffbeb',
-            onClick: () => {
-              if (onOpenOrderListForDate) onOpenOrderListForDate(selectedDate);
-            }
-          });
-        });
-
-        // 3. 매출전표 및 입금전표 필터링
-        const selectedSalesInvoices = (salesInvoices || []).filter(inv => inv.date === selectedDayStr && (isAdmin || inv.creator === currentUser?.name));
-        selectedSalesInvoices.forEach(inv => {
-          const isDeposit = Boolean(inv?.isDepositOnly || !inv?.items || inv.items.length === 0 || inv?.memo === '입금전표' || inv?.type === 'deposit');
-          const hasReceived = (Number(inv?.receivedAmount) || 0) > 0;
-          const hasPaymentList = Array.isArray(inv?.paymentList) && inv.paymentList.length > 0;
-          const hasPayments = Boolean(inv?.payments && (
-            (Number(inv.payments.cash) || 0) > 0 ||
-            (Number(inv.payments.account) || 0) > 0 ||
-            (Number(inv.payments.card) || 0) > 0 ||
-            (Number(inv.payments.bill) || 0) > 0
-          ));
-          const hasItems = Array.isArray(inv?.items) && inv.items.length > 0;
-          const partnerTitle = inv.partner || inv.partnerName || '거래처';
-
-          if (isDeposit && (hasReceived || hasPaymentList || hasPayments)) {
-            selectedDayItems.push({
-              uniqueId: `list-dep-${inv.id}`,
-              tag: '입금전표',
-              title: `${partnerTitle} 입금전표`,
-              subtitle: `입금액: ${(inv.receivedAmount || 0).toLocaleString()}원${inv.memo && inv.memo !== '입금전표' ? ` (${inv.memo})` : ''} | 작성자: ${inv.creator || '시스템'}`,
-              time: '',
-              color: '#0f766e',
-              bgColor: '#f0fdfa',
-              onClick: () => {
-                if (onOpenDepositSlip) {
-                  onOpenDepositSlip(inv);
-                } else if (onOpenSalesInvoiceListForDate) {
-                  onOpenSalesInvoiceListForDate(selectedDate);
-                }
-              }
-            });
-          } else if (hasItems && !inv?.isDepositOnly) {
-            selectedDayItems.push({
-              uniqueId: `list-si-${inv.id}`,
-              tag: '매출',
-              title: `${partnerTitle} 매출전표`,
-              subtitle: `합계: ${(inv.totalAmount || 0).toLocaleString()}원 | 작성자: ${inv.creator || '시스템'}`,
-              time: '',
-              color: '#be185d',
-              bgColor: '#fdf2f8',
-              onClick: () => {
-                if (onOpenSalesInvoiceListForDate) onOpenSalesInvoiceListForDate(selectedDate);
-              }
-            });
-          }
-        });
-
-        // 4. 발주 필터링
-        const selectedPurchaseOrders = (purchaseOrders || []).filter(o => o.date === selectedDayStr);
-        selectedPurchaseOrders.forEach(po => {
-          selectedDayItems.push({
-            uniqueId: `list-po-${po.id}`,
-            tag: '발주',
-            title: `${po.partnerName} 발주서`,
-            subtitle: `금액: ${(po.totalAmount || 0).toLocaleString()}원`,
-            time: '',
-            color: '#047857',
-            bgColor: '#ecfdf5',
-            onClick: () => {
-              if (onOpenPurchaseLedgerForDate) onOpenPurchaseLedgerForDate(selectedDate);
-            }
-          });
-        });
-
-        // 5. 매입전표 필터링
-        const selectedPurchaseInvoices = (purchaseInvoices || []).filter(inv => inv.date === selectedDayStr);
-        selectedPurchaseInvoices.forEach(pi => {
-          selectedDayItems.push({
-            uniqueId: `list-pi-${pi.id}`,
-            tag: '매입',
-            title: `${pi.partnerName} 매입전표`,
-            subtitle: `금액: ${(pi.totalAmount || 0).toLocaleString()}원`,
-            time: '',
-            color: '#b91c1c',
-            bgColor: '#fef2f2',
-            onClick: () => {
-              if (onOpenPurchaseLedgerForDate) onOpenPurchaseLedgerForDate(selectedDate);
-            }
-          });
-        });
-
-        // 6. 창고이동 필터링
-        const selectedTransfers = (inventoryTransferHistory || []).filter(h => h.date === selectedDayStr);
-        selectedTransfers.forEach(t => {
-          selectedDayItems.push({
-            uniqueId: `list-t-${t.id}`,
-            tag: '창고이동',
-            title: `${t.productName} 이동`,
-            subtitle: `${t.fromWarehouse} ➡️ ${t.toWarehouse} | 수량: ${t.qty}개`,
-            time: t.time || '',
-            color: '#1e40af',
-            bgColor: '#eff6ff',
-            onClick: () => {
-              if (onOpenInventoryTransferForDate) onOpenInventoryTransferForDate(selectedDate);
-            }
-          });
-        });
+        const selectedDayStr = format(validSelectedDate, 'yyyy-MM-dd');
+        const selectedSchedules = filterSchedulesForDateStr(selectedDayStr);
 
         return (
           <div className="selected-date-detail-list" style={{
@@ -577,72 +430,81 @@ const Calendar = ({ selectedDate, onDateSelect, onLogout, onAddSchedule, onAddOr
             display: 'flex',
             flexDirection: 'column',
             gap: '6px',
-            flex: 1, // 남은 세로 빈 공간을 가득 채우도록 확장
+            flex: 1,
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
               <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                📅 {format(selectedDate, 'yyyy년 M월 d일', { locale: ko })} 일정/내역
+                📅 {format(validSelectedDate, 'yyyy년 M월 d일', { locale: ko })} 일정
               </h4>
               <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-                총 {selectedDayItems.length}건
+                총 {selectedSchedules.length}건
               </span>
             </div>
             
-            {selectedDayItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-                등록된 일정이나 거래 내역이 없습니다.
+            {selectedSchedules.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                등록된 일정이 없습니다.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {selectedDayItems.map(item => (
-                  <div 
-                    key={item.uniqueId} 
-                    onClick={item.onClick}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      backgroundColor: item.bgColor,
-                      borderLeft: `4px solid ${item.color}`,
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, marginRight: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ 
-                          fontSize: '0.62rem', 
-                          fontWeight: 800, 
-                          color: item.color, 
-                          backgroundColor: '#ffffff', 
-                          padding: '1px 5px', 
-                          borderRadius: '4px',
-                          border: `1px solid ${item.color}40`,
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {item.tag}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', wordBreak: 'break-all' }}>
-                          {item.title}
-                        </span>
+                {selectedSchedules.map(s => {
+                  const badgeStyle = getBadgeStyles(s.type);
+                  const cleanTitle = (s.description || s.title || s.type || '').replace(/[\r\n]+/g, ' ').trim();
+                  return (
+                    <div 
+                      key={s.id} 
+                      onClick={() => {
+                        if (onOpenScheduleDetail) onOpenScheduleDetail(s);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        backgroundColor: '#f8fafc',
+                        borderLeft: `4px solid ${badgeStyle.color || '#3b82f6'}`,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        borderTop: '1px solid #e2e8f0',
+                        borderRight: '1px solid #e2e8f0',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, marginRight: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ 
+                            fontSize: '0.62rem', 
+                            fontWeight: 800, 
+                            color: badgeStyle.color, 
+                            backgroundColor: badgeStyle.backgroundColor, 
+                            padding: '1px 5px', 
+                            borderRadius: '4px',
+                            border: badgeStyle.border,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                          }}>
+                            {s.type}
+                          </span>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {cleanTitle}
+                          </span>
+                        </div>
+                        {s.location && (
+                          <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '2px' }}>
+                            📍 {s.location}
+                          </span>
+                        )}
                       </div>
-                      {item.subtitle && (
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '2px' }}>
-                          {item.subtitle}
+                      
+                      {s.time && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
+                          {s.time}
                         </span>
                       )}
                     </div>
-                    
-                    {item.time && (
-                      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
-                        {item.time}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

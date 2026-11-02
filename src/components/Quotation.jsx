@@ -17,6 +17,7 @@ import {
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
@@ -505,7 +506,21 @@ const Quotation = ({
           <div className="qo-title" style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileSpreadsheet size={18} color="#2563eb" />
             <span>{editingQuotation ? "견적서 수정" : "견적서"}</span>
-            <span className="qo-date-badge" style={{ fontSize: '0.78rem', padding: '2px 8px' }}>
+            <span className="qo-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '0.78rem', padding: '2px 6px' }}>
+              <DateNavButton
+                direction="prev"
+                disabled={!canIssuePastDateSlip && quotationData.date <= todayStr}
+                onClick={() => {
+                  const prevDate = addDays(quotationData.date, -1);
+                  if (!canIssuePastDateSlip && prevDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                    return;
+                  }
+                  setQuotationData(prev => ({ ...prev, date: prevDate }));
+                }}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
               <input 
                 type="date"
                 value={quotationData.date}
@@ -519,6 +534,12 @@ const Quotation = ({
                   setQuotationData(prev => ({ ...prev, date: newDate }));
                 }}
                 style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#475569', fontWeight: 700 }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setQuotationData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
               />
             </span>
           </div>

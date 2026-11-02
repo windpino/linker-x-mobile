@@ -4,6 +4,7 @@ import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { getStaffWarehouse, isMainWarehouse } from '../utils/warehouseUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
@@ -490,6 +491,20 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
           <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <ShoppingCart size={15} style={{ color: themeColor }} />
             <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#f1f5f9', padding: '2px 4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <DateNavButton
+                direction="prev"
+                disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
+                onClick={() => {
+                  const prevDate = addDays(orderData.date, -1);
+                  if (!canIssuePastDateSlip && prevDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                    return;
+                  }
+                  setOrderData(prev => ({ ...prev, date: prevDate }));
+                }}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
+              />
               <input 
                 type="date"
                 value={orderData.date}
@@ -517,6 +532,12 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   textAlign: 'center',
                   fontFamily: 'inherit'
                 }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                size={11}
+                style={{ width: '18px', height: '18px' }}
               />
               {orderData.partner && (partnerDayOrders.length > 0 || orderData.itemsText) && (
                 <span className="so-nav-controls" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -605,20 +626,42 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                   <div className="so-grid-2" style={{ marginBottom: '10px', animation: 'so-fade-in 0.2s' }}>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>수주일자</label>
-                      <input 
-                        type="date" 
-                        value={orderData.date} 
-                        min={!canIssuePastDateSlip ? todayStr : undefined}
-                        onChange={(e) => {
-                          const newDate = e.target.value;
-                          if (!canIssuePastDateSlip && newDate < todayStr) {
-                            alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                            return;
-                          }
-                          setOrderData({...orderData, date: newDate});
-                        }} 
-                        style={{ padding: '6px', fontSize: '0.8rem' }} 
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <DateNavButton
+                          direction="prev"
+                          disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
+                          onClick={() => {
+                            const prevDate = addDays(orderData.date, -1);
+                            if (!canIssuePastDateSlip && prevDate < todayStr) {
+                              alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                              return;
+                            }
+                            setOrderData({ ...orderData, date: prevDate });
+                          }}
+                          size={12}
+                          style={{ width: '20px', height: '20px' }}
+                        />
+                        <input 
+                          type="date" 
+                          value={orderData.date} 
+                          min={!canIssuePastDateSlip ? todayStr : undefined}
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            if (!canIssuePastDateSlip && newDate < todayStr) {
+                              alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                              return;
+                            }
+                            setOrderData({...orderData, date: newDate});
+                          }} 
+                          style={{ padding: '6px', fontSize: '0.8rem', flex: 1 }} 
+                        />
+                        <DateNavButton
+                          direction="next"
+                          onClick={() => setOrderData({ ...orderData, date: addDays(orderData.date, 1) })}
+                          size={12}
+                          style={{ width: '20px', height: '20px' }}
+                        />
+                      </div>
                     </div>
                     <div className="form-group">
                       <label style={{ fontSize: '0.78rem' }}>담당자</label>

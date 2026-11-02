@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { History, Printer, Download, Search, Calendar, Trash2, Users, User, X, Clock, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { History, Printer, Download, Search, Calendar, Trash2, Users, User, Filter, X, Clock, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
+import { DateNavButton, DateInputWithArrows, addDays } from '../utils/dateNavigationUtils';
 
 const extractDateTime = (item) => {
   let dateStr = item.date || '';
@@ -73,6 +74,7 @@ const RecentActivityModal = ({
   const [dateFilter, setDateFilter] = useState('');
   const [selectedActIds, setSelectedActIds] = useState([]);
   const [localRetentionPeriod, setLocalRetentionPeriod] = useState(retentionPeriod || 'none');
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
   const getTodayStr = () => {
     const d = new Date();
@@ -81,15 +83,8 @@ const RecentActivityModal = ({
 
   const shiftDate = (days) => {
     const baseStr = dateFilter || getTodayStr();
-    const parts = baseStr.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      d.setDate(d.getDate() + days);
-      const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      setDateFilter(nextStr);
-    } else {
-      setDateFilter(getTodayStr());
-    }
+    const nextStr = addDays(baseStr, days);
+    setDateFilter(nextStr || getTodayStr());
   };
 
   useEffect(() => {
@@ -151,17 +146,17 @@ const RecentActivityModal = ({
   const allActivities = useMemo(() => {
     const list = [];
     const loggedTargetIds = new Set();
-    const activeCompanyId = currentUser?.companyId;
+    const activeCompanyId = currentUser?.companyId ? String(currentUser.companyId) : null;
 
     const isSameCompany = (item) => {
       if (!item) return false;
       if (!activeCompanyId) return true;
-      if (item.companyId && item.companyId !== activeCompanyId) return false;
+      if (item.companyId && String(item.companyId) !== activeCompanyId) return false;
       return true;
     };
 
     // 1) Action / Activity Logs (Permanent Audit History)
-    activityLogs.filter(isSameCompany).forEach((log, idx) => {
+    (activityLogs || []).filter(isSameCompany).forEach((log, idx) => {
       if (log.targetId) {
         loggedTargetIds.add(`${log.targetId}_${log.type || '등록'}`);
       }
@@ -221,7 +216,7 @@ const RecentActivityModal = ({
     });
 
     // 2) Fallback for active Sales Invoices (if not already logged)
-    salesInvoices.filter(isSameCompany).forEach(inv => {
+    (salesInvoices || []).filter(isSameCompany).forEach(inv => {
       if (loggedTargetIds.has(`${inv.id}_등록`)) return;
       const dt = extractDateTime(inv);
       const itemsSummary = (inv.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -246,7 +241,7 @@ const RecentActivityModal = ({
     });
 
     // 3) Fallback for active Purchase Invoices (if not already logged)
-    purchaseInvoices.filter(isSameCompany).forEach(inv => {
+    (purchaseInvoices || []).filter(isSameCompany).forEach(inv => {
       if (loggedTargetIds.has(`${inv.id}_등록`)) return;
       const dt = extractDateTime(inv);
       const itemsSummary = (inv.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -271,7 +266,7 @@ const RecentActivityModal = ({
     });
 
     // 4) Fallback for active Sales Orders (if not already logged)
-    salesOrders.filter(isSameCompany).forEach(ord => {
+    (salesOrders || []).filter(isSameCompany).forEach(ord => {
       if (loggedTargetIds.has(`${ord.id}_등록`)) return;
       const dt = extractDateTime(ord);
       const itemsSummary = (ord.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -296,7 +291,7 @@ const RecentActivityModal = ({
     });
 
     // 5) Purchase Orders
-    purchaseOrders.filter(isSameCompany).forEach(po => {
+    (purchaseOrders || []).filter(isSameCompany).forEach(po => {
       if (loggedTargetIds.has(`${po.id}_등록`)) return;
       const dt = extractDateTime(po);
       const itemsSummary = (po.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -346,7 +341,7 @@ const RecentActivityModal = ({
     });
 
     // 6) Inventory Movements
-    inventoryMovements.filter(isSameCompany).forEach(mov => {
+    (inventoryMovements || []).filter(isSameCompany).forEach(mov => {
       if (loggedTargetIds.has(`${mov.id}_이동`) || loggedTargetIds.has(`${mov.id}_등록`)) return;
       const isPhysicalAdjustment = 
         mov.isPhysicalAdjustment || 
@@ -357,6 +352,16 @@ const RecentActivityModal = ({
         (typeof mov.to === 'string' && (mov.to.includes('실사') || mov.to.includes('재고조정'))) ||
         (typeof mov.description === 'string' && (mov.description.includes('실사') || mov.description.includes('재고조정')));
       if (isPhysicalAdjustment) return;
+
+      // 매출출고 제외: 매출전표로 인한 출고는 '매출' 카테고리에서 표시되므로 재고이동 목록에서 제외
+      if (
+        mov.to === '매출출고' || 
+        mov.salesInvoiceId || 
+        (typeof mov.to === 'string' && mov.to.includes('매출')) ||
+        (typeof mov.memo === 'string' && (mov.memo.startsWith('[매출]') || mov.memo.includes('매출출고')))
+      ) {
+        return;
+      }
 
       const itemDetail = mov.item ? `${mov.item} (${mov.qty}개${mov.spec ? `, 규격: ${mov.spec}` : ''})` : (mov.items?.map(i => `${i.name}(${i.qty}개)`).join(', ') || '재고 품목');
       const dt = extractDateTime(mov);
@@ -381,7 +386,7 @@ const RecentActivityModal = ({
     });
 
     // 7) Inventory Adjustments
-    inventoryAdjustments.filter(isSameCompany).forEach(adj => {
+    (inventoryAdjustments || []).filter(isSameCompany).forEach(adj => {
       if (loggedTargetIds.has(`${adj.id}_조정`) || loggedTargetIds.has(`${adj.id}_등록`)) return;
       const dt = extractDateTime(adj);
       list.push({
@@ -499,37 +504,29 @@ const RecentActivityModal = ({
 
   return (
     <WindowModal title="최근 처리 현황 보고서" onClose={onClose} width="1100px">
-      <div className="report-v2-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <div className="report-v2-title-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <History size={26} color="#f59e0b" />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 className="report-v2-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
-                최근 처리 현황 보고서
-              </h2>
-              <span style={{ fontSize: '0.7rem', color: '#10b981', backgroundColor: '#f0fdf4', padding: '2px 8px', borderRadius: '12px', fontWeight: 750, border: '1px solid #bbf7d0' }}>
-                단순 이력 표시 (내역 삭제 시 원본 보존)
-              </span>
-            </div>
-            <p style={{ margin: '3px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>
-              💡 최근 처리 현황은 단순 작업 내역 확인용이며, <strong>내역을 삭제하더라도 실제 전표/주문서/재고 등의 원본 데이터는 전혀 삭제되지 않습니다.</strong>
-            </p>
-          </div>
+      {/* Header: Title & Actions on a clean responsive row */}
+      <div className="report-v2-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <div className="report-v2-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <History size={22} color="#f59e0b" />
+          <h2 className="report-v2-title" style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>
+            최근 처리 현황 보고서
+          </h2>
         </div>
-        <div className="report-v2-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+
+        <div className="report-v2-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* 내역 자동삭제 기한 설정 셀렉트 */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '4px',
             backgroundColor: '#ffffff',
             padding: '4px 8px',
             borderRadius: '8px',
             border: '1px solid #cbd5e1',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
           }}>
-            <Clock size={14} color="#f59e0b" />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+            <Clock size={13} color="#f59e0b" />
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
               자동삭제 기한:
             </span>
             <select
@@ -538,7 +535,7 @@ const RecentActivityModal = ({
               style={{
                 border: 'none',
                 background: 'transparent',
-                fontSize: '0.78rem',
+                fontSize: '0.75rem',
                 fontWeight: 800,
                 color: localRetentionPeriod === 'none' ? '#64748b' : '#2563eb',
                 outline: 'none',
@@ -547,323 +544,330 @@ const RecentActivityModal = ({
               title="설정한 기한이 경과한 내역은 자동으로 삭제되며 원본 데이터는 안전하게 보존됩니다"
             >
               <option value="none">보관 제한 없음</option>
-              <option value="1day">하루 (1일 보관 후 자동삭제)</option>
-              <option value="1week">일주일 (7일 보관 후 자동삭제)</option>
-              <option value="1month">한달 (30일 보관 후 자동삭제)</option>
-              <option value="3months">3개월 (90일 보관 후 자동삭제)</option>
-              <option value="6months">6개월 (180일 보관 후 자동삭제)</option>
-              <option value="1year">1년 (365일 보관 후 자동삭제)</option>
+              <option value="1day">하루 (1일 보관)</option>
+              <option value="1week">일주일 (7일 보관)</option>
+              <option value="1month">한달 (30일 보관)</option>
+              <option value="3months">3개월 (90일 보관)</option>
+              <option value="6months">6개월 (180일 보관)</option>
+              <option value="1year">1년 (365일 보관)</option>
             </select>
           </div>
 
-          {/* 저장하기 버튼 (인쇄버튼 앞에 위치) */}
+          {/* 저장하기 버튼 */}
           <button 
             className="btn-v2-action" 
             onClick={handleSaveRetention} 
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '6px', 
-              padding: '6px 12px', 
-              fontSize: '0.8rem',
+              gap: '4px', 
+              padding: '5px 10px', 
+              fontSize: '0.75rem',
               backgroundColor: '#2563eb',
               color: '#ffffff',
               fontWeight: 700,
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(37,99,235,0.2)'
+              boxShadow: '0 1px 3px rgba(37,99,235,0.2)',
+              whiteSpace: 'nowrap'
             }}
             title="선택한 자동삭제 기한을 저장하고 즉시 적용합니다"
           >
-            <Save size={14} /> 저장하기
+            <Save size={13} /> 저장하기
           </button>
 
-          <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.8rem' }}>
-            <Printer size={14} /> 인쇄
+          {/* 설정창(필터/검색) 펼치기/접기 토글 버튼 */}
+          <button
+            type="button"
+            className="btn-v2-action"
+            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '5px 10px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              backgroundColor: isFilterExpanded ? '#eff6ff' : '#ffffff',
+              color: isFilterExpanded ? '#2563eb' : '#475569',
+              border: isFilterExpanded ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              whiteSpace: 'nowrap'
+            }}
+            title="검색, 날짜, 카테고리, 직원별 보기 설정창을 열거나 닫습니다"
+          >
+            <Filter size={13} color={isFilterExpanded ? "#2563eb" : "#64748b"} />
+            <span>설정창 {isFilterExpanded ? '접기 ▲' : '열기 ▼'}</span>
+            {(activeCategory !== '전체' || selectedStaff !== '전체' || dateFilter || searchTerm) && (
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+            )}
           </button>
-          <button className="btn-v2-action" onClick={handleExcelExport} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.8rem' }}>
-            <Download size={14} /> 엑셀 다운로드
+
+          <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <Printer size={13} /> 인쇄
           </button>
+          <button className="btn-v2-action" onClick={handleExcelExport} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <Download size={13} /> 엑셀 다운로드
+          </button>
+
+          {canDelete && selectedActIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const targets = filteredActivities.filter(a => selectedActIds.includes(a.id));
+                if (onDeleteMultipleActivities) {
+                  onDeleteMultipleActivities(targets);
+                } else {
+                  targets.forEach(a => onDeleteActivity(a));
+                }
+                setSelectedActIds([]);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#dc2626',
+                backgroundColor: '#fee2e2',
+                border: '1px solid #fca5a5',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Trash2 size={13} /> 선택 삭제 ({selectedActIds.length}건)
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Category Tabs & Filter Row */}
-      <div className="report-v2-filters" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-        
-        {/* Top Row: Categories + Date & Search */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          
-          {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e2e8f0', padding: '3px', borderRadius: '8px', overflowX: 'auto', maxWidth: '100%' }}>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
-                  backgroundColor: activeCategory === cat ? '#ffffff' : 'transparent',
-                  color: activeCategory === cat ? '#2563eb' : '#64748b',
-                  boxShadow: activeCategory === cat ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+      {/* 설정창 접힘 상태일 때 활성 필터 요약 스트립 */}
+      {!isFilterExpanded && (activeCategory !== '전체' || selectedStaff !== '전체' || dateFilter || searchTerm) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.74rem', color: '#64748b', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontWeight: 700, color: '#2563eb' }}>적용 중인 필터:</span>
+          {activeCategory !== '전체' && <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>구분: {activeCategory}</span>}
+          {dateFilter && <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>날짜: {dateFilter}</span>}
+          {selectedStaff !== '전체' && <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>직원: {selectedStaff}</span>}
+          {searchTerm && <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>검색: {searchTerm}</span>}
+          <button
+            type="button"
+            onClick={() => { setActiveCategory('전체'); setSelectedStaff('전체'); setDateFilter(''); setSearchTerm(''); }}
+            style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: '0.72rem', textDecoration: 'underline', marginLeft: '4px' }}
+          >
+            필터 초기화
+          </button>
+        </div>
+      )}
 
-          {/* Date & Search Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#ffffff', padding: '3px 6px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <button
-                type="button"
-                onClick={() => shiftDate(-1)}
-                title="하루 전 (이전일)"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '4px',
-                  backgroundColor: '#f8fafc',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
+      {/* Category Tabs & Filter Row (기본 가리기 상태) */}
+      {isFilterExpanded && (
+        <div className="report-v2-filters" style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          {/* Top Row: Categories + Date & Search */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            {/* Category Tabs */}
+            <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e2e8f0', padding: '3px', borderRadius: '8px', overflowX: 'auto', maxWidth: '100%' }}>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s',
+                    backgroundColor: activeCategory === cat ? '#ffffff' : 'transparent',
+                    color: activeCategory === cat ? '#2563eb' : '#64748b',
+                    boxShadow: activeCategory === cat ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
 
-              <Calendar size={14} color="#64748b" style={{ marginLeft: '2px' }} />
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                style={{ border: 'none', background: 'transparent', fontSize: '0.78rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer', padding: '2px 0' }}
-              />
+            {/* Date & Search Filters */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 280px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#ffffff', padding: '3px 6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
+                <DateInputWithArrows
+                  value={dateFilter}
+                  onChange={(val) => setDateFilter(val)}
+                  onPrev={() => shiftDate(-1)}
+                  onNext={() => shiftDate(1)}
+                  inputStyle={{ border: 'none', padding: '2px 0', fontSize: '0.78rem', fontWeight: 600 }}
+                />
 
-              <button
-                type="button"
-                onClick={() => shiftDate(1)}
-                title="하루 뒤 (다음일)"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '4px',
-                  backgroundColor: '#f8fafc',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDateFilter(getTodayStr())}
-                title="오늘 날짜로 이동"
-                style={{
-                  padding: '3px 7px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '4px',
-                  backgroundColor: dateFilter === getTodayStr() ? '#eff6ff' : '#ffffff',
-                  color: dateFilter === getTodayStr() ? '#2563eb' : '#475569',
-                  cursor: 'pointer',
-                  fontSize: '0.72rem',
-                  fontWeight: 700
-                }}
-              >
-                오늘
-              </button>
-
-              {dateFilter && (
                 <button
                   type="button"
-                  onClick={() => setDateFilter('')}
-                  title="날짜 필터 해제 (전체 보기)"
+                  onClick={() => setDateFilter(getTodayStr())}
+                  title="오늘 날짜로 이동"
                   style={{
                     padding: '3px 7px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #cbd5e1',
                     borderRadius: '4px',
-                    backgroundColor: '#f1f5f9',
-                    color: '#64748b',
+                    backgroundColor: dateFilter === getTodayStr() ? '#eff6ff' : '#ffffff',
+                    color: dateFilter === getTodayStr() ? '#2563eb' : '#475569',
                     cursor: 'pointer',
                     fontSize: '0.72rem',
-                    fontWeight: 700
-                  }}
-                >
-                  전체
-                </button>
-              )}
-            </div>
-
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '180px', flex: 1 }}>
-              <Search size={14} style={{ position: 'absolute', left: '10px', color: '#94a3b8', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="내용 또는 담당자 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '6px 10px 6px 30px', fontSize: '0.78rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
-              />
-            </div>
-          </div>
-
-        </div>
-
-        {/* Bottom Row: Staff Tabs / Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 800, color: '#475569', flexShrink: 0 }}>
-            <Users size={14} color="#3b82f6" /> 직원별 보기:
-          </div>
-
-          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {staffOptions.map(staffName => {
-              const isSelected = selectedStaff === staffName;
-              const count = staffCounts[staffName] || 0;
-              return (
-                <button
-                  key={staffName}
-                  onClick={() => setSelectedStaff(staffName)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    fontSize: '0.72rem',
-                    fontWeight: isSelected ? 800 : 600,
-                    borderRadius: '20px',
-                    border: isSelected ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-                    color: isSelected ? '#1d4ed8' : '#475569',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    boxShadow: isSelected ? '0 1px 3px rgba(59, 130, 246, 0.2)' : 'none'
-                  }}
-                >
-                  {staffName === '전체' ? '전체 직원' : staffName}
-                  <span style={{
-                    fontSize: '0.68rem',
                     fontWeight: 700,
-                    padding: '1px 5px',
-                    borderRadius: '10px',
-                    backgroundColor: isSelected ? '#3b82f6' : '#f1f5f9',
-                    color: isSelected ? '#ffffff' : '#64748b'
-                  }}>
-                    {count}건
-                  </span>
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  오늘
                 </button>
-              );
-            })}
 
-            {selectedStaff !== '전체' && (
-              <button
-                onClick={() => setSelectedStaff('전체')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  padding: '3px 8px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: '#ef4444',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                <X size={12} /> 필터 해제
-              </button>
-            )}
-
-            {canDelete && (
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                {selectedActIds.length > 0 && (
+                {dateFilter && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const targets = filteredActivities.filter(a => selectedActIds.includes(a.id));
-                      if (onDeleteMultipleActivities) {
-                        onDeleteMultipleActivities(targets);
-                      } else {
-                        targets.forEach(a => onDeleteActivity(a));
-                      }
-                      setSelectedActIds([]);
-                    }}
+                    onClick={() => setDateFilter('')}
+                    title="날짜 필터 해제 (전체 보기)"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '4px 10px',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      color: '#dc2626',
-                      backgroundColor: '#fee2e2',
-                      border: '1px solid #fca5a5',
-                      borderRadius: '8px',
+                      padding: '3px 7px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#64748b',
                       cursor: 'pointer',
-                      boxShadow: '0 1px 3px rgba(220, 38, 38, 0.15)'
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <Trash2 size={12} /> 선택 삭제 ({selectedActIds.length}건)
-                  </button>
-                )}
-                {allActivities.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(`현재 최근 처리현황에 남아있는 전체 내역(${allActivities.length}건)을 완전히 삭제하시겠습니까?\n\n※ 실제 등록된 원본 전표/주문서/재고 등은 안전하게 보존되며, 최근 처리현황 내역만 깨끗이 비워집니다.`)) {
-                        if (onDeleteMultipleActivities) {
-                          onDeleteMultipleActivities(allActivities);
-                        } else {
-                          allActivities.forEach(a => onDeleteActivity(a));
-                        }
-                        setSelectedActIds([]);
-                      }
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '4px 10px',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      color: '#991b1b',
-                      backgroundColor: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      borderRadius: '8px',
-                      cursor: 'pointer'
-                    }}
-                    title="최근 처리현황 목록 전체를 한 번에 비웁니다"
-                  >
-                    <Trash2 size={12} /> 전체 비우기
+                    전체
                   </button>
                 )}
               </div>
-            )}
+
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '180px', flex: 1 }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', color: '#94a3b8', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  placeholder="내용 또는 담당자 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px 6px 30px', fontSize: '0.78rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row: Staff Tabs / Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 800, color: '#475569', flexShrink: 0 }}>
+              <Users size={14} color="#3b82f6" /> 직원별 보기:
+            </div>
+
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center', flex: 1 }}>
+              {staffOptions.map(staffName => {
+                const isSelected = selectedStaff === staffName;
+                const count = staffCounts[staffName] || 0;
+                return (
+                  <button
+                    key={staffName}
+                    onClick={() => setSelectedStaff(staffName)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: isSelected ? 800 : 600,
+                      borderRadius: '20px',
+                      border: isSelected ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                      backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                      color: isSelected ? '#1d4ed8' : '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      boxShadow: isSelected ? '0 1px 3px rgba(59, 130, 246, 0.2)' : 'none'
+                    }}
+                  >
+                    {staffName === '전체' ? '전체 직원' : staffName}
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '10px',
+                      backgroundColor: isSelected ? '#3b82f6' : '#f1f5f9',
+                      color: isSelected ? '#ffffff' : '#64748b'
+                    }}>
+                      {count}건
+                    </span>
+                  </button>
+                );
+              })}
+
+              {selectedStaff !== '전체' && (
+                <button
+                  onClick={() => setSelectedStaff('전체')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '3px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#ef4444',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={12} /> 필터 해제
+                </button>
+              )}
+
+              {canDelete && (
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                  {allActivities.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`현재 최근 처리현황에 남아있는 전체 내역(${allActivities.length}건)을 완전히 삭제하시겠습니까?\n\n※ 실제 등록된 원본 전표/주문서/재고 등은 안전하게 보존되며, 최근 처리현황 내역만 깨끗이 비워집니다.`)) {
+                          if (onDeleteMultipleActivities) {
+                            onDeleteMultipleActivities(allActivities);
+                          } else {
+                            allActivities.forEach(a => onDeleteActivity(a));
+                          }
+                          setSelectedActIds([]);
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        color: '#991b1b',
+                        backgroundColor: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                      title="최근 처리현황 목록 전체를 한 번에 비웁니다"
+                    >
+                      <Trash2 size={12} /> 전체 내역 비우기
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-      </div>
+      )}
 
       {/* Main Timeline List / Table */}
-      <div className="report-v2-content">
-        <div className="report-v2-table-container" style={{ maxHeight: '420px', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+      <div className="report-v2-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="report-v2-table-container" style={{ flex: 1, minHeight: '420px', maxHeight: isFilterExpanded ? 'calc(80vh - 260px)' : 'calc(80vh - 110px)', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', transition: 'max-height 0.2s ease-in-out' }}>
           <table className="report-v2-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '700px' }}>
             <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f1f5f9', zIndex: 10 }}>
               <tr style={{ borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#475569' }}>

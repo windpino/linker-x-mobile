@@ -7,6 +7,7 @@ import { exportToExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, writeBatch } from 'firebase/firestore';
 import { saveBundle } from '../utils/bundleSyncManager';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './ExcelManager.css';
 
 const InventoryTransferExcelManager = ({ 
@@ -44,7 +45,8 @@ const InventoryTransferExcelManager = ({
                   currentUser?.permissions?.ALL === true;
 
   const validTransfers = inventoryTransferHistory.filter(item => 
-    !item.isPhysicalAdjustment && !item.isAdjustment && !item.adjustmentId
+    !item.isPhysicalAdjustment && !item.isAdjustment && !item.adjustmentId &&
+    !item.salesInvoiceId && item.to !== '매출출고' && !(typeof item.memo === 'string' && item.memo.includes('매출출고'))
   );
 
   // 1. 엑셀 파일 다운로드
@@ -551,20 +553,28 @@ const InventoryTransferExcelManager = ({
             </div>
 
             {deleteMode === 'period' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                <input 
-                  type="date" 
-                  value={deleteStartDate} 
-                  onChange={(e) => setDeleteStartDate(e.target.value)} 
-                  style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  <DateNavButton direction="prev" onClick={() => setDeleteStartDate(addDays(deleteStartDate, -1))} size={11} style={{ width: '18px', height: '18px' }} />
+                  <input 
+                    type="date" 
+                    value={deleteStartDate} 
+                    onChange={(e) => setDeleteStartDate(e.target.value)} 
+                    style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
+                  />
+                  <DateNavButton direction="next" onClick={() => setDeleteStartDate(addDays(deleteStartDate, 1))} size={11} style={{ width: '18px', height: '18px' }} />
+                </span>
                 <span style={{ fontSize: '0.78rem', color: '#64748b' }}>~</span>
-                <input 
-                  type="date" 
-                  value={deleteEndDate} 
-                  onChange={(e) => setDeleteEndDate(e.target.value)} 
-                  style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
-                />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  <DateNavButton direction="prev" onClick={() => setDeleteEndDate(addDays(deleteEndDate, -1))} size={11} style={{ width: '18px', height: '18px' }} />
+                  <input 
+                    type="date" 
+                    value={deleteEndDate} 
+                    onChange={(e) => setDeleteEndDate(e.target.value)} 
+                    style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', width: '120px' }}
+                  />
+                  <DateNavButton direction="next" onClick={() => setDeleteEndDate(addDays(deleteEndDate, 1))} size={11} style={{ width: '18px', height: '18px' }} />
+                </span>
               </div>
             )}
             

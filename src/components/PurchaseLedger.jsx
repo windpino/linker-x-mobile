@@ -5,6 +5,7 @@ import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
 import './PurchaseInvoice.css';
 import './PurchaseManagementCommon.css';
+import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 
 const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenInvoice, currentUser, onUpdateInvoice, zIndex, initialPartner = '', initialDate = '' }) => {
   const [colWidths, setColWidths] = useState({
@@ -78,8 +79,9 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
 
   useEffect(() => {
     if (initialPartner) {
-      setSelectedPartner(initialPartner);
-      setSearchText(initialPartner);
+      const cleanPartner = typeof initialPartner === 'object' ? (initialPartner?.name || '') : String(initialPartner || '');
+      setSelectedPartner(cleanPartner.trim());
+      setSearchText(cleanPartner.trim());
     } else {
       setSelectedPartner('');
       setSearchText('');
@@ -167,7 +169,7 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
   let carriedForward = 0;
   const priorInvoices = purchaseInvoices.filter(inv => {
     if (inv.date >= startDate) return false;
-    if (selectedPartner) return inv.partner === selectedPartner;
+    if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
     return true;
   });
   const priorPurchases = priorInvoices.reduce((sum, inv) => {
@@ -201,7 +203,7 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
   const currentInvoices = purchaseInvoices
     .filter(inv => {
       if (inv.date < startDate || inv.date > endDate) return false;
-      if (selectedPartner) return inv.partner === selectedPartner;
+      if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
       return true;
     })
     .sort((a, b) => {
@@ -393,7 +395,7 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
 
   const currentSummaryInvoices = purchaseInvoices.filter(inv => {
     if (inv.date < startDate || inv.date > endDate) return false;
-    if (selectedPartner) return inv.partner === selectedPartner;
+    if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
     return true;
   });
   currentSummaryInvoices.forEach(inv => {
@@ -491,15 +493,63 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
         <div className="sales-ledger-filter" style={{ padding: '12px', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           
           {/* 1. 날짜 범위 선택 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '4px', alignItems: 'center', marginBottom: '10px' }}>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>시작일</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
+              <DateInputWithArrows
+                value={startDate}
+                onChange={val => setStartDate(val)}
+                onPrev={() => {
+                  const prev = addDays(startDate, -1);
+                  if (startDate === endDate) {
+                    setStartDate(prev);
+                    setEndDate(prev);
+                  } else {
+                    setStartDate(prev);
+                  }
+                }}
+                onNext={() => {
+                  const next = addDays(startDate, 1);
+                  if (startDate === endDate) {
+                    setStartDate(next);
+                    setEndDate(next);
+                  } else {
+                    setStartDate(next);
+                  }
+                }}
+                style={{ width: '100%', display: 'flex' }}
+                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
+                buttonSize={11}
+              />
             </div>
-            <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>종료일</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
+              <DateInputWithArrows
+                value={endDate}
+                onChange={val => setEndDate(val)}
+                onPrev={() => {
+                  const prev = addDays(endDate, -1);
+                  if (startDate === endDate) {
+                    setStartDate(prev);
+                    setEndDate(prev);
+                  } else {
+                    setEndDate(prev);
+                  }
+                }}
+                onNext={() => {
+                  const next = addDays(endDate, 1);
+                  if (startDate === endDate) {
+                    setStartDate(next);
+                    setEndDate(next);
+                  } else {
+                    setEndDate(next);
+                  }
+                }}
+                style={{ width: '100%', display: 'flex' }}
+                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
+                buttonSize={11}
+              />
             </div>
           </div>
 

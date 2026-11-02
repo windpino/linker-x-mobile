@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Package, Trash2, Camera, Save, X, AlertTriangle, FileText, Calendar as CalendarIcon, Tag, Users } from 'lucide-react';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const InventoryAdjustment = ({ onClose, products, partners, warehouses, onSave, currentUser }) => {
   const [formData, setFormData] = useState({
@@ -85,12 +86,16 @@ const InventoryAdjustment = ({ onClose, products, partners, warehouses, onSave, 
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>
                 <CalendarIcon size={16} /> 조정 일자
               </label>
-              <input 
-                type="date" 
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <DateNavButton direction="prev" onClick={() => setFormData({ ...formData, date: addDays(formData.date, -1) })} />
+                <input 
+                  type="date" 
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                />
+                <DateNavButton direction="next" onClick={() => setFormData({ ...formData, date: addDays(formData.date, 1) })} />
+              </div>
             </div>
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>

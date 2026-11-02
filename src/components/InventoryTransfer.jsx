@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeftRight, Search, Plus, X, Download, Save, Trash2, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeftRight, Search, Plus, X, Download, Save, Trash2, Check, FileSpreadsheet, Edit2 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
 import './InventoryTransfer.css';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const InventoryTransfer = ({ 
   onClose, currentUser, warehouses = [], products = [], inventory = {}, onMoveStock,
   onDeleteMoveStock, onUpdateMoveStock, historyData = [], setHistoryData,
   salesOrders = [], salesInvoices = [], onOpenSalesInvoice, onOpenSalesOrder,
   purchaseInvoices = [], onOpenPurchaseInvoice,
-  initialDate, staffList = []
+  initialDate, initialRecord = null, staffList = []
 }) => {
   // ─── 컬럼 너비 조정 (구분, 규격 제거) ───
   const [colWidths, setColWidths] = useState({
@@ -90,9 +91,12 @@ const InventoryTransfer = ({
   const [appliedToWarehouse, setAppliedToWarehouse] = useState('전체창고');
   const [appliedSearch, setAppliedSearch] = useState('');
 
-  // ─── 상단 등록창 토글 ───
+  // ─── 상단 등록창/수정창 상태 ───
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [transferMemo, setTransferMemo] = useState('수동이동');
   const [transferDate, setTransferDate] = useState(() => {
+    if (initialRecord?.date) return formatDateLocal(initialRecord.date);
     if (initialDate) return formatDateLocal(initialDate);
     return getTodayStr();
   });
@@ -107,6 +111,33 @@ const InventoryTransfer = ({
       setTransferDate(dateStr);
     }
   }, [initialDate]);
+
+  useEffect(() => {
+    if (initialRecord) {
+      setIsRegisterOpen(true);
+      setEditingRecord(initialRecord);
+      const recDate = initialRecord.date ? formatDateLocal(initialRecord.date) : getTodayStr();
+      setTransferDate(recDate);
+      setStartDateInput(recDate);
+      setEndDateInput(recDate);
+      setStartDate(recDate);
+      setEndDate(recDate);
+      if (initialRecord.from) setFromWarehouse(initialRecord.from);
+      if (initialRecord.to) setToWarehouse(initialRecord.to);
+      if (initialRecord.operator) setSelectedOperator(initialRecord.operator);
+      if (initialRecord.memo) setTransferMemo(initialRecord.memo);
+      if (initialRecord.qty) setQuantity(initialRecord.qty);
+      if (initialRecord.item) {
+        setItemSearch(initialRecord.item);
+        const prod = products.find(p => p.name === initialRecord.item);
+        if (prod) setSelectedProduct(prod);
+        else setSelectedProduct({ name: initialRecord.item, spec: initialRecord.spec || '' });
+
+        setHistorySearch(initialRecord.item);
+        setAppliedSearch(initialRecord.item);
+      }
+    }
+  }, [initialRecord, products]);
 
   // ─── 메인 창고 & 담당자 기본 설정 ───
   const mainWarehouseName = useMemo(() => {
@@ -341,6 +372,28 @@ const InventoryTransfer = ({
     }, 10);
   };
 
+  const handleStartEditInTopForm = (row) => {
+    setIsRegisterOpen(true);
+    setEditingRecord(row);
+    const recDate = row.date ? formatDateLocal(row.date) : getTodayStr();
+    setTransferDate(recDate);
+    if (row.from) setFromWarehouse(row.from);
+    if (row.to) setToWarehouse(row.to);
+    if (row.operator) setSelectedOperator(row.operator);
+    setTransferMemo(row.memo || '수동이동');
+    setQuantity(row.qty || 1);
+    if (row.item) {
+      setItemSearch(row.item);
+      const prod = products.find(p => p.name === row.item);
+      if (prod) setSelectedProduct(prod);
+      else setSelectedProduct({ name: row.item, spec: row.spec || '' });
+    }
+    setTimeout(() => {
+      qtyInputRef.current?.focus();
+      qtyInputRef.current?.select();
+    }, 50);
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -400,6 +453,16 @@ const InventoryTransfer = ({
   const recentHistory = useMemo(() => {
     return historyData.filter(item => {
       if (item.isPhysicalAdjustment || item.isAdjustment || item.adjustmentId) return false;
+
+      // 매출출고 제외: 각 차량/창고에서 매출로 출고된 내역은 창고이동 내역에서 제외 (실제 상차 및 창고간 이동만 표시)
+      if (
+        item.to === '매출출고' || 
+        item.salesInvoiceId || 
+        (typeof item.to === 'string' && item.to.includes('매출')) ||
+        (typeof item.memo === 'string' && (item.memo.startsWith('[매출]') || item.memo.includes('매출출고')))
+      ) {
+        return false;
+      }
 
       const itemDate = normalizeDate(item.date);
       if (startDate && itemDate && itemDate < startDate) return false;
@@ -803,6 +866,51 @@ const InventoryTransfer = ({
       }
     }
 
+    if (editingRecord) {
+      try {
+        const rowOperator = selectedOperator || currentUser?.name || '관리자';
+        const updatedEntry = {
+          ...editingRecord,
+          from: fromWarehouse,
+          to: toWarehouse,
+          item: movingName,
+          spec: prodObj?.spec || editingRecord.spec || '',
+          qty: movingQty,
+          date: transferDate,
+          operator: rowOperator,
+          memo: transferMemo || editingRecord.memo || '수동이동'
+        };
+
+        if (onUpdateMoveStock) {
+          await onUpdateMoveStock(editingRecord.id, updatedEntry);
+        } else {
+          await onDeleteMoveStock(editingRecord.id);
+          await onMoveStock(
+            fromWarehouse,
+            toWarehouse,
+            movingName,
+            movingQty,
+            false,
+            transferDate,
+            null,
+            rowOperator
+          );
+        }
+
+        setSuccessMsg(`✓ [${movingName}] 재고이동 내역이 성공적으로 수정되었습니다.`);
+        setTimeout(() => setSuccessMsg(''), 3000);
+        setEditingRecord(null);
+        setItemSearch('');
+        setSelectedProduct(null);
+        setQuantity(0);
+        setTransferMemo('수동이동');
+      } catch (err) {
+        console.error(err);
+        alert('재고이동 수정 중 오류가 발생했습니다.');
+      }
+      return;
+    }
+
     try {
       await onMoveStock(
         fromWarehouse, 
@@ -904,21 +1012,51 @@ const InventoryTransfer = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>이력조회:</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <DateNavButton
+                  direction="prev"
+                  title="이력조회 하루 전"
+                  onClick={() => {
+                    const prevStart = addDays(startDateInput, -1);
+                    const prevEnd = (startDateInput === endDateInput) ? prevStart : addDays(endDateInput, -1);
+                    setStartDateInput(prevStart);
+                    setEndDateInput(prevEnd);
+                    setStartDate(prevStart);
+                    setEndDate(prevEnd);
+                  }}
+                />
                 <input 
                   type="date" 
                   value={startDateInput} 
-                  onChange={e => setStartDateInput(e.target.value)} 
+                  onChange={e => {
+                    setStartDateInput(e.target.value);
+                    setStartDate(e.target.value);
+                  }} 
                   onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.8rem', color: '#1e293b', fontWeight: 700 }} 
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#1e293b', fontWeight: 700 }} 
                 />
                 <span style={{ color: '#94a3b8', fontWeight: 700 }}>~</span>
                 <input 
                   type="date" 
                   value={endDateInput} 
-                  onChange={e => setEndDateInput(e.target.value)} 
+                  onChange={e => {
+                    setEndDateInput(e.target.value);
+                    setEndDate(e.target.value);
+                  }} 
                   onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.8rem', color: '#1e293b', fontWeight: 700 }} 
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#1e293b', fontWeight: 700 }} 
+                />
+                <DateNavButton
+                  direction="next"
+                  title="이력조회 하루 뒤"
+                  onClick={() => {
+                    const nextStart = addDays(startDateInput, 1);
+                    const nextEnd = (startDateInput === endDateInput) ? nextStart : addDays(endDateInput, 1);
+                    setStartDateInput(nextStart);
+                    setEndDateInput(nextEnd);
+                    setStartDate(nextStart);
+                    setEndDate(nextEnd);
+                  }}
                 />
               </div>
 
@@ -1030,16 +1168,72 @@ const InventoryTransfer = ({
           </div>
         </div>
 
-        {/* 신규 등록 폼 (토글) */}
+        {/* 신규 등록/수정 폼 (토글) */}
         {isRegisterOpen && (
-          <div className="inv-form-box" style={{ background: '#fff', border: '1.5px solid #3b82f6', padding: '12px 14px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)' }}>
+          <div className="inv-form-box" style={{ background: '#fff', border: editingRecord ? '2px solid #2563eb' : '1.5px solid #3b82f6', padding: '12px 14px', borderRadius: '10px', boxShadow: editingRecord ? '0 4px 12px rgba(37, 99, 235, 0.12)' : '0 2px 8px rgba(59, 130, 246, 0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: editingRecord ? '#1d4ed8' : '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {editingRecord ? <Edit2 size={14} color="#2563eb" /> : <Plus size={14} color="#3b82f6" />}
+                {editingRecord ? '재고이동 상세 수정' : '신규 재고이동 간편등록'}
+              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {editingRecord && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setEditingRecord(null);
+                      setItemSearch('');
+                      setSelectedProduct(null);
+                      setQuantity(1);
+                      setTransferMemo('수동이동');
+                    }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '2px 7px', color: '#475569', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                  >
+                    + 신규 등록 전환
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  onClick={() => { setIsRegisterOpen(false); setEditingRecord(null); }}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {editingRecord && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700 }}>
+                  ✏️ <b>{editingRecord.item}</b> ({Number(editingRecord.qty).toLocaleString()}개) 수정 중
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm('이 재고이동 내역을 삭제하시겠습니까?\n삭제 시 이동된 재고는 원래 창고로 자동 환원됩니다.')) {
+                      if (onDeleteMoveStock) {
+                        await onDeleteMoveStock(editingRecord.id);
+                      } else {
+                        setHistoryData(historyData.filter(h => h.id !== editingRecord.id));
+                      }
+                      setEditingRecord(null);
+                      setIsRegisterOpen(false);
+                    }
+                  }}
+                  style={{ padding: '2px 7px', fontSize: '0.72rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <Trash2 size={12} /> 이 내역 삭제
+                </button>
+              </div>
+            )}
+
             {successMsg && (
-              <div style={{ padding: '6px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#059669', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px' }}>
-                {successMsg}
+              <div style={{ padding: '6px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#059669', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Check size={14} /> {successMsg}
               </div>
             )}
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <div className="inv-col">
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>담당자</label>
                 <select 
@@ -1061,7 +1255,27 @@ const InventoryTransfer = ({
                 </select>
               </div>
               <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>출고(메인)</label>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>이동 일자</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <DateNavButton
+                    direction="prev"
+                    onClick={() => setTransferDate(prev => addDays(prev, -1))}
+                  />
+                  <input 
+                    type="date" 
+                    className="inv-input" 
+                    value={transferDate} 
+                    onChange={e => setTransferDate(e.target.value)} 
+                    style={{ flex: 1, minWidth: 0, padding: '5px 6px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.76rem' }} 
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => setTransferDate(prev => addDays(prev, 1))}
+                  />
+                </div>
+              </div>
+              <div className="inv-col">
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>출고 창고(메인)</label>
                 <select 
                   className="inv-select" 
                   value={fromWarehouse} 
@@ -1072,7 +1286,7 @@ const InventoryTransfer = ({
                 </select>
               </div>
               <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>입고</label>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>입고 창고</label>
                 <select 
                   className="inv-select" 
                   value={toWarehouse} 
@@ -1082,19 +1296,9 @@ const InventoryTransfer = ({
                   {renderWarehouseOptions(false)}
                 </select>
               </div>
-              <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>일자</label>
-                <input 
-                  type="date" 
-                  className="inv-input" 
-                  value={transferDate} 
-                  onChange={e => setTransferDate(e.target.value)} 
-                  style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.8rem' }} 
-                />
-              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 80px', gap: '8px', alignItems: 'end' }} ref={searchRef}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} ref={searchRef}>
               <div style={{ position: 'relative' }}>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
                   품목 검색 (단축어/초성)
@@ -1131,7 +1335,7 @@ const InventoryTransfer = ({
                       setShowSuggestions(false);
                     }
                   }}
-                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', outline: 'none', fontSize: '0.8rem' }}
+                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
                 />
                 {showSuggestions && suggestions.length > 0 && (
                   <div style={{
@@ -1156,34 +1360,56 @@ const InventoryTransfer = ({
                 )}
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
-                  수량 (Enter 저장)
-                </label>
-                <input 
-                  ref={qtyInputRef}
-                  type="number" 
-                  className="inv-input" 
-                  value={quantity}
-                  onChange={e => setQuantity(e.target.value)}
-                  onFocus={e => e.target.select()}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleTransfer();
-                    }
-                  }}
-                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem' }}
-                />
-              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 90px', gap: '8px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
+                    수량
+                  </label>
+                  <input 
+                    ref={qtyInputRef}
+                    type="number" 
+                    className="inv-input" 
+                    value={quantity}
+                    onChange={e => setQuantity(e.target.value)}
+                    onFocus={e => e.target.select()}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleTransfer();
+                      }
+                    }}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  />
+                </div>
 
-              <button 
-                ref={submitBtnRef}
-                onClick={handleTransfer}
-                style={{ height: '34px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem' }}
-              >
-                저장
-              </button>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
+                    비고
+                  </label>
+                  <input 
+                    type="text" 
+                    className="inv-input" 
+                    value={transferMemo}
+                    onChange={e => setTransferMemo(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleTransfer();
+                      }
+                    }}
+                    placeholder="비고"
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <button 
+                  ref={submitBtnRef}
+                  onClick={handleTransfer}
+                  style={{ height: '34px', background: editingRecord ? '#2563eb' : '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                >
+                  <Save size={13} /> {editingRecord ? '수정 저장' : '이동 저장'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1490,19 +1716,48 @@ const InventoryTransfer = ({
                                 </button>
                               </>
                             ) : isEditableType ? (
-                              <button
-                                type="button"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (window.confirm('이 이동 내역을 삭제하시겠습니까?')) {
-                                    if (onDeleteMoveStock) await onDeleteMoveStock(row.id);
-                                    else setHistoryData(historyData.filter(h => h.id !== row.id));
-                                  }
-                                }}
-                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditInTopForm(row);
+                                  }}
+                                  style={{
+                                    padding: '2px 4px',
+                                    background: '#eff6ff',
+                                    color: '#2563eb',
+                                    border: '1px solid #bfdbfe',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2px'
+                                  }}
+                                  title="상단 폼으로 열어 수정"
+                                >
+                                  <Edit2 size={10} /> 수정
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('이 이동 내역을 삭제하시겠습니까?')) {
+                                      if (onDeleteMoveStock) await onDeleteMoveStock(row.id);
+                                      else setHistoryData(historyData.filter(h => h.id !== row.id));
+                                      if (editingRecord?.id === row.id) {
+                                        setEditingRecord(null);
+                                        setIsRegisterOpen(false);
+                                      }
+                                    }
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, padding: '2px' }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
                             ) : (
                               <span style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>-</span>
                             )}

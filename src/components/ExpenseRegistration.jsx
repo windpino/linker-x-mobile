@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, Printer, Download, Plus, Settings, CreditCard, Banknote, Landmark, FileText, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { exportToExcel } from '../utils/excelUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import './ExpenseRegistration.css';
 
 const ExpenseRegistration = ({ onClose, staffList = [], expenses = [], onSave }) => {
@@ -82,12 +83,16 @@ const ExpenseRegistration = ({ onClose, staffList = [], expenses = [], onSave })
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>날짜</label>
-              <input 
-                type="date" 
-                value={expenseData.date} 
-                onChange={e => setExpenseData({...expenseData, date: e.target.value})} 
-                style={{ width: '100%', height: '34px', padding: '0 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <DateNavButton direction="prev" onClick={() => setExpenseData({ ...expenseData, date: addDays(expenseData.date, -1) })} size={11} style={{ width: '20px', height: '20px' }} />
+                <input 
+                  type="date" 
+                  value={expenseData.date} 
+                  onChange={e => setExpenseData({...expenseData, date: e.target.value})} 
+                  style={{ flex: 1, minWidth: 0, height: '34px', padding: '0 6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <DateNavButton direction="next" onClick={() => setExpenseData({ ...expenseData, date: addDays(expenseData.date, 1) })} size={11} style={{ width: '20px', height: '20px' }} />
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>담당자</label>

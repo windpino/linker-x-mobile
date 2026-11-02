@@ -9,6 +9,7 @@ import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], setSpecialPrices, inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || 
@@ -118,10 +119,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       } else if (!initialWH) {
         initialWH = userWH;
       }
+      const rawItems = editingInvoice.items;
+      const safeItems = Array.isArray(rawItems) ? rawItems : (rawItems && typeof rawItems === 'object' ? Object.values(rawItems) : []);
       return {
         ...editingInvoice,
         warehouse: initialWH,
-        items: editingInvoice.items || [],
+        items: safeItems,
         payments: initialPayments,
         paymentList: initialPaymentList
       };
@@ -129,7 +132,8 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     return {
       id: Date.now(),
       date: (() => {
-        const d = selectedDate || new Date();
+        if (selectedDate && typeof selectedDate === 'string') return selectedDate;
+        const d = (selectedDate instanceof Date && !isNaN(selectedDate.getTime())) ? selectedDate : new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       })(),
       partner: '',
@@ -156,24 +160,36 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const [editingPaymentSlipId, setEditingPaymentSlipId] = useState(null);
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
-  const openPaymentModal = (slipToEdit = null) => {
+  const openPaymentModal = (slipOrEvent = null) => {
     if (!invoiceData.partner) {
       alert('거래처를 먼저 선택해주세요.');
       return;
     }
+
+    const isRealSlip = slipOrEvent && 
+      typeof slipOrEvent === 'object' && 
+      !slipOrEvent.nativeEvent && 
+      !slipOrEvent._reactName && 
+      !slipOrEvent.target && 
+      (slipOrEvent.id !== undefined || slipOrEvent.cash !== undefined);
+
+    const slipToEdit = isRealSlip ? slipOrEvent : null;
+
     if (slipToEdit) {
       setEditingPaymentSlipId(slipToEdit.id);
-      const targetTotal = (slipToEdit.totalAmount || 0) + (slipToEdit.discount || 0) || (totalAmount > 0 ? totalAmount : previousBalance);
+      const slipTotal = (Number(slipToEdit.totalAmount) || 0) + (Number(slipToEdit.discount) || 0);
+      const defaultFullTotal = (previousBalance > 0 ? previousBalance : 0) + (totalAmount > 0 ? totalAmount : 0);
+      const targetTotal = slipTotal > 0 ? slipTotal : (defaultFullTotal > 0 ? defaultFullTotal : 0);
       setTempPaymentState({
         date: slipToEdit.date || invoiceData.date,
         targetTotal: targetTotal,
         payments: {
-          cash: slipToEdit.cash || 0,
-          account: slipToEdit.account || 0,
-          card: slipToEdit.card || 0,
-          bill: slipToEdit.bill || 0
+          cash: Number(slipToEdit.cash) || 0,
+          account: Number(slipToEdit.account) || 0,
+          card: Number(slipToEdit.card) || 0,
+          bill: Number(slipToEdit.bill) || 0
         },
-        discount: slipToEdit.discount || 0,
+        discount: Number(slipToEdit.discount) || 0,
         memo: slipToEdit.memo || ''
       });
       setIsPaymentModalOpen(true);
@@ -183,7 +199,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     setEditingPaymentSlipId(null);
     const currentItems = Array.isArray(invoiceData.items) ? invoiceData.items : [];
     const currentTotal = currentItems.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
-    const targetTotal = currentTotal > 0 ? currentTotal : (previousBalance > 0 ? previousBalance : 0);
+    const curPrevBalance = previousBalance > 0 ? previousBalance : 0;
+    const curReceived = Number(invoiceData.receivedAmount) || 0;
+    const curDiscount = Number(invoiceData.discount) || 0;
+
+    // 전미수를 포함한 전체 금액 (이전 미수금 + 금회 총액 - 기입금액 - 할인액)
+    const fullTargetTotal = Math.max(0, curPrevBalance + currentTotal - curReceived - curDiscount);
+    const targetTotal = fullTargetTotal > 0 ? fullTargetTotal : (curPrevBalance + currentTotal);
+
     const initialCash = targetTotal;
 
     setTempPaymentState({
@@ -201,18 +224,29 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     setIsPaymentModalOpen(true);
   };
 
+  const editingInvoicePropRef = useRef(null);
+  const editingInvoiceIdRef = useRef(editingInvoice?.id || null);
+
   useEffect(() => {
     if (editingInvoice) {
+      if (editingInvoicePropRef.current === editingInvoice && String(editingInvoiceIdRef.current) === String(editingInvoice.id)) {
+        return;
+      }
+      editingInvoicePropRef.current = editingInvoice;
+      editingInvoiceIdRef.current = editingInvoice.id;
+
+      const rawItems = editingInvoice.items;
+      const safeItems = Array.isArray(rawItems) ? rawItems : (rawItems && typeof rawItems === 'object' ? Object.values(rawItems) : []);
       const isAlreadySaved = salesInvoices.some(si => String(si.id) === String(editingInvoice.id));
       const isDep = Boolean(
         editingInvoice.isDepositOnly || 
-        (!editingInvoice.items?.length && (editingInvoice.receivedAmount > 0 || editingInvoice.memo === '입금전표' || editingInvoice.type === 'deposit'))
+        (!safeItems.length && (editingInvoice.receivedAmount > 0 || editingInvoice.memo === '입금전표' || editingInvoice.type === 'deposit'))
       );
       const initialPayments = editingInvoice.payments || { cash: 0, account: 0, card: 0, bill: 0 };
       const initialPaymentList = getInitialPaymentList(editingInvoice);
       let nextData = { 
         ...editingInvoice, 
-        items: editingInvoice.items || [],
+        items: safeItems,
         payments: initialPayments,
         paymentList: initialPaymentList,
         isDepositOnly: isDep,
@@ -232,15 +266,20 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
       if (isDep && editingInvoice.partner) {
         setEditingPaymentSlipId(initialPaymentList[0]?.id || null);
+        const slip = initialPaymentList[0] || {};
+        const slipTotal = (Number(slip.totalAmount) || 0) + (Number(slip.discount) || 0);
+        const currentPayTotal = (Number(editingInvoice.receivedAmount) || 0) + (Number(editingInvoice.discount) || 0);
+        const targetTotal = slipTotal > 0 ? slipTotal : (currentPayTotal > 0 ? currentPayTotal : 0);
         setTempPaymentState({
           date: editingInvoice.date || format(new Date(), 'yyyy-MM-dd'),
+          targetTotal: targetTotal,
           payments: {
-            cash: editingInvoice.payments?.cash || 0,
-            account: editingInvoice.payments?.account || 0,
-            card: editingInvoice.payments?.card || 0,
-            bill: editingInvoice.payments?.bill || 0
+            cash: Number(editingInvoice.payments?.cash || slip.cash) || 0,
+            account: Number(editingInvoice.payments?.account || slip.account) || 0,
+            card: Number(editingInvoice.payments?.card || slip.card) || 0,
+            bill: Number(editingInvoice.payments?.bill || slip.bill) || 0
           },
-          discount: editingInvoice.discount || 0,
+          discount: Number(editingInvoice.discount || slip.discount) || 0,
           memo: editingInvoice.memo || '입금전표'
         });
         setIsPaymentModalOpen(true);
@@ -253,6 +292,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           onSave(saveCopy);
         }, 100);
       }
+    } else {
+      editingInvoicePropRef.current = null;
+      editingInvoiceIdRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingInvoice, currentUser, userWH]);
@@ -269,21 +311,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     }
   }, [salesInvoices, invoiceData.id, invoiceData.partner, invoiceData.date, editingInvoice]);
 
-  const isEditingExistingSavedInvoice = Boolean(
-    editingInvoice && 
-    salesInvoices.some(si => String(si.id) === String(editingInvoice.id))
-  );
-
   // Calculate previous outstanding balance for the current partner
   const getPreviousBalance = () => {
     if (!invoiceData.partner || !currentPartner) return 0;
-    const currentReceivables = Number(currentPartner.receivables) || 0;
-    if (isEditingExistingSavedInvoice && editingInvoice && Array.isArray(editingInvoice.items)) {
-      const oldTotal = editingInvoice.items.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
-      const oldOutstanding = oldTotal - (Number(editingInvoice.receivedAmount) || 0) - (Number(editingInvoice.discount) || 0);
-      return currentReceivables - oldOutstanding;
-    }
-    return currentReceivables;
+    return Number(currentPartner.receivables || 0);
   };
 
   const previousBalance = getPreviousBalance();
@@ -342,7 +373,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   const convertedSearch = convertEnToKo(cleanSearch);
 
   const productSuggestions = cleanSearch
-    ? products.filter(p => {
+    ? (products || []).filter(p => {
         const matchesOriginal = matchesInitialSound(p.name, cleanSearch) ||
           (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch));
           
@@ -606,7 +637,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     // 특별단가 자동 저장: 입력된 품목 중 단가가 입력된 모든 품목에 대해 특별단가 자동 저장 보장
     if (invoiceData.partner && Array.isArray(invoiceData.items)) {
       invoiceData.items.forEach(item => {
-        const prod = products.find(p => String(p.id) === String(item.productId) || p.name === item.name);
+        const prod = products?.find(p => String(p.id) === String(item.productId) || p.name === item.name);
         if (prod && item.price !== undefined && item.price !== null) {
           autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
         }
@@ -869,9 +900,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
     const cleanVal = val.replace(/[^0-9]/g, '');
     const newPrice = cleanVal === '' ? 0 : Number(cleanVal);
     
-    const updatedItems = invoiceData.items.map(item => {
+    const updatedItems = (invoiceData.items || []).map(item => {
       if (item.id === itemId) {
-        const product = products.find(p => String(p.id) === String(item.productId));
+        const product = products?.find(p => String(p.id) === String(item.productId));
         const isTaxFree = item.taxType === '면세' || product?.taxType === '면세';
         const total = Math.floor(item.qty * newPrice);
         const supplyValue = isTaxFree ? total : Math.floor(total / 1.1);
@@ -893,7 +924,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   };
 
   const handleItemPriceBlur = (item) => {
-    const product = products.find(p => String(p.id) === String(item.productId));
+    const product = products?.find(p => String(p.id) === String(item.productId));
     if (!product) return;
     const numPrice = Number(item.price);
     if (isNaN(numPrice) || numPrice < 0) return;
@@ -902,38 +933,62 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
   // Note: Auto-syncing of payments removed as per user request to only process on 'Confirm'
 
-  const handlePaymentChange = (type, value, localState, setLocalState) => {
+  const handlePaymentChange = (type, value) => {
     const cleanStr = String(value).replace(/[^0-9]/g, '');
     const val = cleanStr === '' ? 0 : Number(cleanStr);
-    const target = (localState?.targetTotal !== undefined)
-      ? localState.targetTotal
-      : (totalAmount > 0 ? totalAmount : (previousBalance > 0 ? previousBalance : 0));
-    
-    if (type === 'discount') {
-      const others = (localState?.payments?.account || 0) + (localState?.payments?.card || 0) + (localState?.payments?.bill || 0);
-      const newCash = Math.max(0, target - val - others);
-      setLocalState({ 
-        ...localState, 
-        discount: val, 
-        payments: { ...(localState?.payments || {}), cash: newCash } 
-      });
-      return;
-    }
 
-    if (type === 'cash') {
-      setLocalState({
-        ...localState,
-        payments: { ...(localState?.payments || {}), cash: val }
-      });
-      return;
-    }
+    setTempPaymentState(prev => {
+      if (!prev) return prev;
+      const defaultTarget = (previousBalance > 0 ? previousBalance : 0) + (totalAmount > 0 ? totalAmount : 0);
+      const target = (prev.targetTotal !== undefined)
+        ? prev.targetTotal
+        : defaultTarget;
 
-    const newPayments = { ...(localState?.payments || {}), [type]: val };
-    const others = (newPayments.account || 0) + (newPayments.card || 0) + (newPayments.bill || 0);
-    const calculatedCash = Math.max(0, target - (localState?.discount || 0) - others);
-    newPayments.cash = calculatedCash;
+      if (type === 'cash') {
+        const others = (Number(prev.payments?.account) || 0) + 
+                       (Number(prev.payments?.card) || 0) + 
+                       (Number(prev.payments?.bill) || 0) + 
+                       (Number(prev.discount) || 0);
+        return {
+          ...prev,
+          targetTotal: val + others,
+          payments: {
+            ...(prev.payments || {}),
+            cash: val
+          }
+        };
+      }
 
-    setLocalState({ ...localState, payments: newPayments });
+      if (type === 'discount') {
+        const others = (Number(prev.payments?.account) || 0) + 
+                       (Number(prev.payments?.card) || 0) + 
+                       (Number(prev.payments?.bill) || 0);
+        const newCash = Math.max(0, target - val - others);
+        return {
+          ...prev,
+          discount: val,
+          payments: {
+            ...(prev.payments || {}),
+            cash: newCash
+          }
+        };
+      }
+
+      const newPayments = {
+        ...(prev.payments || {}),
+        [type]: val
+      };
+      const others = (Number(newPayments.account) || 0) + 
+                     (Number(newPayments.card) || 0) + 
+                     (Number(newPayments.bill) || 0);
+      const curDiscount = Number(prev.discount) || 0;
+      newPayments.cash = Math.max(0, target - curDiscount - others);
+
+      return {
+        ...prev,
+        payments: newPayments
+      };
+    });
   };
 
   return (
@@ -1017,25 +1072,48 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         zIndex={zIndex} 
         desktopOnly={true}
         headerExtra={
-          <button
-            type="button"
-            onClick={handleNewInvoice}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 10px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <RefreshCw size={13} /> 새전표
-          </button>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              type="button"
+              onClick={handleNewInvoice}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              <RefreshCw size={13} /> 새전표
+            </button>
+            {onOpenLedger && (
+              <button
+                type="button"
+                onClick={() => onOpenLedger(invoiceData.partner, invoiceData.date)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <BookOpen size={13} /> 원장조회
+              </button>
+            )}
+          </div>
         }
       >
         {/* 매출전표 본문 영역 - 가로 스크롤 래퍼 */}
@@ -1057,6 +1135,21 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>전표일자</span>
+                <DateNavButton
+                  direction="prev"
+                  onClick={() => {
+                    const newDate = addDays(invoiceData.date, -1);
+                    if (!canIssuePastDateSlip && newDate < todayStr) {
+                      alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                      return;
+                    }
+                    const updatedInvoice = {...invoiceData, date: newDate};
+                    setInvoiceData(updatedInvoice);
+                    if (updatedInvoice.items?.length > 0) {
+                      handleAutoSave(updatedInvoice);
+                    }
+                  }}
+                />
                 <input 
                   type="date" 
                   value={invoiceData.date} 
@@ -1069,15 +1162,15 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     }
                     const updatedInvoice = {...invoiceData, date: newDate};
                     setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
+                    if (updatedInvoice.items?.length > 0) {
                       handleAutoSave(updatedInvoice);
                     }
                   }} 
                   style={{ 
                     border: '1px solid #cbd5e1', 
                     borderRadius: '4px', 
-                    padding: '4px 8px', 
-                    fontSize: '0.82rem', 
+                    padding: '4px 6px', 
+                    fontSize: '0.8rem', 
                     fontWeight: 700, 
                     color: '#1e293b', 
                     cursor: 'pointer', 
@@ -1085,6 +1178,17 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     backgroundColor: '#ffffff',
                     height: '34px',
                     boxSizing: 'border-box'
+                  }}
+                />
+                <DateNavButton
+                  direction="next"
+                  onClick={() => {
+                    const newDate = addDays(invoiceData.date, 1);
+                    const updatedInvoice = {...invoiceData, date: newDate};
+                    setInvoiceData(updatedInvoice);
+                    if (updatedInvoice.items?.length > 0) {
+                      handleAutoSave(updatedInvoice);
+                    }
                   }}
                 />
               </div>
@@ -1096,7 +1200,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   onChange={(e) => {
                     const updatedInvoice = {...invoiceData, warehouse: e.target.value};
                     setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
+                    if (updatedInvoice.items?.length > 0) {
                       handleAutoSave(updatedInvoice);
                     }
                   }}
@@ -1141,7 +1245,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       creator: currentUser?.name || invoiceData.creator || '시스템'
                     };
                     setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items.length > 0) {
+                    if (updatedInvoice.items?.length > 0) {
                       handleAutoSave(updatedInvoice);
                     }
                   }}
@@ -1169,9 +1273,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
               {invoiceData.partner && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '100px', fontWeight: 700 }}>
-                  {invoiceData.items.length === 0 && partnerDayInvoices.length === 0 ? (
+                  {(!invoiceData.items || invoiceData.items.length === 0) && partnerDayInvoices.length === 0 ? (
                     '해당일 전표 0 / 0'
-                  ) : partnerDayInvoices.length > 0 || invoiceData.items.length > 0 ? (
+                  ) : partnerDayInvoices.length > 0 || (invoiceData.items && invoiceData.items.length > 0) ? (
                     <>
                       <button 
                         disabled={currentIndex <= 0}
@@ -1213,7 +1317,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     onChange={(val) => {
                       const updatedInvoice = {...invoiceData, partner: val};
                       setInvoiceData(updatedInvoice);
-                      if (updatedInvoice.items.length > 0) {
+                      if (updatedInvoice.items && updatedInvoice.items.length > 0) {
                         handleAutoSave(updatedInvoice);
                       }
                     }} 
@@ -1225,7 +1329,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                         setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
                         handleAutoSave(latestInvoice);
                       } else {
-                        const targetMgr = currentUser?.name || prev.manager;
+                        const targetMgr = currentUser?.name || invoiceData.manager;
                         setInvoiceData(prev => ({ 
                           ...prev, 
                           id: Date.now(), 
@@ -1469,7 +1573,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   </tr>
                 </thead>
                 <tbody>
-                  {invoiceData.items.map(item => (
+                  {(invoiceData.items || []).map(item => (
                     <tr key={item.id}>
                       <td style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '6px 8px' }}>
                         <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.name}</div>
@@ -1488,7 +1592,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       <td style={{ textAlign: 'right', padding: '6px 8px' }}>
                         <input
                           type="text"
-                          value={item.price ? item.price.toLocaleString() : ''}
+                          value={item.price !== undefined && item.price !== null ? Number(item.price).toLocaleString() : ''}
                           onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
                           onBlur={() => handleItemPriceBlur(item)}
                           onKeyDown={(e) => {
@@ -1510,14 +1614,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                         />
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a', padding: '6px 8px' }}>
-                        {item.total.toLocaleString()}
+                        {(Number(item.total) || 0).toLocaleString()}
                       </td>
                       <td style={{ textAlign: 'center', padding: '6px 0' }}>
                         <button className="icon-btn" onClick={() => {
-                          const updatedItems = invoiceData.items.filter(i => i.id !== item.id);
+                          const updatedItems = (invoiceData.items || []).filter(i => i.id !== item.id);
                           if (updatedItems.length === 0) {
                             if (currentIndex >= 0 && partnerDayInvoices[currentIndex]) {
-                              onDeleteInvoice(partnerDayInvoices[currentIndex].id);
+                              onDeleteInvoice && onDeleteInvoice(partnerDayInvoices[currentIndex].id);
                             }
                             if (currentIndex > 0) {
                               const prevIdx = currentIndex - 1;
@@ -1538,7 +1642,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                         }}><Trash2 size={14} color="#ef4444" /></button></td>
                     </tr>
                   ))}
-                  {invoiceData.items.length === 0 && (
+                  {(!invoiceData.items || invoiceData.items.length === 0) && (
                     <tr>
                       <td colSpan="9" style={{ padding: '60px', color: '#94a3b8' }}>우측 검색상자에서 품목을 추가하세요.</td>
                     </tr>
@@ -1737,7 +1841,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   <Wallet color="#10b981" />
                   {editingPaymentSlipId 
                     ? '✏️ 수금전표 수정' 
-                    : (invoiceData.items.length === 0 ? '💰 입금전표 발행 (수금/입금 입력)' : '💰 수금전표 발행 (수금 입력)')}
+                    : ((!invoiceData.items || invoiceData.items.length === 0) ? '💰 입금전표 발행 (수금/입금 입력)' : '💰 수금전표 발행 (수금 입력)')}
                 </h3>
                 <button onClick={() => { setIsPaymentModalOpen(false); setEditingPaymentSlipId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                   <X size={20} />
@@ -1757,33 +1861,65 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     {totalAmount.toLocaleString()}원
                   </span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 700 }}>수금 대상 총액 (기준):</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>
+                    {(tempPaymentState.targetTotal || 0).toLocaleString()}원
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gap: '10px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 700, display: 'block', marginBottom: '4px' }}>수금 일자</label>
-                    <input 
-                      type="date"
-                      value={tempPaymentState.date || invoiceData.date}
-                      min={!canIssuePastDateDeposit ? todayStr : undefined}
-                      onChange={(e) => {
-                        const newDate = e.target.value;
-                        if (!canIssuePastDateDeposit && newDate < todayStr) {
-                          alert('과거일자 입금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                          return;
-                        }
-                        setTempPaymentState({ ...tempPaymentState, date: newDate });
-                      }}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.85rem' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <DateNavButton
+                        direction="prev"
+                        size={11}
+                        style={{ width: '20px', height: '20px', minWidth: '20px' }}
+                        onClick={() => {
+                          const cur = tempPaymentState.date || invoiceData.date;
+                          const newDate = addDays(cur, -1);
+                          if (!canIssuePastDateDeposit && newDate < todayStr) {
+                            alert('과거일자 입금전표발행 권한이 없습니다.');
+                            return;
+                          }
+                          setTempPaymentState(prev => ({ ...prev, date: newDate }));
+                        }}
+                      />
+                      <input 
+                        type="date"
+                        value={tempPaymentState.date || invoiceData.date}
+                        min={!canIssuePastDateDeposit ? todayStr : undefined}
+                        onChange={(e) => {
+                          const newDate = e.target.value;
+                          if (!canIssuePastDateDeposit && newDate < todayStr) {
+                            alert('과거일자 입금전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
+                            return;
+                          }
+                          setTempPaymentState(prev => ({ ...prev, date: newDate }));
+                        }}
+                        style={{ flex: 1, minWidth: 0, padding: '6px 4px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.78rem' }}
+                      />
+                      <DateNavButton
+                        direction="next"
+                        size={11}
+                        style={{ width: '20px', height: '20px', minWidth: '20px' }}
+                        onClick={() => {
+                          const cur = tempPaymentState.date || invoiceData.date;
+                          const newDate = addDays(cur, 1);
+                          setTempPaymentState(prev => ({ ...prev, date: newDate }));
+                        }}
+                      />
+                    </div>
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700, display: 'block', marginBottom: '4px' }}>현장 할인 (D.C)</label>
                     <input
                       type="text"
                       value={tempPaymentState.discount ? tempPaymentState.discount.toLocaleString() : ''}
-                      onChange={(e) => handlePaymentChange('discount', e.target.value, tempPaymentState, setTempPaymentState)}
+                      onChange={(e) => handlePaymentChange('discount', e.target.value)}
                       placeholder="0"
                       onFocus={(e) => e.target.select()}
                       style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ef4444', backgroundColor: '#fff5f5', textAlign: 'right' }}
@@ -1805,7 +1941,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                       <input
                         type="text"
                         value={tempPaymentState?.payments?.[item.id] ? tempPaymentState.payments[item.id].toLocaleString() : ''}
-                        onChange={(e) => handlePaymentChange(item.id, e.target.value, tempPaymentState, setTempPaymentState)}
+                        onChange={(e) => handlePaymentChange(item.id, e.target.value)}
                         placeholder="0"
                         onFocus={(e) => e.target.select()}
                         style={{ fontSize: '0.95rem', fontWeight: 600, textAlign: 'right' }}
@@ -1823,6 +1959,23 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     onChange={(e) => setTempPaymentState({ ...tempPaymentState, memo: e.target.value })}
                     style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 600, fontSize: '0.85rem' }}
                   />
+                </div>
+
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#166534' }}>입금 합계 (현금+계좌+카드+어음):</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#15803d' }}>
+                      {((Number(tempPaymentState?.payments?.cash) || 0) + 
+                        (Number(tempPaymentState?.payments?.account) || 0) + 
+                        (Number(tempPaymentState?.payments?.card) || 0) + 
+                        (Number(tempPaymentState?.payments?.bill) || 0)).toLocaleString()}원
+                    </span>
+                    {(Number(tempPaymentState?.discount) || 0) > 0 && (
+                      <span style={{ fontSize: '0.75rem', color: '#dc2626', marginLeft: '6px', fontWeight: 700 }}>
+                        (할인 -{Number(tempPaymentState.discount).toLocaleString()}원)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1975,12 +2128,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               </tr>
             </thead>
             <tbody>
-              {invoiceData.items.map(item => (
+              {(invoiceData.items || []).map(item => (
                 <tr key={item.id}>
                   <td className="item-name">{item.name}</td>
                   <td>{item.isBox ? `1박스 (${item.qty})` : item.qty}</td>
-                  {!hideAmount && <td>{item.price.toLocaleString()}</td>}
-                  {!hideAmount && <td className="item-total">{item.total.toLocaleString()}</td>}
+                  {!hideAmount && <td>{(Number(item.price) || 0).toLocaleString()}</td>}
+                  {!hideAmount && <td className="item-total">{(Number(item.total) || 0).toLocaleString()}</td>}
                 </tr>
               ))}
             </tbody>

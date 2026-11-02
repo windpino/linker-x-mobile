@@ -5,6 +5,7 @@ import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
+import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 
 const SalesLedger = ({ 
   onClose, 
@@ -88,8 +89,9 @@ const SalesLedger = ({
 
   useEffect(() => {
     if (initialPartner) {
-      setSelectedPartner(initialPartner);
-      setSearchText(initialPartner);
+      const cleanPartner = typeof initialPartner === 'object' ? (initialPartner?.name || '') : String(initialPartner || '');
+      setSelectedPartner(cleanPartner.trim());
+      setSearchText(cleanPartner.trim());
     } else {
       setSelectedPartner('');
       setSearchText('');
@@ -188,7 +190,7 @@ const SalesLedger = ({
   let carriedForward = 0;
   const priorInvoices = salesInvoices.filter(inv => {
     if (inv.date >= startDate) return false;
-    if (selectedPartner && inv.partner !== selectedPartner) return false;
+    if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
     return true;
   });
   const priorSales = priorInvoices.reduce((sum, inv) => {
@@ -223,7 +225,7 @@ const SalesLedger = ({
   const currentInvoices = salesInvoices
     .filter(inv => {
       if (inv.date < startDate || inv.date > endDate) return false;
-      if (selectedPartner && inv.partner !== selectedPartner) return false;
+      if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
       return true;
     })
     .sort((a, b) => {
@@ -390,7 +392,7 @@ const SalesLedger = ({
 
   const currentSummaryInvoices = salesInvoices.filter(inv => {
     if (inv.date < startDate || inv.date > endDate) return false;
-    if (selectedPartner && inv.partner !== selectedPartner) return false;
+    if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
     return true;
   });
   currentSummaryInvoices.forEach(inv => {
@@ -489,15 +491,63 @@ const SalesLedger = ({
         <div className="sales-ledger-filter" style={{ padding: '12px', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           
           {/* 1. 날짜 범위 선택 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '4px', alignItems: 'center', marginBottom: '10px' }}>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>시작일</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
+              <DateInputWithArrows
+                value={startDate}
+                onChange={val => setStartDate(val)}
+                onPrev={() => {
+                  const prev = addDays(startDate, -1);
+                  if (startDate === endDate) {
+                    setStartDate(prev);
+                    setEndDate(prev);
+                  } else {
+                    setStartDate(prev);
+                  }
+                }}
+                onNext={() => {
+                  const next = addDays(startDate, 1);
+                  if (startDate === endDate) {
+                    setStartDate(next);
+                    setEndDate(next);
+                  } else {
+                    setStartDate(next);
+                  }
+                }}
+                style={{ width: '100%', display: 'flex' }}
+                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
+                buttonSize={11}
+              />
             </div>
-            <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>종료일</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }} />
+              <DateInputWithArrows
+                value={endDate}
+                onChange={val => setEndDate(val)}
+                onPrev={() => {
+                  const prev = addDays(endDate, -1);
+                  if (startDate === endDate) {
+                    setStartDate(prev);
+                    setEndDate(prev);
+                  } else {
+                    setEndDate(prev);
+                  }
+                }}
+                onNext={() => {
+                  const next = addDays(endDate, 1);
+                  if (startDate === endDate) {
+                    setStartDate(next);
+                    setEndDate(next);
+                  } else {
+                    setEndDate(next);
+                  }
+                }}
+                style={{ width: '100%', display: 'flex' }}
+                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
+                buttonSize={11}
+              />
             </div>
           </div>
 
@@ -636,25 +686,41 @@ const SalesLedger = ({
                       else if (r.rowType === 'payment') rowClass = 'row-payment';
                       else if (r.rowType === 'discount') rowClass = 'row-discount';
 
-                      const inv = r.invoiceId ? salesInvoices.find(i => i.id === r.invoiceId) : null;
-                      const isCreator = inv ? (inv.creator === currentUser?.name || !inv.creator) : false;
-                      const canOpen = inv ? (isCreator || isAdmin) : false;
+                      const foundInv = r.invoiceId ? salesInvoices.find(i => String(i.id) === String(r.invoiceId)) : null;
+                      const inv = foundInv || (r.invoiceId ? {
+                        id: r.invoiceId,
+                        date: r.date,
+                        partner: r.partner || selectedPartner,
+                        items: (r.rowType === 'sale' || r.rowType === 'normal') ? [{
+                          id: r.itemId || Date.now(),
+                          name: r.name,
+                          spec: r.spec || '',
+                          qty: Number(r.qty) || 1,
+                          price: Number(r.price) || 0,
+                          supplyValue: Number(r.supplyValue) || 0,
+                          tax: Number(r.vat) || 0,
+                          total: Number(r.total) || 0
+                        }] : [],
+                        receivedAmount: Number(r.received) || 0,
+                        payments: { cash: Number(r.received) || 0, account: 0, card: 0, bill: 0 },
+                        discount: r.rowType === 'discount' ? (Number(r.received) || 0) : 0,
+                        isDepositOnly: r.rowType === 'payment' || r.rowType === 'discount'
+                      } : null);
 
                       return (
                         <tr 
                           key={idx} 
-                          onDoubleClick={() => {
-                            if (inv) {
-                              if (canOpen) {
-                                onOpenInvoice(inv);
-                              } else {
-                                alert('조회 권한이 없습니다 (본인이 작성한 전표만 조회 가능).');
-                              }
-                            }
+                          onClick={(e) => {
+                            if (e.target.tagName === 'INPUT' || e.target.closest('input')) return;
+                            if (inv) onOpenInvoice(inv);
+                          }}
+                          onDoubleClick={(e) => {
+                            if (e.target.tagName === 'INPUT' || e.target.closest('input')) return;
+                            if (inv) onOpenInvoice(inv);
                           }}
                           className={rowClass}
-                          style={{ cursor: r.invoiceId ? (canOpen ? 'pointer' : 'not-allowed') : 'default' }}
-                          title={r.invoiceId ? (canOpen ? '더블클릭하여 전표 수정' : '조회 권한 없음 (본인 전표만 가능)') : ''}
+                          style={{ cursor: inv ? 'pointer' : 'default' }}
+                          title={inv ? '클릭하여 해당 매출전표 열기' : ''}
                         >
                           {/* 1. Date */}
                           <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
@@ -672,24 +738,19 @@ const SalesLedger = ({
 
                           {/* 3. Product Name */}
                           <td className={r.rowType === 'subtotal' ? 'cell-name text-center' : 'cell-name'}>
-                            {r.rowType === 'sale' || r.rowType === 'normal' ? (
+                            {inv ? (
                               <span 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (inv) {
-                                    if (canOpen) {
-                                      onOpenInvoice(inv);
-                                    } else {
-                                      alert('조회 권한이 없습니다 (본인이 작성한 전표만 조회 가능).');
-                                    }
-                                  }
+                                  onOpenInvoice(inv);
                                 }}
                                 style={{ 
-                                  color: canOpen ? '#3b82f6' : '#64748b', 
-                                  textDecoration: canOpen ? 'underline' : 'none', 
-                                  cursor: canOpen ? 'pointer' : 'not-allowed' 
+                                  color: '#2563eb', 
+                                  textDecoration: 'underline', 
+                                  cursor: 'pointer',
+                                  fontWeight: r.rowType === 'payment' || r.rowType === 'discount' ? 600 : 'inherit'
                                 }}
-                                title={canOpen ? '클릭하여 전표 수정' : '조회 권한 없음'}
+                                title="클릭하여 해당 매출전표 열기"
                               >
                                 {r.name}
                               </span>
