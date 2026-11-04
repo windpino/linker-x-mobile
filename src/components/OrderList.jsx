@@ -689,10 +689,10 @@ const OrderList = ({
                     return (
                       <div key={order.id} style={{ 
                         borderRadius: '16px', 
-                        backgroundColor: '#0c1427', 
-                        border: '1px solid #1e293b', 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e2e8f0', 
                         overflow: 'hidden', 
-                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
                         marginBottom: '14px'
                       }}>
                         {/* 1. Header (Matching screenshot: light mint background, - Partner Phone, [납품 완료], Edit, Delete) */}
@@ -765,8 +765,8 @@ const OrderList = ({
                           </div>
                         </div>
 
-                        {/* 2. Items List (Dark Navy, row layout exactly like screenshot) */}
-                        <div style={{ backgroundColor: '#0c1427', padding: '2px 0 6px 0' }}>
+                        {/* 2. Items List (White by default, turns dark navy on check) */}
+                        <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
                           {displayItems.map((item, iIdx) => {
                             const key = `${order.id}-${iIdx}`;
                             const isProcessed = item.loaded || processedItems[key];
@@ -782,13 +782,15 @@ const OrderList = ({
                                   alignItems: 'center',
                                   gap: '8px',
                                   padding: '10px 14px',
-                                  borderBottom: iIdx === displayItems.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                                  borderBottom: iIdx === displayItems.length - 1 ? 'none' : (isProcessed ? '1px solid #1e293b' : '1px solid #f1f5f9'),
+                                  backgroundColor: isProcessed ? '#0f172a' : '#ffffff',
                                   cursor: 'pointer',
-                                  position: 'relative'
+                                  position: 'relative',
+                                  transition: 'background-color 0.18s ease'
                                 }}
                               >
                                 {/* 1) Item Index */}
-                                <span style={{ width: '22px', fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', textAlign: 'center', flexShrink: 0 }}>
+                                <span style={{ width: '22px', fontSize: '0.85rem', fontWeight: 800, color: isProcessed ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
                                   {iIdx + 1}
                                 </span>
 
@@ -811,13 +813,13 @@ const OrderList = ({
                                       width: '18px',
                                       height: '18px',
                                       borderRadius: '50%',
-                                      border: '2px solid #475569',
-                                      backgroundColor: 'transparent'
+                                      border: '2px solid #cbd5e1',
+                                      backgroundColor: '#ffffff'
                                     }} />
                                   )}
                                 </div>
 
-                                {/* 3 & 4) Category Above + Product Name Below */}
+                                {/* 3 & 4) Category Above + Product Name Below (Clicking also toggles check) */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <span style={{
@@ -836,16 +838,15 @@ const OrderList = ({
                                     </span>
                                   </div>
                                   <span 
-                                    onClick={(e) => handleShowStock(e, order, item, iIdx)}
-                                    title="클릭 시 재고 확인"
                                     style={{
                                       fontWeight: 700,
-                                      color: '#ffffff',
+                                      color: isProcessed ? '#ffffff' : '#1e293b',
                                       fontSize: '0.94rem',
                                       lineHeight: 1.3,
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
+                                      whiteSpace: 'nowrap',
+                                      cursor: 'pointer'
                                     }}
                                   >
                                     {item.name}
@@ -858,12 +859,12 @@ const OrderList = ({
                                   height: '30px',
                                   padding: '0 8px',
                                   borderRadius: '8px',
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #334155',
+                                  backgroundColor: isProcessed ? '#1e293b' : '#f1f5f9',
+                                  border: isProcessed ? '1px solid #334155' : '1px solid #e2e8f0',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: '#ffffff',
+                                  color: isProcessed ? '#ffffff' : '#1e293b',
                                   fontWeight: 800,
                                   fontSize: '0.92rem',
                                   flexShrink: 0
@@ -880,7 +881,7 @@ const OrderList = ({
                                   style={{
                                     border: '1px solid rgba(245, 158, 11, 0.5)',
                                     backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                                    color: '#fbbf24',
+                                    color: '#d97706',
                                     padding: '4px 7px',
                                     borderRadius: '6px',
                                     fontSize: '0.72rem',
