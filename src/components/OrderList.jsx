@@ -462,16 +462,30 @@ const OrderList = ({
   };
 
   return (
-    <WindowModal title={isMobileView ? "수주 목록" : "수주 목록 및 현황"} onClose={onClose} width="1150px">
-      {/* Dynamic Header section */}
-      <div className="account-header" style={isMobileView ? { 
+    <WindowModal 
+      title={isMobileView ? "수주 목록" : "수주 목록 및 현황"} 
+      onClose={onClose} 
+      width="1150px"
+      contentPadding={isMobileView ? "0" : undefined}
+      noScroll={isMobileView}
+    >
+      <div style={isMobileView ? { 
+        height: '100%', 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '10px', 
-        padding: '10px 12px 8px 12px', 
-        background: '#ffffff', 
-        borderBottom: '1px solid #e2e8f0' 
+        overflow: 'hidden', 
+        background: '#f8fafc' 
       } : {}}>
+        {/* Dynamic Header section */}
+        <div className="account-header" style={isMobileView ? { 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '8px', 
+          padding: '10px 12px 8px 12px', 
+          background: '#ffffff', 
+          borderBottom: '1px solid #e2e8f0',
+          flexShrink: 0
+        } : {}}>
         {!isMobileView && (
           <div className="acc-title-section">
             <h2 className="acc-title">
@@ -679,25 +693,39 @@ const OrderList = ({
       </div>
 
       <div className="purchase-modal-body" style={{ 
-        padding: isMobileView ? '8px' : '20px', 
-        display: 'grid', 
-        gridTemplateColumns: isMobileView ? '1fr' : '300px 1fr', 
-        gap: isMobileView ? '12px' : '20px',
-        backgroundColor: isMobileView ? '#f8fafc' : 'transparent'
+        padding: isMobileView ? '8px 8px 0 8px' : '20px', 
+        display: isMobileView ? 'flex' : 'grid', 
+        flexDirection: isMobileView ? 'column' : undefined,
+        flex: isMobileView ? 1 : undefined,
+        minHeight: isMobileView ? 0 : undefined,
+        gridTemplateColumns: isMobileView ? undefined : '300px 1fr', 
+        gap: isMobileView ? '8px' : '20px',
+        backgroundColor: isMobileView ? '#f8fafc' : 'transparent',
+        overflow: isMobileView ? 'hidden' : undefined
       }}>
         {/* Left Column - Category Totals Summary (Hidden on Mobile when list tab is active) */}
         {(!isMobileView || activeTab === 'summary') && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: isMobileView ? '8px' : '20px',
+            flex: isMobileView ? 1 : undefined,
+            minHeight: isMobileView ? 0 : undefined,
+            overflow: isMobileView ? 'hidden' : undefined
+          }}>
             <div style={{ 
               backgroundColor: isMobileView ? '#ffffff' : '#1e3a8a', 
               color: isMobileView ? '#1e293b' : 'white', 
-              padding: isMobileView ? '14px' : '20px', 
+              padding: isMobileView ? '12px' : '20px', 
               borderRadius: '16px', 
-              height: 'fit-content', 
+              height: isMobileView ? '100%' : 'fit-content', 
+              display: isMobileView ? 'flex' : 'block',
+              flexDirection: isMobileView ? 'column' : undefined,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              border: isMobileView ? '1px solid #e2e8f0' : 'none'
+              border: isMobileView ? '1px solid #e2e8f0' : 'none',
+              overflow: isMobileView ? 'hidden' : undefined
             }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: isMobileView ? '10px' : '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: isMobileView ? '8px' : '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <span style={{ color: isMobileView ? '#1e293b' : '#fff' }}>카테고리별 품목 합계</span>
                 <span style={{ fontWeight: 600, fontSize: '0.75rem', color: isMobileView ? '#64748b' : 'rgba(255,255,255,0.8)' }}>{dateStr}</span>
               </div>
@@ -706,9 +734,13 @@ const OrderList = ({
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: '10px', 
-                  maxHeight: isMobileView ? 'calc(100vh - 200px)' : '600px', 
+                  flex: isMobileView ? 1 : undefined,
+                  minHeight: isMobileView ? 0 : undefined,
+                  maxHeight: isMobileView ? undefined : '600px', 
                   overflowY: 'auto', 
-                  paddingRight: '2px' 
+                  WebkitOverflowScrolling: 'touch',
+                  paddingRight: '2px',
+                  paddingBottom: isMobileView ? '140px' : '20px'
                 }}>
                   {Object.entries(categoryTotals).map(([category, items]) => {
                     const catStyle = getCategoryBadgeStyle(category);
@@ -888,8 +920,15 @@ const OrderList = ({
 
         {/* Right Column - Orders List (Hidden on Mobile when summary tab is active) */}
         {(!isMobileView || activeTab === 'list') && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: isMobileView ? '8px' : '16px',
+            flex: isMobileView ? 1 : undefined,
+            minHeight: isMobileView ? 0 : undefined,
+            overflow: isMobileView ? 'hidden' : undefined
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
               {!isMobileView && (
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isMobileView ? '#1e293b' : 'inherit' }}>
                   <ShoppingCart size={18} color="#3b82f6" />
@@ -957,9 +996,13 @@ const OrderList = ({
               display: 'flex', 
               flexDirection: 'column', 
               gap: '12px', 
-              maxHeight: isMobileView ? 'calc(100vh - 200px)' : '650px', 
+              flex: isMobileView ? 1 : undefined,
+              minHeight: isMobileView ? 0 : undefined,
+              maxHeight: isMobileView ? undefined : '650px', 
               overflowY: 'auto', 
-              paddingRight: '4px' 
+              WebkitOverflowScrolling: 'touch',
+              paddingRight: '4px',
+              paddingBottom: isMobileView ? '140px' : '20px'
             }}>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order, oIdx) => {
@@ -1701,6 +1744,7 @@ const OrderList = ({
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Print Only Container (Hidden from main UI, used as a template) */}
