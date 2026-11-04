@@ -138,7 +138,7 @@ const PartnerManagement = ({
   }, [salesInvoices, purchaseInvoices, salesOrders, purchaseOrders]);
 
   // Search state
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(true);
   const [displayLimit, setDisplayLimit] = useState(100);
   const [searchText, setSearchText] = useState('');
   const [selectedPartnerName, setSelectedPartnerName] = useState(null); // null = no selection
@@ -588,7 +588,6 @@ const PartnerManagement = ({
   };
 
   const getFilteredPartners = () => {
-    if (!hasSearched) return [];
     return getSortedPartners().filter(partner => {
       // Logic for 'hidden' vs regular
       if (filterType === 'hidden' || filterType === '숨김') {
@@ -653,273 +652,303 @@ const PartnerManagement = ({
   return (
     <>
       <WindowModal title="거래처 등록/관리" onClose={onClose} width="1100px" contentPadding="0" noScroll>
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(85vh - 40px)', overflow: 'hidden' }}>
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
-            <div className="partner-header-modern" style={{ marginBottom: '8px' }}>
-              <div className="partner-header-right" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', width: '100%' }}>
-                {/* [전체 거래처] 버튼 */}
-                <button 
-                  className={`btn-filter-all ${hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter ? 'active' : ''}`}
-                  onClick={() => {
-                    setFilterType('all');
-                    setFilterManager('all');
-                    setSearchText('');
-                    setSelectedPartnerName(null);
-                    setClickManagerFilter(null);
-                    setHasSearched(true);
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    border: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    backgroundColor: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#3b82f6' : '#fff',
-                    color: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '#fff' : '#475569',
-                    boxShadow: (hasSearched && filterType === 'all' && filterManager === 'all' && !searchText && !selectedPartnerName && !clickManagerFilter) ? '0 2px 6px rgba(59,130,246,0.3)' : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <Users size={13} /> 전체
-                </button>
-
-                {/* 거래처 구분 롤박스 */}
-                <select 
-                  className="partner-rollbox-select"
-                  value={filterType}
-                  onChange={(e) => {
-                    setFilterType(e.target.value);
-                    setSelectedPartnerName(null);
-                    setClickManagerFilter(null);
-                  }}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '8px',
-                    border: filterType !== 'all' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    backgroundColor: filterType !== 'all' ? '#eff6ff' : '#fff',
-                    color: filterType !== 'all' ? '#1d4ed8' : '#334155',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    flex: 1,
-                    minWidth: '95px'
-                  }}
-                >
-                  <option value="all">구분 전체</option>
-                  <option value="매출처">매출처</option>
-                  <option value="매입처">매입처</option>
-                  <option value="매입매출처">매입매출처</option>
-                  <option value="hidden">숨긴 거래처</option>
-                  <option value="newInMonth">최근 1개월 신규</option>
-                  <option value="noTransactionInMonth">최근 1개월 미거래</option>
-                </select>
-
-                {/* 담당별 거래처 롤박스 */}
-                <select 
-                  className="partner-rollbox-select"
-                  value={filterManager}
-                  onChange={(e) => {
-                    setFilterManager(e.target.value);
-                    setClickManagerFilter(null);
-                  }}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '8px',
-                    border: filterManager !== 'all' ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                    backgroundColor: filterManager !== 'all' ? '#eff6ff' : '#fff',
-                    color: filterManager !== 'all' ? '#1d4ed8' : '#334155',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    flex: 1,
-                    minWidth: '95px'
-                  }}
-                >
-                  <option value="all">담당자 전체</option>
-                  {safeStaffList.map(staff => (
-                    <option key={staff.id || staff.userId} value={staff.name}>{staff.name}</option>
-                  ))}
-                  <option value="미지정">담당 미지정</option>
-                </select>
-
-                <button className="btn-primary" onClick={handleOpenRegistration} style={{ padding: '6px 10px', fontSize: '0.78rem' }}><Plus size={14} /> 추가</button>
-              </div>
-            </div>
-
-            {/* 검색창 및 검색 버튼 */}
-            <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
-              <div ref={searchRef} style={{ position: 'relative', flex: 1 }}>
-                <div className="partner-search" style={{ position: 'relative', width: '100%' }}>
-                  <Search size={14} className="search-icon" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                  <input
-                    type="text"
-                    value={searchText}
-                    onChange={handleSearchChange}
-                    onFocus={() => searchText && setShowSuggestions(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setShowSuggestions(false);
-                        handleSearch();
-                      }
-                    }}
-                    placeholder="상호 검색 (초성 가능)"
-                    style={{ width: '100%', padding: '6px 28px 6px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                  />
-                  {searchText && (
-                    <button onClick={handleClearSearch} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                      <X size={14} />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(88vh - 40px)', overflow: 'hidden', background: '#f8fafc' }}>
+          
+          {/* 모바일 최적화 헤더: [구분 필터 칩] + [➕ 신규 거래처 등록] */}
+          <div style={{ padding: '12px 14px 10px 14px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+              {/* 구분 필터 칩 (전체, 매출처, 매입처) */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1 }}>
+                {[
+                  { id: 'all', label: '전체' },
+                  { id: '매출처', label: '매출처' },
+                  { id: '매입처', label: '매입처' },
+                  { id: 'hidden', label: '숨김' }
+                ].map(tab => {
+                  const isActive = filterType === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setFilterType(tab.id);
+                        setSelectedPartnerName(null);
+                        setClickManagerFilter(null);
+                        setDisplayLimit(100);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: isActive ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                        backgroundColor: isActive ? '#eff6ff' : '#ffffff',
+                        color: isActive ? '#1d4ed8' : '#475569',
+                        fontSize: '0.80rem',
+                        fontWeight: isActive ? 800 : 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        boxShadow: isActive ? '0 1px 4px rgba(37,99,235,0.15)' : 'none'
+                      }}
+                    >
+                      {tab.label}
                     </button>
-                  )}
-                </div>
-                {showSuggestions && suggestions.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto', marginTop: '4px' }}>
-                    {suggestions.map(p => (
-                      <div key={p.id} onMouseDown={() => handleSelectSuggestion(p.name)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }} onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.name}</span>
-                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{p.type === '혼합' ? '매입매출처' : p.type} {p.manager && p.manager !== '-' ? `· ${p.manager}` : ''}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  );
+                })}
               </div>
-              <button
-                type="button"
-                onClick={handleSearch}
-                style={{
-                  padding: '0 12px',
-                  backgroundColor: '#3b82f6',
-                  color: '#fff',
+
+              {/* [➕ 신규 등록] 버튼 */}
+              <button 
+                className="btn-primary" 
+                onClick={handleOpenRegistration} 
+                style={{ 
+                  padding: '7px 12px', 
+                  fontSize: '0.80rem', 
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                  color: '#ffffff',
                   border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  whiteSpace: 'nowrap'
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 6px rgba(37,99,235,0.25)'
                 }}
               >
-                <Search size={13} /> 검색
+                <Plus size={14} /> 거래처 등록
               </button>
+            </div>
+
+            {/* 거래처명 실시간 검색창 */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchText}
+                onChange={handleSearchChange}
+                placeholder="거래처명 검색 (초성 'ㄱㄴ' 검색 가능)..."
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  padding: '0 30px 0 32px',
+                  borderRadius: '20px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '0.84rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              {searchText && (
+                <button 
+                  onClick={handleClearSearch} 
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
           </div>
 
+          {/* 거래처명 중심의 모바일 간소화 카드 리스트 */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
             {(() => {
               const filteredPartners = getFilteredPartners();
               const displayedPartners = filteredPartners.slice(0, displayLimit);
               return (
-                <>
-                  {(filterType !== 'all' || filterManager !== 'all' || selectedPartnerName || clickManagerFilter) && (
-                    <div style={{ padding: '6px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderRadius: '6px', fontSize: '0.75rem', color: '#166534' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 800 }}>📌</span>
-                        {filterType !== 'all' && <span style={{ background: '#dcfce7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>구분: {filterType === 'hidden' ? '숨김' : filterType === 'newInMonth' ? '1개월신규' : filterType === 'noTransactionInMonth' ? '1개월미거래' : filterType}</span>}
-                        {filterManager !== 'all' && <span style={{ background: '#dcfce7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>담당: {filterManager}</span>}
-                        <span style={{ color: '#64748b' }}>({filteredPartners.length}건)</span>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          setFilterType('all');
-                          setFilterManager('all');
-                          setSearchText('');
-                          setSelectedPartnerName(null);
-                          setClickManagerFilter(null);
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  
+                  {/* 건수 안내 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', fontSize: '0.74rem', color: '#64748b' }}>
+                    <span>총 <strong>{filteredPartners.length}</strong>개 거래처</span>
+                    {filterType !== 'all' && (
+                      <span style={{ color: '#2563eb', fontWeight: 700 }}>필터: {filterType}</span>
+                    )}
+                  </div>
+
+                  {displayedPartners.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8', background: '#ffffff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                      <Building2 size={32} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
+                      <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#334155' }}>등록된 거래처가 없습니다</div>
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '4px' }}>우측 상단의 [거래처 등록] 버튼을 눌러 새로 등록해보세요.</div>
+                    </div>
+                  ) : (
+                    displayedPartners.map(partner => {
+                      const isMixed = partner.type === '혼합' || partner.type === '매입매출처';
+                      const displayType = isMixed ? '매입매출처' : (partner.type || '매출처');
+                      const phone = partner.phone || partner.mobile || '';
+
+                      return (
+                        <div 
+                          key={partner.id} 
+                          className="partner-card-simplified"
+                          style={{
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '12px',
+                            padding: '12px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '7px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                          }}
+                        >
+                          {/* 1. 최상단: 거래처명 (Bold & Large) + 구분 뱃지 */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                              <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px', wordBreak: 'break-all' }}>
+                                {partner.name}
+                              </h4>
+                              <span 
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: partner.type === '매입처' ? '#fee2e2' : (isMixed ? '#f3e8ff' : '#eff6ff'),
+                                  color: partner.type === '매입처' ? '#dc2626' : (isMixed ? '#7e22ce' : '#1d4ed8')
+                                }}
+                              >
+                                {displayType}
+                              </span>
+                              {partner.manager && partner.manager !== '-' && (
+                                <span style={{ fontSize: '0.68rem', background: '#f1f5f9', color: '#475569', padding: '2px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                                  {partner.manager}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 미수금 잔액 (있을 때만 눈에 띄게 표시) */}
+                            {Number(partner.receivables || 0) !== 0 && (
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block' }}>미수금</span>
+                                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: Number(partner.receivables) > 0 ? '#dc2626' : '#2563eb' }}>
+                                  {formatAmount(partner.receivables)}원
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 2. 간결한 정보: 대표자 & 연락처 (누르면 바로 스마트폰 통화) */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.80rem' }}>
+                            <div style={{ color: '#64748b' }}>
+                              {partner.ceo ? `대표: ${partner.ceo}` : (partner.address ? partner.address.slice(0, 20) : '')}
+                            </div>
+                            {phone && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Phone size={12} color="#2563eb" />
+                                <a 
+                                  href={`tel:${phone.replace(/[^0-9]/g, '')}`} 
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}
+                                >
+                                  {phone}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 3. 하단 빠른 액션 바: [수정] [삭제] [수주등록] */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '7px', borderTop: '1px solid #f8fafc' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button 
+                                type="button"
+                                onClick={() => handleEditPartner(partner)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  color: '#334155',
+                                  fontSize: '0.76rem',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Edit2 size={12} /> 수정
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }}
+                                style={{
+                                  padding: '5px 9px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fee2e2',
+                                  background: '#fff5f5',
+                                  color: '#ef4444',
+                                  fontSize: '0.76rem',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Trash2 size={12} /> 삭제
+                              </button>
+                            </div>
+
+                            {onOrder && (
+                              <button 
+                                type="button"
+                                onClick={() => onOrder(partner)}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                                  color: '#ffffff',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 5px rgba(22, 163, 74, 0.2)'
+                                }}
+                              >
+                                <FileText size={12} /> 수주등록
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {/* 더보기 버튼 */}
+                  {filteredPartners.length > displayLimit && (
+                    <div style={{ textAlign: 'center', margin: '8px 0' }}>
+                      <button
+                        type="button"
+                        onClick={() => setDisplayLimit(prev => prev + 100)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          width: '100%'
                         }}
-                        style={{ background: 'none', border: 'none', color: '#15803d', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}
                       >
-                        초기화
+                        더보기 (+100개) <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>({displayedPartners.length} / {filteredPartners.length}개)</span>
                       </button>
                     </div>
                   )}
-                  {isMobileView ? (
-                    <div className="partner-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '4px' }}>
-                      {!hasSearched ? (
-                        <div style={{ textAlign: 'center', padding: '60px 16px', color: '#64748b', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', margin: '16px 0' }}>
-                          <Search size={36} color="#3b82f6" style={{ opacity: 0.3, margin: '0 auto 10px', display: 'block' }} />
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>거래처 검색</div>
-                          <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>상호명 입력 후 <b>[검색]</b> 버튼을 눌러주세요.</div>
-                        </div>
-                      ) : (
-                        <>
-                          {displayedPartners.map((partner, index) => {
-                            const isMixed = partner.type === '혼합' || partner.type === '매입매출처';
-                            const displayType = isMixed ? '매입매출처' : partner.type;
-                            return (
-                              <div key={partner.id} style={{
-                                backgroundColor: '#f8fafc',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '8px',
-                                padding: '12px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                position: 'relative'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>#{partner.sequence || '-'}</span>
-                                    <span>{partner.name}</span>
-                                    <span className={partner.type === '매입처' ? 'badge-red' : isMixed ? 'badge-purple' : 'badge-blue'} style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px' }}>
-                                      {displayType}
-                                    </span>
-                                  </div>
-                                  <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button className="icon-btn" onClick={() => handleEditPartner(partner)} style={{ padding: '4px' }}><Edit2 size={16} /></button>
-                                    <button className="icon-btn" type="button" onClick={(e) => { e.stopPropagation(); handleDeletePartner(partner.id); }} style={{ padding: '4px' }}><Trash2 size={16} /></button>
-                                    <button className="btn-green-outline" onClick={() => onOrder(partner)} style={{ padding: '2px 6px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><FileText size={12} /> 주문</button>
-                                  </div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem', color: '#475569' }}>
-                                  <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>대표자:</span>{partner.ceo || '-'}</div>
-                                  <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>연락처:</span>{partner.phone || partner.mobile || '-'}</div>
-                                  <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>담당자:</span>{partner.manager || '-'}</div>
-                                  <div><span style={{ color: '#94a3b8', marginRight: '6px' }}>미수금:</span>{formatAmount(partner.receivables)}원</div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {hasSearched && filteredPartners.length > displayLimit && (
-                            <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
-                              <button
-                                type="button"
-                                onClick={() => setDisplayLimit(prev => prev + 100)}
-                                style={{
-                                  padding: '8px 24px',
-                                  background: '#eff6ff',
-                                  color: '#2563eb',
-                                  border: '1px solid #bfdbfe',
-                                  borderRadius: '8px',
-                                  fontWeight: 700,
-                                  fontSize: '0.85rem',
-                                  cursor: 'pointer',
-                                  width: '100%',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '6px'
-                                }}
-                              >
-                                더보기 (+100개) <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>({displayedPartners.length} / {filteredPartners.length}개 표시 중)</span>
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {hasSearched && filteredPartners.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: '0.85rem' }}>
-                          {searchText ? `"${searchText}" 검색 결과가 없습니다.` : '검색 조건에 해당하는 거래처가 없습니다.'}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </WindowModal>
+      {false && (
               <div className="partner-table-container">
                 <table className="partner-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                   <thead>
@@ -1135,12 +1164,6 @@ const PartnerManagement = ({
                 )}
               </div>
             )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      </WindowModal>
 
       {isRegistrationOpen && (
         <PartnerRegistration
