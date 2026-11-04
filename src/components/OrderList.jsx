@@ -43,6 +43,7 @@ const OrderList = ({
   }, [initialSelectedStaff]);
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
+  const stockOverrides = React.useRef({}); // 창고별 품목 재고 연속 클릭 오차 방지용 세션 캐시
   const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'waiting', 'completed'
@@ -207,24 +208,40 @@ const OrderList = ({
     // 1. 로컬 상태 즉시 변경 (0ms 딜레이 없이 UI 색상 및 체크 즉시 전환)
     setProcessedItems(prev => ({ ...prev, [key]: isNowLoaded }));
 
-    // Capture the current stock level synchronously before executing any asynchronous moves
-    const currentWhStock = inventory[order.outWarehouse]?.[item.name] || 0;
+    // 창고 명칭 안전 확보
+    const outWarehouse = order.outWarehouse || item.outWarehouse || '본사창고';
+    const inWarehouse = order.inWarehouse || item.inWarehouse || '차량';
     const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
     const initialStock = prod?.initialStock || 0;
 
+    // 현재 재고 계산 (세션 캐시 우선 적용하여 연속 클릭/취소 시 오차 방지)
+    const stockCacheKey = `${outWarehouse}_${item.name}`;
+    const cachedStock = stockOverrides.current[stockCacheKey];
+    const currentWhStock = (cachedStock !== undefined)
+      ? (cachedStock - initialStock)
+      : ((inventory[outWarehouse]?.[item.name] !== undefined)
+          ? inventory[outWarehouse][item.name]
+          : (inventory['본사창고']?.[item.name] || 0));
+
+    const qtyNum = Number(item.qty || 0);
+
     // 2. 재고 이동 백그라운드 처리
     if (isNowLoaded) {
-      onMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, true, order.date, order.id);
-      const currentStock = initialStock + currentWhStock - item.qty;
-      setStockFeedback(prev => ({ ...prev, [key]: `상차완료(재고): ${currentStock}` }));
+      // 상차 시: 재고 차감 (0일 때 3개 실으면 -3)
+      const nextStock = initialStock + currentWhStock - qtyNum;
+      stockOverrides.current[stockCacheKey] = nextStock;
+      onMoveStock(outWarehouse, inWarehouse, item.name, item.qty, true, order.date, order.id);
+      setStockFeedback(prev => ({ ...prev, [key]: `상차완료(재고): ${nextStock}` }));
     } else {
+      // 상차 풀기(취소) 시: 재고 복구 (-3에서 3개 풀면 정확히 0)
+      const nextStock = initialStock + currentWhStock + qtyNum;
+      stockOverrides.current[stockCacheKey] = nextStock;
       if (onRevertAutoMoveStock) {
-        onRevertAutoMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, order.id);
+        onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id);
       } else {
-        onMoveStock(order.inWarehouse, order.outWarehouse, item.name, item.qty, true, order.date, order.id);
+        onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id);
       }
-      const currentStock = initialStock + currentWhStock + item.qty;
-      setStockFeedback(prev => ({ ...prev, [key]: `상차취소(재고): ${currentStock}` }));
+      setStockFeedback(prev => ({ ...prev, [key]: `상차취소(재고): ${nextStock}` }));
     }
 
     // 3. 부모 컴포넌트 즉각 동기화
@@ -242,10 +259,14 @@ const OrderList = ({
   const handleShowStock = (e, order, item, itemIdx) => {
     if (e && e.stopPropagation) e.stopPropagation();
     const key = `${order.id}-${itemIdx}`;
-    const currentWhStock = inventory[order.outWarehouse]?.[item.name] || 0;
+    const outWarehouse = order.outWarehouse || item.outWarehouse || '본사창고';
+    const stockCacheKey = `${outWarehouse}_${item.name}`;
+    const cachedStock = stockOverrides.current[stockCacheKey];
     const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
     const initialStock = prod?.initialStock || 0;
-    const currentStock = initialStock + currentWhStock;
+    const currentStock = cachedStock !== undefined 
+      ? cachedStock 
+      : (initialStock + (inventory[outWarehouse]?.[item.name] !== undefined ? inventory[outWarehouse][item.name] : (inventory['본사창고']?.[item.name] || 0)));
     setStockFeedback(prev => ({ ...prev, [key]: `재고: ${currentStock.toLocaleString()}개` }));
     setTimeout(() => {
       setStockFeedback(prev => {
@@ -256,20 +277,27 @@ const OrderList = ({
     }, 2500);
   };
 
-  const handleTransferCheckedItems = (order) => {
+  // 납품 완료 및 전표 화면 즉시 전송 핸들러
+  const handleTransferOrderToInvoice = (order) => {
+    playMenuClickSound();
     const allItems = order.items || parseOrderItems(order.itemsText);
     const checkedItems = allItems.filter((item, idx) => (`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
+    const itemsToTransfer = checkedItems.length > 0 ? checkedItems : allItems;
 
-    if (checkedItems.length === 0) {
-      alert('체크박스(창고 이동)가 확인된 품목이 없습니다.');
+    if (itemsToTransfer.length === 0) {
+      alert('전표로 전송할 품목이 없습니다.');
       return;
     }
 
-    const invoiceItems = checkedItems.map((item, idx) => {
-      const product = products.find(p => p.name === item.name);
-      const price = item.price !== undefined ? item.price : (product?.salesPrice || 0);
+    const outWH = order.outWarehouse || '본사창고';
+    const inWH = order.inWarehouse || '차량';
+
+    const invoiceItems = itemsToTransfer.map((item, idx) => {
+      const product = products.find(p => p.name === item.name || p.abbreviation === item.name);
+      const price = item.price !== undefined ? item.price : (product?.salesPriceSingle || product?.salesPrice || 0);
       const isTaxFree = product?.taxType === '면세';
-      const itemTotal = item.qty * price;
+      const qtyNum = Number(item.qty || 0);
+      const itemTotal = qtyNum * price;
       const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
       const itemTax = isTaxFree ? 0 : itemTotal - itemSupplyValue;
 
@@ -278,29 +306,37 @@ const OrderList = ({
         productId: product?.id,
         name: item.name,
         spec: product?.spec || '',
-        qty: item.qty,
+        qty: qtyNum,
         price: price,
         taxType: product?.taxType || '과세',
         supplyValue: itemSupplyValue,
         tax: itemTax,
         total: itemTotal,
-        outWarehouse: item.outWarehouse || order.outWarehouse || '본사창고',
-        inWarehouse: item.inWarehouse || order.inWarehouse || '차량'
+        outWarehouse: item.outWarehouse || outWH,
+        inWarehouse: item.inWarehouse || inWH
       };
     });
 
-    // Send to invoice
-    onTransferToInvoice({
-      ...order,
-      id: Date.now(),
-      orderId: order.id,
-      salesOrderId: order.id,
-      warehouse: order.inWarehouse || order.outWarehouse || '본사창고',
-      items: invoiceItems,
-      receivedAmount: 0,
-      payments: { cash: 0, account: 0, card: 0, bill: 0 },
-      discount: 0
-    });
+    // 1. 수주 상태 '완료'로 변경
+    onUpdateOrder(order.id, { status: '완료', isCompleted: true });
+
+    // 2. 매출 전표 화면으로 즉시 전송
+    if (onTransferToInvoice) {
+      onTransferToInvoice({
+        ...order,
+        id: Date.now(),
+        orderId: order.id,
+        salesOrderId: order.id,
+        partner: order.partner,
+        date: order.date,
+        manager: order.manager || currentUser?.name || '미지정',
+        warehouse: inWH || outWH,
+        items: invoiceItems,
+        receivedAmount: 0,
+        payments: { cash: 0, account: 0, card: 0, bill: 0 },
+        discount: 0
+      });
+    }
 
     // Clear processed states for this order
     setProcessedItems(prev => {
@@ -309,6 +345,8 @@ const OrderList = ({
       return next;
     });
   };
+
+  const handleTransferCheckedItems = handleTransferOrderToInvoice;
 
   const handleCreatePartialOrder = (order) => {
     const allItems = order.items || parseOrderItems(order.itemsText);
@@ -727,11 +765,7 @@ const OrderList = ({
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (isCompleted) {
-                                  onUpdateOrder(order.id, { status: '대기', isCompleted: false, salesInvoiceId: null });
-                                } else {
-                                  onUpdateOrder(order.id, { status: '완료', isCompleted: true });
-                                }
+                                handleTransferOrderToInvoice(order);
                               }}
                               style={{ 
                                 display: 'inline-flex', 
