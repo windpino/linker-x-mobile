@@ -11,6 +11,7 @@ import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 import { getMobileSettings } from '../utils/mobileSettings';
+import { printMobileReceipt } from '../utils/receiptPrinter';
 
 const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], setSpecialPrices, inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
   const [showReceiptSignature, setShowReceiptSignature] = useState(() => {
@@ -2128,7 +2129,18 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               width: '100%',
               whiteSpace: 'nowrap'
             }} 
-            onClick={() => window.print()}
+            onClick={() => {
+              const pObj = (partners || []).find(p => p.name === invoiceData.partner || String(p.id) === String(invoiceData.partnerId)) || {};
+              printMobileReceipt({
+                invoiceData,
+                partnerObj: pObj,
+                companyInfo,
+                totalAmount,
+                previousBalance,
+                finalBalance,
+                showReceiptSignature
+              });
+            }}
           >
             <Printer size={15} /> <span>영수증</span>
           </button>
