@@ -485,10 +485,13 @@ function App() {
   const openQuotationManagement = () => {
     setIsQuotationManagementOpen(true);
   };
-  const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => currentUser?.name || 'all');
+  const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => 'all');
 
-  const openOrderList = (staffName = null) => {
-    setOrderListSelectedStaff(staffName || currentUser?.name || 'all');
+  const openOrderList = (staffName = null, date = null) => {
+    setOrderListSelectedStaff(staffName || 'all');
+    if (date) {
+      setSelectedDate(date instanceof Date ? date : new Date(date));
+    }
     setIsOrderListOpen(true);
   };
   const [isCashReportOpen, setIsCashReportOpen] = useState(false);
@@ -5946,13 +5949,32 @@ function App() {
             const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
             const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
             await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-            const nextSalesOrders = (() => {
-              const idx = salesOrders.findIndex(o => String(o.id) === String(id));
-              if (idx >= 0) { const next = [...salesOrders]; next[idx] = fullOrder; return next; }
-              return [fullOrder, ...salesOrders];
-            })();
-            setSalesOrders(nextSalesOrders);
-            await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+            let nextSalesOrders = [];
+            setSalesOrders(prev => {
+              const prevList = Array.isArray(prev) ? prev : [];
+              const idx = prevList.findIndex(o => String(o.id) === String(id));
+              if (idx >= 0) {
+                const next = [...prevList];
+                next[idx] = fullOrder;
+                nextSalesOrders = next;
+                return next;
+              }
+              nextSalesOrders = [fullOrder, ...prevList];
+              return nextSalesOrders;
+            });
+
+            try {
+              const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
+              const idx = curCache.findIndex(o => String(o.id) === String(id));
+              const updatedCache = idx >= 0 
+                ? curCache.map((item, i) => i === idx ? fullOrder : item)
+                : [fullOrder, ...curCache];
+              localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
+              localStorage.setItem(`salesOrders_${companyId}`, JSON.stringify(updatedCache));
+              localStorage.setItem(`bundle_salesOrders_${companyId}`, JSON.stringify(updatedCache));
+            } catch (cacheErr) {}
+
+            await saveBundle(companyId, 'salesOrders', nextSalesOrders.length > 0 ? nextSalesOrders : [fullOrder, ...salesOrders]);
             setEditingOrder(null);
 
             const itemsSummary = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
@@ -5968,7 +5990,7 @@ function App() {
           } catch (err) { console.error(err); }
         }} 
         onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); openSalesInvoice(invData); }}
-        onOpenOrderList={openOrderList}
+        onOpenOrderList={(targetDate) => { setIsSalesOrderOpen(false); openOrderList('all', targetDate); }}
         currentUser={currentUser} 
         staffList={staffList} 
         warehouses={warehouses} 
@@ -6081,13 +6103,32 @@ function App() {
               const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
               const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
               await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-              const nextSalesOrders = (() => {
-                const idx = salesOrders.findIndex(o => String(o.id) === String(id));
-                if (idx >= 0) { const next = [...salesOrders]; next[idx] = fullOrder; return next; }
-                return [fullOrder, ...salesOrders];
-              })();
-              setSalesOrders(nextSalesOrders);
-              await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+              let nextSalesOrders = [];
+              setSalesOrders(prev => {
+                const prevList = Array.isArray(prev) ? prev : [];
+                const idx = prevList.findIndex(o => String(o.id) === String(id));
+                if (idx >= 0) {
+                  const next = [...prevList];
+                  next[idx] = fullOrder;
+                  nextSalesOrders = next;
+                  return next;
+                }
+                nextSalesOrders = [fullOrder, ...prevList];
+                return nextSalesOrders;
+              });
+
+              try {
+                const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
+                const idx = curCache.findIndex(o => String(o.id) === String(id));
+                const updatedCache = idx >= 0 
+                  ? curCache.map((item, i) => i === idx ? fullOrder : item)
+                  : [fullOrder, ...curCache];
+                localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
+                localStorage.setItem(`salesOrders_${companyId}`, JSON.stringify(updatedCache));
+                localStorage.setItem(`bundle_salesOrders_${companyId}`, JSON.stringify(updatedCache));
+              } catch (cacheErr) {}
+
+              await saveBundle(companyId, 'salesOrders', nextSalesOrders.length > 0 ? nextSalesOrders : [fullOrder, ...salesOrders]);
               setEditingOrder(null);
               setOrderingPartner(null);
 
@@ -6104,7 +6145,7 @@ function App() {
             } catch (err) { console.error(err); }
           }}
           onTransferToInvoice={(invData) => { setOrderingPartner(null); openSalesInvoice(invData); }}
-          onOpenOrderList={() => { setOrderingPartner(null); openOrderList(); }}
+          onOpenOrderList={(targetDate) => { setOrderingPartner(null); openOrderList('all', targetDate); }}
           onDeleteOrder={handleDeleteSalesOrder}
         />
       )}

@@ -28,18 +28,17 @@ const OrderList = ({
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const canSelectOtherStaff = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
   const [selectedStaff, setSelectedStaff] = useState(() => {
-    if (initialSelectedStaff && initialSelectedStaff !== 'all') return initialSelectedStaff;
+    if (initialSelectedStaff) return initialSelectedStaff;
+    if (canSelectOtherStaff) return 'all';
     if (currentUser?.name) return currentUser.name;
-    return initialSelectedStaff || 'all';
+    return 'all';
   });
 
   React.useEffect(() => {
-    if (initialSelectedStaff && initialSelectedStaff !== 'all') {
+    if (initialSelectedStaff) {
       setSelectedStaff(initialSelectedStaff);
-    } else if (currentUser?.name) {
-      setSelectedStaff(currentUser.name);
     }
-  }, [initialSelectedStaff, currentUser?.name]);
+  }, [initialSelectedStaff]);
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
@@ -75,8 +74,13 @@ const OrderList = ({
   
   // Filter orders by date and selected staff
   const staffOrders = salesOrders.filter(o => {
-    const isToday = o.date === dateStr;
-    const matchesStaff = selectedStaff === 'all' || o.manager === selectedStaff || (!o.manager && o.creator === selectedStaff);
+    const oDate = o.date || o.orderDate;
+    const isToday = !dateStr || oDate === dateStr || (typeof oDate === 'string' && oDate.startsWith(dateStr));
+    const isStaffUnassigned = !o.manager || o.manager === '알 수 없음' || o.manager === '-' || o.manager === '미지정';
+    const matchesStaff = selectedStaff === 'all' || 
+      o.manager === selectedStaff || 
+      o.creator === selectedStaff || 
+      isStaffUnassigned;
     return isToday && matchesStaff;
   });
 
@@ -93,20 +97,29 @@ const OrderList = ({
   const calculateCategoryTotals = () => {
     const totals = {}; 
     filteredOrders.forEach(order => {
-      if (!order.itemsText) return;
-      const tokens = order.itemsText.trim().split(/[\s\n]+/);
-      tokens.forEach(token => {
-        const match = token.match(/^(.+?)(\d+)$/);
-        if (match) {
-          const nameOrAbbr = match[1];
-          const qty = parseInt(match[2], 10);
-          const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
-          const category = product ? (product.category || '기타') : '미등록상품';
-          const itemName = product?.name || nameOrAbbr;
+      if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+        order.items.forEach(item => {
+          const category = item.category || '기타';
+          const itemName = item.name || '품목';
+          const qty = Number(item.qty) || 0;
           if (!totals[category]) totals[category] = {};
           totals[category][itemName] = (totals[category][itemName] || 0) + qty;
-        }
-      });
+        });
+      } else if (order.itemsText) {
+        const tokens = order.itemsText.trim().split(/[\s\n]+/);
+        tokens.forEach(token => {
+          const match = token.match(/^(.+?)(\d+)$/);
+          if (match) {
+            const nameOrAbbr = match[1];
+            const qty = parseInt(match[2], 10);
+            const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
+            const category = product ? (product.category || '기타') : '미등록상품';
+            const itemName = product?.name || nameOrAbbr;
+            if (!totals[category]) totals[category] = {};
+            totals[category][itemName] = (totals[category][itemName] || 0) + qty;
+          }
+        });
+      }
     });
     return totals;
   };
@@ -620,7 +633,8 @@ const OrderList = ({
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order, oIdx) => {
                   const parsedItems = parseOrderItems(order.itemsText);
-                  const totalQty = parsedItems.reduce((acc, item) => acc + item.qty, 0);
+                  const displayItems = (order.items && order.items.length > 0) ? order.items : parsedItems;
+                  const totalQty = displayItems.reduce((acc, item) => acc + (Number(item.qty) || 0), 0);
 
                   return (
                     <div key={order.id} style={{ 

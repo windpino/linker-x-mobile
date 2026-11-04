@@ -400,10 +400,25 @@ const SalesOrder = ({
       });
     }
 
+    const finalDate = orderData.date || todayStr;
+    const finalManager = orderData.manager && orderData.manager !== '알 수 없음' && orderData.manager !== '-'
+      ? orderData.manager 
+      : (currentUser?.name || '미지정');
+    const finalCreator = currentUser?.name || '사용자';
+
     onSave({ 
       ...orderData, 
       id: orderData.id || Date.now(),
-      items: parsedItems
+      date: finalDate,
+      orderDate: finalDate,
+      manager: finalManager,
+      creator: finalCreator,
+      items: parsedItems,
+      itemsText: orderData.itemsText,
+      totalPrice: parsedTotalPrice,
+      totalAmount: parsedTotalPrice,
+      totalQty: parsedTotalQty,
+      status: orderData.status || '대기'
     });
     
     showToast('수주가 저장되었습니다! 다음 거래처를 선택하세요.', 'success');
@@ -469,7 +484,7 @@ const SalesOrder = ({
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주 거래처 선택</span>
               </div>
               <button 
-                onClick={onOpenOrderList}
+                onClick={() => onOpenOrderList && onOpenOrderList(orderData.date)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
