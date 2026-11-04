@@ -10,8 +10,38 @@ import './SalesManagementCommon.css';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import { getMobileSettings } from '../utils/mobileSettings';
 
 const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], setSpecialPrices, inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
+  const [showReceiptSignature, setShowReceiptSignature] = useState(() => {
+    try {
+      const ms = getMobileSettings();
+      return ms.showReceiptSignature !== false;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    const handleSettingsChange = (e) => {
+      if (e.detail && typeof e.detail.showReceiptSignature !== 'undefined') {
+        setShowReceiptSignature(e.detail.showReceiptSignature !== false);
+      }
+    };
+    window.addEventListener('linkerx_mobile_settings_changed', handleSettingsChange);
+    return () => window.removeEventListener('linkerx_mobile_settings_changed', handleSettingsChange);
+  }, []);
+
+  const companyInfo = (() => {
+    try {
+      const raw = localStorage.getItem('systemSettings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed.company || parsed || {};
+      }
+    } catch (e) {}
+    return {};
+  })();
   const mainWH = warehouses.find(w => w.isMain)?.name || 
                  warehouses.find(w => w.name.includes('메인'))?.name || 
                  warehouses.find(w => w.name.includes('main'))?.name || 
@@ -2140,95 +2170,204 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         </div>
       </WindowModal>
       
-      {/* Hidden Print Layout */}
+      {/* Hidden Print Layout (거래명세표(전표) 영수증 인쇄) */}
       <div className="print-only-container">
-        <div className="print-statement">
-          <div className="print-header">
-            <h1>거래명세표 (전표)</h1>
-            <div className="print-header-meta">
-              <div className="date">{invoiceData.date}</div>
-              <div className="partner-name">{invoiceData.partner} <span className="honorific">귀하</span></div>
-              {!hideAmount && (
-                <div className="top-total-amount">
-                  <span className="label">합계금액</span>
-                  <span className="value">{totalAmount.toLocaleString()}원</span>
-                </div>
-              )}
+        <div className="print-statement" style={{ maxWidth: '800px', margin: '0 auto', color: '#1e293b' }}>
+          
+          {/* 1. Header Title & Date */}
+          <div className="print-header" style={{ marginBottom: '10px' }}>
+            <h1 style={{ textAlign: 'center', fontSize: '26px', fontWeight: '900', letterSpacing: '4px', margin: '0 0 10px 0', borderBottom: '2px solid #000', paddingBottom: '8px' }}>
+              거래명세표(전표)
+            </h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '13px' }}>
+              <div>
+                <strong>일 자 :</strong> <span>{invoiceData.date}</span>
+              </div>
+              <div style={{ color: '#64748b' }}>
+                전표번호 : {invoiceData.id || '-'}
+              </div>
             </div>
           </div>
 
-          <table className="print-item-table">
+          {/* 2. 기본 정보: 공급받는자 & 공급자 */}
+          {(() => {
+            const partnerObj = (partners || []).find(p => p.name === invoiceData.partner || String(p.id) === String(invoiceData.partnerId)) || {};
+            return (
+              <table className="print-info-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', fontSize: '12px' }}>
+                <tbody>
+                  <tr>
+                    <th style={{ width: '3%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', textAlign: 'center', padding: '4px 2px' }} rowSpan="4">
+                      공<br/>급<br/>받<br/>는<br/>자
+                    </th>
+                    <th style={{ width: '15%', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>상호(거래처명)</th>
+                    <td style={{ width: '32%', border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: '800' }}>
+                      {partnerObj.name || invoiceData.partner || '-'} <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>귀하</span>
+                    </td>
+                    <th style={{ width: '3%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', textAlign: 'center', padding: '4px 2px' }} rowSpan="4">
+                      공<br/>급<br/>자
+                    </th>
+                    <th style={{ width: '15%', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>상호(회사명)</th>
+                    <td style={{ width: '32%', border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: '800' }}>
+                      {companyInfo.companyName || companyInfo.name || '본사'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>대표자</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {partnerObj.ceo || partnerObj.representative || partnerObj.owner || '-'}
+                    </td>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>대표자</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {companyInfo.representative || companyInfo.ceo || '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>전화번호</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {partnerObj.phone || partnerObj.mobile || partnerObj.tel || '-'}
+                    </td>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>전화번호</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {companyInfo.phone || companyInfo.tel || '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>사업자번호</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {partnerObj.businessNo || partnerObj.businessNumber || partnerObj.bizNo || '-'}
+                    </td>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }}>사업자번호</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {companyInfo.bizNumber || companyInfo.businessNo || '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }} colSpan="2">업태 / 종목</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {[partnerObj.businessType || partnerObj.uptae, partnerObj.businessItem || partnerObj.jongmok].filter(Boolean).join(' / ') || '-'}
+                    </td>
+                    <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center' }} colSpan="2">업태 / 종목</th>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px' }}>
+                      {[companyInfo.businessType, companyInfo.businessCategory || companyInfo.businessItem].filter(Boolean).join(' / ') || '-'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            );
+          })()}
+
+          {/* 3. 품목 / 수량 / 단가 / 금액 목록 */}
+          <table className="print-item-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', fontSize: '13px' }}>
             <thead>
-              <tr>
-                <th>품목</th>
-                <th>수량</th>
-                {!hideAmount && <th>단가</th>}
-                {!hideAmount && <th>금액</th>}
+              <tr style={{ backgroundColor: '#f1f5f9', borderTop: '2px solid #334155', borderBottom: '1px solid #cbd5e1' }}>
+                <th style={{ padding: '7px 10px', textAlign: 'left', width: '45%' }}>품목</th>
+                <th style={{ padding: '7px 6px', textAlign: 'center', width: '15%' }}>수량</th>
+                <th style={{ padding: '7px 10px', textAlign: 'right', width: '20%' }}>단가</th>
+                <th style={{ padding: '7px 10px', textAlign: 'right', width: '20%' }}>금액</th>
               </tr>
             </thead>
             <tbody>
-              {(invoiceData.items || []).map(item => (
-                <tr key={item.id}>
-                  <td className="item-name">{item.name}</td>
-                  <td>{item.isBox ? `1박스 (${item.qty})` : item.qty}</td>
-                  {!hideAmount && <td>{(Number(item.price) || 0).toLocaleString()}</td>}
-                  {!hideAmount && <td className="item-total">{(Number(item.total) || 0).toLocaleString()}</td>}
+              {(invoiceData.items || []).map((item, idx) => (
+                <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '7px 10px', textAlign: 'left', fontWeight: '600' }}>
+                    {item.name}
+                    {item.spec && <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>({item.spec})</span>}
+                  </td>
+                  <td style={{ padding: '7px 6px', textAlign: 'center' }}>
+                    {item.isBox ? `1박스 (${item.qty})` : item.qty}
+                  </td>
+                  <td style={{ padding: '7px 10px', textAlign: 'right' }}>
+                    {(Number(item.price) || 0).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: '700' }}>
+                    {(Number(item.total) || 0).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
-            {!hideAmount && (
-              <tfoot>
-                <tr>
-                  <td colSpan="3" className="footer-label">총 합계</td>
-                  <td className="footer-value">{totalAmount.toLocaleString()}</td>
-                </tr>
-              </tfoot>
-            )}
+            <tfoot>
+              <tr style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #334155', borderBottom: '2px solid #334155' }}>
+                <td style={{ padding: '8px 10px', fontWeight: '800', textAlign: 'left' }}>합 계</td>
+                <td style={{ padding: '8px 6px', fontWeight: '800', textAlign: 'center' }}>
+                  {(invoiceData.items || []).reduce((acc, it) => acc + (Number(it.qty) || 0), 0)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '12px', color: '#64748b' }}>공급가액 총계</td>
+                <td style={{ padding: '8px 10px', fontWeight: '900', textAlign: 'right', fontSize: '15px', color: '#0f172a' }}>
+                  {totalAmount.toLocaleString()}원
+                </td>
+              </tr>
+            </tfoot>
           </table>
 
-          {!hideAmount && (
-            <div className="print-payment-section">
-              <h3>결제 내역 (입금)</h3>
-              <div className="payment-grid">
-                <div className="payment-box">
-                  <span className="label">카드</span>
-                  <span className="value">{(invoiceData.payments?.card || 0).toLocaleString()}</span>
-                </div>
-                <div className="payment-box">
-                  <span className="label">계좌이체</span>
-                  <span className="value">{(invoiceData.payments?.account || 0).toLocaleString()}</span>
-                </div>
-                <div className="payment-box">
-                  <span className="label">현금</span>
-                  <span className="value">{(invoiceData.payments?.cash || 0).toLocaleString()}</span>
-                </div>
-                {invoiceData.discount > 0 && (
-                  <div className="payment-box">
-                    <span className="label">현장할인</span>
-                    <span className="value">{invoiceData.discount.toLocaleString()}</span>
-                  </div>
-                )}
+          {/* 4. 입금합계 및 입금종류별 합계금액, 전미수/입금합계/현미수 */}
+          <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', marginBottom: '10px', backgroundColor: '#ffffff' }}>
+            {/* 4-1. 입금종류별 합계금액 */}
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#475569', marginBottom: '5px' }}>
+                ■ 입금 내역 (입금종류별)
               </div>
-
-              <div className="balance-summary">
-                <div className="balance-row">
-                  <span className="label">전 미수금</span>
-                  <span className="value">{previousBalance.toLocaleString()}원</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 4px', backgroundColor: '#f8fafc' }}>
+                  <span style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>현금</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700' }}>{(invoiceData.payments?.cash || 0).toLocaleString()}원</span>
                 </div>
-                <div className="balance-row highlight">
-                  <span className="label">누적 미수금</span>
-                  <span className="value">{finalBalance.toLocaleString()}원</span>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 4px', backgroundColor: '#f8fafc' }}>
+                  <span style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>계좌</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700' }}>{(invoiceData.payments?.account || 0).toLocaleString()}원</span>
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 4px', backgroundColor: '#f8fafc' }}>
+                  <span style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>카드</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700' }}>{(invoiceData.payments?.card || 0).toLocaleString()}원</span>
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 4px', backgroundColor: '#f8fafc' }}>
+                  <span style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>어음</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700' }}>{(invoiceData.payments?.bill || 0).toLocaleString()}원</span>
                 </div>
               </div>
             </div>
+
+            {/* 4-2. 전미수, 입금합계, 현미수 순 정산 바 */}
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
+              <div style={{ padding: '6px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>전미수</span>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                  {previousBalance.toLocaleString()}원
+                </span>
+              </div>
+              <div style={{ padding: '6px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#15803d', marginBottom: '2px' }}>입금합계</span>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#16a34a' }}>
+                  {(invoiceData.receivedAmount || 0).toLocaleString()}원
+                </span>
+              </div>
+              <div style={{ padding: '6px', backgroundColor: '#fef2f2', borderRadius: '6px', border: '1px solid #fecaca' }}>
+                <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#b91c1c', marginBottom: '2px' }}>현미수</span>
+                <span style={{ fontSize: '14px', fontWeight: '900', color: '#dc2626' }}>
+                  {finalBalance.toLocaleString()}원
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. 서명란 (모바일 설정에 따라 토글) */}
+          {showReceiptSignature && (
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', backgroundColor: '#ffffff' }}>
+              <div style={{ fontSize: '12px', color: '#475569' }}>
+                상기 물품을 정히 영수(인수)함.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700' }}>
+                <span>인수자 :</span>
+                <span style={{ display: 'inline-block', width: '120px', borderBottom: '1px solid #334155', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>
+                  ( 서 명 )
+                </span>
+              </div>
+            </div>
           )}
-          
-          <div className="print-footer">
-            <p>감사합니다. 상기 금액을 정히 영수함.</p>
+
+          <div className="print-footer" style={{ marginTop: '14px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: 0 }}>감사합니다. 귀사의 일익 번창하심을 기원합니다.</p>
           </div>
         </div>
-
-        {/* 인쇄용 스타일은 PurchaseInvoice.css 공통 이관 완료 */}
       </div>
     </>
   );

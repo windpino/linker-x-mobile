@@ -351,6 +351,12 @@
   .print-item-table tr { display: table-row !important; }
   .print-item-table th, .print-item-table td { display: table-cell !important; padding: 12px; border: 1px solid #e2e8f0; }
 
+  .print-info-table { display: table !important; width: 100% !important; border-collapse: collapse; }
+  .print-info-table thead { display: table-header-group !important; }
+  .print-info-table tbody { display: table-row-group !important; }
+  .print-info-table tr { display: table-row !important; }
+  .print-info-table th, .print-info-table td { display: table-cell !important; }
+
   .print-statement {
     max-width: 800px;
     margin: 0 auto;

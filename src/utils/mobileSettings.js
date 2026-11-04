@@ -11,7 +11,8 @@ export const DEFAULT_MOBILE_SETTINGS = {
   enableMissRing: true,         // 모바일 미스링 AI 비서 활성화
   fontScale: 100,               // 모바일 글자 가독성 배율 (%: 95, 100, 105, 110, 115)
   showMenuIcons: true,          // 드로어 및 퀵메뉴 아이콘(이모지) 표시
-  enableCompactMode: false      // 모바일 고밀도 간편 모드
+  enableCompactMode: false,     // 모바일 고밀도 간편 모드
+  showReceiptSignature: true    // 거래명세표(전표) 영수증 인수자 서명란 표시
 };
 
 const STORAGE_KEY = 'linkerx_mobile_standalone_settings';

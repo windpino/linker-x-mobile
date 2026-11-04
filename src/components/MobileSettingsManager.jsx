@@ -208,6 +208,22 @@ export default function MobileSettingsManager({ onClose, showToast }) {
               />
             </label>
           </div>
+
+          <div className="mobile-setting-item" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+            <label className="mobile-setting-row" onClick={() => updateSetting('showReceiptSignature', settings.showReceiptSignature === false ? true : false)}>
+              <div className="mobile-setting-label">
+                <span className="title">거래명세표(전표) 서명란 표시</span>
+                <span className="desc">매출전표 영수증 출력 시 하단 인수자 서명란을 표시합니다.</span>
+              </div>
+              <input 
+                type="checkbox" 
+                className="mobile-checkbox-input"
+                checked={settings.showReceiptSignature !== false} 
+                onChange={(e) => updateSetting('showReceiptSignature', e.target.checked)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </label>
+          </div>
         </div>
 
         {/* 3. 모바일 화면 가독성 (글자 크기) 카드 */}
