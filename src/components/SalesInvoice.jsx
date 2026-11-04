@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X } from 'lucide-react';
 import { format } from 'date-fns';
 import WindowModal from './WindowModal';
@@ -14,6 +15,7 @@ import { getMobileSettings } from '../utils/mobileSettings';
 import { printMobileReceipt } from '../utils/receiptPrinter';
 
 const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInvoices = [], editingInvoice = null, onOpenLedger, onDeleteInvoice, onPrintTaxInvoice, zIndex, selectedDate, currentUser, warehouses = [], specialPrices = [], setSpecialPrices, inventory = [], warnNoStock = true, saveMode = 'auto', themeColor: propThemeColor }) => {
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showReceiptSignature, setShowReceiptSignature] = useState(() => {
     try {
       const ms = getMobileSettings();
@@ -2130,19 +2132,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               whiteSpace: 'nowrap'
             }} 
             onClick={() => {
-              const pObj = (partners || []).find(p => p.name === invoiceData.partner || String(p.id) === String(invoiceData.partnerId)) || {};
-              printMobileReceipt({
-                invoiceData,
-                partnerObj: pObj,
-                companyInfo,
-                totalAmount,
-                previousBalance,
-                finalBalance,
-                showReceiptSignature
-              });
+              setShowReceiptModal(true);
             }}
           >
-            <Printer size={15} /> <span>영수증</span>
+            <Printer size={15} /> <span>영수증출력</span>
           </button>
 
           <button 
@@ -2181,6 +2174,303 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           </button>
         </div>
       </WindowModal>
+
+      {/* 영수증 미리보기 모달 및 모바일 프린터 직접 인쇄 (화면 표시 & 출력) */}
+      {showReceiptModal && createPortal(
+        <div className="receipt-print-portal">
+          <div className="receipt-modal-overlay" onClick={() => setShowReceiptModal(false)}>
+            <div className="receipt-modal-card" onClick={(e) => e.stopPropagation()}>
+              {/* 상단 툴바 (인쇄 시 숨김) */}
+              <div className="receipt-modal-header receipt-modal-no-print">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '15px' }}>
+                  <Printer size={18} color="#38bdf8" />
+                  <span>거래명세표(전표) 영수증 미리보기</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      window.print();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      backgroundColor: '#0284c7',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Printer size={15} />
+                    <span>프린터 출력</span>
+                  </button>
+                  <button
+                    onClick={() => setShowReceiptModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 영수증 본문 (스크롤 가능 / 인쇄 영역) */}
+              <div className="receipt-scroll-body">
+                <div className="print-statement" style={{ maxWidth: '480px', margin: '0 auto', color: '#0f172a', fontFamily: '-apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif' }}>
+                  
+                  {/* 1. Header Title & Date */}
+                  <div style={{ marginBottom: '10px' }}>
+                    <h1 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '900', letterSpacing: '4px', margin: '0 0 8px 0', borderBottom: '2px solid #0f172a', paddingBottom: '6px' }}>
+                      거래명세표(전표)
+                    </h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                      <div>
+                        <strong>일 자 :</strong> <span>{invoiceData.date}</span>
+                      </div>
+                      <div style={{ color: '#64748b' }}>
+                        전표번호 : {invoiceData.id || '-'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. 기본 정보: 공급받는자 & 공급자 */}
+                  {(() => {
+                    const partnerObj = (partners || []).find(p => p.name === invoiceData.partner || String(p.id) === String(invoiceData.partnerId)) || {};
+                    return (
+                      <table className="print-info-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '11px' }}>
+                        <tbody>
+                          <tr>
+                            <th style={{ width: '4%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', textAlign: 'center', padding: '4px 2px' }} rowSpan="4">
+                              공<br/>급<br/>받<br/>는<br/>자
+                            </th>
+                            <th style={{ width: '16%', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>상호(거래처명)</th>
+                            <td style={{ width: '30%', border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: '800' }}>
+                              {partnerObj.name || invoiceData.partner || '-'} <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#64748b' }}>귀하</span>
+                            </td>
+                            <th style={{ width: '4%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', textAlign: 'center', padding: '4px 2px' }} rowSpan="4">
+                              공<br/>급<br/>자
+                            </th>
+                            <th style={{ width: '16%', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>상호(회사명)</th>
+                            <td style={{ width: '30%', border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: '800' }}>
+                              {companyInfo.companyName || companyInfo.name || '본사'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>대표자</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {partnerObj.ceo || partnerObj.representative || partnerObj.owner || '-'}
+                            </td>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>대표자</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {companyInfo.representative || companyInfo.ceo || '-'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>전화번호</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {partnerObj.phone || partnerObj.mobile || partnerObj.tel || '-'}
+                            </td>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>전화번호</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {companyInfo.phone || companyInfo.tel || '-'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>사업자번호</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {partnerObj.businessNo || partnerObj.businessNumber || partnerObj.bizNo || '-'}
+                            </td>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }}>사업자번호</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {companyInfo.bizNumber || companyInfo.businessNo || '-'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }} colSpan="2">업태 / 종목</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {[partnerObj.businessType || partnerObj.uptae, partnerObj.businessItem || partnerObj.jongmok].filter(Boolean).join(' / ') || '-'}
+                            </td>
+                            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center' }} colSpan="2">업태 / 종목</th>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}>
+                              {[companyInfo.businessType, companyInfo.businessCategory || companyInfo.businessItem].filter(Boolean).join(' / ') || '-'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+
+                  {/* 3. 품목 / 수량 / 단가 / 금액 목록 */}
+                  <table className="print-item-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '11.5px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f1f5f9', borderTop: '2px solid #334155', borderBottom: '1px solid #cbd5e1' }}>
+                        <th style={{ padding: '6px 8px', textAlign: 'left', width: '45%' }}>품목</th>
+                        <th style={{ padding: '6px 4px', textAlign: 'center', width: '15%' }}>수량</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', width: '20%' }}>단가</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', width: '20%' }}>금액</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(invoiceData.items || []).map((item, idx) => (
+                        <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '600' }}>
+                            {item.name}
+                            {item.spec && <span style={{ fontSize: '10.5px', color: '#64748b', marginLeft: '4px' }}>({item.spec})</span>}
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                            {item.isBox ? `1박스 (${item.qty})` : item.qty}
+                          </td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                            {(Number(item.price) || 0).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '700' }}>
+                            {(Number(item.total) || 0).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #334155', borderBottom: '2px solid #334155' }}>
+                        <td style={{ padding: '7px 8px', fontWeight: '800', textAlign: 'left' }}>합 계</td>
+                        <td style={{ padding: '7px 4px', fontWeight: '800', textAlign: 'center' }}>
+                          {(invoiceData.items || []).reduce((acc, it) => acc + (Number(it.qty) || 0), 0)}
+                        </td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right', fontSize: '11px', color: '#64748b' }}>공급가 총계</td>
+                        <td style={{ padding: '7px 8px', fontWeight: '900', textAlign: 'right', fontSize: '13.5px', color: '#0f172a' }}>
+                          {totalAmount.toLocaleString()}원
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  {/* 4. 입금합계 및 입금종류별 합계금액, 전미수/입금합계/현미수 */}
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', backgroundColor: '#ffffff' }}>
+                    {/* 4-1. 입금종류별 합계금액 */}
+                    <div style={{ marginBottom: '6px' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>
+                        ■ 입금 내역 (입금종류별)
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', textAlign: 'center' }}>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '5px', padding: '4px 2px', backgroundColor: '#f8fafc' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>현금</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: '700' }}>{(invoiceData.payments?.cash || 0).toLocaleString()}원</span>
+                        </div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '5px', padding: '4px 2px', backgroundColor: '#f8fafc' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>계좌</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: '700' }}>{(invoiceData.payments?.account || 0).toLocaleString()}원</span>
+                        </div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '5px', padding: '4px 2px', backgroundColor: '#f8fafc' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>카드</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: '700' }}>{(invoiceData.payments?.card || 0).toLocaleString()}원</span>
+                        </div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '5px', padding: '4px 2px', backgroundColor: '#f8fafc' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>어음</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: '700' }}>{(invoiceData.payments?.bill || 0).toLocaleString()}원</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4-2. 전미수, 입금합계, 현미수 순 정산 바 */}
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '6px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
+                      <div style={{ padding: '5px 4px', backgroundColor: '#f8fafc', borderRadius: '5px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ display: 'block', fontSize: '10.5px', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>전미수</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#1e293b' }}>
+                          {previousBalance.toLocaleString()}원
+                        </span>
+                      </div>
+                      <div style={{ padding: '5px 4px', backgroundColor: '#f0fdf4', borderRadius: '5px', border: '1px solid #bbf7d0' }}>
+                        <span style={{ display: 'block', fontSize: '10.5px', fontWeight: '700', color: '#15803d', marginBottom: '2px' }}>입금합계</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#16a34a' }}>
+                          {(invoiceData.receivedAmount || 0).toLocaleString()}원
+                        </span>
+                      </div>
+                      <div style={{ padding: '5px 4px', backgroundColor: '#fef2f2', borderRadius: '5px', border: '1px solid #fecaca' }}>
+                        <span style={{ display: 'block', fontSize: '10.5px', fontWeight: '700', color: '#b91c1c', marginBottom: '2px' }}>현미수</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: '900', color: '#dc2626' }}>
+                          {finalBalance.toLocaleString()}원
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5. 서명란 (모바일 설정에 따라 토글) */}
+                  {showReceiptSignature && (
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', backgroundColor: '#ffffff' }}>
+                      <div style={{ fontSize: '11px', color: '#475569' }}>
+                        상기 물품을 정히 영수(인수)함.
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700' }}>
+                        <span>인수자 :</span>
+                        <span style={{ display: 'inline-block', width: '100px', borderBottom: '1px solid #334155', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>
+                          ( 서 명 )
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="print-footer" style={{ marginTop: '10px', textAlign: 'center', fontSize: '11px', color: '#64748b' }}>
+                    <p style={{ margin: 0 }}>감사합니다. 귀사의 일익 번창하심을 기원합니다.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 하단 툴바 (인쇄 시 숨김) */}
+              <div className="receipt-modal-footer receipt-modal-no-print">
+                <button
+                  onClick={() => window.print()}
+                  style={{
+                    flex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '11px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Printer size={18} />
+                  <span>🖨️ 영수증 인쇄 (프린터 출력)</span>
+                </button>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#64748b',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '11px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       
       {/* Hidden Print Layout (거래명세표(전표) 영수증 인쇄) */}
       <div className="print-only-container">

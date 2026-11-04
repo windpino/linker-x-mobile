@@ -361,21 +361,21 @@ export const generateReceiptHtml = ({
 export const printMobileReceipt = (options) => {
   const html = generateReceiptHtml(options);
 
-  // 1. Remove existing print iframe if any
+  // 1. Remove existing print iframe or container if any
   const existingFrame = document.getElementById('receipt-print-frame');
   if (existingFrame) existingFrame.remove();
 
-  // 2. Create isolated iframe
+  // 2. Create iframe with layout dimensions (not 0x0)
   const iframe = document.createElement('iframe');
   iframe.id = 'receipt-print-frame';
   iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
+  iframe.style.left = '0';
+  iframe.style.top = '0';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
   iframe.style.border = 'none';
-  iframe.style.opacity = '0';
-  iframe.style.pointerEvents = 'none';
+  iframe.style.zIndex = '-9999';
+  iframe.style.visibility = 'hidden';
 
   document.body.appendChild(iframe);
 
@@ -387,11 +387,15 @@ export const printMobileReceipt = (options) => {
   // 3. Trigger printing cleanly after rendering
   setTimeout(() => {
     try {
+      iframe.style.visibility = 'visible';
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
+      setTimeout(() => {
+        iframe.style.visibility = 'hidden';
+      }, 1000);
     } catch (err) {
       console.warn('[ReceiptPrint] iframe print fallback to window.print():', err);
       window.print();
     }
-  }, 200);
+  }, 250);
 };
