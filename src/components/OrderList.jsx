@@ -143,19 +143,30 @@ const OrderList = ({
 
   const getCategoryBadgeStyle = (category) => {
     const cat = String(category || '기타');
-    if (cat.includes('생물미끼') || cat.includes('미끼')) {
-      return { bg: '#043427', border: '#059669', color: '#6ee7b7' };
+    if (cat.includes('생물미끼')) {
+      return { bg: 'rgba(16, 185, 129, 0.22)', border: '#10b981', color: '#34d399' };
     }
     if (cat.includes('크릴')) {
-      return { bg: '#3b1219', border: '#991b1b', color: '#fca5a5' };
+      return { bg: 'rgba(239, 68, 68, 0.22)', border: '#ef4444', color: '#f87171' };
     }
     if (cat.includes('파우다') || cat.includes('파우더')) {
-      return { bg: '#3a200a', border: '#b45309', color: '#fcd34d' };
+      return { bg: 'rgba(245, 158, 11, 0.22)', border: '#f59e0b', color: '#fbbf24' };
+    }
+    if (cat.includes('미끼')) {
+      return { bg: 'rgba(6, 182, 212, 0.22)', border: '#06b6d4', color: '#22d3ee' };
     }
     if (cat.includes('미등록상품')) {
-      return { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', color: '#fca5a5' };
+      return { bg: 'rgba(244, 63, 94, 0.25)', border: '#f43f5e', color: '#f43f5e' };
     }
-    return { bg: 'rgba(255, 255, 255, 0.08)', border: '#475569', color: '#93c5fd' };
+    const colors = [
+      { bg: 'rgba(59, 130, 246, 0.22)', border: '#3b82f6', color: '#60a5fa' },
+      { bg: 'rgba(168, 85, 247, 0.22)', border: '#a855f7', color: '#c084fc' },
+      { bg: 'rgba(236, 72, 153, 0.22)', border: '#ec4899', color: '#f472b6' },
+      { bg: 'rgba(20, 184, 166, 0.22)', border: '#14b8a6', color: '#2dd4bf' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
   };
 
   const parseOrderItems = (text) => {
@@ -806,38 +817,40 @@ const OrderList = ({
                                   )}
                                 </div>
 
-                                {/* 3) Category Badge */}
-                                <span style={{
-                                  fontSize: '0.78rem',
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
-                                  backgroundColor: catStyle.bg,
-                                  border: `1px solid ${catStyle.border}`,
-                                  color: catStyle.color,
-                                  fontWeight: 800,
-                                  flexShrink: 0,
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {item.category || '기타'}
-                                </span>
-
-                                {/* 4) Product Name */}
-                                <span 
-                                  onClick={(e) => handleShowStock(e, order, item, iIdx)}
-                                  title="클릭 시 재고 확인"
-                                  style={{
-                                    flex: 1,
-                                    minWidth: 0,
-                                    fontWeight: 700,
-                                    color: '#ffffff',
-                                    fontSize: '0.92rem',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  {item.name}
-                                </span>
+                                {/* 3 & 4) Category Above + Product Name Below */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{
+                                      fontSize: '0.64rem',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      backgroundColor: catStyle.bg,
+                                      border: `1px solid ${catStyle.border}`,
+                                      color: catStyle.color,
+                                      fontWeight: 800,
+                                      lineHeight: 1.2,
+                                      letterSpacing: '-0.2px',
+                                      display: 'inline-block'
+                                    }}>
+                                      {item.category || '기타'}
+                                    </span>
+                                  </div>
+                                  <span 
+                                    onClick={(e) => handleShowStock(e, order, item, iIdx)}
+                                    title="클릭 시 재고 확인"
+                                    style={{
+                                      fontWeight: 700,
+                                      color: '#ffffff',
+                                      fontSize: '0.94rem',
+                                      lineHeight: 1.3,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {item.name}
+                                  </span>
+                                </div>
 
                                 {/* 5) Quantity Box */}
                                 <div style={{
