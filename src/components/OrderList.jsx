@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar } from 'lucide-react';
+import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar, Phone, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
@@ -10,6 +10,7 @@ const OrderList = ({
   selectedDate, 
   staffList = [], 
   products = [], 
+  partners = [],
   onEditOrder, 
   onDeleteOrder, 
   onTransferToInvoice, 
@@ -138,6 +139,23 @@ const OrderList = ({
       hash = category.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
+  };
+
+  const getCategoryBadgeStyle = (category) => {
+    const cat = String(category || '기타');
+    if (cat.includes('생물미끼') || cat.includes('미끼')) {
+      return { bg: '#043427', border: '#059669', color: '#6ee7b7' };
+    }
+    if (cat.includes('크릴')) {
+      return { bg: '#3b1219', border: '#991b1b', color: '#fca5a5' };
+    }
+    if (cat.includes('파우다') || cat.includes('파우더')) {
+      return { bg: '#3a200a', border: '#b45309', color: '#fcd34d' };
+    }
+    if (cat.includes('미등록상품')) {
+      return { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', color: '#fca5a5' };
+    }
+    return { bg: 'rgba(255, 255, 255, 0.08)', border: '#475569', color: '#93c5fd' };
   };
 
   const parseOrderItems = (text) => {
@@ -652,6 +670,246 @@ const OrderList = ({
                   const parsedItems = parseOrderItems(order.itemsText);
                   const displayItems = (order.items && order.items.length > 0) ? order.items : parsedItems;
                   const totalQty = displayItems.reduce((acc, item) => acc + (Number(item.qty) || 0), 0);
+                  const partnerObj = (partners || []).find(p => p.name === order.partner || String(p.id) === String(order.partnerId));
+                  const phone = partnerObj?.phone || partnerObj?.tel || partnerObj?.mobile || '';
+                  const isCompleted = isOrderCompleted(order);
+
+                  if (isMobileView) {
+                    return (
+                      <div key={order.id} style={{ 
+                        borderRadius: '16px', 
+                        backgroundColor: '#0c1427', 
+                        border: '1px solid #1e293b', 
+                        overflow: 'hidden', 
+                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                        marginBottom: '14px'
+                      }}>
+                        {/* 1. Header (Matching screenshot: light mint background, - Partner Phone, [납품 완료], Edit, Delete) */}
+                        <div style={{ 
+                          padding: '10px 14px', 
+                          backgroundColor: '#f0fdf4', 
+                          borderBottom: '1px solid #dcfce7',
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            <span style={{ color: '#059669', fontWeight: 800, fontSize: '1.1rem' }}>-</span>
+                            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {order.partner}
+                            </span>
+                            {phone && (
+                              <a 
+                                href={`tel:${phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ color: '#059669', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', marginLeft: '2px' }}
+                                title={`전화: ${phone}`}
+                              >
+                                <Phone size={14} />
+                              </a>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isCompleted) {
+                                  onUpdateOrder(order.id, { status: '대기', isCompleted: false, salesInvoiceId: null });
+                                } else {
+                                  onUpdateOrder(order.id, { status: '완료', isCompleted: true });
+                                }
+                              }}
+                              style={{ 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '4px', 
+                                padding: '5px 12px', 
+                                borderRadius: '8px', 
+                                fontSize: '0.8rem', 
+                                fontWeight: 800, 
+                                backgroundColor: isCompleted ? '#059669' : '#059669',
+                                color: '#ffffff', 
+                                border: 'none', 
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 3px rgba(5,150,105,0.25)'
+                              }}
+                            >
+                              <CheckCircle2 size={13} /> 납품 완료
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onEditOrder(order); }}
+                              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                              title="수정"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('삭제하시겠습니까?')) onDeleteOrder(order.id); }}
+                              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                              title="삭제"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 2. Items List (Dark Navy, row layout exactly like screenshot) */}
+                        <div style={{ backgroundColor: '#0c1427', padding: '2px 0 6px 0' }}>
+                          {displayItems.map((item, iIdx) => {
+                            const key = `${order.id}-${iIdx}`;
+                            const isProcessed = item.loaded || processedItems[key];
+                            const feedback = stockFeedback[key];
+                            const catStyle = getCategoryBadgeStyle(item.category);
+
+                            return (
+                              <div 
+                                key={iIdx}
+                                onClick={() => handleItemMove(order, item, iIdx)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  padding: '10px 14px',
+                                  borderBottom: iIdx === displayItems.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                                  cursor: 'pointer',
+                                  position: 'relative'
+                                }}
+                              >
+                                {/* 1) Item Index */}
+                                <span style={{ width: '22px', fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', textAlign: 'center', flexShrink: 0 }}>
+                                  {iIdx + 1}
+                                </span>
+
+                                {/* 2) Checkmark Circle */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', flexShrink: 0 }}>
+                                  {isProcessed ? (
+                                    <div style={{
+                                      width: '18px',
+                                      height: '18px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#10b981',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Check size={12} color="#ffffff" strokeWidth={3.5} />
+                                    </div>
+                                  ) : (
+                                    <div style={{
+                                      width: '18px',
+                                      height: '18px',
+                                      borderRadius: '50%',
+                                      border: '2px solid #475569',
+                                      backgroundColor: 'transparent'
+                                    }} />
+                                  )}
+                                </div>
+
+                                {/* 3) Category Badge */}
+                                <span style={{
+                                  fontSize: '0.78rem',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  backgroundColor: catStyle.bg,
+                                  border: `1px solid ${catStyle.border}`,
+                                  color: catStyle.color,
+                                  fontWeight: 800,
+                                  flexShrink: 0,
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {item.category || '기타'}
+                                </span>
+
+                                {/* 4) Product Name */}
+                                <span 
+                                  onClick={(e) => handleShowStock(e, order, item, iIdx)}
+                                  title="클릭 시 재고 확인"
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    fontWeight: 700,
+                                    color: '#ffffff',
+                                    fontSize: '0.92rem',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {item.name}
+                                </span>
+
+                                {/* 5) Quantity Box */}
+                                <div style={{
+                                  minWidth: '38px',
+                                  height: '30px',
+                                  padding: '0 8px',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#1e293b',
+                                  border: '1px solid #334155',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#ffffff',
+                                  fontWeight: 800,
+                                  fontSize: '0.92rem',
+                                  flexShrink: 0
+                                }}>
+                                  {item.qty}
+                                </div>
+
+                                {/* 6) Mismatch Button (맨 끝에 재고불일치 버튼만) */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name);
+                                  }}
+                                  style={{
+                                    border: '1px solid rgba(245, 158, 11, 0.5)',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                                    color: '#fbbf24',
+                                    padding: '4px 7px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                  }}
+                                  title="재고불일치"
+                                >
+                                  재고불일치
+                                </button>
+
+                                {/* Temporary Stock Feedback Toast */}
+                                {feedback && (
+                                  <div style={{ 
+                                    position: 'absolute', 
+                                    top: '50%', 
+                                    left: '50%', 
+                                    transform: 'translate(-50%, -50%)', 
+                                    backgroundColor: '#020617', 
+                                    color: '#38bdf8', 
+                                    padding: '6px 14px', 
+                                    borderRadius: '8px', 
+                                    fontSize: '0.8rem', 
+                                    fontWeight: 800,
+                                    whiteSpace: 'nowrap', 
+                                    zIndex: 20, 
+                                    border: '1px solid #38bdf8', 
+                                    boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                                    pointerEvents: 'none'
+                                  }}>
+                                    {feedback}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={order.id} style={{ 

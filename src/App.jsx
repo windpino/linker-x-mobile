@@ -6155,6 +6155,7 @@ function App() {
         salesOrders={salesOrders} 
         salesInvoices={salesInvoices}
         products={products}
+        partners={partners}
         selectedDate={selectedDate} 
         staffList={staffList} 
         currentUser={currentUser}
