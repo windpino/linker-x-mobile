@@ -95,6 +95,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   
   // Default isMaximized should prioritize saved state, then mobile detection
   const [isMaximized, setIsMaximized] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) return true;
     if (savedData?.isMaximized !== undefined) return savedData.isMaximized;
     return isMobileView;
   });

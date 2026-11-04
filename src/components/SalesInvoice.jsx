@@ -1068,9 +1068,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       <WindowModal 
         title={isDepositOnly ? "💰 입금전표 발행" : "매출전표"} 
         onClose={onClose} 
-        width="1100px" 
-        zIndex={zIndex} 
-        desktopOnly={true}
+        width="100%" 
+        height="100%"
+        zIndex={zIndex}
         headerExtra={
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <button
@@ -1122,18 +1122,17 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         <div className="invoice-body invoice-body-flex" style={{ padding: '12px', gap: '12px' }}>
           <div className="invoice-left-part" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
             
-            {/* 1. 전표일자 및 출고창고, 담당자 수평 한 줄 배치 (테두리 박스/배경색 제거) */}
+            {/* 1. 전표일자 및 출고창고, 담당자 (모바일 최적화 배치) */}
             <div style={{ 
               display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px', 
+              flexDirection: 'column', 
+              gap: '6px', 
               backgroundColor: 'transparent', 
-              padding: '4px 0', 
-              borderRadius: '0', 
-              border: 'none',
+              padding: '2px 0', 
               marginBottom: '2px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>전표일자</span>
                 <DateNavButton
                   direction="prev"
@@ -1193,8 +1192,35 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 />
               </div>
 
+              {invoiceData.partner && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.74rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '100px', fontWeight: 700 }}>
+                  {(!invoiceData.items || invoiceData.items.length === 0) && partnerDayInvoices.length === 0 ? (
+                    '해당일 전표 0 / 0'
+                  ) : partnerDayInvoices.length > 0 || (invoiceData.items && invoiceData.items.length > 0) ? (
+                    <>
+                      <button 
+                        disabled={currentIndex <= 0}
+                        onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
+                        style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 2px', color: currentIndex <= 0 ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                      >◀</button>
+                      {currentIndex + 1}/{Math.max(partnerDayInvoices.length, currentIndex + 1)}
+                      <button 
+                        disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
+                        onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
+                        style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 2px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
+                      >▶</button>
+                    </>
+                  ) : (
+                    '신규 전표'
+                  )}
+                </span>
+              )}
+            </div>
+
+            {/* Row 2: 출고창고 & 담당자 (2열 정렬) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>출고창고</span>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>출고창고</span>
                 <select 
                   value={invoiceData.warehouse} 
                   onChange={(e) => {
@@ -1270,30 +1296,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                   )}
                 </select>
               </div>
-
-              {invoiceData.partner && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '100px', fontWeight: 700 }}>
-                  {(!invoiceData.items || invoiceData.items.length === 0) && partnerDayInvoices.length === 0 ? (
-                    '해당일 전표 0 / 0'
-                  ) : partnerDayInvoices.length > 0 || (invoiceData.items && invoiceData.items.length > 0) ? (
-                    <>
-                      <button 
-                        disabled={currentIndex <= 0}
-                        onClick={(e) => { e.stopPropagation(); const prev = partnerDayInvoices[currentIndex - 1]; setInvoiceData({...prev}); setCurrentIndex(currentIndex - 1); }}
-                        style={{ background: 'none', border: 'none', cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer', padding: '0 2px', color: currentIndex <= 0 ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
-                      >◀</button>
-                      {currentIndex + 1}/{Math.max(partnerDayInvoices.length, currentIndex + 1)}
-                      <button 
-                        disabled={currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1}
-                        onClick={(e) => { e.stopPropagation(); const nxt = partnerDayInvoices[currentIndex + 1]; setInvoiceData({...nxt}); setCurrentIndex(currentIndex + 1); }}
-                        style={{ background: 'none', border: 'none', cursor: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? 'not-allowed' : 'pointer', padding: '0 2px', color: (currentIndex === -1 || currentIndex >= partnerDayInvoices.length - 1) ? '#94a3b8' : '#334155', fontWeight: 'bold' }}
-                      >▶</button>
-                    </>
-                  ) : (
-                    '신규 전표'
-                  )}
-                </span>
-              )}
             </div>
 
             {/* 2. 거래처명 바 (테두리 박스/배경색 제거) */}
@@ -1351,10 +1353,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               </div>
             </div>
 
-            {/* 3. 품목 검색 (테두리 박스/배경색 제거) */}
-            <div className="item-search-section" style={{ border: 'none', background: 'transparent', padding: '2px 0', margin: 0 }}>
-              <div className="item-search-grid-responsive">
-                <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={productSearchRef}>
+            {/* 3. 품목 검색 (모바일 최적화 2열 구조) */}
+            <div className="item-search-section" style={{ border: 'none', background: 'transparent', padding: '2px 0', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* Row 1: 품목 검색 (너비 100%) */}
+              <div className="form-group" style={{ marginBottom: 0, position: 'relative', width: '100%' }} ref={productSearchRef}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '2px' }}>품목 검색</label>
                   <div style={{ position: 'relative' }}>
                     <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -1460,8 +1462,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Row 2: 수량 + 단가 + 추가버튼 그리드 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '75px 1fr auto', gap: '8px', alignItems: 'flex-end', width: '100%' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>수량</label>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>수량</label>
                   <input 
                     ref={qtyInputRef}
                     type="text" 
@@ -1474,11 +1480,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddItem();
                     }}
-                    style={{ textAlign: 'right' }}
+                    style={{ textAlign: 'right', height: '36px', fontSize: '0.85rem' }}
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>단가</label>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>단가</label>
                   <input 
                     type="text" 
                     value={price ? price.toLocaleString() : ''} 
@@ -1490,15 +1496,28 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddItem();
                     }}
-                    style={{ textAlign: 'right' }}
+                    style={{ textAlign: 'right', height: '36px', fontSize: '0.85rem' }}
                   />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', minWidth: 'auto', flexShrink: 0 }}>
-                  <label style={{ visibility: 'hidden' }}>추가</label>
-                  <button className="btn-primary" onClick={handleAddItem} style={{ height: '38px', backgroundColor: themeColor, margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap', minWidth: '60px', padding: '0 8px' }}>
-                    <Plus size={18} /> <span style={{ whiteSpace: 'nowrap' }}>추가</span>
-                  </button>
-                </div>
+                <button 
+                  className="btn-primary" 
+                  onClick={handleAddItem} 
+                  style={{ 
+                    height: '36px', 
+                    backgroundColor: themeColor, 
+                    margin: 0, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '4px', 
+                    whiteSpace: 'nowrap', 
+                    padding: '0 14px',
+                    fontWeight: 700,
+                    borderRadius: '6px'
+                  }}
+                >
+                  <Plus size={16} /> 추가
+                </button>
               </div>
             </div>
 
@@ -1535,14 +1554,14 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               );
             })()}
 
-            <div className="invoice-table-container" style={{ overflowX: 'hidden' }}>
-              <table className="invoice-table" ref={tableRef} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
+            <div className="invoice-table-container" style={{ overflowX: 'hidden', width: '100%' }}>
+              <table className="invoice-table sales-invoice-custom-table" ref={tableRef} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
                 <colgroup>
-                  <col style={{ width: '45%' }} />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '4%' }} />
+                  <col style={{ width: '38%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '6%' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -2000,35 +2019,40 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             </div>
           </div>
         )}
-        {/* 하단 풋바 버튼 정렬: [새전표] [입금] [인쇄] 버튼만 유지 */}
+        {/* 하단 풋바 버튼 정렬 (모바일 4분할 버튼 바) */}
         <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '6px',
+          padding: '8px 10px',
           borderTop: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc',
           marginTop: 'auto',
-          borderRadius: '0 0 12px 12px'
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           <button 
             className="btn-primary" 
             style={{ 
               backgroundColor: '#3b82f6', 
               color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
+              padding: '6px 2px', 
+              fontSize: '0.74rem', 
+              borderRadius: '8px', 
               fontWeight: 700, 
               display: 'flex', 
+              flexDirection: 'column',
               alignItems: 'center', 
-              gap: '5px',
-              margin: 0
+              justifyContent: 'center',
+              gap: '3px',
+              height: '46px',
+              margin: 0,
+              width: '100%',
+              whiteSpace: 'nowrap'
             }} 
             onClick={handleManualSave}
           >
-            <Save size={13} /> 전표저장
+            <Save size={15} /> <span>전표저장</span>
           </button>
           
           <button 
@@ -2036,18 +2060,23 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             style={{ 
               backgroundColor: '#10b981', 
               color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
+              padding: '6px 2px', 
+              fontSize: '0.74rem', 
+              borderRadius: '8px', 
               fontWeight: 700, 
               display: 'flex', 
+              flexDirection: 'column',
               alignItems: 'center', 
-              gap: '5px',
-              margin: 0
+              justifyContent: 'center',
+              gap: '3px',
+              height: '46px',
+              margin: 0,
+              width: '100%',
+              whiteSpace: 'nowrap'
             }} 
             onClick={() => openPaymentModal(null)}
           >
-            <Wallet size={13} /> 입금
+            <Wallet size={15} /> <span>입금</span>
           </button>
           
           <button 
@@ -2055,18 +2084,23 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             style={{ 
               backgroundColor: '#64748b', 
               color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
+              padding: '6px 2px', 
+              fontSize: '0.74rem', 
+              borderRadius: '8px', 
               fontWeight: 700, 
               display: 'flex', 
+              flexDirection: 'column',
               alignItems: 'center', 
-              gap: '5px',
-              margin: 0
+              justifyContent: 'center',
+              gap: '3px',
+              height: '46px',
+              margin: 0,
+              width: '100%',
+              whiteSpace: 'nowrap'
             }} 
             onClick={() => window.print()}
           >
-            <Printer size={13} /> 영수증출력
+            <Printer size={15} /> <span>영수증</span>
           </button>
 
           <button 
@@ -2074,14 +2108,19 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             style={{ 
               backgroundColor: '#ef4444', 
               color: 'white', 
-              padding: '8px 14px', 
-              fontSize: '0.8rem', 
-              borderRadius: '6px', 
+              padding: '6px 2px', 
+              fontSize: '0.74rem', 
+              borderRadius: '8px', 
               fontWeight: 700, 
               display: 'flex', 
+              flexDirection: 'column',
               alignItems: 'center', 
-              gap: '5px',
-              margin: 0
+              justifyContent: 'center',
+              gap: '3px',
+              height: '46px',
+              margin: 0,
+              width: '100%',
+              whiteSpace: 'nowrap'
             }} 
             onClick={async () => {
               const typeName = isDepositOnly ? '입금전표' : '매출전표';
@@ -2096,7 +2135,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             }}
             title={isDepositOnly ? "입금전표 완전 삭제" : "매출전표 완전 삭제"}
           >
-            <Trash2 size={13} /> {isDepositOnly ? '입금전표 삭제' : '전표 삭제'}
+            <Trash2 size={15} /> <span>{isDepositOnly ? '입금삭제' : '전표삭제'}</span>
           </button>
         </div>
       </WindowModal>
