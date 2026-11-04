@@ -3235,58 +3235,132 @@ function App() {
     }
   };
 
-  // 새로운 공개 일정 등록 알림 팝업 상태 (타 직원이 새롭게 로그인 시 첫 화면 팝업 노출)
-  const [newScheduleNotice, setNewScheduleNotice] = useState(null);
-  const checkedScheduleNoticeRef = React.useRef(null);
+  // 담당자 로그인 시 확인되지 않은 일정 및 메시지 팝업 상태
+  const [unconfirmedSchedules, setUnconfirmedSchedules] = useState([]);
+  const checkedScheduleUserRef = React.useRef(null);
 
   React.useEffect(() => {
     if (!currentUser || !currentUser.name || !schedules || schedules.length === 0) return;
 
     const currentUserId = String(currentUser.userId || currentUser.name);
-    if (checkedScheduleNoticeRef.current === currentUserId) return;
+    if (checkedScheduleUserRef.current === currentUserId) return;
 
-    const sessionKey = `schedule_notice_checked_${currentUser.companyId || 'default'}_${currentUserId}`;
-    if (sessionStorage.getItem(sessionKey)) {
-      checkedScheduleNoticeRef.current = currentUserId;
-      return;
+    const companyId = currentUser.companyId || 'default';
+    const storageKey = `confirmed_schedules_${companyId}_${currentUser.name}`;
+    let confirmedIds = [];
+    try {
+      confirmedIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch (e) {
+      confirmedIds = [];
     }
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    // 타 직원이 등록한 공개 일정 중 내가 아직 확인하지 않은 최근/예정 일정 탐색
-    const unreadPublicSchedules = schedules.filter(s => {
-      // 1. 공개 일정이어야 함 (비공개는 제외)
-      if (s.isPublic === false) return false;
-      // 2. 본인이 작성한 일정은 제외
-      if (s.author && s.author === currentUser.name) return false;
-      // 3. 이미 확인한 일정(viewers에 포함된 경우)은 제외
+    // 담당자에게 해당되는 일정 중 아직 확인하지 않은 일정/메시지 탐색
+    const unconfirmed = schedules.filter(s => {
+      // 1. 이미 확인한 일정(viewers에 포함되었거나 로컬스토리지 확인목록에 있는 경우)은 제외
       const viewers = s.viewers || [];
       if (viewers.includes(currentUser.name)) return false;
+      if (confirmedIds.includes(String(s.id))) return false;
 
-      // 4. 최근 등록되었거나 아직 지나지 않은 일정
+      // 2. 비공개 일정이면서 본인과 무관한 일정은 제외
+      if (s.isPublic === false) {
+        const isRelated = s.author === currentUser.name || s.staff === currentUser.name || 
+                          s.targetStaff === currentUser.name || s.assignedTo === currentUser.name ||
+                          (s.description && s.description.includes(currentUser.name));
+        if (!isRelated && currentUser.role !== 'admin' && currentUser.role !== 'master') return false;
+      }
+
+      // 3. 오늘 이후(진행/예정) 일정이거나 최근 7일 이내 등록된 일정
       const sEnd = s.endDate || s.startDate || s.date;
-      const isRecent = (sEnd && sEnd >= todayStr) || 
+      const isRecentOrUpcoming = (sEnd && sEnd >= todayStr) || 
         (s.createdAt && (Date.now() - new Date(s.createdAt).getTime() < 7 * 86400000)) ||
         (s.id && (Date.now() - Number(s.id) < 7 * 86400000));
-      return isRecent;
+      return isRecentOrUpcoming;
     });
 
-    if (unreadPublicSchedules.length > 0) {
-      const sorted = [...unreadPublicSchedules].sort((a, b) => {
-        const timeA = new Date(a.createdAt || a.startDate || a.date).getTime() || Number(a.id) || 0;
-        const timeB = new Date(b.createdAt || b.startDate || b.date).getTime() || Number(b.id) || 0;
-        return timeB - timeA;
+    if (unconfirmed.length > 0) {
+      const sorted = [...unconfirmed].sort((a, b) => {
+        const timeA = new Date(a.startDate || a.date || a.createdAt).getTime() || Number(a.id) || 0;
+        const timeB = new Date(b.startDate || b.date || b.createdAt).getTime() || Number(b.id) || 0;
+        return timeA - timeB; // 다가오는 일정을 먼저 표시
       });
-      setNewScheduleNotice(sorted[0]);
+      setUnconfirmedSchedules(sorted);
+    } else {
+      setUnconfirmedSchedules([]);
     }
 
-    checkedScheduleNoticeRef.current = currentUserId;
-    sessionStorage.setItem(sessionKey, 'true');
+    checkedScheduleUserRef.current = currentUserId;
   }, [currentUser, schedules]);
 
   const handleConfirmScheduleNotice = async (sch) => {
     if (!sch) return;
-    setNewScheduleNotice(null);
-    await handleOpenScheduleDetail(sch);
+    const companyId = currentUser?.companyId || 'default';
+    const storageKey = `confirmed_schedules_${companyId}_${currentUser?.name}`;
+    try {
+      const currentConfirmed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (!currentConfirmed.includes(String(sch.id))) {
+        currentConfirmed.push(String(sch.id));
+        localStorage.setItem(storageKey, JSON.stringify(currentConfirmed));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    const viewers = sch.viewers || [];
+    if (currentUser?.name && !viewers.includes(currentUser.name)) {
+      const updatedViewers = [...viewers, currentUser.name];
+      const updatedSch = { ...sch, viewers: updatedViewers };
+      setSchedules(prev => prev.map(s => String(s.id) === String(sch.id) ? updatedSch : s));
+      try {
+        const docRef = doc(db, 'companies', companyId, 'schedules', String(sch.id));
+        await setDoc(docRef, { viewers: updatedViewers }, { merge: true });
+      } catch (err) {
+        console.error("Schedule notice confirm sync error:", err);
+      }
+    }
+
+    // 미확인 목록에서 제거
+    setUnconfirmedSchedules(prev => prev.filter(s => String(s.id) !== String(sch.id)));
+  };
+
+  const handleConfirmAllScheduleNotices = async (listToConfirm) => {
+    if (!listToConfirm || listToConfirm.length === 0) return;
+    const companyId = currentUser?.companyId || 'default';
+    const storageKey = `confirmed_schedules_${companyId}_${currentUser?.name}`;
+    try {
+      const currentConfirmed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      listToConfirm.forEach(sch => {
+        if (!currentConfirmed.includes(String(sch.id))) {
+          currentConfirmed.push(String(sch.id));
+        }
+      });
+      localStorage.setItem(storageKey, JSON.stringify(currentConfirmed));
+    } catch (e) {
+      console.error(e);
+    }
+
+    for (const sch of listToConfirm) {
+      const viewers = sch.viewers || [];
+      if (currentUser?.name && !viewers.includes(currentUser.name)) {
+        const updatedViewers = [...viewers, currentUser.name];
+        try {
+          const docRef = doc(db, 'companies', companyId, 'schedules', String(sch.id));
+          await setDoc(docRef, { viewers: updatedViewers }, { merge: true });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    setSchedules(prev => prev.map(s => {
+      const match = listToConfirm.find(sc => String(sc.id) === String(s.id));
+      if (match && currentUser?.name && !(s.viewers || []).includes(currentUser.name)) {
+        return { ...s, viewers: [...(s.viewers || []), currentUser.name] };
+      }
+      return s;
+    }));
+
+    setUnconfirmedSchedules([]);
   };
 
   const handleActivityAction = (act) => {
@@ -5807,11 +5881,13 @@ function App() {
         />
       )}
       
-      {newScheduleNotice && (
+      {unconfirmedSchedules && unconfirmedSchedules.length > 0 && (
         <NewScheduleNoticeModal
-          noticeSchedule={newScheduleNotice}
-          onClose={() => setNewScheduleNotice(null)}
+          noticeSchedules={unconfirmedSchedules}
+          currentUser={currentUser}
+          onClose={() => setUnconfirmedSchedules([])}
           onConfirm={handleConfirmScheduleNotice}
+          onConfirmAll={handleConfirmAllScheduleNotices}
           scheduleTypes={scheduleTypes}
         />
       )}
