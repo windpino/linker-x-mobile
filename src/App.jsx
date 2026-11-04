@@ -1608,7 +1608,7 @@ function App() {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       };
       
-      // 1. Update Inventory State
+      // 1. Update Inventory State (즉시 UI 반영)
       const nextInv = { ...inventory };
       if (!nextInv[from]) nextInv[from] = { ...inventory[from] || {} };
       if (!nextInv[to]) nextInv[to] = { ...inventory[to] || {} };
@@ -1616,10 +1616,10 @@ function App() {
       nextInv[from] = { ...nextInv[from], [productName]: (nextInv[from][productName] || 0) - Number(qty) };
       nextInv[to] = { ...nextInv[to], [productName]: (nextInv[to][productName] || 0) + Number(qty) };
       
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       setInventory(nextInv);
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
 
-      // 2. Add to Transfer History
+      // 2. Add to Transfer History (즉시 반영)
       const product = products.find(p => p.name === productName);
       const historyId = Date.now() + Math.random();
       const moveDate = customDate || getLocalDateStr();
@@ -1638,9 +1638,9 @@ function App() {
         salesOrderId: relatedOrderId ? String(relatedOrderId) : null,
         companyId
       };
-      await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
       const nextHistory = [newEntry, ...inventoryTransferHistory];
       setInventoryTransferHistory(nextHistory);
+      await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
       await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
 
       // 3. 최근 처리 이력 로그 기록
@@ -1831,8 +1831,8 @@ function App() {
       nextInv[from][productName] = (nextInv[from][productName] || 0) + Number(qty);
       nextInv[to][productName] = (nextInv[to][productName] || 0) - Number(qty);
 
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       setInventory(nextInv);
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
 
       const match = [...inventoryTransferHistory]
         .reverse()
@@ -1844,9 +1844,9 @@ function App() {
         );
 
       if (match) {
-        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
         const nextHistory = inventoryTransferHistory.filter(h => String(h.id) !== String(match.id));
         setInventoryTransferHistory(nextHistory);
+        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
         await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
       }
     } catch (err) {
@@ -6242,10 +6242,13 @@ function App() {
         onOpenInventoryMismatch={openMismatchFromOrder}
         onUpdateOrder={async (id, updates) => {
           try {
-            const companyId = currentUser?.companyId || 'default';
-            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), updates, { merge: true });
+            // 1. 즉시 상태 갱신 (네트워크 대기 없이 즉각 반응)
             const nextOrders = salesOrders.map(o => String(o.id) === String(id) ? { ...o, ...updates } : o);
             setSalesOrders(nextOrders);
+
+            // 2. Firestore 및 캐시 백그라운드 저장
+            const companyId = currentUser?.companyId || 'default';
+            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), updates, { merge: true });
             await saveBundle(companyId, 'salesOrders', nextOrders);
           } catch (err) { console.error(err); }
         }}

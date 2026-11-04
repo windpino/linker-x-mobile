@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar, Phone, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import { playMenuClickSound } from '../utils/audio';
 
 const OrderList = ({ 
   onClose, 
@@ -191,41 +192,42 @@ const OrderList = ({
   };
 
   const handleItemMove = (order, item, itemIdx) => {
+    // 0. 즉시 사운드 재생 (품목 터치 시 즉각 피드백)
+    playMenuClickSound();
+
     const key = `${order.id}-${itemIdx}`;
     const currentItems = order.items || parseOrderItems(order.itemsText);
     const updatedItems = [...currentItems];
     
+    // 로컬 옵티미스틱 상태 우선 판별
+    const currentlyLoaded = key in processedItems ? Boolean(processedItems[key]) : Boolean(updatedItems[itemIdx]?.loaded);
+    const isNowLoaded = !currentlyLoaded;
+    updatedItems[itemIdx] = { ...updatedItems[itemIdx], loaded: isNowLoaded };
+
+    // 1. 로컬 상태 즉시 변경 (0ms 딜레이 없이 UI 색상 및 체크 즉시 전환)
+    setProcessedItems(prev => ({ ...prev, [key]: isNowLoaded }));
+
     // Capture the current stock level synchronously before executing any asynchronous moves
     const currentWhStock = inventory[order.outWarehouse]?.[item.name] || 0;
     const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
     const initialStock = prod?.initialStock || 0;
 
-    // Toggle loaded status
-    const isNowLoaded = !updatedItems[itemIdx].loaded;
-    updatedItems[itemIdx] = { ...updatedItems[itemIdx], loaded: isNowLoaded };
-
-    // Move stock
+    // 2. 재고 이동 백그라운드 처리
     if (isNowLoaded) {
-      onMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, true, order.date, order.id); // true for auto-logging with order.id
-      setProcessedItems(prev => ({ ...prev, [key]: true }));
+      onMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, true, order.date, order.id);
       const currentStock = initialStock + currentWhStock - item.qty;
       setStockFeedback(prev => ({ ...prev, [key]: `상차완료(재고): ${currentStock}` }));
     } else {
       if (onRevertAutoMoveStock) {
-        onRevertAutoMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, order.id); // pass order.id for accurate match
+        onRevertAutoMoveStock(order.outWarehouse, order.inWarehouse, item.name, item.qty, order.id);
       } else {
-        onMoveStock(order.inWarehouse, order.outWarehouse, item.name, item.qty, true, order.date, order.id); // fallback with order.id
+        onMoveStock(order.inWarehouse, order.outWarehouse, item.name, item.qty, true, order.date, order.id);
       }
-      setProcessedItems(prev => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
       const currentStock = initialStock + currentWhStock + item.qty;
       setStockFeedback(prev => ({ ...prev, [key]: `상차취소(재고): ${currentStock}` }));
     }
 
-    // Persist to parent
+    // 3. 부모 컴포넌트 즉각 동기화
     onUpdateOrder(order.id, { items: updatedItems });
 
     setTimeout(() => {
@@ -256,7 +258,7 @@ const OrderList = ({
 
   const handleTransferCheckedItems = (order) => {
     const allItems = order.items || parseOrderItems(order.itemsText);
-    const checkedItems = allItems.filter((item, idx) => processedItems[`${order.id}-${idx}`] || item.loaded);
+    const checkedItems = allItems.filter((item, idx) => (`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
 
     if (checkedItems.length === 0) {
       alert('체크박스(창고 이동)가 확인된 품목이 없습니다.');
@@ -310,7 +312,7 @@ const OrderList = ({
 
   const handleCreatePartialOrder = (order) => {
     const allItems = order.items || parseOrderItems(order.itemsText);
-    const unloadedItems = allItems.filter((item, idx) => !(item.loaded || processedItems[`${order.id}-${idx}`]));
+    const unloadedItems = allItems.filter((item, idx) => !(`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
 
     if (unloadedItems.length === 0) {
       alert('모두 상차 처리되어 미상차 품목이 없습니다.');
@@ -769,7 +771,7 @@ const OrderList = ({
                         <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
                           {displayItems.map((item, iIdx) => {
                             const key = `${order.id}-${iIdx}`;
-                            const isProcessed = item.loaded || processedItems[key];
+                            const isProcessed = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
                             const feedback = stockFeedback[key];
                             const catStyle = getCategoryBadgeStyle(item.category);
 
@@ -1023,7 +1025,7 @@ const OrderList = ({
                         }}>
                           {(() => {
                             const currentItems = order.items || parsedItems;
-                            const hasUnloaded = currentItems.some((item, idx) => !(item.loaded || processedItems[`${order.id}-${idx}`]));
+                            const hasUnloaded = currentItems.some((item, idx) => !(`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
                             if (hasUnloaded) {
                               return (
                                 <button 
@@ -1232,7 +1234,7 @@ const OrderList = ({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobileView ? '6px' : '4px' }}>
                           {(order.items || parsedItems).map((item, iIdx) => {
                             const key = `${order.id}-${iIdx}`;
-                            const isProcessed = item.loaded || processedItems[key];
+                            const isProcessed = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
                             const feedback = stockFeedback[key];
                             
                             if (isMobileView) {
