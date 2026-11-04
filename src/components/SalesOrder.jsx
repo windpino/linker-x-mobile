@@ -421,7 +421,7 @@ const SalesOrder = ({
       status: orderData.status || '대기'
     });
     
-    showToast('수주가 저장되었습니다! 다음 거래처를 선택하세요.', 'success');
+    showToast('저장완료', 'success');
 
     // 저장이후에는 빠르게 다음 거래처를 지정할 수 있게 앞의 화면(거래처 입력창)으로 전환 & 초기화
     setOrderData(prev => ({
