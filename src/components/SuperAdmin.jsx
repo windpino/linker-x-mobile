@@ -109,9 +109,13 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const [systemConfig, setSystemConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('systemConfig_useMissRing');
-      return { useMissRing: saved !== 'false' };
+      const savedDev = localStorage.getItem('systemConfig_useMissRingDevMode');
+      return { 
+        useMissRing: saved !== 'false',
+        useMissRingDevMode: savedDev === 'true'
+      };
     } catch {
-      return { useMissRing: true };
+      return { useMissRing: true, useMissRingDevMode: false };
     }
   });
 
@@ -122,6 +126,17 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       await setDoc(doc(db, 'settings', 'system_config'), { useMissRing: enabled }, { merge: true });
     } catch (err) {
       console.error('환경설정 저장 오류:', err);
+      alert('설정 저장 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
+  const handleToggleMissRingDevMode = async (enabled) => {
+    try {
+      setSystemConfig(prev => ({ ...prev, useMissRingDevMode: enabled }));
+      localStorage.setItem('systemConfig_useMissRingDevMode', String(enabled));
+      await setDoc(doc(db, 'settings', 'system_config'), { useMissRingDevMode: enabled }, { merge: true });
+    } catch (err) {
+      console.error('개발자 모드 환경설정 저장 오류:', err);
       alert('설정 저장 중 오류가 발생했습니다: ' + err.message);
     }
   };
@@ -2558,12 +2573,13 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                     </span>
                   </div>
 
-                  {/* 체크박스 설정 영역 */}
+                  {/* 체크박스 설정 영역 1: 미스링 AI 어시스턴트 기본 사용 여부 */}
                   <div style={{
                     backgroundColor: '#f8fafc',
                     borderRadius: '12px',
                     border: '1px solid #e2e8f0',
-                    padding: '20px'
+                    padding: '20px',
+                    marginBottom: '16px'
                   }}>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: 'pointer' }}>
                       <input 
@@ -2585,6 +2601,44 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                         <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: '#475569', lineHeight: 1.6 }}>
                           • <b>체크 시</b>: 데스크톱 및 모바일 전 화면 우측 하단에 '미스링 AI 어시스턴트' 챗봇 버튼이 노출되어 사용자가 질문하거나 안내를 받을 수 있습니다.<br />
                           • <b>체크 해제 시</b>: 전체 시스템에서 미스링 어시스턴트 챗봇이 비활성화(숨김)됩니다.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* 체크박스 설정 영역 2: 미스링 개발자 제어 모드 (Antigravity 에이전트 연동) */}
+                  <div style={{
+                    backgroundColor: systemConfig.useMissRingDevMode ? '#f0fdf4' : '#f8fafc',
+                    borderRadius: '12px',
+                    border: systemConfig.useMissRingDevMode ? '1px solid #86efac' : '1px solid #e2e8f0',
+                    padding: '20px',
+                    transition: 'all 0.2s'
+                  }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox"
+                        checked={systemConfig.useMissRingDevMode === true}
+                        onChange={(e) => handleToggleMissRingDevMode(e.target.checked)}
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          cursor: 'pointer',
+                          marginTop: '2px',
+                          accentColor: '#16a34a'
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.98rem', fontWeight: 800, color: systemConfig.useMissRingDevMode ? '#15803d' : '#1e293b' }}>
+                            미스링 AI 챗봇을 [개발자 제어 모드 (Antigravity 연동)]로 전환
+                          </span>
+                          <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                            슈퍼관리자 특화
+                          </span>
+                        </div>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: systemConfig.useMissRingDevMode ? '#166534' : '#475569', lineHeight: 1.6 }}>
+                          • <b>체크 시</b>: 모바일 접속 시 헤더 및 드로어 메뉴에 <b>[🛠️ 개발자모드]</b> 버튼이 자동 생성됩니다. 외부에서 모바일 미스링 챗봇에 수정/개발 지시를 내리면 PC 안티그래비티 채팅창에서 명령을 수신한 것처럼 실시간으로 코딩 및 기능 수정 작업을 수행합니다.<br />
+                          • <b>체크 해제 시</b>: 모바일에서 개발자모드 버튼이 사라지고 일반 ERP 비서 모드로 안전하게 복귀합니다.
                         </p>
                       </div>
                     </label>

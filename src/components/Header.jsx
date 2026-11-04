@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
 
 const Header = ({ 
@@ -19,7 +19,9 @@ const Header = ({
   onOpenWarehouseInitialStockBatch,
   onOpenRecentActivityReport,
   onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer,
-  settings
+  settings,
+  isDevModeEnabled = false,
+  onOpenDevAssistant
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -624,8 +626,37 @@ const Header = ({
         </div>
       </div>
 
-      {/* 맨 오른쪽 정렬: [ 위젯창 아이콘 | 달력 아이콘 ] */}
+      {/* 맨 오른쪽 정렬: [ 개발자모드 버튼 (활성화 시) | 위젯창 아이콘 | 달력 아이콘 ] */}
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {isDevModeEnabled && (
+          <button 
+            onClick={() => {
+              playMenuClickSound();
+              if (onOpenDevAssistant) onOpenDevAssistant();
+            }}
+            title="개발자 제어 모드 (Antigravity 에이전트)"
+            style={{
+              background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+              border: '1px solid #86efac',
+              borderRadius: '8px',
+              padding: '0 8px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              boxShadow: '0 2px 8px rgba(22, 163, 74, 0.35)',
+              flexShrink: 0
+            }}
+          >
+            <Code size={16} />
+            <span>개발자</span>
+          </button>
+        )}
+
         <button 
           onClick={() => { playMenuClickSound(); onOpenWidgetModal(); }}
           title="위젯창 열기 (6개 위젯)"
@@ -666,6 +697,41 @@ const Header = ({
           maxHeight: '80vh',
           overflowY: 'auto'
         }}>
+          {/* 개발자 모드 배너 버튼 (활성화 시 드로어 상단에 강조 표시) */}
+          {isDevModeEnabled && (
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                playMenuClickSound();
+                if (onOpenDevAssistant) onOpenDevAssistant();
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #166534 0%, #15803d 100%)',
+                border: '1px solid #86efac',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                marginBottom: '12px',
+                boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Code size={18} color="#86efac" />
+                <span>🛠️ Antigravity AI 개발자 제어 콘솔</span>
+              </div>
+              <span style={{ fontSize: '0.74rem', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                실행 ➔
+              </span>
+            </button>
+          )}
+
           {/* 검색 바 */}
           <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px' }}>
             <Search size={16} className="search-icon" />

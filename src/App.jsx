@@ -838,6 +838,16 @@ function App() {
     }
   });
 
+  const [useMissRingDevMode, setUseMissRingDevMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('systemConfig_useMissRingDevMode');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isDevAssistantOpen, setIsDevAssistantOpen] = useState(false);
+
   React.useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'system_config'), (snap) => {
       if (snap.exists()) {
@@ -845,6 +855,10 @@ function App() {
         if (data.useMissRing !== undefined) {
           setUseMissRing(data.useMissRing !== false);
           localStorage.setItem('systemConfig_useMissRing', String(data.useMissRing !== false));
+        }
+        if (data.useMissRingDevMode !== undefined) {
+          setUseMissRingDevMode(Boolean(data.useMissRingDevMode));
+          localStorage.setItem('systemConfig_useMissRingDevMode', String(Boolean(data.useMissRingDevMode)));
         }
       }
     });
@@ -5302,6 +5316,8 @@ function App() {
           onOpenWidgetModal={() => setIsWidgetModalOpen(true)}
           onOpenCalendarModal={() => setIsCalendarModalOpen(true)}
           onToggleMobileDrawer={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          isDevModeEnabled={useMissRingDevMode}
+          onOpenDevAssistant={() => setIsDevAssistantOpen(true)}
         />
 
       <div className="main-content" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 56px)', overflow: 'hidden', gap: '8px', boxSizing: 'border-box' }}>
@@ -7232,7 +7248,16 @@ function App() {
           </div>
         </WindowModal>
       )}
-      {useMissRing && <ChatAssistant context={getAgentContext()} />}
+      {(useMissRing || useMissRingDevMode) && (
+        <ChatAssistant
+          context={getAgentContext()}
+          isDevMode={useMissRingDevMode}
+          isOpen={isDevAssistantOpen}
+          onToggle={() => setIsDevAssistantOpen(!isDevAssistantOpen)}
+          companyId={currentUser?.companyId || 'no1dmkr'}
+          currentUser={currentUser}
+        />
+      )}
       <PwaInstallPrompt />
     </div>
   );

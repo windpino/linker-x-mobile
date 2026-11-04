@@ -1,31 +1,57 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Settings, Bot, Terminal, Activity, RefreshCw } from 'lucide-react';
+import { MessageSquare, X, Send, Settings, Bot, Terminal, Activity, RefreshCw, Code, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc, doc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import './ChatAssistant.css';
 
-export default function ChatAssistant({ context }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function ChatAssistant({ 
+  context, 
+  isDevMode = false, 
+  companyId: propCompanyId = 'no1dmkr', 
+  currentUser = null,
+  isOpen: propIsOpen,
+  onToggle
+}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
+  const toggleOpen = onToggle || (() => setInternalIsOpen(!internalIsOpen));
+
+  const targetCompanyId = propCompanyId || currentUser?.companyId || 'no1dmkr';
+
   const [showSettings, setShowSettings] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      sender: 'agent',
-      text: '안녕하세요! Linker X ERP AI 비서입니다. 무엇을 도와드릴까요?\n\n(하단 Context 정보가 에이전트에 실시간 주입됩니다.)',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const [messages, setMessages] = useState(() => {
+    if (isDevMode) {
+      return [
+        {
+          id: 'welcome',
+          sender: 'agent',
+          text: `🛠️ [Linker X 개발자 제어 콘솔 (Antigravity)]\n안녕하세요, ${currentUser?.name || '슈퍼관리자'}님!\n\n현재 모바일 원격 개발자 제어 모드가 연결되어 있습니다.\n\n외부에서 시스템 수정이나 새로운 기능 개발 지시를 여기에 입력하시면, PC의 Antigravity 에이전트가 직접 명령을 수신하여 실제 코딩 작업을 즉시 수행합니다.\n\n(예: "수주등록 화면에서 비고란 크기를 조금 줄여줘", "창고관리 모달에 검색 필터 추가해줘")`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'ready'
+        }
+      ];
     }
-  ]);
+    return [
+      {
+        id: 'welcome',
+        sender: 'agent',
+        text: '안녕하세요! Linker X ERP AI 비서 미스링입니다. 무엇을 도와드릴까요?\n\n(시스템 컨텍스트 정보가 에이전트에 실시간 주입됩니다.)',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
+
   const [inputMessage, setInputMessage] = useState('');
-  const [persona, setPersona] = useState('ERP 전문 관리 비서');
+  const [persona, setPersona] = useState(isDevMode ? 'Antigravity AI 개발자' : 'ERP 전문 관리 비서');
   const [systemPrompt, setSystemPrompt] = useState(
-    '당신은 Linker X ERP 시스템의 영리한 AI 관리 비서입니다. 사용자가 입력하는 메시지에 따라, 제공된 시스템 컨텍스트 정보(현재 페이지, 선택한 날짜, 로그인한 사용자 및 ERP 데이터 통계)를 활용하여 정중하고 정확하게 답변하세요.'
+    isDevMode 
+      ? '당신은 Linker X ERP 시스템을 직접 개발/수정하는 Antigravity 코딩 에이전트의 원격 제어 인터페이스입니다.'
+      : '당신은 Linker X ERP 시스템의 영리한 AI 관리 비서 미스링입니다.'
   );
   const [isTyping, setIsTyping] = useState(false);
-  const [isOnline, setIsOnline] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   const logEndRef = useRef(null);
-
-  // Check backend server online status on mount
-  useEffect(() => {
-    checkServerStatus();
-  }, []);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -34,81 +60,145 @@ export default function ChatAssistant({ context }) {
     }
   }, [messages, isTyping, isOpen]);
 
-  const checkServerStatus = async () => {
+  // Load recent dev commands if in dev mode
+  useEffect(() => {
+    if (!isDevMode || !targetCompanyId || !db) return;
+
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
-        method: 'OPTIONS',
+      const q = query(
+        collection(db, 'companies', targetCompanyId, 'devCommands'),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      );
+
+      const unsub = onSnapshot(q, (snapshot) => {
+        const historyList = [];
+        snapshot.forEach(docSnap => {
+          const d = docSnap.data();
+          const time = d.createdAt ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          
+          let statusText = '';
+          if (d.status === 'pending') statusText = '⏳ 에이전트 수신 대기 중...';
+          else if (d.status === 'running') statusText = `⚙️ 작업 진행 중 (${d.progress || '코딩 중'})`;
+          else if (d.status === 'success') statusText = `✅ 작업 완료 (${d.result || d.message || '반영 완료'})`;
+          else if (d.status === 'error') statusText = `❌ 오류: ${d.error || '실패'}`;
+
+          historyList.push({
+            id: docSnap.id,
+            commandId: docSnap.id,
+            sender: 'user',
+            text: d.command || d.text,
+            timestamp: time,
+            status: d.status,
+            progress: d.progress,
+            result: d.result,
+            statusText
+          });
+        });
+
+        if (historyList.length > 0) {
+          historyList.reverse(); // oldest to newest
+          setMessages(prev => {
+            const welcome = prev.find(m => m.id === 'welcome');
+            return welcome ? [welcome, ...historyList] : historyList;
+          });
+        }
+      }, (err) => {
+        console.warn('Error reading devCommands:', err);
       });
-      setIsOnline(true);
-    } catch (err) {
-      setIsOnline(false);
+
+      return () => unsub();
+    } catch (e) {
+      console.warn('devCommands setup error:', e);
     }
-  };
-
-  const getLocalSimulationResponse = (userMsg) => {
-    const stats = context?.stats || {};
-    const viewName = context?.currentView || 'dashboard';
-    const selectedDateStr = context?.selectedDate || '';
-    const userName = context?.currentUser?.name || '사용자';
-    const userRole = context?.currentUser?.role || '일반';
-
-    const normalizedMsg = userMsg.replace(/\s+/g, '').toLowerCase();
-
-    let responseText = '';
-
-    if (normalizedMsg.includes('창고') || normalizedMsg.includes('웨어하우스')) {
-      responseText = `현재 등록되어 있는 창고는 총 ${stats.warehouseCount || 0}개입니다. 
-창고 관리 화면에서 위치 및 담담 직원을 지정하실 수 있습니다.`;
-    } else if (normalizedMsg.includes('직원') || normalizedMsg.includes('멤버') || normalizedMsg.includes('인원')) {
-      responseText = `현재 시스템에 등록된 직원은 총 ${stats.staffCount || 0}명입니다. 
-직원 관리 메뉴를 열어 추가 등록하거나 담당 구역을 수정할 수 있습니다.`;
-    } else if (normalizedMsg.includes('거래처') || normalizedMsg.includes('파트너')) {
-      responseText = `현재 등록된 거래처는 총 ${stats.partnerCount || 0}개소입니다. 
-주요 매입/매출처 현황은 거래처 관리 탭에서 관리할 수 있습니다.`;
-    } else if (normalizedMsg.includes('품목') || normalizedMsg.includes('제품') || normalizedMsg.includes('상품')) {
-      responseText = `현재 등록된 품목 종류는 총 ${stats.productCount || 0}가지입니다.
-재고 보고서에서 실시간 입출고 흐름 및 적정 재고 여부를 조회해 보세요.`;
-    } else if (normalizedMsg.includes('주문') || normalizedMsg.includes('수주') || normalizedMsg.includes('매출')) {
-      responseText = `오늘 날짜 기준 매출 전표는 ${stats.salesInvoiceCount || 0}건, 수주 주문서는 ${stats.salesOrderCount || 0}건 등록되어 있습니다.`;
-    } else if (normalizedMsg.includes('매입') || normalizedMsg.includes('발주')) {
-      responseText = `오늘 날짜 기준 매입 전표는 ${stats.purchaseInvoiceCount || 0}건, 발주 주문서는 ${stats.purchaseOrderCount || 0}건 등록되어 있습니다.`;
-    } else if (normalizedMsg.includes('일정') || normalizedMsg.includes('스케줄')) {
-      responseText = `캘린더에 등록된 전체 일정은 총 ${stats.inventoryTransferCount || 0}건입니다. 선택하신 날짜는 ${selectedDateStr} 입니다.`;
-    } else if (normalizedMsg.includes('도움말') || normalizedMsg.includes('기능') || normalizedMsg.includes('뭐할수있어')) {
-      responseText = `안녕하세요! 저는 다음과 같은 정보에 대해 답변해 드릴 수 있습니다:
-1. **창고 현황** (예: "창고 몇 개 있어?")
-2. **직원 수 및 정보** (예: "우리 직원 수 알려줘")
-3. **거래처 통계** (예: "거래처는 총 몇 개야?")
-4. **품목/재고 데이터** (예: "등록된 품목 수 조회해줘")
-5. **현재 페이지/날짜 정보**
-
-💡 현재 에이전트 서버가 오프라인 상태여서 프론트엔드 모의 에뮬레이터가 응답했습니다. 터미널에서 \`python agent_server.py\`를 실행해 주시면 완전한 AI와 대화하실 수 있습니다!`;
-    } else {
-      responseText = `[에이전트 서버 오프라인 모드 알림]
-현재 백엔드 파이썬 서버(http://localhost:8000/api/chat)에 연결되지 않아 로컬 규칙 기반 시뮬레이터가 응답했습니다.
-
-* **인젝트된 페르소나**: ${persona}
-* **현재 화면**: ${viewName}
-* **선택일자**: ${selectedDateStr}
-* **사용자**: ${userName} (${userRole})
-* **시스템 요약**: 창고 ${stats.warehouseCount || 0}개, 직원 ${stats.staffCount || 0}명, 품목 ${stats.productCount || 0}개, 거래처 ${stats.partnerCount || 0}개
-
-질문하신 내용 "${userMsg}"에 답변하기 위해 백엔드 서버를 구동해 주세요. 프로젝트 루트 경로에서 \`python agent_server.py\` 명령어를 통해 구동 가능합니다.`;
-    }
-
-    return responseText;
-  };
+  }, [isDevMode, targetCompanyId]);
 
   const handleSend = async (e) => {
     if (e) e.preventDefault();
     if (!inputMessage.trim() || isTyping) return;
 
-    const userText = inputMessage;
+    const userText = inputMessage.trim();
     setInputMessage('');
 
-    // Append user message
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const newUserMsg = { sender: 'user', text: userText, timestamp };
+
+    // ==========================================
+    // 🛠️ 개발자 모드: Firestore devCommands 등록
+    // ==========================================
+    if (isDevMode) {
+      setIsTyping(true);
+
+      try {
+        const newCmdData = {
+          command: userText,
+          text: userText,
+          status: 'pending',
+          source: 'miss_ring_mobile',
+          author: currentUser?.name || '슈퍼관리자',
+          companyId: targetCompanyId,
+          createdAt: new Date().toISOString(),
+          progress: '에이전트 수신 대기 중...'
+        };
+
+        // 1. devCommands 등록
+        const docRef = await addDoc(collection(db, 'companies', targetCompanyId, 'devCommands'), newCmdData);
+
+        // 2. agentCommands 등록 (동시 리스너 호환)
+        await addDoc(collection(db, 'companies', targetCompanyId, 'agentCommands'), newCmdData).catch(() => {});
+
+        // 3. 실시간 진행 상태 리스너 부착
+        const unsub = onSnapshot(doc(db, 'companies', targetCompanyId, 'devCommands', docRef.id), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            setMessages(prev => {
+              return prev.map(m => {
+                if (m.commandId === docRef.id || m.id === docRef.id) {
+                  let statusText = '';
+                  if (data.status === 'pending') statusText = '⏳ 에이전트 수신 대기 중...';
+                  else if (data.status === 'running') statusText = `⚙️ 에이전트 작업 진행 중 (${data.progress || '코딩 중'})`;
+                  else if (data.status === 'success') statusText = `✅ 작업 완료!\n${data.result || data.message || '지시하신 수정 사항이 성공적으로 반영되었습니다.'}`;
+                  else if (data.status === 'error') statusText = `❌ 오류: ${data.error || '실패'}`;
+
+                  return {
+                    ...m,
+                    status: data.status,
+                    progress: data.progress,
+                    result: data.result,
+                    statusText
+                  };
+                }
+                return m;
+              });
+            });
+
+            if (data.status === 'success' || data.status === 'error') {
+              setIsTyping(false);
+              unsub();
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error('Failed to submit devCommand:', err);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            sender: 'agent',
+            text: `❌ 명령 전송 중 오류가 발생했습니다: ${err.message}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+        setIsTyping(false);
+      }
+
+      return;
+    }
+
+    // ==========================================
+    // 🤖 일반 미스링 AI 비서 모드
+    // ==========================================
+    const newUserMsg = { id: String(Date.now()), sender: 'user', text: userText, timestamp };
     setMessages(prev => [...prev, newUserMsg]);
     setIsTyping(true);
 
@@ -117,9 +207,7 @@ export default function ChatAssistant({ context }) {
     try {
       const response = await fetch('http://localhost:8000/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userText,
           persona: persona,
@@ -129,13 +217,11 @@ export default function ChatAssistant({ context }) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+      if (!response.ok) throw new Error('Backend offline');
 
       const data = await response.json();
       const elapsed = Date.now() - startTime;
-      const remainingDelay = Math.max(0, 3000 - elapsed);
+      const remainingDelay = Math.max(0, 1500 - elapsed);
 
       setTimeout(() => {
         setIsOnline(true);
@@ -143,6 +229,7 @@ export default function ChatAssistant({ context }) {
         setMessages(prev => [
           ...prev,
           {
+            id: String(Date.now()),
             sender: 'agent',
             text: data.response || '응답을 받지 못했습니다.',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -150,17 +237,18 @@ export default function ChatAssistant({ context }) {
         ]);
       }, remainingDelay);
     } catch (err) {
-      // Backend offline fallback (3초간 생각하는 중 효과 후 응답)
       setIsOnline(false);
       const elapsed = Date.now() - startTime;
-      const remainingDelay = Math.max(0, 3000 - elapsed);
+      const remainingDelay = Math.max(0, 1500 - elapsed);
 
       setTimeout(() => {
         setIsTyping(false);
-        const fallbackText = getLocalSimulationResponse(userText);
+        const stats = context?.stats || {};
+        const fallbackText = `[미스링 ERP 비서 안내]\n현재 시스템 컨텍스트:\n• 창고: ${stats.warehouseCount || 0}개소\n• 직원: ${stats.staffCount || 0}명\n• 거래처: ${stats.partnerCount || 0}개\n• 등록 품목: ${stats.productCount || 0}개\n\n문의하신 내용: "${userText}"\n자세한 내용은 업무 메뉴에서 확인하실 수 있습니다.`;
         setMessages(prev => [
           ...prev,
           {
+            id: String(Date.now()),
             sender: 'agent',
             text: fallbackText,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -172,109 +260,164 @@ export default function ChatAssistant({ context }) {
 
   return (
     <div className="chat-assistant-container">
-      {/* Floating Trigger Button */}
+      {/* Floating Trigger Button (우측 하단) */}
       <button 
         className={`chat-trigger-btn ${isOpen ? 'open' : ''}`} 
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) {
-            checkServerStatus(); // refresh status when opening
-          }
+        onClick={toggleOpen}
+        title={isDevMode ? "개발자 제어 콘솔 (Antigravity)" : "미스링 AI 비서"}
+        style={{
+          backgroundColor: isDevMode ? '#16a34a' : '#2563eb',
+          boxShadow: isDevMode ? '0 4px 15px rgba(22, 163, 74, 0.4)' : '0 4px 15px rgba(37, 99, 235, 0.4)'
         }}
-        title="AI 비서와 채팅"
       >
-        {isOpen ? <X /> : <MessageSquare />}
+        {isOpen ? <X size={20} /> : (isDevMode ? <Code size={20} /> : <MessageSquare size={20} />)}
       </button>
 
       {/* Side Chat Drawer */}
       <div className={`chat-panel ${isOpen ? 'open' : ''}`}>
         {/* Header */}
-        <div className="chat-header">
+        <div className="chat-header" style={{
+          backgroundColor: isDevMode ? '#0f172a' : '#ffffff',
+          color: isDevMode ? '#ffffff' : '#0f172a',
+          borderBottom: isDevMode ? '1px solid #1e293b' : '1px solid #e2e8f0'
+        }}>
           <div className="chat-header-title">
-            <Bot size={20} color="#2563eb" />
-            <h3>Linker X AI 비서</h3>
-            <span className={`status-badge ${isOnline ? 'online' : 'offline'}`}>
-              <Activity size={10} />
-              {isOnline ? '연결됨' : '오프라인'}
-            </span>
+            {isDevMode ? (
+              <Code size={20} color="#22c55e" strokeWidth={2.5} />
+            ) : (
+              <Bot size={20} color="#2563eb" />
+            )}
+            <div>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: isDevMode ? '#f8fafc' : '#0f172a' }}>
+                {isDevMode ? 'Linker X 개발자 제어 콘솔' : 'Linker X AI 비서 (미스링)'}
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: isDevMode ? '#86efac' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
+                {isDevMode ? 'Antigravity 원격 에이전트 대기 중' : '실시간 ERP 비서'}
+              </span>
+            </div>
           </div>
           <div className="chat-header-actions">
-            <button onClick={() => checkServerStatus()} title="연결 상태 새로고침">
-              <RefreshCw size={14} />
-            </button>
-            <button onClick={() => setShowSettings(!showSettings)} title="에이전트 설정 및 컨텍스트">
-              <Settings size={16} />
-            </button>
-            <button onClick={() => setIsOpen(false)} title="닫기">
-              <X size={16} />
+            <button onClick={toggleOpen} title="닫기" style={{ color: isDevMode ? '#94a3b8' : '#475569' }}>
+              <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* Collapsible Settings / Persona & Context Panel */}
-        {showSettings && (
-          <div className="chat-settings-panel">
-            <div className="settings-group">
-              <label>에이전트 역할 (페르소나)</label>
-              <input 
-                type="text" 
-                value={persona} 
-                onChange={(e) => setPersona(e.target.value)} 
-                placeholder="예: ERP 관리 비서"
-              />
-            </div>
-            <div className="settings-group">
-              <label>시스템 프롬프트 (System Prompt)</label>
-              <textarea 
-                value={systemPrompt} 
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="에이전트 행동 지침..."
-              />
-            </div>
-            <div className="settings-group">
-              <label>실시간 주입 컨텍스트 (Injected Context)</label>
-              <div className="context-debug-box">
-                {JSON.stringify(context, null, 2)}
-              </div>
-            </div>
+        {/* 안내 배너 (개발자 모드) */}
+        {isDevMode && (
+          <div style={{
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            padding: '10px 14px',
+            borderBottom: '1px solid #334155',
+            color: '#e2e8f0',
+            fontSize: '0.78rem',
+            lineHeight: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Terminal size={16} color="#4ade80" style={{ flexShrink: 0 }} />
+            <span>외부 모바일에서 내린 지시를 <b>PC 안티그래비티 에이전트가 직접 수신</b>하여 즉시 코딩 작업을 수행합니다.</span>
           </div>
         )}
 
         {/* Chat Logs */}
-        <div className="chat-logs">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`message-wrapper ${msg.sender}`}>
-              <span className="message-sender">
-                {msg.sender === 'user' ? '나' : persona}
-              </span>
-              <div className="message-bubble">
-                {msg.text}
+        <div className="chat-logs" style={{ backgroundColor: isDevMode ? '#0b0f19' : '#f8fafc' }}>
+          {messages.map((msg, idx) => {
+            const isUser = msg.sender === 'user';
+            return (
+              <div key={msg.id || idx} className={`message-wrapper ${msg.sender}`} style={{ marginBottom: '12px' }}>
+                <span className="message-sender" style={{ color: isDevMode ? '#94a3b8' : '#64748b' }}>
+                  {isUser ? (currentUser?.name || '슈퍼관리자') : (isDevMode ? '🤖 Antigravity 에이전트' : '미스링 비서')}
+                </span>
+                
+                <div 
+                  className="message-bubble" 
+                  style={{
+                    backgroundColor: isUser 
+                      ? (isDevMode ? '#15803d' : '#2563eb') 
+                      : (isDevMode ? '#1e293b' : '#ffffff'),
+                    color: isUser ? '#ffffff' : (isDevMode ? '#f1f5f9' : '#1e293b'),
+                    border: isDevMode && !isUser ? '1px solid #334155' : 'none',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                    lineHeight: 1.6,
+                    fontSize: '0.88rem',
+                    whiteSpace: 'pre-wrap'
+                  }}
+                >
+                  {msg.text}
+
+                  {/* 개발자 모드 작업 상태 뱃지 및 결과 */}
+                  {isDevMode && msg.status && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      backgroundColor: msg.status === 'success' 
+                        ? '#dcfce7' 
+                        : (msg.status === 'running' ? '#fef3c7' : '#f1f5f9'),
+                      color: msg.status === 'success' 
+                        ? '#166534' 
+                        : (msg.status === 'running' ? '#b45309' : '#475569'),
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      {msg.status === 'pending' && <Clock size={13} />}
+                      {msg.status === 'running' && <RefreshCw size={13} className="spin" />}
+                      {msg.status === 'success' && <CheckCircle size={13} />}
+                      {msg.status === 'error' && <AlertCircle size={13} />}
+                      <span>{msg.statusText || msg.progress || msg.status}</span>
+                    </div>
+                  )}
+                </div>
+
+                <span className="message-time" style={{ color: '#94a3b8' }}>{msg.timestamp}</span>
               </div>
-              <span className="message-time">{msg.timestamp}</span>
-            </div>
-          ))}
+            );
+          })}
+
           {isTyping && (
-            <div className="typing-indicator">
-              <div className="typing-dot"></div>
-              <div className="typing-dot"></div>
-              <div className="typing-dot"></div>
+            <div className="typing-indicator" style={{ background: isDevMode ? '#1e293b' : '#e2e8f0' }}>
+              <div className="typing-dot" style={{ background: isDevMode ? '#4ade80' : '#3b82f6' }}></div>
+              <div className="typing-dot" style={{ background: isDevMode ? '#4ade80' : '#3b82f6' }}></div>
+              <div className="typing-dot" style={{ background: isDevMode ? '#4ade80' : '#3b82f6' }}></div>
             </div>
           )}
           <div ref={logEndRef} />
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSend} className="chat-input-area">
+        <form onSubmit={handleSend} className="chat-input-area" style={{
+          backgroundColor: isDevMode ? '#0f172a' : '#ffffff',
+          borderTop: isDevMode ? '1px solid #1e293b' : '1px solid #e2e8f0'
+        }}>
           <div className="chat-input-wrapper">
             <input 
               type="text" 
               value={inputMessage} 
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="메시지를 입력하세요..."
+              placeholder={isDevMode ? "Antigravity에 내릴 개발/수정 명령 입력..." : "메시지를 입력하세요..."}
               disabled={isTyping}
+              style={{
+                backgroundColor: isDevMode ? '#1e293b' : '#ffffff',
+                color: isDevMode ? '#f8fafc' : '#0f172a',
+                border: isDevMode ? '1px solid #334155' : '1px solid #cbd5e1'
+              }}
             />
           </div>
-          <button type="submit" className="send-btn" disabled={!inputMessage.trim() || isTyping}>
+          <button 
+            type="submit" 
+            className="send-btn" 
+            disabled={!inputMessage.trim() || isTyping}
+            style={{
+              backgroundColor: isDevMode ? '#16a34a' : '#2563eb'
+            }}
+          >
             <Send size={16} />
           </button>
         </form>
