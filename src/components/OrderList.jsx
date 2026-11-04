@@ -280,6 +280,13 @@ const OrderList = ({
   // 납품 완료 및 전표 화면 즉시 전송 핸들러
   const handleTransferOrderToInvoice = (order) => {
     playMenuClickSound();
+    const isCompleted = isOrderCompleted(order);
+    if (isCompleted) {
+      if (window.confirm('이미 납품 완료된 주문입니다.\n납품 완료 상태를 취소(대기로 변경)하시겠습니까?')) {
+        onUpdateOrder(order.id, { status: '대기', isCompleted: false });
+        return;
+      }
+    }
     const allItems = order.items || parseOrderItems(order.itemsText);
     const checkedItems = allItems.filter((item, idx) => (`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
     const itemsToTransfer = checkedItems.length > 0 ? checkedItems : allItems;
@@ -775,14 +782,15 @@ const OrderList = ({
                                 borderRadius: '7px', 
                                 fontSize: '0.74rem', 
                                 fontWeight: 800, 
-                                backgroundColor: isCompleted ? '#059669' : '#059669',
-                                color: '#ffffff', 
-                                border: 'none', 
+                                backgroundColor: isCompleted ? '#059669' : '#ffffff',
+                                color: isCompleted ? '#ffffff' : '#059669', 
+                                border: isCompleted ? '1px solid #059669' : '1px solid #cbd5e1', 
                                 cursor: 'pointer',
-                                boxShadow: '0 1px 3px rgba(5,150,105,0.25)'
+                                boxShadow: isCompleted ? '0 2px 6px rgba(5,150,105,0.35)' : 'none',
+                                transition: 'all 0.15s ease'
                               }}
                             >
-                              <CheckCircle2 size={12} /> 납품 완료
+                              <CheckCircle2 size={12} color={isCompleted ? '#ffffff' : '#059669'} /> 납품 완료
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); onEditOrder(order); }}

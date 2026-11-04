@@ -475,6 +475,7 @@ function App() {
   };
   const [isSalesOrderOpen, setIsSalesOrderOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [salesOrderSource, setSalesOrderSource] = useState(null);
   const [isOrderListOpen, setIsOrderListOpen] = useState(false);
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState(null);
@@ -6012,7 +6013,16 @@ function App() {
 
       {isSalesOrderOpen && <SalesOrder 
         themeColor={systemSettings.display?.orderThemeColor || '#3b82f6'}
-        onClose={() => setIsSalesOrderOpen(false)} 
+        onClose={() => {
+          setIsSalesOrderOpen(false);
+          setEditingOrder(null);
+          if (salesOrderSource === 'orderList') {
+            setIsOrderListOpen(true);
+          } else if (salesOrderSource === 'orderReport') {
+            setIsOrderReportOpen(true);
+          }
+          setSalesOrderSource(null);
+        }} 
         partners={partners} 
         products={products} 
         salesOrders={salesOrders} 
@@ -6063,16 +6073,36 @@ function App() {
               user: currentUser?.name || fullOrder.manager || '시스템',
               targetId: String(id)
             });
+
+            if (salesOrderSource === 'orderList') {
+              setIsSalesOrderOpen(false);
+              setIsOrderListOpen(true);
+              setSalesOrderSource(null);
+            } else if (salesOrderSource === 'orderReport') {
+              setIsSalesOrderOpen(false);
+              setIsOrderReportOpen(true);
+              setSalesOrderSource(null);
+            }
           } catch (err) { console.error(err); }
         }} 
-        onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); openSalesInvoice(invData); }}
-        onOpenOrderList={(targetDate) => { setIsSalesOrderOpen(false); openOrderList('all', targetDate); }}
+        onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); setSalesOrderSource(null); openSalesInvoice(invData); }}
+        onOpenOrderList={(targetDate) => { setIsSalesOrderOpen(false); setSalesOrderSource(null); openOrderList('all', targetDate); }}
         currentUser={currentUser} 
         staffList={staffList} 
         warehouses={warehouses} 
         selectedDate={selectedDate} 
         editingOrder={editingOrder}
-        onDeleteOrder={handleDeleteSalesOrder}
+        onDeleteOrder={(id) => {
+          handleDeleteSalesOrder(id);
+          setIsSalesOrderOpen(false);
+          setEditingOrder(null);
+          if (salesOrderSource === 'orderList') {
+            setIsOrderListOpen(true);
+          } else if (salesOrderSource === 'orderReport') {
+            setIsOrderReportOpen(true);
+          }
+          setSalesOrderSource(null);
+        }}
       />}
 
       {isQuotationOpen && <Quotation
@@ -6236,7 +6266,12 @@ function App() {
         staffList={staffList} 
         currentUser={currentUser}
         initialSelectedStaff={orderListSelectedStaff}
-        onEditOrder={(order) => { setEditingOrder(order); setIsSalesOrderOpen(true); setIsOrderListOpen(false); }}
+        onEditOrder={(order) => { 
+          setEditingOrder(order); 
+          setSalesOrderSource('orderList');
+          setIsSalesOrderOpen(true); 
+          setIsOrderListOpen(false); 
+        }}
         onDeleteOrder={handleDeleteSalesOrder}
         onTransferToInvoice={(invData) => { setIsOrderListOpen(false); openSalesInvoice(invData); }}
         onOpenInventoryMismatch={openMismatchFromOrder}
@@ -6278,6 +6313,7 @@ function App() {
         staffList={staffList} 
         onEditOrder={(order) => {
           setEditingOrder(order);
+          setSalesOrderSource('orderReport');
           setIsSalesOrderOpen(true);
           setIsOrderReportOpen(false);
         }}

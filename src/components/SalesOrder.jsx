@@ -483,24 +483,44 @@ const SalesOrder = ({
                 <ShoppingCart size={18} style={{ color: themeColor }} />
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주 거래처 선택</span>
               </div>
-              <button 
-                onClick={() => onOpenOrderList && onOpenOrderList(orderData.date)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                <List size={13} /> 수주목록
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button 
+                  onClick={() => onOpenOrderList && onOpenOrderList(orderData.date)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <List size={13} /> 수주목록
+                </button>
+                <button 
+                  onClick={onClose}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: '#64748b',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={13} /> 취소
+                </button>
+              </div>
             </div>
 
             {/* 카드 1: 수주일자 & 담당자 설정 */}
@@ -727,6 +747,25 @@ const SalesOrder = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <button
                   type="button"
+                  onClick={onClose}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: '#64748b',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px'
+                  }}
+                >
+                  <X size={12} /> 취소
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setOrderData(prev => ({
                       ...prev,
@@ -950,7 +989,29 @@ const SalesOrder = ({
               </div>
 
               {/* 버튼 영역 */}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    flex: '0 0 65px',
+                    height: '44px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <X size={15} /> 취소
+                </button>
+
                 {editingOrder && onDeleteOrder && (
                   <button 
                     type="button"
