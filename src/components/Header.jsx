@@ -596,8 +596,12 @@ const Header = ({
   }, []);
 
   useEffect(() => {
+    window.__isMobileMenuOpen = isMobileMenuOpen;
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      try {
+        window.history.pushState({ page: 'mobile_menu_open' }, '', window.location.href);
+      } catch (e) {}
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -605,6 +609,14 @@ const Header = ({
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const handleCloseMenu = () => {
+      setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('linkerx_close_mobile_menu', handleCloseMenu);
+    return () => window.removeEventListener('linkerx_close_mobile_menu', handleCloseMenu);
+  }, []);
 
   return (
     <header className="header" ref={dropdownRef}>

@@ -660,7 +660,16 @@ function App() {
   // 가장 최신 모달 닫기
   const closeTopModal = () => {
     try {
+      // 1. 모바일 햄버거 메뉴 열림 확인 및 닫기
+      if (window.__isMobileMenuOpen) {
+        window.__isMobileMenuOpen = false;
+        window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+        return true;
+      }
       if (typeof isMobileMenuOpen !== 'undefined' && isMobileMenuOpen) { setIsMobileMenuOpen(false); return true; }
+
+      // 2. 미스링 AI 개발자 콘솔 닫기
+      if (typeof isDevAssistantOpen !== 'undefined' && isDevAssistantOpen) { setIsDevAssistantOpen(false); return true; }
       if (typeof isCalendarModalOpen !== 'undefined' && isCalendarModalOpen) { setIsCalendarModalOpen(false); return true; }
       if (typeof isScheduleDetailOpen !== 'undefined' && isScheduleDetailOpen) { setIsScheduleDetailOpen(false); setSelectedScheduleForDetail(null); return true; }
       if (typeof isScheduleRegistrationOpen !== 'undefined' && isScheduleRegistrationOpen) { setIsScheduleRegistrationOpen(false); return true; }
