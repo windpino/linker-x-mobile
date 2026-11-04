@@ -205,7 +205,24 @@ const OrderList = ({
         delete next[key];
         return next;
       });
-    }, 3000);
+    }, 2500);
+  };
+
+  const handleShowStock = (e, order, item, itemIdx) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const key = `${order.id}-${itemIdx}`;
+    const currentWhStock = inventory[order.outWarehouse]?.[item.name] || 0;
+    const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
+    const initialStock = prod?.initialStock || 0;
+    const currentStock = initialStock + currentWhStock;
+    setStockFeedback(prev => ({ ...prev, [key]: `재고: ${currentStock.toLocaleString()}개` }));
+    setTimeout(() => {
+      setStockFeedback(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }, 2500);
   };
 
   const handleTransferCheckedItems = (order) => {
@@ -292,9 +309,9 @@ const OrderList = ({
         display: 'flex', 
         flexDirection: 'column', 
         gap: '10px', 
-        padding: '10px 12px 6px 12px', 
-        background: '#0a0f1d', 
-        borderBottom: '1px solid rgba(255,255,255,0.06)' 
+        padding: '10px 12px 8px 12px', 
+        background: '#ffffff', 
+        borderBottom: '1px solid #e2e8f0' 
       } : {}}>
         {!isMobileView && (
           <div className="acc-title-section">
@@ -312,12 +329,12 @@ const OrderList = ({
               display: 'flex',
               alignItems: 'center',
               gap: '2px',
-              background: '#1e293b',
+              background: '#f8fafc',
               padding: '5px 8px',
               borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.08)'
+              border: '1px solid #cbd5e1'
             }}>
-              <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={11} style={{ width: '18px', height: '18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+              <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={11} style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b' }} />
               <input
                 type="date"
                 value={dateStr}
@@ -327,27 +344,27 @@ const OrderList = ({
                   background: 'transparent',
                   fontSize: '0.78rem',
                   fontWeight: 700,
-                  color: '#f8fafc',
+                  color: '#1e293b',
                   outline: 'none',
                   width: '102px'
                 }}
               />
-              <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={11} style={{ width: '18px', height: '18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+              <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={11} style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b' }} />
             </div>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px', 
-              background: '#1e293b', 
+              background: '#f8fafc', 
               padding: '6px 10px', 
               borderRadius: '8px', 
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid #cbd5e1',
               flex: 1,
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Users size={14} color="#60a5fa" />
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8' }}>담당자:</span>
+                <Users size={14} color="#3b82f6" />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>담당:</span>
               </div>
               <select 
                 value={selectedStaff} 
@@ -358,18 +375,18 @@ const OrderList = ({
                   background: 'transparent', 
                   fontSize: '0.82rem', 
                   fontWeight: 700, 
-                  color: '#60a5fa', 
+                  color: '#1e293b', 
                   outline: 'none', 
                   cursor: !canSelectOtherStaff ? 'default' : 'pointer',
                   opacity: !canSelectOtherStaff ? 0.8 : 1
                 }}
               >
-                {canSelectOtherStaff && <option value="all" style={{ backgroundColor: '#1e293b', color: '#fff' }}>전체 직원</option>}
+                {canSelectOtherStaff && <option value="all">전체 직원</option>}
                 {currentUser?.name && !staffList.some(s => s.name === currentUser.name) && (
-                  <option value={currentUser.name} style={{ backgroundColor: '#1e293b', color: '#fff' }}>{currentUser.name}</option>
+                  <option value={currentUser.name}>{currentUser.name}</option>
                 )}
                 {staffList.filter(s => canSelectOtherStaff || s.name === currentUser?.name).map(s => (
-                  <option key={s.id} value={s.name} style={{ backgroundColor: '#1e293b', color: '#fff' }}>{s.name}</option>
+                  <option key={s.id} value={s.name}>{s.name}</option>
                 ))}
               </select>
             </div>
@@ -448,10 +465,10 @@ const OrderList = ({
         {isMobileView && (
           <div style={{ 
             display: 'flex', 
-            background: 'rgba(255,255,255,0.03)', 
+            background: '#f1f5f9', 
             padding: '2px', 
             borderRadius: '10px', 
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid #e2e8f0',
             width: '100%'
           }}>
             <button 
@@ -461,7 +478,7 @@ const OrderList = ({
                 padding: '8px 0',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                color: activeTab === 'summary' ? '#ffffff' : '#94a3b8',
+                color: activeTab === 'summary' ? '#ffffff' : '#64748b',
                 backgroundColor: activeTab === 'summary' ? '#2563eb' : 'transparent',
                 border: 'none',
                 borderRadius: '8px',
@@ -483,7 +500,7 @@ const OrderList = ({
                 padding: '8px 0',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                color: activeTab === 'list' ? '#ffffff' : '#94a3b8',
+                color: activeTab === 'list' ? '#ffffff' : '#64748b',
                 backgroundColor: activeTab === 'list' ? '#2563eb' : 'transparent',
                 border: 'none',
                 borderRadius: '8px',
@@ -507,23 +524,23 @@ const OrderList = ({
         display: 'grid', 
         gridTemplateColumns: isMobileView ? '1fr' : '300px 1fr', 
         gap: isMobileView ? '12px' : '20px',
-        backgroundColor: isMobileView ? '#0a0f1d' : 'transparent'
+        backgroundColor: isMobileView ? '#f8fafc' : 'transparent'
       }}>
         {/* Left Column - Category Totals Summary (Hidden on Mobile when list tab is active) */}
         {(!isMobileView || activeTab === 'summary') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ 
-              backgroundColor: isMobileView ? '#1e293b' : '#1e3a8a', 
-              color: 'white', 
+              backgroundColor: isMobileView ? '#ffffff' : '#1e3a8a', 
+              color: isMobileView ? '#1e293b' : 'white', 
               padding: isMobileView ? '14px' : '20px', 
               borderRadius: '16px', 
               height: 'fit-content', 
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : 'none'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              border: isMobileView ? '1px solid #e2e8f0' : 'none'
             }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: isMobileView ? '10px' : '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>카테고리별 품목 합계</span>
-                <span style={{ fontWeight: 400, fontSize: '0.72rem', opacity: 0.8 }}>{dateStr}</span>
+                <span style={{ color: isMobileView ? '#1e293b' : '#fff' }}>카테고리별 품목 합계</span>
+                <span style={{ fontWeight: 600, fontSize: '0.75rem', color: isMobileView ? '#64748b' : 'rgba(255,255,255,0.8)' }}>{dateStr}</span>
               </div>
               {hasTotals ? (
                 <div style={{ 
@@ -535,13 +552,13 @@ const OrderList = ({
                   paddingRight: '4px' 
                 }}>
                   {Object.entries(categoryTotals).map(([category, items]) => (
-                    <div key={category} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '6px' }}>
+                    <div key={category} style={{ borderBottom: isMobileView ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '6px' }}>
                       <div style={{ fontSize: '0.75rem', color: getCategoryColor(category), fontWeight: 700, marginBottom: '6px' }}>{category}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {Object.entries(items).map(([name, qty]) => (
                           <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                            <span style={{ opacity: 0.85 }}>{name}</span>
-                            <span style={{ fontWeight: 700, color: '#fbbf24' }}>{qty.toLocaleString()}</span>
+                            <span style={{ color: isMobileView ? '#334155' : 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{name}</span>
+                            <span style={{ fontWeight: 800, color: isMobileView ? '#2563eb' : '#fbbf24' }}>{qty.toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
@@ -549,7 +566,7 @@ const OrderList = ({
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>수주 내역이 없습니다.</div>
+                <div style={{ textAlign: 'center', padding: '20px 0', color: isMobileView ? '#94a3b8' : 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>수주 내역이 없습니다.</div>
               )}
             </div>
           </div>
@@ -560,7 +577,7 @@ const OrderList = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               {!isMobileView && (
-                <div style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isMobileView ? '#fff' : 'inherit' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isMobileView ? '#1e293b' : 'inherit' }}>
                   <ShoppingCart size={18} color="#3b82f6" />
                   {selectedStaff === 'all' ? '전체 수주 목록' : `${selectedStaff}님의 수주 목록`}
                 </div>
@@ -578,9 +595,9 @@ const OrderList = ({
                     borderRadius: '6px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    border: statusFilter === 'all' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                    backgroundColor: statusFilter === 'all' ? '#3b82f6' : '#1e293b',
-                    color: statusFilter === 'all' ? '#ffffff' : '#94a3b8'
+                    border: statusFilter === 'all' ? '1px solid #3b82f6' : (isMobileView ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                    backgroundColor: statusFilter === 'all' ? '#3b82f6' : (isMobileView ? '#ffffff' : '#1e293b'),
+                    color: statusFilter === 'all' ? '#ffffff' : (isMobileView ? '#475569' : '#94a3b8')
                   }}
                 >
                   전체 ({totalOrderCount})
@@ -595,9 +612,9 @@ const OrderList = ({
                     borderRadius: '6px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    border: statusFilter === 'waiting' ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                    backgroundColor: statusFilter === 'waiting' ? '#f59e0b' : '#1e293b',
-                    color: statusFilter === 'waiting' ? '#ffffff' : '#94a3b8'
+                    border: statusFilter === 'waiting' ? '1px solid #f59e0b' : (isMobileView ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                    backgroundColor: statusFilter === 'waiting' ? '#f59e0b' : (isMobileView ? '#ffffff' : '#1e293b'),
+                    color: statusFilter === 'waiting' ? '#ffffff' : (isMobileView ? '#475569' : '#94a3b8')
                   }}
                 >
                   대기 ({waitingOrderCount})
@@ -612,9 +629,9 @@ const OrderList = ({
                     borderRadius: '6px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    border: statusFilter === 'completed' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                    backgroundColor: statusFilter === 'completed' ? '#10b981' : '#1e293b',
-                    color: statusFilter === 'completed' ? '#ffffff' : '#94a3b8'
+                    border: statusFilter === 'completed' ? '1px solid #10b981' : (isMobileView ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                    backgroundColor: statusFilter === 'completed' ? '#10b981' : (isMobileView ? '#ffffff' : '#1e293b'),
+                    color: statusFilter === 'completed' ? '#ffffff' : (isMobileView ? '#475569' : '#94a3b8')
                   }}
                 >
                   완료 ({completedOrderCount})
@@ -638,31 +655,31 @@ const OrderList = ({
 
                   return (
                     <div key={order.id} style={{ 
-                      border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', 
+                      border: '1px solid #e2e8f0', 
                       borderRadius: '16px', 
-                      backgroundColor: isMobileView ? '#1e293b' : '#fff', 
+                      backgroundColor: '#ffffff', 
                       overflow: 'hidden', 
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                       marginBottom: isMobileView ? '12px' : '0'
                     }}>
                       <div style={{ 
                         padding: isMobileView ? '12px 14px' : '16px', 
-                        borderBottom: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9', 
+                        borderBottom: '1px solid #f1f5f9', 
                         display: 'flex', 
                         flexDirection: isMobileView ? 'column' : 'row',
                         alignItems: isMobileView ? 'stretch' : 'center',
                         gap: '10px'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isMobileView ? '#94a3b8' : '#64748b' }}>{oIdx + 1}.</span>
-                          <div style={{ fontWeight: 800, fontSize: isMobileView ? '1rem' : '1.1rem', color: isMobileView ? '#fff' : '#1e293b' }}>{order.partner}</div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>{oIdx + 1}.</span>
+                          <div style={{ fontWeight: 800, fontSize: isMobileView ? '1rem' : '1.1rem', color: '#1e293b' }}>{order.partner}</div>
                           {isOrderCompleted(order) ? (
                             <span style={{ 
                               fontSize: '0.68rem', 
                               fontWeight: 800, 
-                              backgroundColor: isMobileView ? 'rgba(16,185,129,0.18)' : '#ecfdf5', 
+                              backgroundColor: '#ecfdf5', 
                               color: '#10b981', 
-                              border: '1px solid rgba(16,185,129,0.35)', 
+                              border: '1px solid #a7f3d0', 
                               padding: '2px 7px', 
                               borderRadius: '6px',
                               display: 'inline-flex',
@@ -675,9 +692,9 @@ const OrderList = ({
                             <span style={{ 
                               fontSize: '0.68rem', 
                               fontWeight: 800, 
-                              backgroundColor: isMobileView ? 'rgba(245,158,11,0.18)' : '#fffbeb', 
+                              backgroundColor: '#fffbeb', 
                               color: '#f59e0b', 
-                              border: '1px solid rgba(245,158,11,0.35)', 
+                              border: '1px solid #fde68a', 
                               padding: '2px 7px', 
                               borderRadius: '6px' 
                             }}>
@@ -687,12 +704,12 @@ const OrderList = ({
                           {order.memo?.includes('MALL') && (
                             <span style={{ 
                               fontSize: '0.6rem', 
-                              backgroundColor: isMobileView ? 'rgba(59,130,246,0.15)' : '#eff6ff', 
-                              color: '#60a5fa', 
+                              backgroundColor: '#eff6ff', 
+                              color: '#2563eb', 
                               padding: '2px 6px', 
                               borderRadius: '4px', 
                               fontWeight: 800,
-                              border: isMobileView ? '1px solid rgba(59,130,246,0.3)' : '1px solid #dbeafe',
+                              border: '1px solid #bfdbfe',
                               marginLeft: '4px'
                             }}>MALL</span>
                           )}
@@ -703,11 +720,11 @@ const OrderList = ({
                             gap: '6px', 
                             marginLeft: isMobileView ? '0' : '12px', 
                             padding: '4px 8px', 
-                            background: isMobileView ? 'rgba(255,255,255,0.03)' : '#f8fafc', 
+                            background: '#f8fafc', 
                             borderRadius: '8px', 
-                            border: isMobileView ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' 
+                            border: '1px solid #e2e8f0' 
                           }}>
-                            <Calendar size={12} color="#94a3b8" />
+                            <Calendar size={12} color="#64748b" />
                             <input 
                               type="date" 
                               value={order.date} 
@@ -717,9 +734,9 @@ const OrderList = ({
                                 background: 'transparent', 
                                 fontSize: '0.78rem', 
                                 fontWeight: 600, 
-                                color: isMobileView ? '#f8fafc' : '#334155', 
+                                color: '#1e293b', 
                                 outline: 'none',
-                                colorScheme: isMobileView ? 'dark' : 'light'
+                                cursor: 'pointer'
                               }}
                             />
                           </div>
@@ -928,9 +945,9 @@ const OrderList = ({
                       {/* Mobile Header Row / Desktop Action Row end */}
 
                       <div style={{ padding: isMobileView ? '12px' : '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.8rem', color: isMobileView ? '#94a3b8' : '#64748b', flexWrap: 'wrap', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap', gap: '4px' }}>
                           <span>{isMobileView ? '' : '출고: '}{order.outWarehouse} → {isMobileView ? '' : '입고: '}{order.inWarehouse}</span>
-                          <span style={{ fontWeight: 700, color: '#60a5fa' }}>{isMobileView ? '' : '담당: '}{order.manager}</span>
+                          <span style={{ fontWeight: 700, color: '#2563eb' }}>{isMobileView ? '' : '담당: '}{order.manager}</span>
                         </div>
 
                         {/* Hide header row on mobile */}
@@ -953,14 +970,14 @@ const OrderList = ({
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
-                                  padding: '8px 10px',
-                                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                                  backgroundColor: isProcessed ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255,255,255,0.01)',
-                                  border: isProcessed ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255, 255, 255, 0.04)',
+                                  padding: '9px 11px',
+                                  backgroundColor: isProcessed ? '#1e293b' : '#f8fafc',
+                                  border: isProcessed ? '1px solid #0f172a' : '1px solid #e2e8f0',
                                   borderRadius: '8px',
                                   cursor: 'pointer',
-                                  transition: 'all 0.15s ease',
-                                  position: 'relative'
+                                  transition: 'all 0.18s ease',
+                                  position: 'relative',
+                                  boxShadow: isProcessed ? '0 2px 6px rgba(15,23,42,0.15)' : 'none'
                                 }}>
                                   {/* Left part: Checkbox + Category + Product Name */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
@@ -973,48 +990,44 @@ const OrderList = ({
                                     />
                                     <span style={{ 
                                       fontSize: '0.62rem', 
-                                      padding: '1px 4px', 
+                                      padding: '1px 5px', 
                                       borderRadius: '4px', 
-                                      backgroundColor: (item.category || '기타') === '미등록상품' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.08)', 
-                                      color: getCategoryColor(item.category || '기타'), 
-                                      fontWeight: 600,
+                                      backgroundColor: isProcessed ? 'rgba(255, 255, 255, 0.12)' : ((item.category || '기타') === '미등록상품' ? '#fee2e2' : '#e2e8f0'), 
+                                      color: isProcessed ? '#93c5fd' : getCategoryColor(item.category || '기타'), 
+                                      fontWeight: 700,
                                       flexShrink: 0,
                                       whiteSpace: 'nowrap'
                                     }}>
                                       {item.category || '기타'}
                                     </span>
-                                    <span style={{ 
-                                      fontWeight: 700, 
-                                      color: (item.category || '기타') === '미등록상품' ? '#f87171' : '#f8fafc', 
-                                      fontSize: '0.82rem',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '6px'
-                                    }}>
+                                    <span 
+                                      onClick={(e) => handleShowStock(e, order, item, iIdx)}
+                                      title="클릭 시 재고 확인"
+                                      style={{ 
+                                        fontWeight: 700, 
+                                        color: isProcessed ? '#f8fafc' : '#1e293b', 
+                                        fontSize: '0.84rem',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                      }}
+                                    >
                                       {item.name}
-                                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>
-                                        (재고: {(() => {
-                                          const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
-                                          const initialStock = prod?.initialStock || 0;
-                                          const currentStock = initialStock + (inventory[order.outWarehouse]?.[item.name] || 0);
-                                          return currentStock.toLocaleString();
-                                        })()}개)
-                                      </span>
                                     </span>
                                   </div>
 
-                                  {/* Right part: Quantity + Status Badge */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                    <span style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                  {/* Right part: Quantity + Status Badge + Stock Button */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                    <span style={{ fontWeight: 800, color: isProcessed ? '#fbbf24' : '#2563eb', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
                                       {item.qty.toLocaleString()}개
                                     </span>
                                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                                       {isProcessed ? (
                                         <span 
-                                          style={{ fontSize: '0.7rem', backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.7rem', backgroundColor: '#10b981', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                           title="상차 취소"
                                         >
@@ -1022,14 +1035,21 @@ const OrderList = ({
                                         </span>
                                       ) : (
                                         <span 
-                                          style={{ fontSize: '0.7rem', border: '1px solid #3b82f6', color: '#60a5fa', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.7rem', border: '1px solid #3b82f6', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                         >
                                           상차
                                         </span>
                                       )}
                                       <span 
-                                        style={{ fontSize: '0.7rem', border: '1px solid #f59e0b', color: '#fbbf24', padding: '2px 4px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                        style={{ fontSize: '0.7rem', border: isProcessed ? '1px solid #475569' : '1px solid #cbd5e1', backgroundColor: isProcessed ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isProcessed ? '#cbd5e1' : '#64748b', padding: '2px 5px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                        onClick={(e) => handleShowStock(e, order, item, iIdx)}
+                                        title="재고 상태 확인"
+                                      >
+                                        재고
+                                      </span>
+                                      <span 
+                                        style={{ fontSize: '0.7rem', border: '1px solid #f59e0b', backgroundColor: isProcessed ? 'rgba(245,158,11,0.1)' : '#fffbeb', color: '#d97706', padding: '2px 5px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                         onClick={(e) => { e.stopPropagation(); onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name); }}
                                       >
                                         불일치
@@ -1044,14 +1064,16 @@ const OrderList = ({
                                       left: '50%', 
                                       transform: 'translate(-50%, -50%)', 
                                       backgroundColor: '#0f172a', 
-                                      color: '#fff', 
-                                      padding: '6px 12px', 
-                                      borderRadius: '6px', 
-                                      fontSize: '0.75rem', 
+                                      color: '#38bdf8', 
+                                      padding: '6px 14px', 
+                                      borderRadius: '8px', 
+                                      fontSize: '0.78rem', 
+                                      fontWeight: 800,
                                       whiteSpace: 'nowrap', 
-                                      zIndex: 10, 
-                                      border: '1px solid rgba(255,255,255,0.15)', 
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)' 
+                                      zIndex: 20, 
+                                      border: '1px solid #38bdf8', 
+                                      boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+                                      pointerEvents: 'none'
                                     }}>
                                       {feedback}
                                     </div>
@@ -1113,14 +1135,14 @@ const OrderList = ({
 
                         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           {order.memo ? <div style={{ fontSize: '0.82rem', color: '#ef4444', fontStyle: 'italic' }}><span style={{ fontWeight: 700 }}>[메모]</span> {order.memo}</div> : <div />}
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isMobileView ? '#fff' : '#1e3a8a' }}>합계 수량: <span style={{ color: '#3b82f6', fontSize: '1.1rem' }}>{totalQty.toLocaleString()}</span></div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isMobileView ? '#1e293b' : '#1e3a8a' }}>합계 수량: <span style={{ color: '#2563eb', fontSize: '1.1rem' }}>{totalQty.toLocaleString()}</span></div>
                         </div>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', border: isMobileView ? '2px dashed rgba(255,255,255,0.08)' : '2px dashed #f1f5f9', borderRadius: '16px' }}>수주 내역이 없습니다.</div>
+                <div style={{ textAlign: 'center', padding: '100px 0', color: '#64748b', border: isMobileView ? '2px dashed #cbd5e1' : '2px dashed #f1f5f9', borderRadius: '16px', backgroundColor: isMobileView ? '#ffffff' : 'transparent' }}>수주 내역이 없습니다.</div>
               )}
             </div>
           </div>
