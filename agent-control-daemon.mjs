@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
@@ -14,49 +14,102 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-console.log("🤖 Agent Control Daemon starting...");
+console.log("🟢 [Online] Antigravity Remote Coding Daemon Active");
 
 let triggered = false;
 
-function triggerWakeup(path, type, command) {
+function triggerWakeup(path, type, command, docId, cid) {
   if (triggered) return;
   triggered = true;
-  console.log(`[PENDING_COMMAND] PATH: ${path} | TYPE: ${type} | COMMAND: ${command}`);
+  console.log("\n========================================================");
+  console.log("🚨 [PENDING_COMMAND_RECEIVED] 미스링 원격 개발 명령 도착!");
+  console.log(`DOC_PATH: ${path}`);
+  console.log(`COMPANY_ID: ${cid}`);
+  console.log(`DOC_ID: ${docId}`);
+  console.log(`COMMAND: ${command}`);
+  console.log("========================================================\n");
   process.exit(0);
 }
 
 async function start() {
-  console.log("Fetching list of companies...");
   const snap = await getDocs(collection(db, 'companies'));
-  const companyIds = [];
-  snap.forEach(d => companyIds.push(d.id));
-  console.log(`Available companies: ${companyIds.join(', ')}`);
+  const companyIds = ['no1dmkr'];
+  snap.forEach(d => {
+    if (!companyIds.includes(d.id)) companyIds.push(d.id);
+  });
+  console.log(`📡 Monitoring Companies: ${companyIds.join(', ')}`);
 
+  // 1. Check existing pending commands immediately on startup
   for (const cid of companyIds) {
-    console.log(`Setting up real-time listener for company: ${cid}`);
-    
-    const qDev = query(collection(db, 'companies', cid, 'devCommands'), where('status', '==', 'pending'));
-    onSnapshot(qDev, (s) => {
-      if (!s.empty) {
-        const doc = s.docs[0];
-        triggerWakeup(doc.ref.path, 'dev', doc.data().command);
+    try {
+      const qDev = query(collection(db, 'companies', cid, 'devCommands'), where('status', '==', 'pending'));
+      const sDev = await getDocs(qDev);
+      if (!sDev.empty) {
+        const d = sDev.docs[0];
+        triggerWakeup(d.ref.path, 'dev', d.data().command || d.data().text, d.id, cid);
+        return;
       }
-    }, (err) => {
-      console.error(`Error listening to ${cid} devCommands:`, err);
-    });
 
-    const qAgent = query(collection(db, 'companies', cid, 'agentCommands'), where('status', '==', 'pending'));
-    onSnapshot(qAgent, (s) => {
-      if (!s.empty) {
-        const doc = s.docs[0];
-        triggerWakeup(doc.ref.path, 'chat', doc.data().text || doc.data().command);
+      const qAgent = query(collection(db, 'companies', cid, 'agentCommands'), where('status', '==', 'pending'));
+      const sAgent = await getDocs(qAgent);
+      if (!sAgent.empty) {
+        const d = sAgent.docs[0];
+        triggerWakeup(d.ref.path, 'chat', d.data().text || d.data().command, d.id, cid);
+        return;
       }
-    }, (err) => {
-      console.error(`Error listening to ${cid} agentCommands:`, err);
-    });
+    } catch (e) {
+      console.warn(`Initial check error on ${cid}:`, e.message);
+    }
   }
-  
-  console.log("🤖 Listening on all companies in real-time...");
+
+  // 2. Real-time Listeners
+  for (const cid of companyIds) {
+    try {
+      const qDev = query(collection(db, 'companies', cid, 'devCommands'), where('status', '==', 'pending'));
+      onSnapshot(qDev, (s) => {
+        if (!s.empty) {
+          const d = s.docs[0];
+          triggerWakeup(d.ref.path, 'dev', d.data().command || d.data().text, d.id, cid);
+        }
+      }, () => {});
+
+      const qAgent = query(collection(db, 'companies', cid, 'agentCommands'), where('status', '==', 'pending'));
+      onSnapshot(qAgent, (s) => {
+        if (!s.empty) {
+          const d = s.docs[0];
+          triggerWakeup(d.ref.path, 'chat', d.data().text || d.data().command, d.id, cid);
+        }
+      }, () => {});
+    } catch (err) {
+      console.warn(`Listener error on ${cid}:`, err.message);
+    }
+  }
+
+  // 3. Fallback Periodic Polling (Guards against gRPC/WebSocket stream idle timeout)
+  setInterval(async () => {
+    if (triggered) return;
+    try {
+      for (const cid of companyIds) {
+        const qDev = query(collection(db, 'companies', cid, 'devCommands'), where('status', '==', 'pending'));
+        const sDev = await getDocs(qDev);
+        if (!sDev.empty) {
+          const d = sDev.docs[0];
+          triggerWakeup(d.ref.path, 'dev', d.data().command || d.data().text, d.id, cid);
+          return;
+        }
+
+        const qAgent = query(collection(db, 'companies', cid, 'agentCommands'), where('status', '==', 'pending'));
+        const sAgent = await getDocs(qAgent);
+        if (!sAgent.empty) {
+          const d = sAgent.docs[0];
+          triggerWakeup(d.ref.path, 'chat', d.data().text || d.data().command, d.id, cid);
+          return;
+        }
+      }
+    } catch {}
+  }, 2000);
+
+  console.log("⚡ [Online] Dual Real-time & Fail-Safe Polling Engine Ready.");
 }
 
 start().catch(console.error);

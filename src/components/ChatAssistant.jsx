@@ -3,7 +3,7 @@ import {
   MessageSquare, X, Send, Bot, Terminal, RefreshCw, Code, 
   CheckCircle, Clock, AlertCircle, Mic, MicOff, Maximize2, 
   Minimize2, ShoppingCart, DollarSign, Package, Users, 
-  Calendar, ArrowRight, Sparkles
+  Calendar, ArrowRight, Sparkles, Activity
 } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, doc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
@@ -11,39 +11,16 @@ import './ChatAssistant.css';
 
 export default function ChatAssistant({ 
   context = {}, 
-  isDevMode: propIsDevMode = false, 
   companyId: propCompanyId = 'no1dmkr', 
   currentUser = null,
   isOpen: propIsOpen,
-  onToggle,
-  onOpenSalesOrder,
-  onOpenOrderReport,
-  onOpenPartnerManager,
-  onOpenProductManager,
-  onOpenReceivablesReport,
-  onOpenCashBook,
-  onOpenScheduleList,
-  onOpenInventoryReport,
-  salesOrders = [],
-  partners = [],
-  products = []
+  onToggle
 }) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
   const toggleOpen = onToggle || (() => setInternalIsOpen(!internalIsOpen));
 
   const targetCompanyId = propCompanyId || currentUser?.companyId || 'no1dmkr';
-
-  // Mode: 'assistant' (미스링 비서) or 'dev' (개발자 콘솔)
-  const [currentMode, setCurrentMode] = useState(propIsDevMode ? 'dev' : 'assistant');
-
-  useEffect(() => {
-    if (propIsDevMode) {
-      setCurrentMode('dev');
-    }
-  }, [propIsDevMode]);
-
-  const isDevActive = currentMode === 'dev';
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
@@ -55,15 +32,10 @@ export default function ChatAssistant({
     {
       id: 'welcome',
       sender: 'agent',
-      text: propIsDevMode 
-        ? `🛠️ [Linker X 개발자 제어 콘솔 (Antigravity)]\n안녕하세요, ${currentUser?.name || '관리자'}님!\n모바일 원격 개발 제어 모드가 준비되었습니다.\n\n수정 요청이나 개선 지시를 남겨주시면 PC 안티그래비티 에이전트가 직접 수신하여 코딩 작업을 진행합니다.`
-        : `👋 안녕하세요! Linker X ERP 모바일 AI 비서 미스링입니다.\n오늘의 수주, 미수금, 재고, 일정 등 무엇이든 물어보세요!`,
+      text: `🟢 [미스링 온라인 개발자 콘솔 (Antigravity)]\n안녕하세요, ${currentUser?.name || '슈퍼관리자'}님!\n\n현재 PC 안티그래비티 코딩 에이전트와 실시간 온라인 연동되었습니다.\n\n이곳에 프로그램 수정, UI 개선, 기능 추가 지시를 내리시면 안티그래비티가 직접 수신하여 실제 코딩 작업을 즉시 실행합니다.\n\n(예: "수주등록 화면에서 저장 버튼 색상을 진한 파랑으로 바꿔줘", "모바일 화면 여백을 조금 더 넓혀줘")`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      mode: propIsDevMode ? 'dev' : 'assistant',
-      actions: propIsDevMode ? [] : [
-        { label: '📝 신규 수주 등록', action: 'sales_order' },
-        { label: '📊 오늘 수주 브리핑', action: 'order_summary' }
-      ]
+      mode: 'dev',
+      status: 'ready'
     }
   ]);
 
@@ -75,17 +47,17 @@ export default function ChatAssistant({
     if (isOpen && logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isTyping, isOpen, currentMode]);
+  }, [messages, isTyping, isOpen]);
 
-  // Load recent dev commands in Dev mode
+  // Load recent dev commands in real-time
   useEffect(() => {
-    if (!isDevActive || !targetCompanyId || !db) return;
+    if (!targetCompanyId || !db) return;
 
     try {
       const q = query(
         collection(db, 'companies', targetCompanyId, 'devCommands'),
         orderBy('createdAt', 'desc'),
-        limit(6)
+        limit(8)
       );
 
       const unsub = onSnapshot(q, (snapshot) => {
@@ -95,9 +67,9 @@ export default function ChatAssistant({
           const time = d.createdAt ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           
           let statusText = '';
-          if (d.status === 'pending') statusText = '⏳ 안티그래비티 에이전트 대기 중...';
-          else if (d.status === 'running') statusText = `⚙️ 작업 진행 중 (${d.progress || '코딩 중'})`;
-          else if (d.status === 'success') statusText = `✅ 작업 완료 (${d.result || d.message || '반영 완료'})`;
+          if (d.status === 'pending') statusText = '⏳ 안티그래비티 에이전트 수신 대기 중...';
+          else if (d.status === 'running') statusText = `⚙️ 코딩 작업 진행 중 (${d.progress || '코드 수정 중'})`;
+          else if (d.status === 'success') statusText = `✅ 작업 반영 완료!\n${d.result || d.message || '요청하신 코딩 작업이 성공적으로 반영되었습니다.'}`;
           else if (d.status === 'error') statusText = `❌ 오류: ${d.error || '실패'}`;
 
           historyList.push({
@@ -118,8 +90,7 @@ export default function ChatAssistant({
           historyList.reverse();
           setMessages(prev => {
             const welcome = prev.find(m => m.id === 'welcome');
-            const otherAssistant = prev.filter(m => m.mode === 'assistant');
-            return welcome ? [welcome, ...otherAssistant, ...historyList] : historyList;
+            return welcome ? [welcome, ...historyList] : historyList;
           });
         }
       }, (err) => {
@@ -130,7 +101,7 @@ export default function ChatAssistant({
     } catch (e) {
       console.warn('devCommands setup error:', e);
     }
-  }, [isDevActive, targetCompanyId]);
+  }, [targetCompanyId]);
 
   // Speech Recognition (Voice Input)
   useEffect(() => {
@@ -186,45 +157,7 @@ export default function ChatAssistant({
     }
   };
 
-  // Quick Action execution handler
-  const handleExecuteAction = (actionKey) => {
-    if (actionKey === 'sales_order' && onOpenSalesOrder) {
-      toggleOpen();
-      onOpenSalesOrder();
-    } else if (actionKey === 'order_report' && onOpenOrderReport) {
-      toggleOpen();
-      onOpenOrderReport();
-    } else if (actionKey === 'partner_manager' && onOpenPartnerManager) {
-      toggleOpen();
-      onOpenPartnerManager();
-    } else if (actionKey === 'product_manager' && onOpenProductManager) {
-      toggleOpen();
-      onOpenProductManager();
-    } else if (actionKey === 'receivables' && onOpenReceivablesReport) {
-      toggleOpen();
-      onOpenReceivablesReport();
-    } else if (actionKey === 'cash_book' && onOpenCashBook) {
-      toggleOpen();
-      onOpenCashBook();
-    } else if (actionKey === 'schedule' && onOpenScheduleList) {
-      toggleOpen();
-      onOpenScheduleList();
-    } else if (actionKey === 'inventory' && onOpenInventoryReport) {
-      toggleOpen();
-      onOpenInventoryReport();
-    }
-  };
-
-  // Handle Quick Chips click
-  const handleQuickChip = (chip) => {
-    if (chip.directAction) {
-      handleExecuteAction(chip.directAction);
-      return;
-    }
-    sendMessage(chip.prompt);
-  };
-
-  // Core Send Logic
+  // Core Send Logic: writes directly to Firestore devCommands to wake up Antigravity
   const sendMessage = async (customText = null) => {
     const textToSend = (customText || inputMessage).trim();
     if (!textToSend || isTyping) return;
@@ -232,216 +165,80 @@ export default function ChatAssistant({
     setInputMessage('');
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 1. DEV MODE
-    if (isDevActive) {
-      setIsTyping(true);
-      try {
-        const newCmdData = {
-          command: textToSend,
-          text: textToSend,
-          status: 'pending',
-          source: 'miss_ring_mobile',
-          author: currentUser?.name || '슈퍼관리자',
-          companyId: targetCompanyId,
-          createdAt: new Date().toISOString(),
-          progress: '에이전트 수신 대기 중...'
-        };
-
-        const docRef = await addDoc(collection(db, 'companies', targetCompanyId, 'devCommands'), newCmdData);
-        await addDoc(collection(db, 'companies', targetCompanyId, 'agentCommands'), newCmdData).catch(() => {});
-
-        const unsub = onSnapshot(doc(db, 'companies', targetCompanyId, 'devCommands', docRef.id), (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            setMessages(prev => {
-              return prev.map(m => {
-                if (m.commandId === docRef.id || m.id === docRef.id) {
-                  let statusText = '';
-                  if (data.status === 'pending') statusText = '⏳ 안티그래비티 에이전트 대기 중...';
-                  else if (data.status === 'running') statusText = `⚙️ 작업 진행 중 (${data.progress || '코딩 중'})`;
-                  else if (data.status === 'success') statusText = `✅ 작업 완료!\n${data.result || data.message || '요청하신 개발/수정 내용이 성공적으로 반영되었습니다.'}`;
-                  else if (data.status === 'error') statusText = `❌ 오류: ${data.error || '실패'}`;
-
-                  return {
-                    ...m,
-                    status: data.status,
-                    progress: data.progress,
-                    result: data.result,
-                    statusText
-                  };
-                }
-                return m;
-              });
-            });
-
-            if (data.status === 'success' || data.status === 'error') {
-              setIsTyping(false);
-              unsub();
-            }
-          }
-        });
-      } catch (err) {
-        console.error('Failed to submit devCommand:', err);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'agent',
-            text: `❌ 명령 전송 중 오류가 발생했습니다: ${err.message}`,
-            timestamp,
-            mode: 'dev'
-          }
-        ]);
-        setIsTyping(false);
-      }
-      return;
-    }
-
-    // 2. ASSISTANT MODE (미스링 모바일 비서)
-    const userMsg = { id: String(Date.now()), sender: 'user', text: textToSend, timestamp, mode: 'assistant' };
-    setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Smart Local ERP Fallback / Offline Response Generator
-    const generateSmartErpReply = (query) => {
-      const q = query.toLowerCase();
-      const stats = context?.stats || {};
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      // 수주 관련 질의
-      if (q.includes('수주') || q.includes('주문') || q.includes('오더')) {
-        const todayOrders = (salesOrders || []).filter(o => o.orderDate === todayStr || o.date === todayStr);
-        const count = todayOrders.length;
-        const totalAmt = todayOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.amount || 0)), 0);
-
-        return {
-          text: `📦 [오늘의 수주 브리핑]\n• 오늘 접수 건수: ${count}건\n• 총 주문 금액: ${totalAmt.toLocaleString()}원\n\n모바일 화면에서 바로 신규 수주를 간편 등록하시거나 수주 내역을 확인하실 수 있습니다.`,
-          actions: [
-            { label: '📝 간편 수주등록 바로가기', action: 'sales_order', primary: true },
-            { label: '📋 수주 보고서 전체보기', action: 'order_report' }
-          ]
-        };
-      }
-
-      // 미수금 관련 질의
-      if (q.includes('미수') || q.includes('외상') || q.includes('수금')) {
-        return {
-          text: `💰 [미수금 관리 현황]\n등록된 거래처 ${stats.partnerCount || partners?.length || 0}곳 중 미수금이 관리되고 있습니다.\n상세 거래처별 잔액 및 미수금 현황 보고서로 바로 연결해 드릴까요?`,
-          actions: [
-            { label: '💵 미수금 현황 보고서 열기', action: 'receivables', primary: true },
-            { label: '🏢 거래처 관리 이동', action: 'partner_manager' }
-          ]
-        };
-      }
-
-      // 재고 / 품목 관련
-      if (q.includes('재고') || q.includes('품목') || q.includes('상품')) {
-        return {
-          text: `📦 [품목 및 재고 현황]\n• 현재 등록 품목: ${stats.productCount || products?.length || 0}종\n• 운영 창고: ${stats.warehouseCount || 0}개소\n\n품목 관리 또는 실재고 보고서 화면을 바로 실행할 수 있습니다.`,
-          actions: [
-            { label: '🏷️ 품목 관리 열기', action: 'product_manager', primary: true },
-            { label: '📊 재고 보고서 확인', action: 'inventory' }
-          ]
-        };
-      }
-
-      // 일정 관련
-      if (q.includes('일정') || q.includes('캘린더') || q.includes('스케줄')) {
-        return {
-          text: `📅 [일정 및 납기 현황]\n오늘 등록된 업무 일정과 수주 납기 일정을 모바일 캘린더에서 바로 확인하실 수 있습니다.`,
-          actions: [
-            { label: '📅 일정 목록 열기', action: 'schedule', primary: true }
-          ]
-        };
-      }
-
-      // 기본 응답
-      return {
-        text: `미스링 비서가 요청하신 내용을 확인했습니다: "${query}"\n\n현재 모바일 시스템에서 아래 업무를 빠르게 실행하실 수 있습니다.`,
-        actions: [
-          { label: '📝 신규 수주 등록', action: 'sales_order', primary: true },
-          { label: '🏢 거래처 목록', action: 'partner_manager' },
-          { label: '📊 재고 보고서', action: 'inventory' }
-        ]
-      };
-    };
-
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: textToSend,
-          persona: 'ERP 전문 관리 비서',
-          system_prompt: '당신은 Linker X 모바일 ERP AI 비서 미스링입니다. 간결하고 친절하게 답변하세요.',
-          context,
-          history: messages.slice(-6).map(m => ({ sender: m.sender, text: m.text }))
-        }),
+      const newCmdData = {
+        command: textToSend,
+        text: textToSend,
+        status: 'pending',
+        source: 'miss_ring_mobile',
+        author: currentUser?.name || '슈퍼관리자',
+        companyId: targetCompanyId,
+        createdAt: new Date().toISOString(),
+        progress: '안티그래비티 에이전트 수신 대기 중...'
+      };
+
+      // 1. Register command to Firestore
+      const docRef = await addDoc(collection(db, 'companies', targetCompanyId, 'devCommands'), newCmdData);
+      await addDoc(collection(db, 'companies', targetCompanyId, 'agentCommands'), newCmdData).catch(() => {});
+
+      // 2. Attach real-time snapshot listener to this doc
+      const unsub = onSnapshot(doc(db, 'companies', targetCompanyId, 'devCommands', docRef.id), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setMessages(prev => {
+            return prev.map(m => {
+              if (m.commandId === docRef.id || m.id === docRef.id) {
+                let statusText = '';
+                if (data.status === 'pending') statusText = '⏳ 안티그래비티 에이전트 수신 대기 중...';
+                else if (data.status === 'running') statusText = `⚙️ 코딩 작업 진행 중 (${data.progress || '코드 수정 중'})`;
+                else if (data.status === 'success') statusText = `✅ 작업 반영 완료!\n${data.result || data.message || '요청하신 코딩 작업이 성공적으로 반영되었습니다.'}`;
+                else if (data.status === 'error') statusText = `❌ 오류: ${data.error || '실패'}`;
+
+                return {
+                  ...m,
+                  status: data.status,
+                  progress: data.progress,
+                  result: data.result,
+                  statusText
+                };
+              }
+              return m;
+            });
+          });
+
+          if (data.status === 'success' || data.status === 'error') {
+            setIsTyping(false);
+            unsub();
+          }
+        }
       });
 
-      if (!response.ok) throw new Error('Local server offline');
-      const data = await response.json();
-
-      setTimeout(() => {
-        setIsTyping(false);
-        const smartReply = generateSmartErpReply(textToSend);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'agent',
-            text: data.response || smartReply.text,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            actions: smartReply.actions,
-            mode: 'assistant'
-          }
-        ]);
-      }, 500);
-
-    } catch {
-      // Offline / Smart Local ERP fallback
-      setTimeout(() => {
-        setIsTyping(false);
-        const smartReply = generateSmartErpReply(textToSend);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'agent',
-            text: smartReply.text,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            actions: smartReply.actions,
-            mode: 'assistant'
-          }
-        ]);
-      }, 500);
+    } catch (err) {
+      console.error('Failed to submit devCommand:', err);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'agent',
+          text: `❌ 명령 전송 중 오류가 발생했습니다: ${err.message}`,
+          timestamp,
+          mode: 'dev'
+        }
+      ]);
+      setIsTyping(false);
     }
   };
 
-  // Quick Chips Definition
-  const quickChips = useMemo(() => {
-    if (isDevActive) {
-      return [
-        { label: '⚡ 에이전트 연결 점검', prompt: '안티그래비티 에이전트 백그라운드 데몬 및 상태를 점검해줘' },
-        { label: '📱 모바일 수주화면 최적화', prompt: '모바일 수주등록 간편 화면의 UI/UX 반응형을 점검해줘' },
-        { label: '🎨 UI 스타일 정리', prompt: '모바일 화면 폰트 및 여백을 터치 친화적으로 가다듬어줘' },
-        { label: '🔄 최근 작업 기록', prompt: '최근 수행된 개발 명령 목록을 요약해줘' }
-      ];
-    }
-    return [
-      { label: '📝 간편 수주 등록', directAction: 'sales_order', highlight: true },
-      { label: '📦 오늘 수주 현황', prompt: '오늘 접수된 수주 현황 요약해줘' },
-      { label: '💰 미수금 브리핑', prompt: '현재 거래처 미수금 현황 알려줘' },
-      { label: '🏢 거래처 관리', directAction: 'partner_manager' },
-      { label: '🏷️ 품목/재고 확인', directAction: 'product_manager' },
-      { label: '📅 오늘 일정', directAction: 'schedule' }
-    ];
-  }, [isDevActive]);
-
-  const filteredMessages = messages.filter(m => {
-    if (m.id === 'welcome') return true;
-    return isDevActive ? (m.mode === 'dev' || m.status) : (m.mode !== 'dev' && !m.status);
-  });
+  // Quick Chips for program modification & dev commands
+  const quickChips = useMemo(() => [
+    { label: '⚡ 에이전트 연결 상태 점검', prompt: '안티그래비티 백그라운드 데몬 및 시스템 연결 상태를 점검해줘' },
+    { label: '📱 모바일 수주화면 간소화 확인', prompt: '모바일 수주등록 간편 화면의 반응형 및 필드를 점검해줘' },
+    { label: '🎨 모바일 UI/UX 최적화', prompt: '모바일 화면 폰트와 터치 여백을 모바일 친화적으로 가다듬어줘' },
+    { label: '🔍 코드 빌드 및 무결성 검사', prompt: '모바일 프로젝트 npm run build 및 오류 여부를 검사해줘' },
+    { label: '🔄 최근 실행 기록 요약', prompt: '최근 수행된 개발 명령 목록과 결과를 요약해줘' }
+  ], []);
 
   return (
     <div className="chat-assistant-container">
@@ -453,12 +250,12 @@ export default function ChatAssistant({
 
       {/* 2. Floating Action Button (FAB) */}
       <button 
-        className={`chat-trigger-btn ${isOpen ? 'open' : ''} ${isDevActive ? 'dev-mode' : ''}`}
+        className={`chat-trigger-btn dev-mode ${isOpen ? 'open' : ''}`}
         onClick={toggleOpen}
-        title={isDevActive ? "Antigravity 개발자 제어 콘솔" : "미스링 모바일 AI 비서"}
+        title="미스링 온라인 개발자 제어 콘솔 (Antigravity)"
       >
-        {isOpen ? <X size={22} /> : (isDevActive ? <Code size={22} /> : <MessageSquare size={22} />)}
-        {propIsDevMode && !isOpen && <span className="chat-trigger-pulse" />}
+        {isOpen ? <X size={22} /> : <Terminal size={22} />}
+        {!isOpen && <span className="chat-trigger-pulse" />}
       </button>
 
       {/* 3. Main Chat Panel (Slide-up Bottom Sheet on Mobile / Drawer on Desktop) */}
@@ -469,55 +266,40 @@ export default function ChatAssistant({
 
         {/* Header */}
         <div className="chat-header" style={{
-          backgroundColor: isDevActive ? '#0f172a' : '#ffffff',
-          color: isDevActive ? '#ffffff' : '#0f172a',
-          borderBottom: isDevActive ? '1px solid #1e293b' : '1px solid #e2e8f0'
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          borderBottom: '1px solid #1e293b'
         }}>
           <div className="chat-header-title">
-            {isDevActive ? (
-              <Terminal size={19} color="#4ade80" />
-            ) : (
-              <Sparkles size={19} color="#2563eb" />
-            )}
+            <Terminal size={19} color="#4ade80" />
             <div>
-              <h3 style={{ color: isDevActive ? '#f8fafc' : '#0f172a' }}>
-                {isDevActive ? '개발자 제어 콘솔' : 'Linker X AI 비서 (미스링)'}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h3 style={{ color: '#f8fafc', margin: 0, fontSize: '0.92rem', fontWeight: 800 }}>
+                  미스링 개발자 제어 콘솔
+                </h3>
+                <span style={{ fontSize: '0.68rem', backgroundColor: '#14532d', color: '#86efac', border: '1px solid #22c55e', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                  온라인 🟢
+                </span>
+              </div>
+              <span style={{ fontSize: '0.70rem', color: '#94a3b8' }}>
+                Antigravity 실시간 코딩 엔진 연동
+              </span>
             </div>
           </div>
-
-          {/* Mode Switcher Tabs (If DevMode is enabled by SuperAdmin) */}
-          {propIsDevMode && (
-            <div className="chat-mode-tabs" style={{ backgroundColor: isDevActive ? '#1e293b' : '#f1f5f9' }}>
-              <button 
-                className={`chat-mode-tab ${!isDevActive ? 'active' : ''}`}
-                onClick={() => setCurrentMode('assistant')}
-                style={{ color: !isDevActive ? '#1e293b' : '#94a3b8' }}
-              >
-                <Bot size={13} /> 비서
-              </button>
-              <button 
-                className={`chat-mode-tab ${isDevActive ? 'active dev' : ''}`}
-                onClick={() => setCurrentMode('dev')}
-              >
-                <Code size={13} /> 개발자
-              </button>
-            </div>
-          )}
 
           {/* Action Buttons (Fullscreen, Close) */}
           <div className="chat-header-actions">
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)} 
               title={isFullscreen ? "기본 크기로" : "전체화면"}
-              style={{ color: isDevActive ? '#94a3b8' : '#64748b' }}
+              style={{ color: '#94a3b8' }}
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <button 
               onClick={toggleOpen} 
               title="닫기"
-              style={{ color: isDevActive ? '#94a3b8' : '#64748b' }}
+              style={{ color: '#94a3b8' }}
             >
               <X size={18} />
             </button>
@@ -528,20 +310,20 @@ export default function ChatAssistant({
         <div 
           className="chat-quick-chips-wrapper"
           style={{
-            backgroundColor: isDevActive ? '#111827' : '#f8fafc',
-            borderBottom: isDevActive ? '1px solid #1f2937' : '1px solid #e2e8f0'
+            backgroundColor: '#111827',
+            borderBottom: '1px solid #1f2937'
           }}
         >
           <div className="chat-quick-chips">
             {quickChips.map((chip, idx) => (
               <button
                 key={idx}
-                className={`quick-chip-btn ${chip.highlight ? 'highlight' : ''} ${isDevActive ? 'dev' : ''}`}
-                onClick={() => handleQuickChip(chip)}
+                className="quick-chip-btn dev"
+                onClick={() => sendMessage(chip.prompt)}
                 style={{
-                  backgroundColor: isDevActive ? '#1f2937' : (chip.highlight ? '#eff6ff' : '#ffffff'),
-                  color: isDevActive ? '#e2e8f0' : (chip.highlight ? '#1d4ed8' : '#334155'),
-                  borderColor: isDevActive ? '#374151' : (chip.highlight ? '#bfdbfe' : '#e2e8f0')
+                  backgroundColor: '#1f2937',
+                  color: '#e2e8f0',
+                  borderColor: '#374151'
                 }}
               >
                 {chip.label}
@@ -558,69 +340,52 @@ export default function ChatAssistant({
         )}
 
         {/* Chat Logs Area */}
-        <div className={`chat-logs ${isDevActive ? 'dev-theme' : ''}`}>
-          {filteredMessages.map((msg, idx) => {
+        <div className="chat-logs dev-theme">
+          {messages.map((msg, idx) => {
             const isUser = msg.sender === 'user';
             return (
               <div 
                 key={msg.id || idx} 
-                className={`message-wrapper ${msg.sender} ${isDevActive ? 'dev-bubble' : ''}`}
+                className={`message-wrapper ${msg.sender} dev-bubble`}
               >
-                <span className="message-sender" style={{ color: isDevActive ? '#94a3b8' : '#64748b' }}>
-                  {isUser ? (currentUser?.name || '슈퍼관리자') : (isDevActive ? '🤖 Antigravity 에이전트' : '미스링 비서')}
+                <span className="message-sender" style={{ color: '#94a3b8' }}>
+                  {isUser ? (currentUser?.name || '슈퍼관리자') : '🤖 Antigravity 코딩 에이전트'}
                 </span>
 
                 <div 
                   className="message-bubble"
                   style={{
-                    backgroundColor: isUser 
-                      ? (isDevActive ? '#16a34a' : '#2563eb')
-                      : (isDevActive ? '#1e293b' : '#ffffff'),
-                    color: isUser ? '#ffffff' : (isDevActive ? '#f1f5f9' : '#0f172a'),
-                    border: isDevActive && !isUser ? '1px solid #334155' : (!isUser ? '1px solid #e2e8f0' : 'none')
+                    backgroundColor: isUser ? '#16a34a' : '#1e293b',
+                    color: isUser ? '#ffffff' : '#f1f5f9',
+                    border: !isUser ? '1px solid #334155' : 'none'
                   }}
                 >
                   {msg.text}
 
-                  {/* Dev Mode Status Badge */}
-                  {isDevActive && msg.status && (
+                  {/* Dev Mode Real-time Status Badge */}
+                  {msg.status && (
                     <div style={{
                       marginTop: '8px',
-                      padding: '6px 10px',
+                      padding: '7px 11px',
                       borderRadius: '8px',
                       fontSize: '0.78rem',
                       fontWeight: 700,
                       backgroundColor: msg.status === 'success' 
                         ? '#dcfce7' 
-                        : (msg.status === 'running' ? '#fef3c7' : '#f1f5f9'),
+                        : (msg.status === 'running' ? '#fef3c7' : '#1e293b'),
                       color: msg.status === 'success' 
                         ? '#166534' 
-                        : (msg.status === 'running' ? '#b45309' : '#475569'),
+                        : (msg.status === 'running' ? '#b45309' : '#94a3b8'),
+                      border: '1px solid rgba(255,255,255,0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px'
                     }}>
-                      {msg.status === 'pending' && <Clock size={13} />}
-                      {msg.status === 'running' && <RefreshCw size={13} className="spin" />}
-                      {msg.status === 'success' && <CheckCircle size={13} />}
-                      {msg.status === 'error' && <AlertCircle size={13} />}
+                      {msg.status === 'pending' && <Clock size={14} />}
+                      {msg.status === 'running' && <RefreshCw size={14} className="spin" />}
+                      {msg.status === 'success' && <CheckCircle size={14} />}
+                      {msg.status === 'error' && <AlertCircle size={14} />}
                       <span>{msg.statusText || msg.progress || msg.status}</span>
-                    </div>
-                  )}
-
-                  {/* Interactive ERP Action Link Buttons */}
-                  {!isDevActive && msg.actions && msg.actions.length > 0 && (
-                    <div className="chat-action-card-grid">
-                      {msg.actions.map((act, aIdx) => (
-                        <button
-                          key={aIdx}
-                          className={`chat-action-link-btn ${act.primary ? 'primary' : ''}`}
-                          onClick={() => handleExecuteAction(act.action)}
-                        >
-                          <span>{act.label}</span>
-                          <ArrowRight size={14} />
-                        </button>
-                      ))}
                     </div>
                   )}
                 </div>
@@ -631,10 +396,10 @@ export default function ChatAssistant({
           })}
 
           {isTyping && (
-            <div className="typing-indicator" style={{ backgroundColor: isDevActive ? '#1e293b' : '#ffffff', border: isDevActive ? '1px solid #334155' : '1px solid #e2e8f0' }}>
-              <div className="typing-dot" style={{ backgroundColor: isDevActive ? '#4ade80' : '#2563eb' }}></div>
-              <div className="typing-dot" style={{ backgroundColor: isDevActive ? '#4ade80' : '#2563eb' }}></div>
-              <div className="typing-dot" style={{ backgroundColor: isDevActive ? '#4ade80' : '#2563eb' }}></div>
+            <div className="typing-indicator" style={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}>
+              <div className="typing-dot" style={{ backgroundColor: '#4ade80' }}></div>
+              <div className="typing-dot" style={{ backgroundColor: '#4ade80' }}></div>
+              <div className="typing-dot" style={{ backgroundColor: '#4ade80' }}></div>
             </div>
           )}
 
@@ -661,8 +426,8 @@ export default function ChatAssistant({
           onSubmit={(e) => { e.preventDefault(); sendMessage(); }} 
           className="chat-input-area"
           style={{
-            backgroundColor: isDevActive ? '#0f172a' : '#ffffff',
-            borderTop: isDevActive ? '1px solid #1e293b' : '1px solid #e2e8f0'
+            backgroundColor: '#0f172a',
+            borderTop: '1px solid #1e293b'
           }}
         >
           <div className="chat-input-wrapper">
@@ -670,12 +435,12 @@ export default function ChatAssistant({
               type="text" 
               value={inputMessage} 
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={isDevActive ? "Antigravity에 내릴 개발 명령 입력..." : "미스링에게 질문이나 지시 입력..."}
+              placeholder="Antigravity에 내릴 프로그램 수정 명령 입력..."
               disabled={isTyping}
               style={{
-                backgroundColor: isDevActive ? '#1e293b' : '#f8fafc',
-                color: isDevActive ? '#f8fafc' : '#0f172a',
-                borderColor: isDevActive ? '#334155' : '#cbd5e1'
+                backgroundColor: '#1e293b',
+                color: '#f8fafc',
+                borderColor: '#334155'
               }}
             />
             {/* Mic Button */}
@@ -691,7 +456,7 @@ export default function ChatAssistant({
 
           <button 
             type="submit" 
-            className={`send-btn ${isDevActive ? 'dev-send' : ''}`}
+            className="send-btn dev-send"
             disabled={!inputMessage.trim() || isTyping}
           >
             <Send size={17} />

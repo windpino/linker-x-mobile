@@ -7287,25 +7287,13 @@ function App() {
           </div>
         </WindowModal>
       )}
-      {((useMissRing && mobileSettings.enableMissRing !== false) || useMissRingDevMode) && (
+      {((useMissRing && mobileSettings.enableMissRing !== false) || useMissRingDevMode || isDevAssistantOpen) && (
         <ChatAssistant
           context={getAgentContext()}
-          isDevMode={useMissRingDevMode}
           isOpen={isDevAssistantOpen}
           onToggle={() => setIsDevAssistantOpen(!isDevAssistantOpen)}
           companyId={currentUser?.companyId || 'no1dmkr'}
           currentUser={currentUser}
-          onOpenSalesOrder={() => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }}
-          onOpenOrderReport={() => setIsOrderReportOpen(true)}
-          onOpenPartnerManager={() => setIsPartnerManagerOpen(true)}
-          onOpenProductManager={() => setIsProductManagerOpen(true)}
-          onOpenReceivablesReport={() => setIsReceivablesReportOpen(true)}
-          onOpenCashBook={() => setIsCashBookOpen(true)}
-          onOpenScheduleList={() => setIsScheduleListOpen(true)}
-          onOpenInventoryReport={openInventoryReport}
-          salesOrders={salesOrders}
-          partners={partners}
-          products={products}
         />
       )}
       <PwaInstallPrompt />
