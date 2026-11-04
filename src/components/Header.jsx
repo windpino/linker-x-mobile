@@ -21,7 +21,8 @@ const Header = ({
   onOpenWidgetModal, onOpenCalendarModal, onToggleMobileDrawer,
   settings,
   isDevModeEnabled = false,
-  onOpenDevAssistant
+  onOpenDevAssistant,
+  onOpenMobileSettings
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -417,7 +418,14 @@ const Header = ({
     },
     // 환경설정
     {
-      title: '환경설정',
+      title: '모바일 전용 환경설정',
+      category: '환경설정',
+      action: onOpenMobileSettings || onOpenSettings,
+      perm: true,
+      keywords: '모바일설정 효과음 소리 진동 글자크기 햅틱 미스링 환경설정',
+    },
+    {
+      title: '회사/시스템 환경설정',
       category: '환경설정',
       action: onOpenSettings,
       perm: hasPerm('환경설정'),
@@ -732,6 +740,39 @@ const Header = ({
             </button>
           )}
 
+          {/* 모바일 전용 환경설정 배너 버튼 */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              playMenuClickSound();
+              if (onOpenMobileSettings) onOpenMobileSettings();
+              else if (onOpenSettings) onOpenSettings();
+            }}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, rgba(37, 99, 246, 0.18) 0%, rgba(59, 130, 246, 0.08) 100%)',
+              border: '1px solid rgba(96, 165, 250, 0.35)',
+              borderRadius: '10px',
+              padding: '9px 12px',
+              color: '#93c5fd',
+              fontWeight: 800,
+              fontSize: '0.84rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              marginBottom: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚙️</span>
+              <span>📱 모바일 전용 환경설정 (효과음/진동/글자)</span>
+            </div>
+            <span style={{ fontSize: '0.74rem', background: 'rgba(59, 130, 246, 0.25)', color: '#bfdbfe', padding: '2px 7px', borderRadius: '4px' }}>
+              설정 ➔
+            </span>
+          </button>
+
           {/* 검색 바 */}
           <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px' }}>
             <Search size={16} className="search-icon" />
@@ -825,7 +866,8 @@ const Header = ({
               { perm: hasPerm('매입처원장 저장/불러오기/삭제'), label: '매입처원장 저장/불러오기/삭제', action: onOpenPurchaseLedgerExcel },
             ]},
             { id: 'settings_license', label: '환경설정', items: [
-              { perm: hasPerm('환경설정'), label: '환경설정', action: onOpenSettings },
+              { perm: true, label: '📱 모바일 전용 환경설정', action: onOpenMobileSettings || onOpenSettings },
+              { perm: hasPerm('환경설정'), label: '🏢 회사/시스템 환경설정', action: onOpenSettings },
               { perm: hasPerm('정품등록'), label: '정품등록', action: onOpenLicense },
               { perm: hasPerm('거래처몰'), label: '거래처몰', action: onOpenPartnerMall },
             ]}

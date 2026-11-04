@@ -7,7 +7,9 @@ import {
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { playMenuClickSound } from './utils/audio';
+import { playMenuClickSound, initGlobalButtonSound } from './utils/audio';
+import { getMobileSettings, subscribeMobileSettings } from './utils/mobileSettings';
+import MobileSettingsManager from './components/MobileSettingsManager';
 import Header from './components/Header';
 import DashboardBanner from './components/DashboardBanner';
 import Calendar from './components/Calendar';
@@ -548,6 +550,8 @@ function App() {
   const [isPurchaseLedgerExcelOpen, setIsPurchaseLedgerExcelOpen] = useState(false);
   const [isSalesLedgerExcelOpen, setIsSalesLedgerExcelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
+  const [mobileSettings, setMobileSettings] = useState(() => getMobileSettings());
   const [isLicenseOpen, setIsLicenseOpen] = useState(false);
   const [isDashboardSettingsOpen, setIsDashboardSettingsOpen] = useState(false);
   const [isFavoriteSettingsOpen, setIsFavoriteSettingsOpen] = useState(false);
@@ -637,6 +641,7 @@ function App() {
       if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) count++;
       if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) count++;
       if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) count++;
+      if (typeof isMobileSettingsOpen !== 'undefined' && isMobileSettingsOpen) count++;
       if (typeof isLicenseOpen !== 'undefined' && isLicenseOpen) count++;
       if (typeof isDashboardSettingsOpen !== 'undefined' && isDashboardSettingsOpen) count++;
       if (typeof isFavoriteSettingsOpen !== 'undefined' && isFavoriteSettingsOpen) count++;
@@ -699,6 +704,7 @@ function App() {
       if (typeof isPurchaseLedgerExcelOpen !== 'undefined' && isPurchaseLedgerExcelOpen) { setIsPurchaseLedgerExcelOpen(false); return true; }
       if (typeof isSalesLedgerExcelOpen !== 'undefined' && isSalesLedgerExcelOpen) { setIsSalesLedgerExcelOpen(false); return true; }
       if (typeof isSettingsOpen !== 'undefined' && isSettingsOpen) { setIsSettingsOpen(false); return true; }
+      if (typeof isMobileSettingsOpen !== 'undefined' && isMobileSettingsOpen) { setIsMobileSettingsOpen(false); return true; }
       if (typeof isLicenseOpen !== 'undefined' && isLicenseOpen) { setIsLicenseOpen(false); return true; }
       if (typeof isDashboardSettingsOpen !== 'undefined' && isDashboardSettingsOpen) { setIsDashboardSettingsOpen(false); return true; }
       if (typeof isFavoriteSettingsOpen !== 'undefined' && isFavoriteSettingsOpen) { setIsFavoriteSettingsOpen(false); return true; }
@@ -863,6 +869,31 @@ function App() {
       }
     });
     return () => unsub();
+  }, []);
+
+  // 모바일 전용 독립 환경설정 & 모든 버튼 클릭 효과음 초기화
+  React.useEffect(() => {
+    // 1. 모든 모바일 화면 버튼 클릭 시 사운드/햅틱 글로벌 인터셉터 기동
+    const cleanupSound = initGlobalButtonSound();
+
+    // 2. 모바일 독립 설정 실시간 리액티브 구독
+    const unsubMobileSettings = subscribeMobileSettings((newSettings) => {
+      setMobileSettings(newSettings);
+      if (newSettings?.fontScale) {
+        document.documentElement.style.fontSize = `${newSettings.fontScale}%`;
+      }
+    });
+
+    // 3. 초기 글자 가독성 배율 적용
+    const initial = getMobileSettings();
+    if (initial?.fontScale) {
+      document.documentElement.style.fontSize = `${initial.fontScale}%`;
+    }
+
+    return () => {
+      cleanupSound();
+      unsubMobileSettings();
+    };
   }, []);
 
   React.useEffect(() => {
@@ -5318,6 +5349,7 @@ function App() {
           onToggleMobileDrawer={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           isDevModeEnabled={useMissRingDevMode}
           onOpenDevAssistant={() => setIsDevAssistantOpen(true)}
+          onOpenMobileSettings={() => setIsMobileSettingsOpen(true)}
         />
 
       <div className="main-content" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 56px)', overflow: 'hidden', gap: '8px', boxSizing: 'border-box' }}>
@@ -5381,7 +5413,8 @@ function App() {
               inventory_transfer_excel:   () => setIsInventoryTransferExcelOpen(true),
               sales_ledger_excel:         () => setIsSalesLedgerExcelOpen(true),
               purchase_ledger_excel:      () => setIsPurchaseLedgerExcelOpen(true),
-              settings:                   () => setIsSettingsOpen(true),
+              settings:                   () => setIsMobileSettingsOpen(true),
+              company_settings:           () => setIsSettingsOpen(true),
               license:                    () => setIsLicenseOpen(true),
             };
             if (actions[menuId]) actions[menuId]();
@@ -6893,6 +6926,12 @@ function App() {
       )}
       {isPurchaseLedgerExcelOpen && <PurchaseLedgerExcelManager onClose={() => setIsPurchaseLedgerExcelOpen(false)} purchaseInvoices={purchaseInvoices} setPurchaseInvoices={setPurchaseInvoices} currentUser={currentUser} />}
       {isSalesLedgerExcelOpen && <SalesLedgerExcelManager onClose={() => setIsSalesLedgerExcelOpen(false)} salesInvoices={salesInvoices} setSalesInvoices={setSalesInvoices} currentUser={currentUser} />}
+      {isMobileSettingsOpen && (
+        <MobileSettingsManager 
+          onClose={() => setIsMobileSettingsOpen(false)} 
+          showToast={showToast} 
+        />
+      )}
       {isSettingsOpen && (
         <SettingsManager 
           onClose={() => setIsSettingsOpen(false)} 
@@ -7248,7 +7287,7 @@ function App() {
           </div>
         </WindowModal>
       )}
-      {(useMissRing || useMissRingDevMode) && (
+      {((useMissRing && mobileSettings.enableMissRing !== false) || useMissRingDevMode) && (
         <ChatAssistant
           context={getAgentContext()}
           isDevMode={useMissRingDevMode}
