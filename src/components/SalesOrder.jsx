@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Printer, Search, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ShoppingCart, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2, ArrowLeft, ArrowRight, UserCheck, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -10,10 +10,25 @@ import { doc, setDoc } from 'firebase/firestore';
 import './PurchaseInvoice.css';
 import './SalesManagementCommon.css';
 
-const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, onOpenOrderList, onDeleteOrder, salesOrders = [], specialPrices = [], setSpecialPrices, currentUser, staffList = [], initialPartner, warehouses = [], selectedDate, editingOrder, themeColor: propThemeColor }) => {
-  const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
-  const isMobileView = true;
-
+const SalesOrder = ({ 
+  onClose, 
+  partners, 
+  products, 
+  onSave, 
+  onTransferToInvoice, 
+  onOpenOrderList, 
+  onDeleteOrder, 
+  salesOrders = [], 
+  specialPrices = [], 
+  setSpecialPrices, 
+  currentUser, 
+  staffList = [], 
+  initialPartner, 
+  warehouses = [], 
+  selectedDate, 
+  editingOrder, 
+  themeColor: propThemeColor 
+}) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || 
                  warehouses.find(w => w.name.includes('메인'))?.name || 
                  warehouses.find(w => w.name.includes('main'))?.name || 
@@ -27,25 +42,33 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
   const themeColor = propThemeColor || '#3b82f6';
 
-  const [activeMobileTab, setActiveMobileTab] = useState('input'); // 'input' or 'preview'
-  const [isBasicInfoCollapsed, setIsBasicInfoCollapsed] = useState(true);
+  // Step 1: 'partner' (날짜, 담당자, 거래처 선택)
+  // Step 2: 'order' (간편주문 입력, 비고, 전표전송, 저장)
+  const [step, setStep] = useState(() => (editingOrder || initialPartner?.name) ? 'order' : 'partner');
 
   const [partnerDayOrders, setPartnerDayOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [itemPrices, setItemPrices] = useState({});
 
-  const [orderData, setOrderData] = useState(editingOrder || {
-    id: Date.now(),
-    date: (() => {
-      const d = selectedDate || new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })(),
-    partner: initialPartner ? initialPartner.name : '',
-    outWarehouse: defaultOutWH,
-    inWarehouse: staffWH,
-    manager: defaultManager,
-    itemsText: '',
-    memo: ''
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const [orderData, setOrderData] = useState(() => {
+    if (editingOrder) return { ...editingOrder };
+    const d = selectedDate || new Date();
+    const initDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return {
+      id: Date.now(),
+      date: initDate,
+      partner: initialPartner ? initialPartner.name : '',
+      outWarehouse: defaultOutWH,
+      inWarehouse: staffWH,
+      manager: defaultManager,
+      itemsText: '',
+      memo: ''
+    };
   });
 
   const getProductDefaultPrice = (prod) => {
@@ -76,7 +99,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     return prod.salesPriceSingle || prod.salesPrice || 0;
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (orderData.partner) {
       const stack = salesOrders.filter(o => o.partner === orderData.partner && o.date === orderData.date).sort((a, b) => a.id - b.id);
       setPartnerDayOrders(stack);
@@ -88,12 +111,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     }
   }, [salesOrders, orderData.id, orderData.partner, orderData.date]);
 
-  const todayStr = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
-
-  const canIssuePastDateSlip = (() => {
+  const canIssuePastDateSlip = useMemo(() => {
     if (currentUser?.role === 'super_admin' || currentUser?.userId === 'admin') return true;
     const staff = (staffList || []).find(s => 
       (currentUser?.userId && s.userId === currentUser.userId) ||
@@ -106,52 +124,51 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     if (currentUser?.permissions?.['과거일자 전표발행'] !== undefined) return Boolean(currentUser.permissions['과거일자 전표발행']);
     if (currentUser?.role === 'admin') return true;
     return false;
-  })();
+  }, [currentUser, staffList]);
 
   // Reset form when editingOrder or initialPartner changes
-  React.useEffect(() => {
-    if (!isItemSearchOpen) { // Don't reset while searching
-      if (editingOrder) {
-        setOrderData({ ...editingOrder });
-      } else {
-        const nextMgr = initialPartner && initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
-        const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
-        const d = selectedDate || new Date();
-        let initialDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        if (!canIssuePastDateSlip && initialDate < todayStr) {
-          initialDate = todayStr;
-        }
-        setOrderData({
-          id: Date.now(),
-          date: initialDate,
-          partner: initialPartner ? initialPartner.name : '',
-          outWarehouse: nextOutWH,
-          inWarehouse: staffWH,
-          manager: nextMgr,
-          itemsText: '',
-          memo: ''
-        });
+  useEffect(() => {
+    if (editingOrder) {
+      setOrderData({ ...editingOrder });
+      setStep('order');
+    } else if (initialPartner) {
+      const nextMgr = initialPartner.manager && initialPartner.manager !== '-' ? initialPartner.manager : (currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음'));
+      const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+      const d = selectedDate || new Date();
+      let initialDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!canIssuePastDateSlip && initialDate < todayStr) {
+        initialDate = todayStr;
       }
+      setOrderData({
+        id: Date.now(),
+        date: initialDate,
+        partner: initialPartner.name,
+        outWarehouse: nextOutWH,
+        inWarehouse: staffWH,
+        manager: nextMgr,
+        itemsText: '',
+        memo: ''
+      });
+      setStep('order');
     }
   }, [editingOrder, initialPartner, selectedDate]);
 
   const [isItemSearchOpen, setIsItemSearchOpen] = useState(false);
-  const searchRef = React.useRef(null);
-  const itemInputRef = React.useRef(null);
-  const skipNextFocusOpen = React.useRef(false);
+  const searchRef = useRef(null);
+  const itemInputRef = useRef(null);
+  const partnerInputRef = useRef(null);
+  const skipNextFocusOpen = useRef(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [caretPos, setCaretPos] = useState({ top: 44, left: 16 });
 
   const updateCaretPosition = (el) => {
     if (!el) return;
-    
     let clone = document.getElementById('so-textarea-clone');
     if (!clone) {
       clone = document.createElement('div');
       clone.id = 'so-textarea-clone';
       document.body.appendChild(clone);
     }
-    
     const style = window.getComputedStyle(el);
     clone.style.position = 'absolute';
     clone.style.visibility = 'hidden';
@@ -165,13 +182,9 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
       'width', 'boxSizing'
     ];
-    
-    propertiesToCopy.forEach(prop => {
-      clone.style[prop] = style[prop];
-    });
+    propertiesToCopy.forEach(prop => { clone.style[prop] = style[prop]; });
     
     const textBefore = el.value.substring(0, el.selectionStart);
-    // Replace trailing newline with space to render the line correctly
     clone.textContent = textBefore.endsWith('\n') ? textBefore + ' ' : textBefore;
     
     const marker = document.createElement('span');
@@ -179,26 +192,23 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     clone.appendChild(marker);
     
     const lineHeight = parseFloat(style.lineHeight) || 28;
-    // Calculate position: offset from top of textarea
     const topPos = marker.offsetTop + lineHeight + 2; 
     const leftPos = marker.offsetLeft;
-    
-    const maxLeft = el.offsetWidth - 280; // keep dropdown inside
+    const maxLeft = el.offsetWidth - 280;
     
     setCaretPos({ 
       top: topPos, 
       left: Math.max(16, Math.min(leftPos, maxLeft > 0 ? maxLeft : 16))
     });
   };
-  const [toast, setToast] = useState({ message: '', type: '' });
 
+  const [toast, setToast] = useState({ message: '', type: '' });
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: '', type: '' }), 3000);
   };
 
-  // Close search results when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setIsItemSearchOpen(false);
@@ -208,14 +218,13 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Get the last word for search (split by space or newline)
   const lastWord = orderData.itemsText.split(/[\s\n]+/).pop();
   const filteredProducts = lastWord ? products.filter(p => 
     matchesInitialSound(p.name, lastWord) || 
     (p.abbreviation && matchesInitialSound(p.abbreviation, lastWord))
   ) : [];
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isItemSearchOpen && filteredProducts.length > 0) {
       setSelectedIndex(0);
     } else {
@@ -225,13 +234,12 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
 
   const handleProductSelect = (product) => {
     const textToUse = product.abbreviation || product.name;
-    const words = orderData.itemsText.split(/([\s\n]+)/); // Keep separators
+    const words = orderData.itemsText.split(/([\s\n]+)/);
     
-    // Replace the last non-empty word, preserving trailing numbers (quantity)
     for (let i = words.length - 1; i >= 0; i--) {
       if (words[i].trim()) {
         const currentWord = words[i];
-        const qtyMatch = currentWord.match(/\d+$/); // Find trailing digits
+        const qtyMatch = currentWord.match(/\d+$/);
         const qty = qtyMatch ? qtyMatch[0] : '';
         words[i] = textToUse + qty;
         break;
@@ -253,7 +261,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     }
   };
 
-  const parsedItems = React.useMemo(() => {
+  const parsedItems = useMemo(() => {
     if (!orderData.itemsText) return [];
     const tokens = orderData.itemsText.trim().split(/\s+/);
     const items = [];
@@ -363,20 +371,14 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
     }
   };
 
-  const handlePriceBlur = async (product, newPrice) => {
-    const numPrice = Number(newPrice);
-    if (!product || isNaN(numPrice)) return;
-    if (!orderData.partner) return;
-
-    await autoSaveSpecialPrice(orderData.partner, product, numPrice, '간편수주');
-  };
-
   const parsedTotalQty = parsedItems.reduce((sum, item) => sum + item.qty, 0);
   const parsedTotalPrice = parsedItems.reduce((sum, item) => sum + item.total, 0);
 
+  // 저장 핸들러
   const handleSave = () => {
     if (!orderData.partner) {
       showToast('거래처가 입력되지 않았습니다.', 'error');
+      setStep('partner');
       return;
     }
     if (!orderData.itemsText.trim()) {
@@ -388,7 +390,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       return;
     }
 
-    // 특별단가 자동 저장: 단가가 입력된 모든 품목에 대해 해당 거래처의 특별단가로 자동 저장
+    // 특별단가 자동 저장
     if (orderData.partner) {
       parsedItems.forEach(item => {
         const prod = products.find(p => p.id === item.productId || p.name === item.name);
@@ -398,33 +400,28 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       });
     }
 
-    const isAlreadySaved = partnerDayOrders.some(o => String(o.id) === String(orderData.id));
     onSave({ 
       ...orderData, 
       id: orderData.id || Date.now(),
-      items: parsedItems // explicitly pass the updated items
+      items: parsedItems
     });
     
-    if (!isAlreadySaved) {
-      setCurrentIndex(partnerDayOrders.length);
-      setOrderData(prev => ({
-        ...prev,
-        id: Date.now(),
-        partner: '',
-        itemsText: '',
-        memo: ''
-      }));
-    }
-    
-    showToast('수주가 저장되었습니다.', 'success');
+    showToast('수주가 저장되었습니다! 다음 거래처를 선택하세요.', 'success');
 
-    // Automatically focus back to the partner name input for continuous order entry
+    // 저장이후에는 빠르게 다음 거래처를 지정할 수 있게 앞의 화면(거래처 입력창)으로 전환 & 초기화
+    setOrderData(prev => ({
+      ...prev,
+      id: Date.now(),
+      partner: '',
+      itemsText: '',
+      memo: ''
+    }));
+    setStep('partner');
+
     setTimeout(() => {
       const partnerInput = document.querySelector('.partner-input');
-      if (partnerInput) {
-        partnerInput.focus();
-      }
-    }, 100);
+      if (partnerInput) partnerInput.focus();
+    }, 120);
   };
 
   const handleTransferToInvoice = () => {
@@ -433,40 +430,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       return;
     }
 
-    const tokens = orderData.itemsText.trim().split(/\s+/);
-    const items = [];
-    
-    tokens.forEach((token, idx) => {
-      const match = token.match(/^(.+?)(\d+)$/);
-      if (match) {
-        const nameOrAbbr = match[1];
-        const qty = parseInt(match[2], 10);
-        const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
-        
-        if (product) {
-          const price = getProductDefaultPrice(product);
-          const isTaxFree = product.taxType === '면세';
-          const itemTotal = qty * price;
-          const itemSupplyValue = isTaxFree ? itemTotal : Math.floor(itemTotal / 1.1);
-          const itemTax = isTaxFree ? 0 : itemTotal - itemSupplyValue;
-
-          items.push({
-            id: Date.now() + idx,
-            productId: product.id,
-            name: product.name,
-            spec: product.spec,
-            qty: qty,
-            price: price,
-            taxType: product.taxType || '과세',
-            supplyValue: itemSupplyValue,
-            tax: itemTax,
-            total: itemTotal
-          });
-        }
-      }
-    });
-
-    if (items.length === 0) {
+    if (parsedItems.length === 0) {
       showToast('품목 정보를 인식할 수 없습니다. "품목명수량" 형식으로 입력해주세요.', 'error');
       return;
     }
@@ -476,7 +440,7 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
       warehouse: orderData.outWarehouse,
       orderId: orderData.id,
       salesOrderId: orderData.id,
-      items,
+      items: parsedItems,
       receivedAmount: 0,
       payments: { cash: 0, account: 0, card: 0, bill: 0 },
       discount: 0
@@ -484,282 +448,323 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
   };
 
   return (
-    <WindowModal title={editingOrder ? (isMobileView ? "수주 수정" : "간편수주 수정") : (isMobileView ? "수주 등록" : "간편수주 등록")} onClose={onClose} width="1200px" contentPadding="0">
-      <div className="so-wrapper" style={{ maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {/* 상단 헤더: 왼쪽(날짜선택), 오른쪽(새 수주 | 수주 목록 버튼) */}
-        <div className="so-header so-mobile-enforced-row" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', gap: '2px' }}>
-          <div className="so-title" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <ShoppingCart size={15} style={{ color: themeColor }} />
-            <span className="so-date-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#f1f5f9', padding: '2px 4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-              <DateNavButton
-                direction="prev"
-                disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
-                onClick={() => {
-                  const prevDate = addDays(orderData.date, -1);
-                  if (!canIssuePastDateSlip && prevDate < todayStr) {
-                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                    return;
-                  }
-                  setOrderData(prev => ({ ...prev, date: prevDate }));
-                }}
-                size={11}
-                style={{ width: '18px', height: '18px' }}
-              />
-              <input 
-                type="date"
-                value={orderData.date}
-                min={!canIssuePastDateSlip ? todayStr : undefined}
-                onChange={(e) => {
-                  const newDate = e.target.value;
-                  if (!canIssuePastDateSlip && newDate < todayStr) {
-                    alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                    return;
-                  }
-                  if (newDate) {
-                    setOrderData(prev => ({ ...prev, date: newDate }));
-                  }
-                }}
+    <WindowModal 
+      title={editingOrder ? "수주 수정" : "수주 등록"} 
+      onClose={onClose} 
+      width="100%" 
+      contentPadding="0"
+    >
+      <div className="so-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
+        
+        {/* ========================================================
+            STEP 1: 거래처 선택 화면 (날짜 선택 + 담당자 설정 + 거래처 입력)
+           ======================================================== */}
+        {step === 'partner' && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '14px', gap: '14px', boxSizing: 'border-box' }}>
+            
+            {/* 헤더 바: 상단 네비게이션 & 빠른 전환 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShoppingCart size={18} style={{ color: themeColor }} />
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주 거래처 선택</span>
+              </div>
+              <button 
+                onClick={onOpenOrderList}
                 style={{
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                  fontSize: '0.75rem',
-                  color: '#1e293b',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  padding: 0,
-                  width: '96px',
-                  textAlign: 'center',
-                  fontFamily: 'inherit'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: '#475569',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
                 }}
-              />
-              <DateNavButton
-                direction="next"
-                onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
-                size={11}
-                style={{ width: '18px', height: '18px' }}
-              />
-              {orderData.partner && (partnerDayOrders.length > 0 || orderData.itemsText) && (
-                <span className="so-nav-controls" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  <button 
-                    disabled={currentIndex <= 0}
-                    onClick={(e) => { e.stopPropagation(); const prev = partnerDayOrders[currentIndex - 1]; setOrderData({...prev}); setCurrentIndex(currentIndex - 1); }}
-                    style={{ padding: '1px 3px' }}
-                  >◀</button>
-                  <span>{currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1}/{Math.max(partnerDayOrders.length, currentIndex >= 0 ? currentIndex + 1 : partnerDayOrders.length + 1)}</span>
-                  <button 
-                    disabled={currentIndex === -1 || currentIndex >= partnerDayOrders.length - 1}
-                    onClick={(e) => { e.stopPropagation(); const nxt = partnerDayOrders[currentIndex + 1]; setOrderData({...nxt}); setCurrentIndex(currentIndex + 1); }}
-                    style={{ padding: '1px 3px' }}
-                  >▶</button>
-                </span>
-              )}
-            </span>
-          </div>
+              >
+                <List size={13} /> 수주목록
+              </button>
+            </div>
 
-          <div className="so-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={() => {
-              const newMgr = currentUser?.name || (staffList.length > 0 ? staffList[0].name : '알 수 없음');
-              const newOutWH = getStaffWarehouse(newMgr, staffList, warehouses, currentUser);
-              const mStaff = staffList.find(s => s.name === newMgr);
-              const mWH = mStaff?.warehouse;
-              const newInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || newOutWH);
-              setOrderData({
-                id: Date.now(),
-                date: (() => {
-                  const d = selectedDate || new Date();
-                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                })(),
-                partner: orderData.partner,
-                outWarehouse: newOutWH,
-                inWarehouse: newInWH,
-                manager: newMgr,
-                itemsText: '',
-                memo: ''
-              });
-            }}>
-              <RefreshCw size={11} /> 새 수주
-            </button>
-            <button className="so-btn-outline" style={{ padding: '3px 6px', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={onOpenOrderList}>
-              <List size={11} /> 목록
-            </button>
-          </div>
-        </div>
-
-        {isMobileView && (
-          <div className="so-mobile-tabs">
-            <button 
-              className={`so-mobile-tab-btn ${activeMobileTab === 'input' ? 'active' : ''}`}
-              onClick={() => setActiveMobileTab('input')}
-            >
-              수주 입력 (약칭/수량)
-            </button>
-            <button 
-              className={`so-mobile-tab-btn ${activeMobileTab === 'preview' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveMobileTab('preview');
-                if (document.activeElement) document.activeElement.blur();
-              }}
-            >
-              수주 내역 ({parsedItems.length}건)
-            </button>
-          </div>
-        )}
-
-        <div className="so-body" style={{ overflowY: 'auto', flex: 1, padding: '10px' }}>
-          {/* Left Pane: Data Entry */}
-          {(!isMobileView || activeMobileTab === 'input') && (
-            <div className="so-pane-left">
-              <div className="so-card" style={{ marginBottom: '10px' }}>
-                <h3 className="so-card-title" 
-                    onClick={() => isMobileView && setIsBasicInfoCollapsed(!isBasicInfoCollapsed)}
-                    style={{ cursor: isMobileView ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', width: '100%', userSelect: 'none', marginBottom: '8px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}><Info size={15}/> 기본 정보</span>
-                  {isMobileView && (
-                    <span style={{ fontSize: '0.75rem', color: themeColor, fontWeight: 800 }}>
-                      {isBasicInfoCollapsed ? "▼ 상세설정 펼치기" : "▲ 접기"}
-                    </span>
-                  )}
-                </h3>
-                
-                {(!isMobileView || !isBasicInfoCollapsed) && (
-                  <div className="so-grid-2" style={{ marginBottom: '10px', animation: 'so-fade-in 0.2s' }}>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.78rem' }}>수주일자</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <DateNavButton
-                          direction="prev"
-                          disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
-                          onClick={() => {
-                            const prevDate = addDays(orderData.date, -1);
-                            if (!canIssuePastDateSlip && prevDate < todayStr) {
-                              alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                              return;
-                            }
-                            setOrderData({ ...orderData, date: prevDate });
-                          }}
-                          size={12}
-                          style={{ width: '20px', height: '20px' }}
-                        />
-                        <input 
-                          type="date" 
-                          value={orderData.date} 
-                          min={!canIssuePastDateSlip ? todayStr : undefined}
-                          onChange={(e) => {
-                            const newDate = e.target.value;
-                            if (!canIssuePastDateSlip && newDate < todayStr) {
-                              alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 선택할 수 있습니다.');
-                              return;
-                            }
-                            setOrderData({...orderData, date: newDate});
-                          }} 
-                          style={{ padding: '6px', fontSize: '0.8rem', flex: 1 }} 
-                        />
-                        <DateNavButton
-                          direction="next"
-                          onClick={() => setOrderData({ ...orderData, date: addDays(orderData.date, 1) })}
-                          size={12}
-                          style={{ width: '20px', height: '20px' }}
-                        />
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.78rem' }}>담당자</label>
-                      <select 
-                        value={orderData.manager} 
-                        onChange={(e) => {
-                          const nextMgr = e.target.value;
-                          const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
-                          const mStaff = staffList.find(s => s.name === nextMgr);
-                          const mWH = mStaff?.warehouse;
-                          const nextInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || nextOutWH);
-                          setOrderData(prev => ({
-                            ...prev,
-                            manager: nextMgr,
-                            outWarehouse: nextOutWH || prev.outWarehouse,
-                            inWarehouse: nextInWH || prev.inWarehouse
-                          }));
-                        }} 
-                        style={{ padding: '6px', fontSize: '0.8rem' }}
-                      >
-                        <option value="알 수 없음">선택안함</option>
-                        {staffList.map(s => (
-                          <option key={s.id} value={s.name}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.78rem' }}>출고 창고</label>
-                      <select value={orderData.outWarehouse} onChange={(e) => setOrderData({...orderData, outWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
-                        {warehouses.map(wh => {
-                          const isVeh = wh.isVehicle || wh.name?.includes('차량');
-                          return (
-                            <option key={wh.id} value={wh.name}>
-                              {wh.name}{isVeh ? ' [차량]' : ''}
-                            </option>
-                          );
-                        })}
-                        {orderData.outWarehouse && !warehouses.some(w => w.name === orderData.outWarehouse) && (
-                          <option value={orderData.outWarehouse}>{orderData.outWarehouse}</option>
-                        )}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.78rem' }}>입고 창고</label>
-                      <select value={orderData.inWarehouse} onChange={(e) => setOrderData({...orderData, inWarehouse: e.target.value})} style={{ padding: '6px', fontSize: '0.8rem' }}>
-                        {warehouses.map(wh => {
-                          const isVeh = wh.isVehicle || wh.name?.includes('차량');
-                          return (
-                            <option key={wh.id} value={wh.name}>
-                              {wh.name}{isVeh ? ' [차량]' : ''}
-                            </option>
-                          );
-                        })}
-                        {orderData.inWarehouse && !warehouses.some(w => w.name === orderData.inWarehouse) && (
-                          <option value={orderData.inWarehouse}>{orderData.inWarehouse}</option>
-                        )}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                
-                {/* 거래처명 (한 라인 레이아웃: 거래처명 라벨 오른쪽 입력창 정렬) */}
-                <div className="so-partner-row-container" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', width: '100%', margin: '4px 0', padding: 0, boxSizing: 'border-box' }}>
-                  <label className="so-partner-label-enforced" style={{ display: 'inline-block', margin: 0, flexShrink: 0, width: '62px', fontSize: '0.8rem', fontWeight: 700, textAlign: 'left', color: '#334155' }}>거래처명</label>
-                  <div className="so-partner-input-wrapper" style={{ flex: 1, minWidth: 0 }}>
-                    <PartnerSearchInput 
-                      partners={partners} 
-                      currentUser={currentUser}
-                      value={orderData.partner} 
-                      onChange={(val) => setOrderData({...orderData, partner: val})} 
-                      onSelect={(partner) => {
-                        setOrderData(prev => ({
-                          ...prev,
-                          partner: partner.name,
-                          inWarehouse: staffWH
-                        }));
-                        setTimeout(() => {
-                          if (itemInputRef.current) itemInputRef.current.focus();
-                        }, 0);
-                      }}
-                      typeFilter="매출처"
-                      autoFocus={true}
-                    />
-                  </div>
+            {/* 카드 1: 수주일자 & 담당자 설정 */}
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              
+              {/* 수주일자 선택 */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                  수주일자 선택
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  <DateNavButton
+                    direction="prev"
+                    disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
+                    onClick={() => {
+                      const prevDate = addDays(orderData.date, -1);
+                      if (!canIssuePastDateSlip && prevDate < todayStr) {
+                        alert('과거일자 전표발행 권한이 없습니다.');
+                        return;
+                      }
+                      setOrderData(prev => ({ ...prev, date: prevDate }));
+                    }}
+                    size={14}
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fff' }}
+                  />
+                  <input 
+                    type="date"
+                    value={orderData.date}
+                    min={!canIssuePastDateSlip ? todayStr : undefined}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      if (!canIssuePastDateSlip && newDate < todayStr) {
+                        alert('과거일자 전표발행 권한이 없습니다.');
+                        return;
+                      }
+                      if (newDate) {
+                        setOrderData(prev => ({ ...prev, date: newDate }));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'center',
+                      fontSize: '0.92rem',
+                      fontWeight: 800,
+                      color: '#1e293b',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                    size={14}
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fff' }}
+                  />
                 </div>
               </div>
 
-              {/* 품목 빠른 입력 창 (스크롤 방지 및 피팅) */}
-              <div className="so-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '10px' }}>
-                <h3 className="so-card-title" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '0.85rem' }}><Package size={15}/> 수주 품목 빠른 입력</span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#94a3b8' }}>예: 사과10 배5</span>
-                </h3>
-                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} ref={searchRef}>
+              {/* 담당자 설정 */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                  담당자 설정
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select 
+                    value={orderData.manager} 
+                    onChange={(e) => {
+                      const nextMgr = e.target.value;
+                      const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+                      const mStaff = staffList.find(s => s.name === nextMgr);
+                      const mWH = mStaff?.warehouse;
+                      const nextInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || nextOutWH);
+                      setOrderData(prev => ({
+                        ...prev,
+                        manager: nextMgr,
+                        outWarehouse: nextOutWH || prev.outWarehouse,
+                        inWarehouse: nextInWH || prev.inWarehouse
+                      }));
+                    }} 
+                    style={{
+                      width: '100%',
+                      height: '40px',
+                      padding: '0 12px',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="알 수 없음">선택안함</option>
+                    {staffList.map(s => (
+                      <option key={s.id} value={s.name}>{s.name} {s.jobTitle ? `(${s.jobTitle})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+            </div>
+
+            {/* 카드 2: 거래처 입력란 (입력/선택 즉시 주문 화면으로 전환) */}
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 14px', border: '2px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 4px 12px rgba(59,130,246,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
+                  거래처 입력 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <span style={{ fontSize: '0.74rem', color: '#3b82f6', fontWeight: 700 }}>
+                  선택 시 주문창으로 자동 전환 ➔
+                </span>
+              </div>
+              
+              <div style={{ minHeight: '44px' }}>
+                <PartnerSearchInput 
+                  partners={partners} 
+                  currentUser={currentUser}
+                  value={orderData.partner} 
+                  placeholder="거래처명 또는 초성 입력 (예: 링, ㄹㅋ)"
+                  onChange={(val) => setOrderData(prev => ({ ...prev, partner: val }))} 
+                  onSelect={(partner) => {
+                    setOrderData(prev => ({
+                      ...prev,
+                      partner: partner.name,
+                      inWarehouse: staffWH
+                    }));
+                    // 거래처 선택 시 주문창으로 자동 전환!
+                    setStep('order');
+                    setTimeout(() => {
+                      if (itemInputRef.current) itemInputRef.current.focus();
+                    }, 100);
+                  }}
+                  typeFilter="매출처"
+                  autoFocus={true}
+                />
+              </div>
+
+              {orderData.partner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('order');
+                    setTimeout(() => {
+                      if (itemInputRef.current) itemInputRef.current.focus();
+                    }, 100);
+                  }}
+                  style={{
+                    marginTop: '8px',
+                    height: '42px',
+                    background: '#3b82f6',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  [{orderData.partner}] 주문서 작성으로 이동 <ArrowRight size={16} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem', marginTop: 'auto', padding: '10px 0' }}>
+              거래처를 검색하여 선택하시면 바로 간편주문 입력창으로 이동합니다.
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================
+            STEP 2: 주문창 화면 (간편주문입력창 + 비고(메모)창 + 하단 전송/저장 버튼)
+           ======================================================== */}
+        {step === 'order' && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            
+            {/* 상단 거래처 표시 및 뒤로가기 바 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: '#ffffff',
+              borderBottom: '1px solid #e2e8f0',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setStep('partner')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: '4px 8px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    color: '#3b82f6',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <ArrowLeft size={13} /> 거래처 변경
+                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {orderData.partner || '(거래처 미선택)'}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {orderData.date} · 담당: {orderData.manager}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderData(prev => ({
+                      ...prev,
+                      id: Date.now(),
+                      itemsText: '',
+                      memo: ''
+                    }));
+                    if (itemInputRef.current) itemInputRef.current.focus();
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: '#64748b',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <RefreshCw size={11} /> 지우기
+                </button>
+              </div>
+            </div>
+
+            {/* 메인 입력 영역: 간편주문 입력창 + 비고(메모)창 */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              
+              {/* 간편주문 입력창 카드 */}
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: '160px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              }} ref={searchRef}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Package size={15} color={themeColor} /> 간편 주문 입력창
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    예: 사과10 배5
+                  </span>
+                </div>
+
+                <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <textarea
                     ref={itemInputRef}
-                    placeholder="품목 약칭과 수량을 입력하세요."
-                    className="so-items-textarea"
+                    placeholder="품목 약칭과 수량을 연속으로 입력하세요.&#10;예시: 사과10 배5 귤20"
                     value={orderData.itemsText}
                     onChange={(e) => {
                       setOrderData({ ...orderData, itemsText: e.target.value });
@@ -776,15 +781,19 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                     onKeyUp={(e) => updateCaretPosition(e.target)}
                     onClick={(e) => updateCaretPosition(e.target)}
                     style={{
-                      height: '75px',
-                      minHeight: '60px',
-                      maxHeight: '110px',
-                      fontSize: '0.82rem',
-                      lineHeight: '1.3',
-                      padding: '6px 8px',
-                      borderRadius: '6px',
+                      width: '100%',
+                      flex: 1,
+                      minHeight: '130px',
+                      padding: '10px 12px',
+                      fontSize: '0.95rem',
+                      lineHeight: '1.5',
+                      borderRadius: '8px',
                       border: '1px solid #cbd5e1',
-                      resize: 'none'
+                      backgroundColor: '#ffffff',
+                      color: '#0f172a',
+                      resize: 'none',
+                      outline: 'none',
+                      boxSizing: 'border-box'
                     }}
                     onKeyDown={(e) => {
                       updateCaretPosition(e.target);
@@ -806,686 +815,220 @@ const SalesOrder = ({ onClose, partners, products, onSave, onTransferToInvoice, 
                       }
                     }}
                   />
-                  {isItemSearchOpen && lastWord && (
-                    <div className="so-autocomplete-dropdown" style={{ top: `${caretPos.top}px`, left: `${caretPos.left}px`, right: 'auto', width: '280px' }}>
+
+                  {/* 자동완성 드롭다운 */}
+                  {isItemSearchOpen && lastWord && filteredProducts.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: `${caretPos.top}px`,
+                      left: `${caretPos.left}px`,
+                      width: '260px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                      zIndex: 20
+                    }}>
                       {filteredProducts.map((p, idx) => (
                         <div
                           key={p.id}
                           onMouseDown={() => handleProductSelect(p)}
-                          className={`so-autocomplete-item ${idx === selectedIndex ? 'selected' : ''}`}
                           onMouseEnter={() => setSelectedIndex(idx)}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid #f1f5f9',
+                            backgroundColor: idx === selectedIndex ? '#eff6ff' : 'transparent',
+                            color: idx === selectedIndex ? '#1d4ed8' : '#1e293b'
+                          }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Package size={16} color={themeColor} />
-                            <span style={{ fontWeight: 600 }}>{p.name}</span>
-                          </div>
-                          {p.abbreviation && <span className="so-abbr-badge">{p.abbreviation}</span>}
+                          <span style={{ fontWeight: 600 }}>{p.name}</span>
+                          {p.abbreviation && (
+                            <span style={{ fontSize: '0.72rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#64748b' }}>
+                              {p.abbreviation}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="form-group" style={{ marginTop: '8px' }}>
-                  <label style={{ fontSize: '0.78rem' }}>비고 (메모)</label>
-                  <input 
-                    type="text" 
-                    placeholder="특이사항이나 요청사항을 입력하세요" 
-                    value={orderData.memo} 
-                    onChange={(e) => setOrderData({...orderData, memo: e.target.value})} 
-                    style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 10px', borderRadius: '6px', fontSize: '0.82rem' }}
-                  />
+
+                {/* 실시간 인식된 품목 요약 배지 */}
+                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '24px' }}>
+                  {parsedItems.length === 0 ? (
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>인식된 품목이 없습니다.</span>
+                  ) : (
+                    parsedItems.map((item, idx) => (
+                      <span key={idx} style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        border: '1px solid #dbeafe'
+                      }}>
+                        {item.name} × {item.qty}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Right Pane: Live Preview & Totals */}
-          {(!isMobileView || activeMobileTab === 'preview') && (
-            <div className="so-pane-right">
-              <div className="so-preview-header">
-                <h3>실시간 수주 내역 ({parsedItems.length}건)</h3>
+              {/* 비고 (메모) 입력창 카드 */}
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#475569' }}>
+                  비고 (메모)
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="특이사항이나 배송 요청사항을 입력하세요" 
+                  value={orderData.memo} 
+                  onChange={(e) => setOrderData({ ...orderData, memo: e.target.value })} 
+                  style={{
+                    height: '38px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.86rem',
+                    outline: 'none',
+                    color: '#0f172a'
+                  }}
+                />
               </div>
-              
-              <div className="so-preview-table-container">
-                {parsedItems.length === 0 ? (
-                  <div className="so-empty-state">
-                    <Package size={48} color="#cbd5e1" strokeWidth={1} />
-                    <p>좌측에 약칭과 수량을 입력하시면<br/>여기에 내역이 실시간으로 표시됩니다.</p>
-                  </div>
-                ) : (
-                  <table className="so-preview-table">
-                    <thead>
-                      <tr>
-                        <th>품목명</th>
-                        <th>규격</th>
-                        <th style={{ textAlign: 'right' }}>수량</th>
-                        <th style={{ textAlign: 'right' }}>단가</th>
-                        <th style={{ textAlign: 'right' }}>금액</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedItems.map((item, idx) => (
-                        <tr key={idx}>
-                          <td style={{ fontWeight: 600 }}>{item.name}</td>
-                          <td style={{ color: '#64748b', fontSize: '0.85rem' }}>{item.spec}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600, color: themeColor }}>{item.qty.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <input 
-                              type="number"
-                              value={item.price}
-                              onChange={(e) => {
-                                const val = e.target.value === '' ? 0 : Number(e.target.value);
-                                setItemPrices(prev => ({ ...prev, [item.productId]: val }));
-                              }}
-                              onBlur={(e) => handlePriceBlur(products.find(p => p.id === item.productId || p.name === item.name) || item, e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') e.target.blur();
-                              }}
-                              style={{
-                                width: '75px',
-                                textAlign: 'right',
-                                padding: '2px 4px',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '4px',
-                                fontWeight: 700,
-                                fontSize: '0.85rem',
-                                color: '#1e293b',
-                                outline: 'none'
-                              }}
-                            />
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{item.total.toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+            </div>
+
+            {/* 하단 바: 총 수량/금액 요약 + [전표전송] [저장] 버튼 */}
+            <div style={{
+              padding: '10px 14px',
+              background: '#ffffff',
+              borderTop: '1px solid #e2e8f0',
+              boxShadow: '0 -2px 8px rgba(0,0,0,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              flexShrink: 0
+            }}>
+              {/* 요약 바 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
+                <span>품목: <strong style={{ color: themeColor }}>{parsedItems.length}건</strong></span>
+                <span>총량: <strong style={{ color: themeColor }}>{parsedTotalQty.toLocaleString()}개</strong></span>
+                <span>합계: <strong style={{ color: themeColor, fontSize: '0.98rem' }}>{parsedTotalPrice.toLocaleString()}원</strong></span>
+              </div>
+
+              {/* 버튼 영역 */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {editingOrder && onDeleteOrder && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('이 수주서를 삭제하시겠습니까?')) {
+                        onDeleteOrder(orderData.id);
+                        onClose();
+                      }
+                    }} 
+                    style={{
+                      flex: '0 0 70px',
+                      height: '44px',
+                      backgroundColor: '#fee2e2',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Trash2 size={15} /> 삭제
+                  </button>
                 )}
-              </div>
-
-              <div className="so-summary-section">
-                <div className="so-summary-row">
-                  <span>총 수주 수량</span>
-                  <span className="so-summary-value">{parsedTotalQty.toLocaleString()} <small>개</small></span>
-                </div>
-                <div className="so-summary-row total">
-                  <span>총 수주 금액</span>
-                  <span className="so-summary-value highlight">{parsedTotalPrice.toLocaleString()} <small>원</small></span>
-                </div>
-              </div>
-
-              {/* 중복 수주서 저장 및 전표로 전송 버튼 영역 제거 완료 */}
-            </div>
-          )}
-        </div>
-
-        {isMobileView && (
-          <div className="so-mobile-footer">
-            <div className="so-mobile-summary" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 700, color: '#334155', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', marginBottom: '4px' }}>
-              <span>품목: <strong style={{ color: themeColor }}>{parsedItems.length}건</strong></span>
-              <span>총량: <strong style={{ color: themeColor }}>{parsedTotalQty}개</strong></span>
-              <span>합계: <strong style={{ color: themeColor, fontSize: '1rem' }}>{parsedTotalPrice.toLocaleString()}원</strong></span>
-            </div>
-            <div className="so-mobile-actions">
-              {editingOrder && onDeleteOrder && (
+                
                 <button 
-                  className="so-btn-save" 
-                  onClick={() => {
-                    if (window.confirm('이 수주서를 삭제하시겠습니까?\n연결된 상차/창고 이동 내역도 함께 삭제되고 재고가 원상 복구됩니다.')) {
-                      onDeleteOrder(orderData.id);
-                      onClose();
-                    }
-                  }} 
-                  style={{ backgroundColor: '#ef4444' }}
+                  type="button"
+                  onClick={handleTransferToInvoice}
+                  style={{
+                    flex: 1,
+                    height: '44px',
+                    backgroundColor: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
                 >
-                  <Trash2 size={16} /> 삭제
+                  <FileText size={16} /> 전표전송
                 </button>
-              )}
-              <button className="so-btn-transfer" onClick={handleTransferToInvoice}>
-                <FileText size={16} /> 전표로 전송
-              </button>
-              <button className="so-btn-save" onClick={handleSave} style={{ backgroundColor: editingOrder ? '#f59e0b' : themeColor }}>
-                <Save size={16} /> {editingOrder ? '수정 저장' : '저장'}
-              </button>
+
+                <button 
+                  type="button"
+                  onClick={handleSave}
+                  style={{
+                    flex: 1.2,
+                    height: '44px',
+                    backgroundColor: editingOrder ? '#f59e0b' : themeColor,
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Save size={16} /> {editingOrder ? '수정 저장' : '저장'}
+                </button>
+              </div>
             </div>
+
           </div>
         )}
+
       </div>
 
       {toast.message && (
         <div className={`toast-notification ${toast.type}`} style={{
           position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           backgroundColor: toast.type === 'error' ? 'rgba(239, 68, 68, 0.95)' : toast.type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(30, 41, 59, 0.95)',
-          color: 'white', padding: '20px 40px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-          zIndex: 10000, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', fontWeight: 700,
-          fontSize: '1.2rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)',
-          animation: 'toast-center-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          color: 'white', padding: '16px 28px', borderRadius: '12px', boxShadow: '0 15px 25px -5px rgba(0,0,0,0.2)',
+          zIndex: 10000, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 800,
+          fontSize: '1rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)',
+          textAlign: 'center'
         }}>
-          {toast.type === 'success' ? <Check size={32} /> : toast.type === 'error' ? <AlertTriangle size={32} /> : <Info size={32} />}
+          {toast.type === 'success' ? <Check size={28} /> : toast.type === 'error' ? <AlertTriangle size={28} /> : <Info size={28} />}
           {toast.message}
         </div>
       )}
-
-      <style>{`
-        /* -------------------------------------
-           NEW SalesOrder (간편주문) UI CSS 
-           ------------------------------------- */
-        @keyframes toast-center-in {
-          from { transform: translate(-50%, -40%) scale(0.8); opacity: 0; }
-          to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        }
-
-        .so-wrapper {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          background-color: #f8fafc;
-        }
-
-        .so-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 24px;
-          background-color: #ffffff;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .so-title {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: #1e293b;
-        }
-
-        .so-title svg {
-          color: ${themeColor};
-        }
-
-        .so-date-badge {
-          display: flex;
-          align-items: center;
-          margin-left: 8px;
-          font-size: 0.85rem;
-          color: #64748b;
-          background: #f1f5f9;
-          padding: 4px 12px;
-          border-radius: 100px;
-          font-weight: 500;
-        }
-
-        .so-nav-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border-left: 1px solid #cbd5e1;
-          padding-left: 12px;
-          margin-left: 8px;
-        }
-
-        .so-nav-controls button {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #475569;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2px;
-        }
-        
-        .so-nav-controls button:disabled {
-          color: #cbd5e1;
-          cursor: not-allowed;
-        }
-
-        .so-header-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .so-btn-outline {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          background-color: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #334155;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .so-btn-outline:hover {
-          background-color: #f1f5f9;
-          border-color: #94a3b8;
-        }
-
-        .so-body {
-          display: flex;
-          flex: 1;
-          gap: 24px;
-          padding: 24px;
-          overflow: hidden;
-        }
-
-        .so-pane-left {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          min-width: 400px;
-        }
-
-        .so-pane-right {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background-color: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-          overflow: hidden;
-        }
-
-        .so-card {
-          background-color: #ffffff;
-          border-radius: 16px;
-          padding: 20px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-        }
-
-        .so-card-title {
-          font-size: 1rem;
-          font-weight: 700;
-          color: #1e293b;
-          margin-top: 0;
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .so-card-title svg {
-          color: ${themeColor};
-        }
-
-        .so-grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .so-items-textarea {
-          width: 100%;
-          flex: 1;
-          min-height: 150px;
-          padding: 16px;
-          font-size: 1.1rem;
-          border-radius: 12px;
-          border: 2px solid #e2e8f0;
-          background-color: #f8fafc;
-          line-height: 1.6;
-          resize: none;
-          outline: none;
-          transition: border-color 0.2s, background-color 0.2s;
-          box-sizing: border-box;
-          color: #0f172a !important;
-        }
-
-        .so-items-textarea:focus {
-          border-color: ${themeColor};
-          background-color: #ffffff;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .so-autocomplete-dropdown {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          margin-top: 4px;
-          z-index: 10;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-          max-height: 220px;
-          overflow-y: auto;
-        }
-
-        .so-autocomplete-item {
-          padding: 12px 16px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #f1f5f9;
-          transition: background-color 0.1s;
-          color: #1e293b !important;
-        }
-        
-        .so-autocomplete-item:last-child {
-          border-bottom: none;
-        }
-
-        .so-autocomplete-item.selected {
-          background-color: #f0f9ff;
-        }
-
-        .so-abbr-badge {
-          font-size: 0.75rem;
-          color: ${themeColor};
-          background-color: #eff6ff;
-          padding: 3px 8px;
-          border-radius: 6px;
-          font-weight: 600;
-        }
-
-        /* Right Pane Elements */
-        .so-preview-header {
-          padding: 20px 24px;
-          border-bottom: 1px solid #e2e8f0;
-          background-color: #f8fafc;
-        }
-
-        .so-preview-header h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          color: #1e293b;
-          font-weight: 700;
-        }
-
-        .so-preview-table-container {
-          flex: 1;
-          overflow-y: auto;
-          background-color: #ffffff;
-        }
-
-        .so-empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          min-height: 300px;
-          color: #94a3b8;
-          text-align: center;
-          gap: 16px;
-        }
-
-        .so-preview-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .so-preview-table th {
-          position: sticky;
-          top: 0;
-          background-color: #f8fafc;
-          padding: 12px 16px;
-          font-size: 0.85rem;
-          color: #475569;
-          font-weight: 600;
-          border-bottom: 1px solid #f1f5f9;
-          text-align: left;
-        }
-
-        .so-preview-table td {
-          padding: 12px 16px;
-          border-bottom: 1px solid #f1f5f9;
-          color: #334155;
-          font-size: 0.95rem;
-        }
-
-        .so-summary-section {
-          padding: 20px 24px;
-          background-color: #f8fafc;
-          border-top: 1px solid #e2e8f0;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .so-summary-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #475569;
-          font-weight: 600;
-        }
-
-        .so-summary-row.total {
-          padding-top: 12px;
-          border-top: 1px dashed #cbd5e1;
-          font-size: 1.1rem;
-          color: #1e293b;
-        }
-
-        .so-summary-value {
-          font-size: 1.1rem;
-          color: #1e293b;
-        }
-
-        .so-summary-value.highlight {
-          font-size: 1.5rem;
-          color: ${themeColor};
-          font-weight: 800;
-        }
-
-        .so-action-buttons {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          padding: 20px 24px;
-          background-color: #ffffff;
-          border-top: 1px solid #e2e8f0;
-        }
-
-        .so-btn-save {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 14px;
-          color: #ffffff;
-          border: none;
-          border-radius: 12px;
-          font-size: 1.05rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: transform 0.1s, filter 0.2s;
-        }
-
-        .so-btn-save:hover {
-          filter: brightness(1.1);
-          transform: translateY(-1px);
-        }
-
-        .so-btn-transfer {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 14px;
-          background-color: #10b981;
-          color: #ffffff;
-          border: none;
-          border-radius: 12px;
-          font-size: 1.05rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: transform 0.1s, filter 0.2s;
-        }
-
-        .so-btn-transfer:hover {
-          filter: brightness(1.1);
-          transform: translateY(-1px);
-        }
-
-        /* Mobile Tabs & Layout */
-        .so-mobile-tabs {
-          display: flex;
-          background-color: #ffffff;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .so-mobile-tab-btn {
-          flex: 1;
-          padding: 14px 8px;
-          border: none;
-          background: #ffffff;
-          font-size: 0.9rem;
-          font-weight: 700;
-          color: #64748b;
-          cursor: pointer;
-          text-align: center;
-          border-bottom: 3px solid transparent;
-          transition: all 0.15s;
-        }
-
-        .so-mobile-tab-btn.active {
-          color: ${themeColor};
-          border-bottom-color: ${themeColor};
-          background-color: #f8fafc;
-        }
-
-        /* Mobile Sticky Footer */
-        .so-mobile-footer {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding: 12px 16px;
-          background-color: #ffffff;
-          border-top: 1px solid #cbd5e1;
-          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .so-mobile-summary {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #334155;
-        }
-
-        .so-mobile-summary strong {
-          color: ${themeColor};
-        }
-
-        .so-mobile-actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .so-mobile-actions button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 12px;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.95rem;
-          font-weight: 700;
-          cursor: pointer;
-        }
-
-        @keyframes so-fade-in {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responsive / Mobile overrides */
-        @media (max-width: 768px) {
-          .so-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            padding: 12px 16px !important;
-            gap: 10px !important;
-          }
-          
-          .so-title {
-            width: 100% !important;
-            justify-content: space-between !important;
-          }
-
-          .so-header-actions {
-            width: 100% !important;
-            display: flex !important;
-            justify-content: flex-end !important;
-            gap: 8px !important;
-          }
-
-          .so-body {
-            flex-direction: column;
-            padding: 8px; /* 양옆 여백 축소 */
-            overflow: hidden; /* Prevent body scroll, use pane scroll instead */
-            flex: 1;
-            gap: 0;
-            box-sizing: border-box;
-            width: 100%;
-          }
-          
-          .so-pane-left {
-            width: 100%;
-            min-width: 0;
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 8px;
-            box-sizing: border-box;
-          }
-
-          .so-pane-right {
-            width: 100%;
-            min-width: 0;
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 8px;
-            box-shadow: none;
-            border: none;
-            border-radius: 0;
-            box-sizing: border-box;
-          }
-
-          .so-card {
-            padding: 10px !important;
-            border-radius: 12px !important;
-            box-sizing: border-box !important;
-          }
-
-          /* Hide desktop-only elements on mobile preview pane */
-          .so-pane-right .so-summary-section,
-          .so-pane-right .so-action-buttons {
-            display: none !important;
-          }
-
-          .so-pane-right .so-preview-header {
-            padding: 12px 8px;
-          }
-
-          .so-pane-right .so-preview-table-container {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-          }
-          
-          .so-grid-2 {
-            grid-template-columns: 1fr;
-            gap: 10px;
-          }
-
-          .so-items-textarea {
-            min-height: 60px;
-          }
-        }
-      `}</style>
     </WindowModal>
   );
 };
