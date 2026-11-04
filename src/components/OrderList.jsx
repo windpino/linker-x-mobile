@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar, Phone, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
-import { playMenuClickSound } from '../utils/audio';
+import { playMenuClickSound, playLoadSound, playUnloadSound } from '../utils/audio';
 
 const OrderList = ({ 
   onClose, 
@@ -100,35 +100,113 @@ const OrderList = ({
   const calculateCategoryTotals = () => {
     const totals = {}; 
     filteredOrders.forEach(order => {
-      if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-        order.items.forEach(item => {
-          const category = item.category || '기타';
-          const itemName = item.name || '품목';
-          const qty = Number(item.qty) || 0;
-          if (!totals[category]) totals[category] = {};
-          totals[category][itemName] = (totals[category][itemName] || 0) + qty;
-        });
-      } else if (order.itemsText) {
-        const tokens = order.itemsText.trim().split(/[\s\n]+/);
-        tokens.forEach(token => {
-          const match = token.match(/^(.+?)(\d+)$/);
-          if (match) {
-            const nameOrAbbr = match[1];
-            const qty = parseInt(match[2], 10);
-            const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
-            const category = product ? (product.category || '기타') : '미등록상품';
-            const itemName = product?.name || nameOrAbbr;
-            if (!totals[category]) totals[category] = {};
-            totals[category][itemName] = (totals[category][itemName] || 0) + qty;
-          }
-        });
-      }
+      const displayItems = (order.items && Array.isArray(order.items) && order.items.length > 0)
+        ? order.items
+        : parseOrderItems(order.itemsText);
+
+      displayItems.forEach((item, itemIdx) => {
+        const category = item.category || '기타';
+        const itemName = item.name || '품목';
+        const qty = Number(item.qty) || 0;
+        const key = `${order.id}-${itemIdx}`;
+        const isLoaded = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
+
+        if (!totals[category]) totals[category] = {};
+        if (!totals[category][itemName]) {
+          totals[category][itemName] = { totalQty: 0, loadedQty: 0 };
+        }
+        totals[category][itemName].totalQty += qty;
+        if (isLoaded) {
+          totals[category][itemName].loadedQty += qty;
+        }
+      });
     });
     return totals;
   };
 
   const categoryTotals = calculateCategoryTotals();
   const hasTotals = Object.keys(categoryTotals).length > 0;
+
+  // 품목 합계 창에서 품목 클릭 시 해당 품목 전체 일괄 상차/상차풀기 핸들러
+  const handleBatchToggleProduct = (targetCategory, targetItemName) => {
+    const matchingItems = [];
+    filteredOrders.forEach(order => {
+      const items = (order.items && Array.isArray(order.items) && order.items.length > 0)
+        ? order.items
+        : parseOrderItems(order.itemsText);
+
+      items.forEach((item, itemIdx) => {
+        const itemCat = item.category || '기타';
+        const name = item.name || item.raw;
+        if (name === targetItemName && (!targetCategory || itemCat === targetCategory)) {
+          const key = `${order.id}-${itemIdx}`;
+          const isLoaded = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
+          matchingItems.push({ order, item, itemIdx, key, isLoaded });
+        }
+      });
+    });
+
+    if (matchingItems.length === 0) return;
+
+    // 전체 상차 여부 확인: 이미 전부 상차되었으면 전체 풀기, 하나라도 미상차면 전체 상차
+    const allLoaded = matchingItems.every(m => m.isLoaded);
+    const targetLoadState = !allLoaded;
+
+    if (targetLoadState) {
+      playLoadSound();
+    } else {
+      playUnloadSound();
+    }
+
+    const newProcessed = { ...processedItems };
+    const orderUpdates = new Map();
+
+    matchingItems.forEach(({ order, item, itemIdx, key, isLoaded }) => {
+      if (isLoaded === targetLoadState) return;
+
+      newProcessed[key] = targetLoadState;
+
+      let currentItems = orderUpdates.get(order.id);
+      if (!currentItems) {
+        currentItems = [...((order.items && Array.isArray(order.items) && order.items.length > 0) ? order.items : parseOrderItems(order.itemsText))];
+        orderUpdates.set(order.id, currentItems);
+      }
+      currentItems[itemIdx] = { ...currentItems[itemIdx], loaded: targetLoadState };
+
+      const outWarehouse = order.outWarehouse || item.outWarehouse || '본사창고';
+      const inWarehouse = order.inWarehouse || item.inWarehouse || '차량';
+      const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
+      const initialStock = prod?.initialStock || 0;
+      const stockCacheKey = `${outWarehouse}_${item.name}`;
+      const cachedStock = stockOverrides.current[stockCacheKey];
+      const currentWhStock = (cachedStock !== undefined)
+        ? (cachedStock - initialStock)
+        : ((inventory[outWarehouse]?.[item.name] !== undefined)
+            ? inventory[outWarehouse][item.name]
+            : (inventory['본사창고']?.[item.name] || 0));
+      const qtyNum = Number(item.qty || 0);
+
+      if (targetLoadState) {
+        const nextStock = initialStock + currentWhStock - qtyNum;
+        stockOverrides.current[stockCacheKey] = nextStock;
+        onMoveStock(outWarehouse, inWarehouse, item.name, item.qty, true, order.date, order.id);
+      } else {
+        const nextStock = initialStock + currentWhStock + qtyNum;
+        stockOverrides.current[stockCacheKey] = nextStock;
+        if (onRevertAutoMoveStock) {
+          onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id);
+        } else {
+          onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id);
+        }
+      }
+    });
+
+    setProcessedItems(newProcessed);
+
+    orderUpdates.forEach((updatedItems, orderId) => {
+      onUpdateOrder(orderId, { items: updatedItems });
+    });
+  };
 
   const getCategoryColor = (category) => {
     if (!category) return '#64748b';
@@ -193,9 +271,6 @@ const OrderList = ({
   };
 
   const handleItemMove = (order, item, itemIdx) => {
-    // 0. 즉시 사운드 재생 (품목 터치 시 즉각 피드백)
-    playMenuClickSound();
-
     const key = `${order.id}-${itemIdx}`;
     const currentItems = order.items || parseOrderItems(order.itemsText);
     const updatedItems = [...currentItems];
@@ -203,6 +278,14 @@ const OrderList = ({
     // 로컬 옵티미스틱 상태 우선 판별
     const currentlyLoaded = key in processedItems ? Boolean(processedItems[key]) : Boolean(updatedItems[itemIdx]?.loaded);
     const isNowLoaded = !currentlyLoaded;
+
+    // 0. 즉시 사운드 분기: 상차 시 playLoadSound(), 상차 풀기 시 playUnloadSound()
+    if (isNowLoaded) {
+      playLoadSound();
+    } else {
+      playUnloadSound();
+    }
+    
     updatedItems[itemIdx] = { ...updatedItems[itemIdx], loaded: isNowLoaded };
 
     // 1. 로컬 상태 즉시 변경 (0ms 딜레이 없이 UI 색상 및 체크 즉시 전환)
@@ -622,24 +705,179 @@ const OrderList = ({
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: '12px', 
+                  gap: '10px', 
                   maxHeight: isMobileView ? 'calc(100vh - 200px)' : '600px', 
                   overflowY: 'auto', 
-                  paddingRight: '4px' 
+                  paddingRight: '2px' 
                 }}>
-                  {Object.entries(categoryTotals).map(([category, items]) => (
-                    <div key={category} style={{ borderBottom: isMobileView ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.75rem', color: getCategoryColor(category), fontWeight: 700, marginBottom: '6px' }}>{category}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {Object.entries(items).map(([name, qty]) => (
-                          <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                            <span style={{ color: isMobileView ? '#334155' : 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{name}</span>
-                            <span style={{ fontWeight: 800, color: isMobileView ? '#2563eb' : '#fbbf24' }}>{qty.toLocaleString()}</span>
+                  {Object.entries(categoryTotals).map(([category, items]) => {
+                    const catStyle = getCategoryBadgeStyle(category);
+                    const categoryTotalQty = Object.values(items).reduce((acc, curr) => acc + (curr.totalQty || 0), 0);
+                    const categoryLoadedQty = Object.values(items).reduce((acc, curr) => acc + (curr.loadedQty || 0), 0);
+                    const isCatAllLoaded = categoryLoadedQty >= categoryTotalQty && categoryTotalQty > 0;
+
+                    return (
+                      <div key={category} style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '14px',
+                        border: '1px solid #e2e8f0',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
+                      }}>
+                        {/* 카테고리 헤더 */}
+                        <div style={{
+                          padding: '8px 12px',
+                          backgroundColor: isMobileView ? '#f8fafc' : 'rgba(255,255,255,0.08)',
+                          borderBottom: isMobileView ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{
+                              fontSize: '0.74rem',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: catStyle.bg,
+                              border: `1px solid ${catStyle.border}`,
+                              color: catStyle.color,
+                              fontWeight: 800
+                            }}>
+                              {category}
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: isMobileView ? '#64748b' : 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                              ({Object.keys(items).length}개 품목)
+                            </span>
                           </div>
-                        ))}
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: isMobileView ? '#334155' : '#fbbf24' }}>
+                            총 {categoryTotalQty.toLocaleString()}개
+                          </span>
+                        </div>
+
+                        {/* 품목 리스트 (수주목록칸과 동일한 줄 나눔 및 레이아웃, 클릭 시 전체 상차) */}
+                        <div>
+                          {Object.entries(items).map(([name, data], idx) => {
+                            const isAllLoaded = data.loadedQty >= data.totalQty && data.totalQty > 0;
+                            const isPartiallyLoaded = data.loadedQty > 0 && data.loadedQty < data.totalQty;
+
+                            return (
+                              <div
+                                key={name}
+                                onClick={() => handleBatchToggleProduct(category, name)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  padding: '8px 12px',
+                                  borderBottom: idx === Object.keys(items).length - 1 ? 'none' : (isAllLoaded ? '1px solid #1e293b' : '1px solid #f1f5f9'),
+                                  backgroundColor: isAllLoaded ? '#0f172a' : '#ffffff',
+                                  cursor: 'pointer',
+                                  transition: 'background-color 0.18s ease'
+                                }}
+                                title={`${name} 클릭 시 해당 품목 전체 ${isAllLoaded ? '상차 취소' : '상차'}`}
+                              >
+                                {/* 1) 번호 */}
+                                <span style={{ width: '18px', fontSize: '0.76rem', fontWeight: 800, color: isAllLoaded ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
+                                  {idx + 1}
+                                </span>
+
+                                {/* 2) 상차 체크 원 */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', flexShrink: 0 }}>
+                                  {isAllLoaded ? (
+                                    <div style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#10b981',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Check size={11} color="#ffffff" strokeWidth={3.5} />
+                                    </div>
+                                  ) : isPartiallyLoaded ? (
+                                    <div style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '50%',
+                                      border: '2px solid #f59e0b',
+                                      backgroundColor: '#fffbeb',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <span style={{ fontSize: '9px', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>-</span>
+                                    </div>
+                                  ) : (
+                                    <div style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '50%',
+                                      border: '2px solid #cbd5e1',
+                                      backgroundColor: '#ffffff'
+                                    }} />
+                                  )}
+                                </div>
+
+                                {/* 3 & 4) 카테고리 뱃지 위 + 품목명 아래 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{
+                                      fontSize: '0.58rem',
+                                      padding: '1px 4px',
+                                      borderRadius: '4px',
+                                      backgroundColor: catStyle.bg,
+                                      border: `1px solid ${catStyle.border}`,
+                                      color: catStyle.color,
+                                      fontWeight: 800,
+                                      lineHeight: 1.2,
+                                      letterSpacing: '-0.2px',
+                                      display: 'inline-block'
+                                    }}>
+                                      {category || '기타'}
+                                    </span>
+                                  </div>
+                                  <span style={{
+                                    fontWeight: 700,
+                                    color: isAllLoaded ? '#ffffff' : '#1e293b',
+                                    fontSize: '0.84rem',
+                                    lineHeight: 1.3,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {name}
+                                  </span>
+                                </div>
+
+                                {/* 5) 수량 박스 */}
+                                <div style={{
+                                  minWidth: '36px',
+                                  height: '26px',
+                                  padding: '0 6px',
+                                  borderRadius: '7px',
+                                  backgroundColor: isAllLoaded ? '#1e293b' : '#f1f5f9',
+                                  border: isAllLoaded ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <span style={{
+                                    fontSize: '0.82rem',
+                                    fontWeight: 800,
+                                    color: isAllLoaded ? '#ffffff' : '#0f172a'
+                                  }}>
+                                    {isPartiallyLoaded ? `${data.loadedQty}/${data.totalQty}` : data.totalQty.toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '20px 0', color: isMobileView ? '#94a3b8' : 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>수주 내역이 없습니다.</div>

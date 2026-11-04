@@ -145,6 +145,64 @@ export const playMenuClickSound = () => {
 };
 
 /**
+ * 상차 체크 시 경쾌하고 높은 톤의 상승 사운드
+ */
+export const playLoadSound = () => {
+  const settings = currentMobileSettings || getMobileSettings();
+  if (settings.enableButtonSound === false) return;
+  try {
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    // Rising chime tone (800Hz -> 1400Hz)
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.05);
+
+    const volume = settings.soundVolume || 0.15;
+    gain.gain.setValueAtTime(volume * 1.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+  } catch (e) {}
+};
+
+/**
+ * 상차 취소 / 풀기 시 부드럽고 낮은 톤의 하강 사운드
+ */
+export const playUnloadSound = () => {
+  const settings = currentMobileSettings || getMobileSettings();
+  if (settings.enableButtonSound === false) return;
+  try {
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    // Falling lower tone (950Hz -> 420Hz)
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(950, now);
+    osc.frequency.exponentialRampToValueAtTime(420, now + 0.06);
+
+    const volume = settings.soundVolume || 0.15;
+    gain.gain.setValueAtTime(volume * 1.0, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch (e) {}
+};
+
+/**
  * Preview sound effect for settings modal
  */
 export const testSound = (tone, volume) => {
