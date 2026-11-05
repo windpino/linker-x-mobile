@@ -1875,7 +1875,7 @@ function App() {
     }
   };
 
-  const handleDeleteSalesInvoice = async (id) => {
+    const handleDeleteSalesInvoice = async (id) => {
     const targetInv = salesInvoices.find(si => String(si.id) === String(id));
     if (!checkWritePermission(targetInv?.creator)) {
       alert('수정/삭제 권한이 없습니다 (본인이 작성한 전표만 삭제 가능).');
@@ -1883,6 +1883,7 @@ function App() {
     }
     try {
       const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
       const nextInv = { ...inventory };
       const deletedTransferIds = new Set();
       const revertedMovements = [];
@@ -1901,7 +1902,7 @@ function App() {
         return false;
       });
 
-      // 2. 이동 이력 기반 재고 역복구 및 Firestore 이력 삭제
+      // 2. 이동 이력 기반 재고 역복구 및 배치 삭제 등록
       for (const match of matchedTransfers) {
         const { from, to, item, qty } = match;
         const numQty = Number(qty) || 0;
@@ -1910,19 +1911,16 @@ function App() {
           if (!nextInv[to]) nextInv[to] = { ...(inventory[to] || {}) };
 
           if (to === '매출출고') {
-            // 매출 출고 복구: 출고 창고로 재고 환원
             nextInv[from][item] = (nextInv[from][item] || 0) + numQty;
           } else if (from === '매입입고') {
             nextInv[to][item] = (nextInv[to][item] || 0) - numQty;
           } else {
-            // 창고 간 이동 (예: 본사창고 -> 출고창고 상차 자동이동) 역복구
-            // 출발 창고(from)는 재고 증가, 도착 창고(to)는 재고 차감
             nextInv[from][item] = (nextInv[from][item] || 0) + numQty;
             nextInv[to][item] = (nextInv[to][item] || 0) - numQty;
           }
           revertedMovements.push({ from, to, item, qty: numQty });
         }
-        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+        batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
         deletedTransferIds.add(String(match.id));
       }
 
@@ -1940,51 +1938,45 @@ function App() {
         }
       }
 
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-      setInventory(nextInv);
+      batch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
+      batch.delete(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
 
-      // 4. 매출전표 삭제 및 번들 갱신
-      await deleteDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)));
-      const nextSalesInvoices = salesInvoices.filter(si => String(si.id) !== String(id));
-      setSalesInvoices(nextSalesInvoices);
-      await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
-
-      // 5. 창고이동/출고 내역 상태 및 번들, 로컬스토리지 갱신 (전표 삭제 시 함께 완전 삭제)
-      const nextTransfers = inventoryTransferHistory.filter(h => !deletedTransferIds.has(String(h.id)));
-      setInventoryTransferHistory(nextTransfers);
-      await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
-
-      const prefix = `_${companyId}`;
-      const curTransferCache = JSON.parse(localStorage.getItem(`inventoryTransferHistory${prefix}`)) || JSON.parse(localStorage.getItem('inventoryTransferHistory')) || [];
-      const updatedTransferCache = curTransferCache.filter(h => !deletedTransferIds.has(String(h.id)));
-      localStorage.setItem(`inventoryTransferHistory${prefix}`, JSON.stringify(updatedTransferCache));
-      localStorage.setItem(`inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
-      localStorage.setItem(`bundle_inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
-      localStorage.setItem('inventoryTransferHistory', JSON.stringify(updatedTransferCache));
-
-      // 6. 삭제된 매출전표와 연결된 수주서(salesOrders)가 있을 경우 상태를 '대기'로 복원
+      // 4. 삭제된 매출전표와 연결된 수주서(salesOrders)가 있을 경우 상태를 '대기'로 복원
       const linkedOrders = salesOrders.filter(so => 
         String(so.salesInvoiceId) === String(id) || 
         (targetInv && (String(targetInv.salesOrderId) === String(so.id) || String(targetInv.orderId) === String(so.id)))
       );
 
+      let nextSalesOrders = salesOrders;
       if (linkedOrders.length > 0) {
-        let nextSalesOrders = [...salesOrders];
         for (const linkedOrder of linkedOrders) {
-          await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(linkedOrder.id)), {
+          batch.set(doc(db, 'companies', companyId, 'salesOrders', String(linkedOrder.id)), {
             status: '대기',
             isCompleted: false,
             salesInvoiceId: null,
             updatedAt: new Date().toISOString()
           }, { merge: true });
-
-          nextSalesOrders = nextSalesOrders.map(so => 
-            String(so.id) === String(linkedOrder.id) ? { ...so, status: '대기', isCompleted: false, salesInvoiceId: null } : so
-          );
         }
-        setSalesOrders(nextSalesOrders);
-        await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+        nextSalesOrders = salesOrders.map(so => 
+          linkedOrders.some(lo => String(lo.id) === String(so.id)) 
+            ? { ...so, status: '대기', isCompleted: false, salesInvoiceId: null } 
+            : so
+        );
+      }
 
+      // 5. 1회 단일 네트워크 커밋으로 초고속 실행
+      await batch.commit();
+
+      // 6. UI 즉각 반영 (옵티미스틱 업데이트)
+      setInventory(nextInv);
+      const nextSalesInvoices = salesInvoices.filter(si => String(si.id) !== String(id));
+      setSalesInvoices(nextSalesInvoices);
+
+      const nextTransfers = inventoryTransferHistory.filter(h => !deletedTransferIds.has(String(h.id)));
+      setInventoryTransferHistory(nextTransfers);
+
+      if (linkedOrders.length > 0) {
+        setSalesOrders(nextSalesOrders);
         const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
         const updatedCache = curCache.map(so => {
           if (linkedOrders.some(lo => String(lo.id) === String(so.id))) {
@@ -1995,16 +1987,35 @@ function App() {
         localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
       }
 
-      // 7. 삭제 이력 로그 작성
-      await logOperation({
-        category: '삭제',
-        subCategory: '매출전표',
-        type: '삭제',
-        title: `매출전표 삭제 (${targetInv?.partner || '미지정'})`,
-        detail: `출고 재고 원상 복구 및 관련 창고이동/출고 내역 삭제 (전표일자: ${targetInv?.date || '-'}, 품목수: ${targetInv?.items?.length || 0}건, 이동삭제: ${deletedTransferIds.size}건, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
-        user: currentUser?.name || '시스템',
-        targetId: String(id)
-      });
+      const prefix = `_${companyId}`;
+      const curTransferCache = JSON.parse(localStorage.getItem(`inventoryTransferHistory${prefix}`)) || JSON.parse(localStorage.getItem('inventoryTransferHistory')) || [];
+      const updatedTransferCache = curTransferCache.filter(h => !deletedTransferIds.has(String(h.id)));
+      localStorage.setItem(`inventoryTransferHistory${prefix}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem(`inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem(`bundle_inventoryTransferHistory_${companyId}`, JSON.stringify(updatedTransferCache));
+      localStorage.setItem('inventoryTransferHistory', JSON.stringify(updatedTransferCache));
+
+      // 7. 백그라운드 비동기 번들 저장 및 감사 로그 (사용자 응답 차단 안 함)
+      (async () => {
+        try {
+          await Promise.all([
+            saveBundle(companyId, 'salesInvoices', nextSalesInvoices),
+            saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
+            linkedOrders.length > 0 ? saveBundle(companyId, 'salesOrders', nextSalesOrders) : Promise.resolve(),
+            logOperation({
+              category: '삭제',
+              subCategory: '매출전표',
+              type: '삭제',
+              title: `매출전표 삭제 (${targetInv?.partner || '미지정'})`,
+              detail: `출고 재고 원상 복구 및 관련 창고이동/출고 내역 삭제 (전표일자: ${targetInv?.date || '-'}, 품목수: ${targetInv?.items?.length || 0}건, 이동삭제: ${deletedTransferIds.size}건, 합계: ${(targetInv?.totalAmount || 0).toLocaleString()}원)`,
+              user: currentUser?.name || '시스템',
+              targetId: String(id)
+            })
+          ]);
+        } catch (bgErr) {
+          console.warn('[handleDeleteSalesInvoice] Background sync:', bgErr);
+        }
+      })();
 
       alert('매출전표 및 관련 창고이동 내역이 삭제되었으며 실시간 재고에 복구되었습니다.');
     } catch (err) { console.error(err); }
@@ -2388,7 +2399,7 @@ function App() {
     }
   };
 
-  const handleSaveSalesInvoice = async (invData, isSilent = false) => {
+    const handleSaveSalesInvoice = async (invData, isSilent = false) => {
     if (!invData) return null;
     const isEdit = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
     if (isEdit) {
@@ -2419,6 +2430,7 @@ function App() {
 
     try {
       const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
       const id = invData.id || Date.now();
       const now = new Date();
       const nextInv = { ...inventory };
@@ -2440,6 +2452,7 @@ function App() {
         return false;
       };
 
+      const deletedHistoryIds = new Set();
       const oldInv = isEdit ? (salesInvoices.find(si => String(si.id) === String(id)) || (editingInvoice?.id === id ? editingInvoice : null)) : null;
       if (oldInv && Array.isArray(oldInv.items) && oldInv.items.length > 0) {
         const oldWH = oldInv.warehouse;
@@ -2456,6 +2469,7 @@ function App() {
               const match = [...inventoryTransferHistory]
                 .reverse()
                 .find(h => 
+                  !deletedHistoryIds.has(String(h.id)) &&
                   h.date === oldInv.date &&
                   h.from === mainWH &&
                   h.to === oldWH &&
@@ -2464,8 +2478,8 @@ function App() {
                 );
                 
               if (match) {
-                await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
-                setInventoryTransferHistory(prev => prev.filter(h => String(h.id) !== String(match.id)));
+                batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+                deletedHistoryIds.add(String(match.id));
                 if (!nextInv[mainWH]) nextInv[mainWH] = {};
                 nextInv[mainWH][item.name] = (nextInv[mainWH][item.name] || 0) + (Number(match.qty) || 0);
                 whInv[item.name] = (whInv[item.name] || 0) - (Number(match.qty) || 0);
@@ -2476,6 +2490,7 @@ function App() {
             const saleMatch = [...inventoryTransferHistory]
               .reverse()
               .find(h => 
+                !deletedHistoryIds.has(String(h.id)) &&
                 h.date === oldInv.date &&
                 h.from === oldWH &&
                 h.to === '매출출고' &&
@@ -2483,8 +2498,8 @@ function App() {
                 h.memo === `[매출] ${oldInv.partner}`
               );
             if (saleMatch) {
-              await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(saleMatch.id)));
-              setInventoryTransferHistory(prev => prev.filter(h => String(h.id) !== String(saleMatch.id)));
+              batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(saleMatch.id)));
+              deletedHistoryIds.add(String(saleMatch.id));
             }
           }
           nextInv[oldWH] = whInv;
@@ -2500,7 +2515,6 @@ function App() {
       const staffDefaultWH = matchedStaff?.warehouse || (currentUser?.name === invManager ? currentUser?.warehouse : null);
       const isStaffDefaultMainWH = isMainWHName(staffDefaultWH);
 
-      // 직원관리에서 기본창고가 메인창고인 경우 혹은 지정창고가 메인창고인 경우 바로 메인창고로 처리
       let targetWH = invData.warehouse || warehouses[0]?.name || '메인창고';
       if (isStaffDefaultMainWH || isMainWHName(targetWH)) {
         targetWH = mainWH;
@@ -2516,9 +2530,6 @@ function App() {
       for (const item of itemsList) {
         const itemQty = Number(item.qty) || 0;
         
-        // ─── 상차(자동이동) 처리: targetWH에 부족한 수량만큼만 메인창고에서 자동이동 ───
-        // 직원관리에서 기본창고가 메인창고인 경우 및 targetWH가 메인창고인 경우,
-        // 재고이동 발생 없이 바로 메인창고에서 차감하므로 자동이동(상차)을 일체 생성하지 않음.
         if (targetWH !== mainWH && !isStaffDefaultMainWH && !isMainWHName(targetWH)) {
           const product = products.find(p => p.name === item.name);
           const initialStock = (product && product.warehouse === targetWH) ? (Number(product.initialStock) || 0) : 0;
@@ -2553,16 +2564,14 @@ function App() {
                 salesInvoiceId: String(id),
                 companyId
               };
-              await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(autoTransferId)), autoEntry);
+              batch.set(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(autoTransferId)), autoEntry);
               newHistoryEntries.push(autoEntry);
             }
           }
         }
         
-        // 메인창고인 경우 바로 메인창고 재고에서 차감
         whInv[item.name] = (whInv[item.name] || 0) - itemQty;
         
-        // [매출] 출고 이력 추가 (메인창고 직출고인 경우 from: mainWH -> to: '매출출고')
         const historyId = Date.now() + Math.random();
         const saleEntry = {
           id: historyId,
@@ -2578,19 +2587,12 @@ function App() {
           salesInvoiceId: String(id),
           companyId
         };
-        await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), saleEntry);
+        batch.set(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), saleEntry);
         newHistoryEntries.push(saleEntry);
       }
       nextInv[targetWH] = whInv;
       
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-      setInventory(nextInv);
-
-      // Update state for new history entries
-      setInventoryTransferHistory(prev => {
-        const filtered = prev.filter(h => String(h.salesInvoiceId) !== String(id));
-        return [...filtered, ...newHistoryEntries];
-      });
+      batch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
       
       const finalData = { 
         ...invData, 
@@ -2600,25 +2602,14 @@ function App() {
         updatedAt: now.toISOString(),
         creator: invData.creator || currentUser?.name || '시스템'
       };
-      await setDoc(doc(db, 'companies', companyId, 'salesInvoices', String(id)), finalData);
-      const nextSalesInvoices = (() => {
-        const idx = salesInvoices.findIndex(si => String(si.id) === String(id));
-        if (idx >= 0) { const next = [...salesInvoices]; next[idx] = finalData; return next; }
-        return [finalData, ...salesInvoices];
-      })();
-      setSalesInvoices(nextSalesInvoices);
-      await saveBundle(companyId, 'salesInvoices', nextSalesInvoices);
+      batch.set(doc(db, 'companies', companyId, 'salesInvoices', String(id)), finalData);
 
-      const nextTransfers = [...inventoryTransferHistory.filter(h => String(h.salesInvoiceId) !== String(id)), ...newHistoryEntries];
-      setInventoryTransferHistory(nextTransfers);
-      await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
-
-      // 매출전표 발행 시 연결된 수주서(salesOrders)의 상태를 '완료'로 자동 업데이트 (수주에서 전달된 특정 주문만)
       const matchingOrderId = invData.orderId || invData.salesOrderId;
       const orderToUpdate = matchingOrderId 
         ? salesOrders.find(so => String(so.id) === String(matchingOrderId))
         : null;
 
+      let nextSalesOrders = salesOrders;
       if (orderToUpdate) {
         const updatedOrder = {
           ...orderToUpdate,
@@ -2627,35 +2618,70 @@ function App() {
           salesInvoiceId: String(id),
           updatedAt: now.toISOString()
         };
-        await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
+        batch.set(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
           status: '완료',
           isCompleted: true,
           salesInvoiceId: String(id),
           updatedAt: now.toISOString()
         }, { merge: true });
 
-        const nextSalesOrders = salesOrders.map(so => 
+        nextSalesOrders = salesOrders.map(so => 
           String(so.id) === String(orderToUpdate.id) ? updatedOrder : so
         );
-        setSalesOrders(nextSalesOrders);
-        await saveBundle(companyId, 'salesOrders', nextSalesOrders);
+      }
 
+      // 1회 단일 네트워크 커밋 (모바일 초고속 저장)
+      await batch.commit();
+
+      // UI 및 메모리 상태 즉각 반영 (옵티미스틱 업데이트)
+      setInventory(nextInv);
+
+      setInventoryTransferHistory(prev => {
+        const filtered = prev.filter(h => !deletedHistoryIds.has(String(h.id)) && String(h.salesInvoiceId) !== String(id));
+        return [...filtered, ...newHistoryEntries];
+      });
+
+      const nextSalesInvoices = (() => {
+        const idx = salesInvoices.findIndex(si => String(si.id) === String(id));
+        if (idx >= 0) { const next = [...salesInvoices]; next[idx] = finalData; return next; }
+        return [finalData, ...salesInvoices];
+      })();
+      setSalesInvoices(nextSalesInvoices);
+
+      const nextTransfers = [...inventoryTransferHistory.filter(h => !deletedHistoryIds.has(String(h.id)) && String(h.salesInvoiceId) !== String(id)), ...newHistoryEntries];
+
+      if (orderToUpdate) {
+        setSalesOrders(nextSalesOrders);
         const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
-        const updatedCache = curCache.map(so => String(so.id) === String(orderToUpdate.id) ? updatedOrder : so);
+        const updatedCache = curCache.map(so => String(so.id) === String(orderToUpdate.id) ? {
+          ...so, status: '완료', isCompleted: true, salesInvoiceId: String(id), updatedAt: now.toISOString()
+        } : so);
         localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
       }
 
+      // 백그라운드 비동기 번들 저장 및 감사 로그 (사용자 대기 시간 제로화)
       const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
-      await logOperation({
-        category: isEditSale ? '변경' : '전표등록',
-        subCategory: '매출전표',
-        type: isEditSale ? '수정' : '등록',
-        title: `매출전표 ${isEditSale ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
-        detail: `전표일자: ${finalData.date} | 출고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
-        user: currentUser?.name || finalData.creator || '시스템',
-        targetId: String(id)
-      });
-      
+      (async () => {
+        try {
+          await Promise.all([
+            saveBundle(companyId, 'salesInvoices', nextSalesInvoices),
+            saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
+            orderToUpdate ? saveBundle(companyId, 'salesOrders', nextSalesOrders) : Promise.resolve(),
+            logOperation({
+              category: isEditSale ? '변경' : '전표등록',
+              subCategory: '매출전표',
+              type: isEditSale ? '수정' : '등록',
+              title: `매출전표 ${isEditSale ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
+              detail: `전표일자: ${finalData.date} | 출고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
+              user: currentUser?.name || finalData.creator || '시스템',
+              targetId: String(id)
+            })
+          ]);
+        } catch (bgErr) {
+          console.warn('[handleSaveSalesInvoice] Background bundle/log sync error:', bgErr);
+        }
+      })();
+
       if (isSilent) {
         setEditingInvoice(finalData);
       } else {

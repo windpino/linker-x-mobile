@@ -550,7 +550,7 @@ const OrderList = ({
                   fontWeight: 700,
                   color: '#1e293b',
                   outline: 'none',
-                  width: '102px'
+                  width: '115px', minWidth: '115px'
                 }}
               />
               <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={11} style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b' }} />
@@ -729,7 +729,7 @@ const OrderList = ({
         flexDirection: isMobileView ? 'column' : undefined,
         flex: isMobileView ? '1 1 0%' : undefined,
         minHeight: isMobileView ? 0 : undefined,
-        maxHeight: isMobileView ? '100%' : undefined,
+        maxHeight: isMobileView ? 'none' : undefined,
         gridTemplateColumns: isMobileView ? undefined : '300px 1fr', 
         gap: isMobileView ? '8px' : '20px',
         backgroundColor: isMobileView ? '#f8fafc' : 'transparent',
@@ -773,9 +773,11 @@ const OrderList = ({
                   overflowY: 'auto', 
                   WebkitOverflowScrolling: 'touch',
                   paddingRight: '2px',
-                  paddingBottom: isMobileView ? 'calc(220px + env(safe-area-inset-bottom, 24px))' : '20px',
+                  touchAction: 'pan-y',
+                  paddingBottom: isMobileView ? '80px' : '20px',
                   overscrollBehavior: 'contain'
                 }}>
+                  <>
                   {Object.entries(categoryTotals).map(([category, items]) => {
                     const catStyle = getCategoryBadgeStyle(category);
                     const categoryTotalQty = Object.values(items).reduce((acc, curr) => acc + (curr.totalQty || 0), 0);
@@ -944,6 +946,8 @@ const OrderList = ({
                       </div>
                     );
                   })}
+                  {isMobileView && <div style={{ height: '140px', flexShrink: 0, width: '100%', pointerEvents: 'none' }} />}
+                  </>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '20px 0', color: isMobileView ? '#94a3b8' : 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>수주 내역이 없습니다.</div>
@@ -1059,11 +1063,13 @@ const OrderList = ({
               overflowY: 'auto', 
               WebkitOverflowScrolling: 'touch',
               paddingRight: '4px',
-              paddingBottom: isMobileView ? 'calc(240px + env(safe-area-inset-bottom, 24px))' : '20px',
+              touchAction: 'pan-y',
+              paddingBottom: isMobileView ? '80px' : '20px',
               overscrollBehavior: 'contain'
             }}>
               {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, oIdx) => {
+                <>
+                {filteredOrders.map((order, oIdx) => {
                   const parsedItems = parseOrderItems(order.itemsText);
                   const displayItems = (order.items && order.items.length > 0) ? order.items : parsedItems;
                   const totalQty = displayItems.reduce((acc, item) => acc + (Number(item.qty) || 0), 0);
@@ -1883,7 +1889,9 @@ const OrderList = ({
                     )}
                   </div>
                 );
-              })
+              })}
+              {isMobileView && <div style={{ height: '160px', flexShrink: 0, width: '100%', pointerEvents: 'none' }} />}
+              </>
               ) : (
                 <div style={{ textAlign: 'center', padding: '100px 0', color: '#64748b', border: isMobileView ? '2px dashed #cbd5e1' : '2px dashed #f1f5f9', borderRadius: '16px', backgroundColor: isMobileView ? '#ffffff' : 'transparent' }}>수주 내역이 없습니다.</div>
               )}
@@ -1984,9 +1992,12 @@ const OrderList = ({
             padding: 8px 8px 0 8px !important;
             gap: 8px !important;
             background-color: #f8fafc !important;
-            height: 100% !important;
-            max-height: 100% !important;
+            flex: 1 1 0% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            max-height: none !important;
             overflow: hidden !important;
+
             display: flex !important;
             flex-direction: column !important;
             min-height: 0 !important;

@@ -190,6 +190,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   );
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editingPaymentSlipId, setEditingPaymentSlipId] = useState(null);
   const [tempPaymentState, setTempPaymentState] = useState(null);
 
@@ -649,6 +650,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   };
 
   const handleManualSave = async () => {
+    if (isSaving) return;
     if (!invoiceData.partner) {
       alert('거래처를 선택해주세요.');
       return;
@@ -671,19 +673,25 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       return;
     }
 
-    // 특별단가 자동 저장: 입력된 품목 중 단가가 입력된 모든 품목에 대해 특별단가 자동 저장 보장
-    if (invoiceData.partner && Array.isArray(invoiceData.items)) {
-      invoiceData.items.forEach(item => {
-        const prod = products?.find(p => String(p.id) === String(item.productId) || p.name === item.name);
-        if (prod && item.price !== undefined && item.price !== null) {
-          autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
-        }
-      });
-    }
+    setIsSaving(true);
+    try {
+      // 특별단가 자동 저장: 백그라운드 비동기 처리
+      if (invoiceData.partner && Array.isArray(invoiceData.items)) {
+        Promise.all(invoiceData.items.map(item => {
+          const prod = products?.find(p => String(p.id) === String(item.productId) || p.name === item.name);
+          if (prod && item.price !== undefined && item.price !== null) {
+            return autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
+          }
+          return Promise.resolve();
+        })).catch(console.warn);
+      }
 
-    const saveInv = { ...invoiceData };
-    delete saveInv.isFromOrder;
-    await onSave(saveInv, false);
+      const saveInv = { ...invoiceData };
+      delete saveInv.isFromOrder;
+      await onSave(saveInv, false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleNewInvoice = () => {
@@ -2072,8 +2080,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         }}>
           <button 
             className="btn-primary" 
+            disabled={isSaving}
             style={{ 
-              backgroundColor: '#3b82f6', 
+              backgroundColor: isSaving ? '#94a3b8' : '#3b82f6', 
               color: 'white', 
               padding: '6px 2px', 
               fontSize: '0.74rem', 
@@ -2087,11 +2096,13 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               height: '46px',
               margin: 0,
               width: '100%',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              opacity: isSaving ? 0.7 : 1
             }} 
             onClick={handleManualSave}
           >
-            <Save size={15} /> <span>전표저장</span>
+            <Save size={15} /> <span>{isSaving ? '저장 중...' : '전표저장'}</span>
           </button>
           
           <button 

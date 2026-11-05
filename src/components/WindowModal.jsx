@@ -95,6 +95,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   
   // Default isMaximized should prioritize saved state, then mobile detection
   const [isMaximized, setIsMaximized] = useState(() => {
+    if (!desktopOnly) return true;
     if (typeof window !== 'undefined' && window.innerWidth <= 768) return true;
     if (savedData?.isMaximized !== undefined) return savedData.isMaximized;
     return isMobileView;
@@ -202,6 +203,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   };
 
   const toggleMaximize = () => {
+    if (!desktopOnly) return;
     if (isMinimized) setIsMinimized(false);
     const nextState = !isMaximized;
     setIsMaximized(nextState);
@@ -292,12 +294,12 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     : position.y;
 
   const modalContent = (
-    <div className={`window-overlay ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
+    <div className={`window-overlay ${desktopOnly ? 'desktop-only' : 'mobile-modal'} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
       <div 
         ref={containerRef}
         onMouseDownCapture={bringToFront}
         onTouchStartCapture={bringToFront}
-        className={`window-container ${desktopOnly ? 'desktop-only' : ''} ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
+        className={`window-container ${desktopOnly ? 'desktop-only' : 'mobile-modal'} ${isMaximized ? 'is-maximized' : ''} ${isMinimized ? 'is-minimized' : ''} ${className || ''}`} 
         style={{ 
           transform: isMaximized ? 'none' : `translate(${targetX}px, ${targetY}px)`,
           transition: isDragging && !isMinimized ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -343,12 +345,16 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
                 <Star size={14} color={isFavorite ? "#eab308" : "#94a3b8"} fill={isFavorite ? "#eab308" : "none"} />
               </button>
             )}
-            <button className="window-btn" onClick={toggleMinimize}>
-              {isMinimized ? <Maximize2 size={12} /> : <Minus size={14} />}
-            </button>
-            <button className="window-btn" onClick={toggleMaximize}>
-              {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-            </button>
+            {desktopOnly && (
+              <button className="window-btn" onClick={toggleMinimize}>
+                {isMinimized ? <Maximize2 size={12} /> : <Minus size={14} />}
+              </button>
+            )}
+            {desktopOnly && (
+              <button className="window-btn" onClick={toggleMaximize}>
+                {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              </button>
+            )}
             <button className="window-btn close-btn" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
@@ -371,7 +377,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
         )}
 
         {/* Custom Resize Indicator (Hide when maximized) */}
-        {!isMaximized && (
+        {!isMaximized && desktopOnly && (
           <div className="resize-handle-indicator">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M11 1L1 11M11 6L6 11M11 11L11.01 11" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
