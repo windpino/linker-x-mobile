@@ -92,11 +92,14 @@ const Calendar = ({
   };
 
   // Generate calendar days
+  // [무한 루프 방지] 날짜 계산 이상/타임존 왜곡으로 인한 브라우저 멈춤 방지 가드 (최대 60일)
   const calendarDays = [];
   let day = startDate;
-  while (day <= endDate) {
+  let guard = 0;
+  while (day <= endDate && guard < 60) {
     calendarDays.push(day);
     day = addDays(day, 1);
+    guard++;
   }
 
   const handleAddSchedule = () => {

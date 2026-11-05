@@ -1101,25 +1101,45 @@ function App() {
     return () => clearTimeout(timer);
   }, [currentUser, currentView]);
 
+  // [성능 및 무한 루프 방지] staffList 업데이트 시에만 현재 로그인 유저의 최신 권한을 동기화
+  // 기존 원인: [staffList, currentUser] 상호 의존성 및 JSON.stringify의 키 순서 차이로 인한 무한 setState 루프 위험 제거
   React.useEffect(() => {
-    if (currentUser && currentUser.userId && currentUser.role !== 'super_admin') {
-      const currentStaff = staffList.find(s => String(s.userId) === String(currentUser.userId) || String(s.id) === String(currentUser.id));
-      if (currentStaff) {
-        const hasDiff = currentStaff.allowAllEditDelete !== currentUser.allowAllEditDelete ||
-                        currentStaff.allowSpecialPriceSave !== currentUser.allowSpecialPriceSave ||
-                        JSON.stringify(currentStaff.permissions) !== JSON.stringify(currentUser.permissions) ||
-                        currentStaff.name !== currentUser.name ||
-                        currentStaff.role !== currentUser.role ||
-                        currentStaff.jobTitle !== currentUser.jobTitle ||
-                        currentStaff.warehouse !== currentUser.warehouse;
-        if (hasDiff) {
-          const updatedUser = { ...currentUser, ...currentStaff };
-          setCurrentUser(updatedUser);
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    setCurrentUser(prevUser => {
+      if (!prevUser || !prevUser.userId || prevUser.role === 'super_admin') return prevUser;
+      const currentStaff = (staffList || []).find(s => 
+        String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id)
+      );
+      if (!currentStaff) return prevUser;
+
+      // 키 순서와 무관한 정규화된 권한 비교 (무한 루프 방지)
+      const prevPerms = prevUser.permissions || {};
+      const staffPerms = currentStaff.permissions || {};
+      const allKeys = new Set([...Object.keys(prevPerms), ...Object.keys(staffPerms)]);
+      let isPermsDiff = false;
+      for (const k of allKeys) {
+        if (Boolean(prevPerms[k]) !== Boolean(staffPerms[k])) {
+          isPermsDiff = true;
+          break;
         }
       }
-    }
-  }, [staffList, currentUser]);
+
+      const hasDiff = currentStaff.allowAllEditDelete !== prevUser.allowAllEditDelete ||
+                      currentStaff.allowSpecialPriceSave !== prevUser.allowSpecialPriceSave ||
+                      isPermsDiff ||
+                      (currentStaff.name && currentStaff.name !== prevUser.name) ||
+                      (currentStaff.role && currentStaff.role !== prevUser.role) ||
+                      (currentStaff.jobTitle && currentStaff.jobTitle !== prevUser.jobTitle) ||
+                      (currentStaff.warehouse && currentStaff.warehouse !== prevUser.warehouse);
+
+      if (!hasDiff) return prevUser; // 변경사항 없음: 동일 참조 반환으로 불필요한 재렌더링 차단
+
+      const updatedUser = { ...prevUser, ...currentStaff };
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      } catch (e) {}
+      return updatedUser;
+    });
+  }, [staffList]);
 
   const handleLogout = () => {
     setCurrentUser(null);

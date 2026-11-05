@@ -88,9 +88,12 @@ const PartnerManagement = ({
     return deduplicatePartners(Array.isArray(partners) ? partners : []);
   }, [partners]);
 
-  // Auto-clean duplicates on mount or when partners change
+  // [무한 루프 방지] 중복 정리 실행 가드 (동일한 파트너 수에 대해 중복 반복 실행 방지)
+  const cleanedPartnersLengthRef = useRef(0);
   useEffect(() => {
     if (Array.isArray(partners) && safePartners.length < partners.length && currentUser?.companyId) {
+      if (cleanedPartnersLengthRef.current === partners.length) return;
+      cleanedPartnersLengthRef.current = partners.length;
       console.log(`[PartnerManagement] 🧹 Auto-cleaning duplicate partners (${partners.length} -> ${safePartners.length})`);
       setPartners(safePartners);
       saveBundle(currentUser.companyId, 'partners', safePartners).catch(console.warn);
@@ -515,8 +518,11 @@ const PartnerManagement = ({
         if (!managerCounts[managerName]) managerCounts[managerName] = 0;
         
         let count = managerCounts[managerName] + 1;
-        while (manualSequences.has(`${mSeq}-${count}`)) {
+        let guard1 = 0;
+        // [무한 루프 방지] 시퀀스 탐색 상한선 가드 (최대 10000회)
+        while (manualSequences.has(`${mSeq}-${count}`) && guard1 < 10000) {
           count++;
+          guard1++;
         }
         managerCounts[managerName] = count;
         p.sequence = `${mSeq}-${count}`;
@@ -525,8 +531,11 @@ const PartnerManagement = ({
         
         let count = managerCounts[managerName] + 1;
         const prefix = managerName !== '-' ? managerName.charAt(0) : '0';
-        while (manualSequences.has(`${prefix}-${count}`)) {
+        let guard2 = 0;
+        // [무한 루프 방지] 시퀀스 탐색 상한선 가드 (최대 10000회)
+        while (manualSequences.has(`${prefix}-${count}`) && guard2 < 10000) {
           count++;
+          guard2++;
         }
         managerCounts[managerName] = count;
         p.sequence = `${prefix}-${count}`;

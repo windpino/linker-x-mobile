@@ -150,8 +150,12 @@ const decomposeHangul = (str) => {
 const assembleJamos = (jamos) => {
   let result = '';
   let i = 0;
+  let guard = 0;
   
-  while (i < jamos.length) {
+  // [무한 루프 방지] guard 카운터 및 인덱스 정체 감지 가드
+  while (i < jamos.length && guard < 10000) {
+    guard++;
+    const prevI = i;
     const char = jamos[i];
     
     if (CHO_LIST.indexOf(char) === -1) {
@@ -233,6 +237,7 @@ const assembleJamos = (jamos) => {
     }
     
     result += makeSyllable(cho, jung, jong);
+    if (i <= prevI) i++; // [무한 루프 방지] 인덱스 전진 보장
   }
   
   return result;
@@ -693,7 +698,10 @@ const BulkEditor = ({
     }
   };
 
-  const activeColumns = columns.filter(col => visibleFields.includes(col.field));
+  // [불필요한 렌더링 폭탄 방지] activeColumns 배열 참조 메모이제이션
+  const activeColumns = React.useMemo(() => {
+    return columns.filter(col => visibleFields.includes(col.field));
+  }, [columns, visibleFields]);
 
   const handlePaste = React.useCallback((e, rowIndex, colIndex) => {
     e.preventDefault();
@@ -830,21 +838,24 @@ const BulkEditor = ({
 
   const [resizing, setResizing] = useState(null); // { field, startX, startWidth }
 
-  // Handle Global Mouse Events for Resizing and Selecting
+  // [성능 저하 및 렌더링 루프 방지] resizing 활성화 시에만 리스너 등록 & colWidths 의존성 제거
   React.useEffect(() => {
+    if (!resizing) return;
+
     const handleMouseMove = (e) => {
-      if (resizing) {
-        const deltaX = e.clientX - resizing.startX;
-        const newWidth = Math.max(50, resizing.startWidth + deltaX);
-        setColWidths(prev => ({ ...prev, [resizing.field]: newWidth }));
-      }
+      const deltaX = e.clientX - resizing.startX;
+      const newWidth = Math.max(50, resizing.startWidth + deltaX);
+      setColWidths(prev => ({ ...prev, [resizing.field]: newWidth }));
     };
 
     const handleMouseUp = () => {
-      if (resizing) {
-        localStorage.setItem(storageKey, JSON.stringify(colWidths));
-        setResizing(null);
-      }
+      setColWidths(latest => {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(latest));
+        } catch (e) {}
+        return latest;
+      });
+      setResizing(null);
       setIsSelecting(false);
     };
 
@@ -854,7 +865,7 @@ const BulkEditor = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, colWidths, storageKey]);
+  }, [resizing, storageKey]);
 
   // Auto-scroll on Drag Selection
   React.useEffect(() => {

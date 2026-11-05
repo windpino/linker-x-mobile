@@ -23,11 +23,16 @@ const InventoryAdjustment = ({ onClose, products, partners, warehouses, onSave, 
 
   const reasons = ['파손', '분실', '폐기', '기타'];
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.abbreviation && p.abbreviation.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.singleBarcode && p.singleBarcode.includes(searchTerm))
-  );
+  // [성능 최적화] 입력 시마다 전체 품목 반복 연산 방지 (메모이제이션 및 검색어 유효성 체크)
+  const filteredProducts = React.useMemo(() => {
+    if (!searchTerm || !searchTerm.trim()) return [];
+    const term = searchTerm.toLowerCase();
+    return (products || []).filter(p => 
+      (p.name && p.name.toLowerCase().includes(term)) ||
+      (p.abbreviation && p.abbreviation.toLowerCase().includes(term)) ||
+      (p.singleBarcode && p.singleBarcode.includes(searchTerm))
+    ).slice(0, 50);
+  }, [products, searchTerm]);
 
   const handleSelectProduct = (product) => {
     setFormData(prev => ({

@@ -97,29 +97,34 @@ const OrderList = ({
     setCollapsedOrders(next);
   };
   
-  // Filter orders by date and selected staff
-  const staffOrders = salesOrders.filter(o => {
-    const oDate = o.date || o.orderDate;
-    const isToday = !dateStr || oDate === dateStr || (typeof oDate === 'string' && oDate.startsWith(dateStr));
-    const isStaffUnassigned = !o.manager || o.manager === '알 수 없음' || o.manager === '-' || o.manager === '미지정';
-    const matchesStaff = selectedStaff === 'all' || 
-      o.manager === selectedStaff || 
-      o.creator === selectedStaff || 
-      isStaffUnassigned;
-    return isToday && matchesStaff;
-  });
+  // [성능 최적화 및 렌더링 폭탄 방지] staffOrders 및 필터링 결과 메모이제이션
+  const staffOrders = React.useMemo(() => {
+    return (salesOrders || []).filter(o => {
+      const oDate = o.date || o.orderDate;
+      const isToday = !dateStr || oDate === dateStr || (typeof oDate === 'string' && oDate.startsWith(dateStr));
+      const isStaffUnassigned = !o.manager || o.manager === '알 수 없음' || o.manager === '-' || o.manager === '미지정';
+      const matchesStaff = selectedStaff === 'all' || 
+        o.manager === selectedStaff || 
+        o.creator === selectedStaff || 
+        isStaffUnassigned;
+      return isToday && matchesStaff;
+    });
+  }, [salesOrders, dateStr, selectedStaff]);
 
   const totalOrderCount = staffOrders.length;
-  const completedOrderCount = staffOrders.filter(isOrderCompleted).length;
-  const waitingOrderCount = staffOrders.filter(o => !isOrderCompleted(o) && o.status !== '취소').length;
+  const completedOrderCount = React.useMemo(() => staffOrders.filter(isOrderCompleted).length, [staffOrders, isOrderCompleted]);
+  const waitingOrderCount = React.useMemo(() => staffOrders.filter(o => !isOrderCompleted(o) && o.status !== '취소').length, [staffOrders, isOrderCompleted]);
 
-  const filteredOrders = staffOrders.filter(o => {
-    if (statusFilter === 'waiting') return !isOrderCompleted(o) && o.status !== '취소';
-    if (statusFilter === 'completed') return isOrderCompleted(o);
-    return true;
-  });
+  const filteredOrders = React.useMemo(() => {
+    return staffOrders.filter(o => {
+      if (statusFilter === 'waiting') return !isOrderCompleted(o) && o.status !== '취소';
+      if (statusFilter === 'completed') return isOrderCompleted(o);
+      return true;
+    });
+  }, [staffOrders, statusFilter, isOrderCompleted]);
 
-  const calculateCategoryTotals = () => {
+  // [성능 최적화] 매 렌더링마다 전체 주문 파싱/계산 반복 실행 방지
+  const categoryTotals = React.useMemo(() => {
     const totals = {}; 
     filteredOrders.forEach(order => {
       const displayItems = (order.items && Array.isArray(order.items) && order.items.length > 0)
@@ -144,9 +149,8 @@ const OrderList = ({
       });
     });
     return totals;
-  };
+  }, [filteredOrders, processedItems]);
 
-  const categoryTotals = calculateCategoryTotals();
   const hasTotals = Object.keys(categoryTotals).length > 0;
 
   // 품목 합계 창에서 품목 클릭 시 해당 품목 전체 일괄 상차/상차풀기 핸들러

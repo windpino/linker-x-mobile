@@ -759,7 +759,8 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       let companyId = baseId;
       let exists = true;
       let counter = 0;
-      while (exists) {
+      // [무한 루프 방지] Firestore getDoc 연속 요청 상한선 가드 (최대 100회)
+      while (exists && counter < 100) {
         const checkSnap = await getDoc(doc(db, 'companies', companyId));
         if (checkSnap.exists()) {
           counter++;
