@@ -65,15 +65,37 @@ const OrderList = ({
   }, [selectedDate]);
 
   const isOrderCompleted = React.useCallback((o) => {
+    if (!o) return false;
     if (o.status === '완료' || o.status === '배송완료' || o.isCompleted === true) return true;
-    if (o.salesInvoiceId) return true;
+    if (o.salesInvoiceId && (salesInvoices || []).some(inv => String(inv.id) === String(o.salesInvoiceId))) return true;
     if ((salesInvoices || []).some(inv => 
       String(inv.salesOrderId) === String(o.id) || 
-      String(inv.orderId) === String(o.id) ||
-      (inv.partner === o.partner && inv.date === o.date)
+      String(inv.orderId) === String(o.id)
     )) return true;
     return false;
   }, [salesInvoices]);
+
+  // 각 거래처별 품목 리스트 접기/펼치기 상태 (기본값: false, 즉 모두 펼쳐진 상태)
+  const [collapsedOrders, setCollapsedOrders] = useState({});
+
+  const toggleOrderCollapse = (orderId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setCollapsedOrders(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+  };
+
+  const handleToggleAllOrders = (shouldCollapse) => {
+    const next = {};
+    staffOrders.forEach(o => {
+      next[o.id] = shouldCollapse;
+    });
+    setCollapsedOrders(next);
+  };
   
   // Filter orders by date and selected staff
   const staffOrders = salesOrders.filter(o => {
@@ -473,6 +495,9 @@ const OrderList = ({
     >
       <div style={isMobileView ? { 
         height: '100%', 
+        maxHeight: '100%',
+        flex: '1 1 0%',
+        minHeight: 0,
         display: 'flex', 
         flexDirection: 'column', 
         overflow: 'hidden', 
@@ -698,12 +723,14 @@ const OrderList = ({
         padding: isMobileView ? '8px 8px 0 8px' : '20px', 
         display: isMobileView ? 'flex' : 'grid', 
         flexDirection: isMobileView ? 'column' : undefined,
-        flex: isMobileView ? 1 : undefined,
+        flex: isMobileView ? '1 1 0%' : undefined,
         minHeight: isMobileView ? 0 : undefined,
+        maxHeight: isMobileView ? '100%' : undefined,
         gridTemplateColumns: isMobileView ? undefined : '300px 1fr', 
         gap: isMobileView ? '8px' : '20px',
         backgroundColor: isMobileView ? '#f8fafc' : 'transparent',
-        overflow: isMobileView ? 'hidden' : undefined
+        overflow: isMobileView ? 'hidden' : undefined,
+        boxSizing: 'border-box'
       }}>
         {/* Left Column - Category Totals Summary (Hidden on Mobile when list tab is active) */}
         {(!isMobileView || activeTab === 'summary') && (
@@ -927,8 +954,9 @@ const OrderList = ({
             display: 'flex', 
             flexDirection: 'column', 
             gap: isMobileView ? '8px' : '16px',
-            flex: isMobileView ? 1 : undefined,
+            flex: isMobileView ? '1 1 0%' : undefined,
             minHeight: isMobileView ? 0 : undefined,
+            maxHeight: isMobileView ? '100%' : undefined,
             overflow: isMobileView ? 'hidden' : undefined
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
@@ -939,14 +967,14 @@ const OrderList = ({
                 </div>
               )}
               
-              {/* Status Filter Buttons */}
+              {/* Status Filter Buttons + Expand/Collapse All */}
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: isMobileView ? '100%' : 'auto' }}>
                 <button
                   onClick={() => setStatusFilter('all')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 10px',
-                    fontSize: '0.75rem',
+                    padding: '6px 8px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -962,8 +990,8 @@ const OrderList = ({
                   onClick={() => setStatusFilter('waiting')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 10px',
-                    fontSize: '0.75rem',
+                    padding: '6px 8px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -979,8 +1007,8 @@ const OrderList = ({
                   onClick={() => setStatusFilter('completed')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 10px',
-                    fontSize: '0.75rem',
+                    padding: '6px 8px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -992,6 +1020,28 @@ const OrderList = ({
                 >
                   완료 ({completedOrderCount})
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allCollapsed = filteredOrders.length > 0 && filteredOrders.every(o => Boolean(collapsedOrders[o.id]));
+                    handleToggleAllOrders(!allCollapsed);
+                  }}
+                  style={{
+                    padding: '6px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: '#059669',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                  title={filteredOrders.length > 0 && filteredOrders.every(o => Boolean(collapsedOrders[o.id])) ? "모든 거래처 품목 펼치기" : "모든 거래처 품목 접기"}
+                >
+                  {filteredOrders.length > 0 && filteredOrders.every(o => Boolean(collapsedOrders[o.id])) ? '+ 모두펼침' : '− 모두접기'}
+                </button>
               </div>
             </div>
 
@@ -999,13 +1049,13 @@ const OrderList = ({
               display: 'flex', 
               flexDirection: 'column', 
               gap: '12px', 
-              flex: isMobileView ? 1 : undefined,
+              flex: isMobileView ? '1 1 0%' : undefined,
               minHeight: isMobileView ? 0 : undefined,
               maxHeight: isMobileView ? undefined : '650px', 
               overflowY: 'auto', 
               WebkitOverflowScrolling: 'touch',
               paddingRight: '4px',
-              paddingBottom: isMobileView ? 'calc(220px + env(safe-area-inset-bottom, 24px))' : '20px',
+              paddingBottom: isMobileView ? 'calc(240px + env(safe-area-inset-bottom, 24px))' : '20px',
               overscrollBehavior: 'contain'
             }}>
               {filteredOrders.length > 0 ? (
@@ -1016,6 +1066,7 @@ const OrderList = ({
                   const partnerObj = (partners || []).find(p => p.name === order.partner || String(p.id) === String(order.partnerId));
                   const phone = partnerObj?.phone || partnerObj?.tel || partnerObj?.mobile || '';
                   const isCompleted = isOrderCompleted(order);
+                  const isCollapsed = Boolean(collapsedOrders[order.id]);
 
                   if (isMobileView) {
                     return (
@@ -1027,20 +1078,65 @@ const OrderList = ({
                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
                         marginBottom: '14px'
                       }}>
-                        {/* 1. Header (Matching screenshot: light mint background, - Partner Phone, [납품 완료], Edit, Delete) */}
+                        {/* 1. Header (Matching screenshot: light mint background, -/+ Partner Phone, [납품 완료], Edit, Delete) */}
                         <div style={{ 
                           padding: '8px 12px', 
                           backgroundColor: '#f0fdf4', 
-                          borderBottom: '1px solid #dcfce7',
+                          borderBottom: isCollapsed ? 'none' : '1px solid #dcfce7',
                           display: 'flex', 
                           alignItems: 'center', 
-                          justifyContent: 'space-between'
+                          justifyContent: 'space-between',
+                          gap: '6px'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                            <span style={{ color: '#059669', fontWeight: 800, fontSize: '1rem' }}>-</span>
+                          <div 
+                            onClick={(e) => toggleOrderCollapse(order.id, e)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, cursor: 'pointer' }}
+                          >
+                            {/* -, + 보이기/가리기 버튼 */}
+                            <button
+                              type="button"
+                              onClick={(e) => toggleOrderCollapse(order.id, e)}
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '6px',
+                                backgroundColor: isCollapsed ? '#ffffff' : '#dcfce7',
+                                border: '1px solid #86efac',
+                                color: '#059669',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.95rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                padding: 0,
+                                flexShrink: 0,
+                                lineHeight: 1
+                              }}
+                              title={isCollapsed ? "품목리스트 보이기 (+)" : "품목리스트 가리기 (-)"}
+                            >
+                              {isCollapsed ? '+' : '−'}
+                            </button>
+
                             <span style={{ fontWeight: 800, fontSize: '0.94rem', color: '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {order.partner}
                             </span>
+
+                            {isCollapsed && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                color: '#059669',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #bbf7d0',
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                flexShrink: 0
+                              }}>
+                                {displayItems.length}건 ({totalQty}개)
+                              </span>
+                            )}
+
                             {phone && (
                               <a 
                                 href={`tel:${phone}`}
@@ -1094,9 +1190,15 @@ const OrderList = ({
                           </div>
                         </div>
 
-                        {/* 2. Items List (White by default, turns dark navy on check) */}
-                        <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
-                          {displayItems.map((item, iIdx) => {
+                        {/* 2. Items List (Foldable when isCollapsed is false) */}
+                        {!isCollapsed && (
+                          <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
+                            {displayItems.length === 0 ? (
+                              <div style={{ padding: '12px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
+                                등록된 수주 품목이 없습니다.
+                              </div>
+                            ) : null}
+                            {displayItems.map((item, iIdx) => {
                             const key = `${order.id}-${iIdx}`;
                             const isProcessed = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
                             const feedback = stockFeedback[key];
@@ -1249,10 +1351,16 @@ const OrderList = ({
                               </div>
                             );
                           })}
+                          {order.memo && (
+                            <div style={{ padding: '6px 12px 8px 12px', fontSize: '0.78rem', color: '#dc2626', backgroundColor: '#fef2f2', borderTop: '1px dashed #fecaca' }}>
+                              <span style={{ fontWeight: 700 }}>[메모]</span> {order.memo}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    );
-                  }
+                      )}
+                    </div>
+                  );
+                }
 
                   return (
                     <div key={order.id} style={{ 
@@ -1272,8 +1380,36 @@ const OrderList = ({
                         gap: '10px'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleOrderCollapse(order.id, e)}
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '6px',
+                              backgroundColor: isCollapsed ? '#ffffff' : '#f0fdf4',
+                              border: '1px solid #86efac',
+                              color: '#059669',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.95rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              padding: 0,
+                              flexShrink: 0
+                            }}
+                            title={isCollapsed ? "품목리스트 펼치기 (+)" : "품목리스트 접기 (-)"}
+                          >
+                            {isCollapsed ? '+' : '−'}
+                          </button>
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>{oIdx + 1}.</span>
-                          <div style={{ fontWeight: 800, fontSize: isMobileView ? '1rem' : '1.1rem', color: '#1e293b' }}>{order.partner}</div>
+                          <div 
+                            onClick={(e) => toggleOrderCollapse(order.id, e)}
+                            style={{ fontWeight: 800, fontSize: isMobileView ? '1rem' : '1.1rem', color: '#1e293b', cursor: 'pointer' }}
+                          >
+                            {order.partner}
+                          </div>
                           {isOrderCompleted(order) ? (
                             <span style={{ 
                               fontSize: '0.68rem', 
@@ -1545,7 +1681,8 @@ const OrderList = ({
                       
                       {/* Mobile Header Row / Desktop Action Row end */}
 
-                      <div style={{ padding: isMobileView ? '12px' : '16px' }}>
+                      {!isCollapsed && (
+                        <div style={{ padding: isMobileView ? '12px' : '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap', gap: '4px' }}>
                           <span>{isMobileView ? '' : '출고: '}{order.outWarehouse} → {isMobileView ? '' : '입고: '}{order.inWarehouse}</span>
                           <span style={{ fontWeight: 700, color: '#2563eb' }}>{isMobileView ? '' : '담당: '}{order.manager}</span>
@@ -1739,9 +1876,10 @@ const OrderList = ({
                           <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isMobileView ? '#1e293b' : '#1e3a8a' }}>합계 수량: <span style={{ color: '#2563eb', fontSize: '1.1rem' }}>{totalQty.toLocaleString()}</span></div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
+                    )}
+                  </div>
+                );
+              })
               ) : (
                 <div style={{ textAlign: 'center', padding: '100px 0', color: '#64748b', border: isMobileView ? '2px dashed #cbd5e1' : '2px dashed #f1f5f9', borderRadius: '16px', backgroundColor: isMobileView ? '#ffffff' : 'transparent' }}>수주 내역이 없습니다.</div>
               )}

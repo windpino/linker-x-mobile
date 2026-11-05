@@ -2593,17 +2593,11 @@ function App() {
       setInventoryTransferHistory(nextTransfers);
       await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
 
-      // 매출전표 발행 시 연결된 수주서(salesOrders)의 상태를 '완료'로 자동 업데이트
+      // 매출전표 발행 시 연결된 수주서(salesOrders)의 상태를 '완료'로 자동 업데이트 (수주에서 전달된 특정 주문만)
       const matchingOrderId = invData.orderId || invData.salesOrderId;
       const orderToUpdate = matchingOrderId 
         ? salesOrders.find(so => String(so.id) === String(matchingOrderId))
-        : salesOrders.find(so => 
-            so.partner === finalData.partner && 
-            so.date === finalData.date && 
-            so.status !== '완료' && 
-            !so.isCompleted &&
-            !so.salesInvoiceId
-          );
+        : null;
 
       if (orderToUpdate) {
         const updatedOrder = {
