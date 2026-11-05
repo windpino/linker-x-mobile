@@ -6197,6 +6197,8 @@ function App() {
           partners={partners} 
           products={products} 
           salesOrders={salesOrders}
+          specialPrices={specialPrices}
+          setSpecialPrices={setSpecialPrices}
           currentUser={currentUser}
           staffList={staffList}
           initialPartner={orderingPartner}

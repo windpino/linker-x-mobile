@@ -366,7 +366,7 @@ const OrderList = ({
     const isCompleted = isOrderCompleted(order);
     if (isCompleted) {
       if (window.confirm('이미 납품 완료된 주문입니다.\n납품 완료 상태를 취소(대기로 변경)하시겠습니까?')) {
-        onUpdateOrder(order.id, { status: '대기', isCompleted: false });
+        onUpdateOrder(order.id, { status: '대기', isCompleted: false, salesInvoiceId: null });
         return;
       }
     }
@@ -407,8 +407,9 @@ const OrderList = ({
       };
     });
 
-    // 1. 수주 상태 '완료'로 변경
-    onUpdateOrder(order.id, { status: '완료', isCompleted: true });
+    // 주의: 여기서 수주 상태를 바로 '완료'로 변경하지 않습니다!
+    // 전표 등록 화면에서 사용자가 [저장] 버튼을 눌러야만 실제 전표가 저장되고 수주도 완료 상태로 전환됩니다.
+    // 저장을 안 누르고 창을 닫으면 납품완료가 안 된 것(대기)으로 유지됩니다.
 
     // 2. 매출 전표 화면으로 즉시 전송
     if (onTransferToInvoice) {
@@ -424,7 +425,8 @@ const OrderList = ({
         items: invoiceItems,
         receivedAmount: 0,
         payments: { cash: 0, account: 0, card: 0, bill: 0 },
-        discount: 0
+        discount: 0,
+        isFromOrder: true
       });
     }
 
@@ -740,7 +742,8 @@ const OrderList = ({
                   overflowY: 'auto', 
                   WebkitOverflowScrolling: 'touch',
                   paddingRight: '2px',
-                  paddingBottom: isMobileView ? '140px' : '20px'
+                  paddingBottom: isMobileView ? 'calc(220px + env(safe-area-inset-bottom, 24px))' : '20px',
+                  overscrollBehavior: 'contain'
                 }}>
                   {Object.entries(categoryTotals).map(([category, items]) => {
                     const catStyle = getCategoryBadgeStyle(category);
@@ -1002,7 +1005,8 @@ const OrderList = ({
               overflowY: 'auto', 
               WebkitOverflowScrolling: 'touch',
               paddingRight: '4px',
-              paddingBottom: isMobileView ? '140px' : '20px'
+              paddingBottom: isMobileView ? 'calc(220px + env(safe-area-inset-bottom, 24px))' : '20px',
+              overscrollBehavior: 'contain'
             }}>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order, oIdx) => {
@@ -1835,9 +1839,16 @@ const OrderList = ({
           }
 
           .purchase-modal-body {
-            padding: 10px !important;
-            gap: 12px !important;
-            background-color: #0a0f1d !important;
+            padding: 8px 8px 0 8px !important;
+            gap: 8px !important;
+            background-color: #f8fafc !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 0 !important;
+            box-sizing: border-box !important;
           }
           
           select option {

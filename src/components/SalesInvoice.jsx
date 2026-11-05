@@ -634,6 +634,10 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
   };
 
   const handleAutoSave = async (updatedInv) => {
+    // 수주로부터 전송되어 와서 아직 사용자가 [전표저장]을 누르지 않은 신규 전표는 자동저장하지 않음
+    if (updatedInv?.isFromOrder || invoiceData?.isFromOrder) {
+      return;
+    }
     if (!canIssuePastDateSlip && updatedInv?.date && updatedInv.date < todayStr && (!editingInvoice || updatedInv.date !== editingInvoice.date)) {
       alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
       return;
@@ -677,7 +681,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       });
     }
 
-    await onSave(invoiceData, false);
+    const saveInv = { ...invoiceData };
+    delete saveInv.isFromOrder;
+    await onSave(saveInv, false);
   };
 
   const handleNewInvoice = () => {
@@ -1867,7 +1873,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     alert('등록된 품목이 없습니다.');
                     return;
                   }
-                  onSave(invoiceData, false);
+                  handleManualSave();
                 }}
               >
                 {editingInvoice ? '전표 수정 완료 및 저장' : '전표 발행 및 최종 저장'}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ShoppingCart, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2, ArrowLeft, ArrowRight, UserCheck, Calendar } from 'lucide-react';
+import { ShoppingCart, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2, ArrowLeft, ArrowRight, UserCheck, Calendar, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
