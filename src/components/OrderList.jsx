@@ -790,7 +790,8 @@ const OrderList = ({
                         borderRadius: '14px',
                         border: '1px solid #e2e8f0',
                         overflow: 'hidden',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                        flexShrink: 0
                       }}>
                         {/* 카테고리 헤더 */}
                         <div style={{
@@ -1086,7 +1087,8 @@ const OrderList = ({
                         border: '1px solid #e2e8f0', 
                         overflow: 'hidden', 
                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                        marginBottom: '14px'
+                        marginBottom: '14px',
+                        flexShrink: 0
                       }}>
                         {/* 1. Header (Matching screenshot: light mint background, -/+ Partner Phone, [납품 완료], Edit, Delete) */}
                         <div style={{ 
@@ -1379,7 +1381,8 @@ const OrderList = ({
                       backgroundColor: '#ffffff', 
                       overflow: 'hidden', 
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                      marginBottom: isMobileView ? '12px' : '0'
+                      marginBottom: isMobileView ? '12px' : '0',
+                      flexShrink: 0
                     }}>
                       <div style={{ 
                         padding: isMobileView ? '12px 14px' : '16px', 
