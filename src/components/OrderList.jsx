@@ -66,6 +66,8 @@ const OrderList = ({
 
   const isOrderCompleted = React.useCallback((o) => {
     if (!o) return false;
+    // 상차시스템에서 납품완료를 다시 눌러 '대기'로 되돌린 수주는 연결 전표가 있어도 미완료 처리
+    if (o.deliveryReverted === true && o.isCompleted !== true) return false;
     if (o.status === '완료' || o.status === '배송완료' || o.isCompleted === true) return true;
     if (o.salesInvoiceId && (salesInvoices || []).some(inv => String(inv.id) === String(o.salesInvoiceId))) return true;
     if ((salesInvoices || []).some(inv => 
@@ -390,11 +392,25 @@ const OrderList = ({
   const handleTransferOrderToInvoice = (order) => {
     playMenuClickSound();
     const isCompleted = isOrderCompleted(order);
+    // 연결된 기존 매출전표 탐색
+    const linkedInvoice = (salesInvoices || []).find(inv =>
+      (order.salesInvoiceId && String(inv.id) === String(order.salesInvoiceId)) ||
+      String(inv.salesOrderId) === String(order.id) ||
+      String(inv.orderId) === String(order.id)
+    );
+
+    // [납품완료 상태] 다시 클릭 → 매출전표 저장 이전 상태(대기)로 되돌림
     if (isCompleted) {
-      if (window.confirm('이미 납품 완료된 주문입니다.\n납품 완료 상태를 취소(대기로 변경)하시겠습니까?')) {
-        onUpdateOrder(order.id, { status: '대기', isCompleted: false, salesInvoiceId: null });
-        return;
+      if (window.confirm('이미 납품 완료된 주문입니다.\n납품 완료를 취소하고 대기 상태로 변경하시겠습니까?')) {
+        onUpdateOrder(order.id, { status: '대기', isCompleted: false, deliveryReverted: true });
       }
+      return;
+    }
+
+    // [대기 상태 + 기존 전표 존재] → 기존 매출전표를 열어 저장 시 다시 납품완료 처리 (중복 전표 방지)
+    if (linkedInvoice && onTransferToInvoice) {
+      onTransferToInvoice({ ...linkedInvoice, orderId: order.id, salesOrderId: order.id, isFromOrder: true });
+      return;
     }
     const allItems = order.items || parseOrderItems(order.itemsText);
     const checkedItems = allItems.filter((item, idx) => (`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));

@@ -2615,12 +2615,14 @@ function App() {
           ...orderToUpdate,
           status: '완료',
           isCompleted: true,
+          deliveryReverted: false,
           salesInvoiceId: String(id),
           updatedAt: now.toISOString()
         };
         batch.set(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
           status: '완료',
           isCompleted: true,
+          deliveryReverted: false,
           salesInvoiceId: String(id),
           updatedAt: now.toISOString()
         }, { merge: true });
