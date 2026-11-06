@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { BookOpen, Printer, Download, Search, Settings, X } from 'lucide-react';
+import { Printer, Download, Search, RotateCw, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
-import './PurchaseInvoice.css';
-import './SalesManagementCommon.css';
-import { addDays, DateInputWithArrows } from '../utils/dateNavigationUtils';
 
 const SalesLedger = ({ 
   onClose, 
@@ -22,50 +19,6 @@ const SalesLedger = ({
   categories = [],
   products = []
 }) => {
-  const [colWidths, setColWidths] = useState({
-    date: 100,
-    partner: 130,
-    name: 180,
-    spec: 120,
-    qty: 80,
-    price: 90,
-    supplyValue: 110,
-    total: 110,
-    received: 110,
-    balance: 120,
-    creator: 90,
-    createdAt: 90,
-    updatedAt: 90
-  });
-
-  const resizingCol = useRef(null);
-  const resizeStartX = useRef(0);
-  const resizeStartW = useRef(0);
-  const MIN_COL_W = 40;
-
-  const onResizeMouseDown = useCallback((e, colKey) => {
-    e.preventDefault();
-    resizingCol.current = colKey;
-    resizeStartX.current = e.clientX;
-    resizeStartW.current = colWidths[colKey];
-
-    const onMove = (mv) => {
-      const delta = mv.clientX - resizeStartX.current;
-      const newW = Math.max(MIN_COL_W, resizeStartW.current + delta);
-      setColWidths(prev => ({ ...prev, [resizingCol.current]: newW }));
-    };
-
-    const onUp = () => {
-      resizingCol.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [colWidths]);
-  const [filter, setFilter] = useState('한달');
-  const filterOptions = ['오늘', '1주일', '한달', '상반기', '하반기', '1년'];
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -77,11 +30,15 @@ const SalesLedger = ({
   const [searchText, setSearchText] = useState('');
   const [selectedPartner, setSelectedPartner] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDailySubtotal, setShowDailySubtotal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const searchRef = useRef(null);
 
   useEffect(() => {
     const handleClick = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSuggestions(false);
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -102,845 +59,763 @@ const SalesLedger = ({
       if (parts.length === 3) {
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10);
-        
         const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
         const lastDayDate = new Date(year, month, 0);
         const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
-        
         setStartDate(firstDay);
         setEndDate(lastDay);
-        setFilter(`${month}월`);
       }
     } else {
       const today = new Date();
       const formatStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const end = formatStr(today);
-      const start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-      
-      setStartDate(start);
-      setEndDate(end);
-      setFilter('한달');
+      setStartDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`);
+      setEndDate(formatStr(today));
     }
   }, [initialPartner, initialDate]);
 
-  // Quick date filter
-  const applyFilter = (opt) => {
-    setFilter(opt);
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = today.getMonth() + 1;
-    
-    const formatDate = (date) => {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    };
+  // 거래처 자동완성 목록
+  const uniquePartners = [...new Set(
+    (partners || []).map(p => p.name).concat((salesInvoices || []).map(inv => inv.partner)).filter(Boolean)
+  )];
+  const cleanSearch = searchText.trim();
+  const suggestions = cleanSearch
+    ? uniquePartners.filter(name => matchesInitialSound(name, cleanSearch))
+    : uniquePartners.slice(0, 30);
 
-    let start = "";
-    let end = formatDate(today);
-
-    switch (opt) {
-      case '오늘':
-        start = formatDate(today);
-        end = formatDate(today);
-        break;
-      case '1년':
-        start = `${y}-01-01`;
-        end = `${y}-12-31`;
-        break;
-      case '상반기':
-        start = `${y}-01-01`;
-        end = `${y}-06-30`;
-        break;
-      case '하반기':
-        start = `${y}-07-01`;
-        end = `${y}-12-31`;
-        break;
-      case '한달':
-        start = `${y}-${String(m).padStart(2, '0')}-01`;
-        break;
-      case '1주일':
-        const day = today.getDay();
-        const sun = new Date(today);
-        sun.setDate(today.getDate() - day);
-        start = formatDate(sun);
-        break;
-      default:
-        start = `${y}-${String(m).padStart(2, '0')}-01`;
-    }
-    
-    setStartDate(start);
-    setEndDate(end);
-  };
-
-  // Unique partner names for autocomplete
-  const uniquePartners = [...new Set(salesInvoices.map(inv => inv.partner).filter(Boolean))];
-  const suggestions = searchText.trim()
-    ? uniquePartners.filter(name => matchesInitialSound(name, searchText.trim()))
-    : [];
-
-
-
+  // 전표 내 품목 추출
   const getMatchingInvoiceItems = (inv) => {
+    if (inv.isDepositOnly || inv.type === 'deposit' || inv.slipType === '입금전표') {
+      return [];
+    }
     if (!inv.items || inv.items.length === 0) {
-      return [{ name: '매출', total: inv.totalAmount || 0, qty: 0, price: 0 }];
+      if (Number(inv.totalAmount || 0) > 0) {
+        return [{ name: '매출', total: inv.totalAmount || 0, qty: 1, price: inv.totalAmount || 0 }];
+      }
+      return [];
     }
     return inv.items;
   };
 
-  // 1. Calculate Carried Forward
+  // 1. 전기 이월액 계산
   let carriedForward = 0;
-  const priorInvoices = salesInvoices.filter(inv => {
-    if (inv.date >= startDate) return false;
+  const partnerObj = (partners || []).find(p => p.name === selectedPartner);
+  const initialBase = partnerObj ? Number(partnerObj.initialReceivables || partnerObj.receivablesBase || 0) : 0;
+
+  const priorInvoices = (salesInvoices || []).filter(inv => {
+    if (!inv.date || inv.date >= startDate) return false;
     if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
     return true;
   });
   const priorSales = priorInvoices.reduce((sum, inv) => {
-    const matchingItems = getMatchingInvoiceItems(inv);
-    const itemsSum = matchingItems.reduce((s, item) => s + (item.total || 0), 0);
-    return sum + itemsSum;
+    const items = getMatchingInvoiceItems(inv);
+    return sum + items.reduce((s, item) => s + (item.total || 0), 0);
   }, 0);
-  const priorReceived = priorInvoices.reduce((sum, inv) => sum + (inv.receivedAmount || 0), 0);
-  const priorDiscount = priorInvoices.reduce((sum, inv) => sum + (inv.discount || 0), 0);
-  carriedForward = priorSales - priorReceived - priorDiscount;
+  const priorReceived = priorInvoices.reduce((sum, inv) => sum + (Number(inv.receivedAmount || 0) + Number(inv.discount || 0)), 0);
+  carriedForward = initialBase + priorSales - priorReceived;
 
-  // 2. Overhaul Data Pipeline to traditional "ledger book" format (장부식)
-  const rows = [];
-
-  // Push Carried Forward row
-  rows.push({
-    rowType: 'carriedForward',
-    date: '[전기이월]',
-    name: '[전기이월]',
-    spec: '',
-    qty: '',
-    price: '',
-    supplyValue: '',
-    total: '',
-    received: '',
-    balance: carriedForward,
-    isFirstRowOfDay: true,
-    isFirstRowOfInvoice: false
-  });
-
-  // Filter and sort invoices
-  const currentInvoices = salesInvoices
+  // 2. 조회 기간 내 데이터 필터링 및 일자별 그룹화
+  const currentInvoices = (salesInvoices || [])
     .filter(inv => {
-      if (inv.date < startDate || inv.date > endDate) return false;
+      if (!inv.date || inv.date < startDate || inv.date > endDate) return false;
       if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
       return true;
     })
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      
-      // Sort chronologically by time of creation/issue
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (Number(a.id) || 0);
       const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (Number(b.id) || 0);
       return timeA - timeB;
     });
 
-  // Group invoices by date
   const invoicesByDate = {};
   currentInvoices.forEach(inv => {
-    if (!invoicesByDate[inv.date]) {
-      invoicesByDate[inv.date] = [];
-    }
+    if (!invoicesByDate[inv.date]) invoicesByDate[inv.date] = [];
     invoicesByDate[inv.date].push(inv);
   });
 
+  const rows = [];
   let runningBalance = carriedForward;
+  let totalSales = 0;
+  let totalReceived = 0;
 
-  // Process each day chronologically
   const sortedDates = Object.keys(invoicesByDate).sort();
   sortedDates.forEach(dateStr => {
     const dayInvoices = invoicesByDate[dateStr];
     const dayRows = [];
 
     let dayTotalQty = 0;
-    let dayTotalSupplyValue = 0;
     let dayTotalAmount = 0;
     let dayTotalReceived = 0;
 
     dayInvoices.forEach(inv => {
-      const rowCreator = inv.creator || inv.manager || '시스템';
-      const partner = partners.find(p => p.name === inv.partner);
+      const partner = (partners || []).find(p => p.name === inv.partner);
       const partnerBankAccount = partner ? partner.bankAccount : '';
 
-      // A. Sales items rows
-      const matchingItems = getMatchingInvoiceItems(inv);
-      if (matchingItems.length > 0) {
-        matchingItems.forEach((item, idx) => {
-          runningBalance += (item.total || 0);
-          dayTotalQty += Number(item.qty || 0);
-          const itemSupply = item.supplyValue !== undefined ? item.supplyValue : Math.floor((item.total || 0) / 1.1);
-          dayTotalSupplyValue += itemSupply;
-          dayTotalAmount += (item.total || 0);
+      // A. 매출 품목
+      const items = getMatchingInvoiceItems(inv);
+      items.forEach((item, idx) => {
+        const itemTotal = Number(item.total || 0);
+        const itemQty = Number(item.qty || 0);
+        runningBalance += itemTotal;
+        dayTotalQty += itemQty;
+        dayTotalAmount += itemTotal;
+        totalSales += itemTotal;
 
-          dayRows.push({
-            rowType: 'sale',
-            invoiceId: inv.id,
-            itemId: item.id || null,
-            date: dateStr,
-            partner: inv.partner,
-            name: item.name,
-            spec: item.spec || '',
-            qty: item.qty,
-            price: item.price,
-            supplyValue: itemSupply,
-            total: item.total,
-            received: '',
-            balance: runningBalance,
-            isFirstRowOfInvoice: idx === 0,
-            createdAt: inv.createdAt,
-            updatedAt: inv.updatedAt,
-            creator: rowCreator
-          });
+        dayRows.push({
+          rowType: 'sale',
+          invoiceId: inv.id,
+          invObj: inv,
+          date: dateStr,
+          partner: inv.partner,
+          name: item.name || '품목',
+          spec: item.spec || '',
+          qty: itemQty,
+          price: Number(item.price || 0),
+          total: itemTotal,
+          balance: runningBalance
         });
-      }
+      });
 
-      // B. Payment rows
+      // B. 입금 내역
       const paymentsList = [];
       if (inv.payments) {
-        if (inv.payments.cash > 0) paymentsList.push({ type: 'cash', amount: inv.payments.cash, label: '입금(현금)', spec: '' });
-        if (inv.payments.account > 0) paymentsList.push({ type: 'account', amount: inv.payments.account, label: '입금(통장)', spec: partnerBankAccount && partnerBankAccount !== '선택안함' ? partnerBankAccount : '' });
-        if (inv.payments.card > 0) paymentsList.push({ type: 'card', amount: inv.payments.card, label: '입금(카드)', spec: '' });
-        if (inv.payments.bill > 0) paymentsList.push({ type: 'bill', amount: inv.payments.bill, label: '입금(어음)', spec: '' });
+        if (inv.payments.cash > 0) paymentsList.push({ type: 'cash', amount: inv.payments.cash, label: '입금(현금)' });
+        if (inv.payments.account > 0) {
+          const accInfo = (partnerBankAccount && partnerBankAccount !== '선택안함') ? ` ${partnerBankAccount}` : (inv.accountInfo ? ` ${inv.accountInfo}` : '');
+          paymentsList.push({ type: 'account', amount: inv.payments.account, label: `입금(통장)${accInfo}` });
+        }
+        if (inv.payments.card > 0) paymentsList.push({ type: 'card', amount: inv.payments.card, label: '입금(카드)' });
+        if (inv.payments.bill > 0) paymentsList.push({ type: 'bill', amount: inv.payments.bill, label: '입금(어음)' });
       }
-      if (paymentsList.length === 0 && (inv.receivedAmount || 0) > 0) {
-        paymentsList.push({ type: 'cash', amount: inv.receivedAmount, label: '입금(현금)', spec: '' });
+      if (paymentsList.length === 0 && (Number(inv.receivedAmount || 0) > 0)) {
+        paymentsList.push({ type: 'cash', amount: Number(inv.receivedAmount || 0), label: '입금(현금)' });
       }
 
-      paymentsList.forEach((pm, pmIdx) => {
+      paymentsList.forEach(pm => {
         runningBalance -= pm.amount;
         dayTotalReceived += pm.amount;
+        totalReceived += pm.amount;
 
         dayRows.push({
           rowType: 'payment',
           invoiceId: inv.id,
-          paymentType: pm.type,
+          invObj: inv,
           date: dateStr,
           partner: inv.partner,
           name: pm.label,
-          spec: pm.spec,
-          qty: '',
-          price: '',
-          supplyValue: '',
-          total: '',
+          qty: 0,
+          price: 0,
+          total: 0,
           received: pm.amount,
-          balance: runningBalance,
-          isFirstRowOfInvoice: pmIdx === 0 && (!inv.items || inv.items.length === 0),
-          createdAt: inv.createdAt,
-          updatedAt: inv.updatedAt,
-          creator: rowCreator
+          balance: runningBalance
         });
       });
 
-      // C. Discount rows
-      if (inv.discount > 0) {
-        runningBalance -= inv.discount;
-        dayTotalReceived += inv.discount;
+      // C. 할인
+      if (Number(inv.discount || 0) > 0) {
+        const disc = Number(inv.discount);
+        runningBalance -= disc;
+        dayTotalReceived += disc;
+        totalReceived += disc;
 
         dayRows.push({
           rowType: 'discount',
           invoiceId: inv.id,
+          invObj: inv,
           date: dateStr,
           partner: inv.partner,
           name: '할인(DC)',
-          spec: '',
-          qty: '',
-          price: '',
-          supplyValue: '',
-          total: '',
-          received: inv.discount,
-          balance: runningBalance,
-          isFirstRowOfInvoice: false,
-          createdAt: inv.createdAt,
-          updatedAt: inv.updatedAt,
-          creator: rowCreator
+          qty: 0,
+          price: 0,
+          total: 0,
+          received: disc,
+          balance: runningBalance
         });
       }
     });
 
     if (dayRows.length > 0) {
-      // Set date vertical merge: only show date on first row of the day
-      dayRows.forEach((r, idx) => {
-        r.isFirstRowOfDay = (idx === 0);
-      });
       rows.push(...dayRows);
 
-      // Push Daily Subtotal row (【 일계 】)
-      rows.push({
-        rowType: 'subtotal',
-        date: dateStr,
-        name: '【 일계 】',
-        spec: '',
-        qty: dayTotalQty,
-        price: '',
-        supplyValue: dayTotalSupplyValue,
-        total: dayTotalAmount,
-        received: dayTotalReceived,
-        balance: runningBalance,
-        isFirstRowOfDay: false,
-        isFirstRowOfInvoice: false
-      });
+      // 일계 체크 시 해당 날짜 끝에 일계 행 추가
+      if (showDailySubtotal) {
+        rows.push({
+          rowType: 'subtotal',
+          date: dateStr,
+          name: '【 일계 】',
+          qty: dayTotalQty,
+          total: dayTotalAmount,
+          received: dayTotalReceived,
+          balance: runningBalance
+        });
+      }
     }
   });
 
-  // Summary card calculations
-  let totalQty = 0;
-  let totalSales = 0;
-  let totalReceived = 0;
-  let balance = 0;
+  const balance = carriedForward + totalSales - totalReceived;
 
-  const currentSummaryInvoices = salesInvoices.filter(inv => {
-    if (inv.date < startDate || inv.date > endDate) return false;
-    if (selectedPartner && (inv.partner || '').trim() !== selectedPartner.trim()) return false;
-    return true;
-  });
-  currentSummaryInvoices.forEach(inv => {
-    const matchingItems = getMatchingInvoiceItems(inv);
-    totalSales += matchingItems.reduce((s, i) => s + (i.total || 0), 0);
-    totalQty += matchingItems.reduce((s, i) => s + Number(i.qty || 0), 0);
-    totalReceived += (inv.receivedAmount || 0) + (inv.discount || 0);
-  });
-  balance = carriedForward + totalSales - totalReceived;
+  // 일자 표시: YYYY-MM-DD -> MM-DD
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = String(dateStr).split('-');
+    return parts.length === 3 ? `${parts[1]}-${parts[2]}` : dateStr;
+  };
 
   const handleExcelExport = () => {
     const dataToExport = rows.map(r => ({
-      '거래일자': r.rowType === 'carriedForward' ? '[전기이월]' : (r.isFirstRowOfDay ? r.date : ''),
-      '거래처': r.partner || '',
-      '상 품 명': r.name,
-      '규 격': r.spec || '',
-      '수량': r.qty !== '' && r.qty !== undefined ? Number(r.qty) : '',
-      '단가': r.price !== '' && r.price !== undefined ? Number(r.price) : '',
-      '공급가액': r.supplyValue !== '' && r.supplyValue !== undefined ? Number(r.supplyValue) : '',
-      '합계액': r.total !== '' && r.total !== undefined ? Number(r.total) : '',
-      '입금액': r.received !== '' && r.received !== undefined ? Number(r.received) : '',
-      '잔액': r.balance !== '' && r.balance !== undefined ? Number(r.balance) : '',
-      '발행자': r.creator || ''
+      '일자': r.date,
+      '거래처': r.partner || selectedPartner || '',
+      '구분/상품명': r.name,
+      '규격': r.spec || '',
+      '단가': r.price || '',
+      '수량': r.qty || '',
+      '금액': r.total || '',
+      '입금액': r.received || '',
+      '잔액': r.balance || ''
     }));
-
-    const filename = `매출원장_${selectedPartner || '전체거래처'}`;
-    exportToExcel(dataToExport, filename);
+    exportToExcel(dataToExport, `매출원장_${selectedPartner || '전체'}_${startDate}_${endDate}`);
   };
-
-  const handleInlineEdit = (invoiceId, itemId, field, value, paymentType = null) => {
-    const val = Number(value) || 0;
-    const originalInv = salesInvoices.find(inv => inv.id === invoiceId);
-    if (!originalInv) return;
-
-    let updatedInv = { ...originalInv };
-
-    if (field === 'received') {
-      const currentPayments = updatedInv.payments || { cash: 0, account: 0, card: 0, bill: 0 };
-      if (paymentType) {
-        const newPayments = { ...currentPayments, [paymentType]: val };
-        updatedInv.payments = newPayments;
-        updatedInv.receivedAmount = (newPayments.cash || 0) + (newPayments.account || 0) + (newPayments.card || 0) + (newPayments.bill || 0);
-      } else {
-        updatedInv.receivedAmount = val;
-        const others = (currentPayments.account || 0) + (currentPayments.card || 0) + (currentPayments.bill || 0);
-        updatedInv.payments = { ...currentPayments, cash: Math.max(0, val - others) };
-      }
-    } else if (field === 'discount') {
-      updatedInv.discount = val;
-    } else {
-      // qty or price
-      updatedInv.items = updatedInv.items.map(item => {
-        if (item.id === itemId) {
-          const newQty = field === 'qty' ? val : item.qty;
-          const newPrice = field === 'price' ? val : item.price;
-          const newTotal = newQty * newPrice;
-          return {
-            ...item,
-            qty: newQty,
-            price: newPrice,
-            supplyValue: Math.floor(newTotal / 1.1),
-            tax: newTotal - Math.floor(newTotal / 1.1),
-            total: newTotal
-          };
-        }
-        return item;
-      });
-      // Recalculate totalAmount
-      updatedInv.totalAmount = updatedInv.items.reduce((sum, item) => sum + (item.total || 0), 0);
-    }
-
-    onUpdateInvoice(updatedInv);
-  };
-
-  const isAdmin = currentUser?.role === 'super_admin' || 
-                  currentUser?.role === 'admin' || 
-                  currentUser?.userId === 'admin' ||
-                  currentUser?.allowAllEditDelete === true;
 
   return (
     <WindowModal title="매출원장" onClose={onClose} width="100%" zIndex={zIndex}>
-      <div className="account-header">
-        <div className="acc-title-section">
-          <h2 className="acc-title">
-            <BookOpen color="#3b82f6" size={24} />
-            매출원장
-          </h2>
-        </div>
-        <div className="acc-actions">
-          <button className="btn-outline"><Printer size={16} /> 인쇄</button>
-          <button className="btn-outline" onClick={handleExcelExport}><Download size={16} /> 엑셀</button>
-        </div>
-      </div>
-
-      <div className="purchase-modal-body" style={{ padding: '10px' }}>
-        <div className="sales-ledger-filter" style={{ padding: '12px', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-          
-          {/* 1. 날짜 범위 선택 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '4px', alignItems: 'center', marginBottom: '10px' }}>
-            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>시작일</label>
-              <DateInputWithArrows
-                value={startDate}
-                onChange={val => setStartDate(val)}
-                onPrev={() => {
-                  const prev = addDays(startDate, -1);
-                  if (startDate === endDate) {
-                    setStartDate(prev);
-                    setEndDate(prev);
-                  } else {
-                    setStartDate(prev);
-                  }
-                }}
-                onNext={() => {
-                  const next = addDays(startDate, 1);
-                  if (startDate === endDate) {
-                    setStartDate(next);
-                    setEndDate(next);
-                  } else {
-                    setStartDate(next);
-                  }
-                }}
-                style={{ width: '100%', display: 'flex' }}
-                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
-                buttonSize={11}
-              />
-            </div>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 700, marginTop: '18px' }}>~</span>
-            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'block' }}>종료일</label>
-              <DateInputWithArrows
-                value={endDate}
-                onChange={val => setEndDate(val)}
-                onPrev={() => {
-                  const prev = addDays(endDate, -1);
-                  if (startDate === endDate) {
-                    setStartDate(prev);
-                    setEndDate(prev);
-                  } else {
-                    setEndDate(prev);
-                  }
-                }}
-                onNext={() => {
-                  const next = addDays(endDate, 1);
-                  if (startDate === endDate) {
-                    setStartDate(next);
-                    setEndDate(next);
-                  } else {
-                    setEndDate(next);
-                  }
-                }}
-                style={{ width: '100%', display: 'flex' }}
-                inputStyle={{ flex: 1, width: '100%', padding: '5px 4px', fontSize: '0.76rem', fontWeight: 600 }}
-                buttonSize={11}
-              />
-            </div>
+      <div className="sales-ledger-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        backgroundColor: '#ffffff',
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}>
+        {/* 상단 컨트롤 바 */}
+        <div className="sales-ledger-controls" style={{
+          padding: '10px 12px',
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          flexShrink: 0
+        }}>
+          {/* 1행: 기간 [시작일] ~ [종료일] [조회] */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            width: '100%'
+          }}>
+            <span style={{
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              color: '#1e293b',
+              whiteSpace: 'nowrap'
+            }}>
+              기간:
+            </span>
+            <input 
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '6px 4px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                background: '#ffffff',
+                color: '#1e293b',
+                outline: 'none',
+                textAlign: 'center'
+              }}
+            />
+            <span style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 700 }}>~</span>
+            <input 
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '6px 4px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                background: '#ffffff',
+                color: '#1e293b',
+                outline: 'none',
+                textAlign: 'center'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setRefreshTrigger(k => k + 1)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 10px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: '#ffffff',
+                background: '#3b82f6',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(59,130,246,0.2)'
+              }}
+            >
+              <RotateCw size={13} /> 조회
+            </button>
           </div>
 
-          {/* 2. 기간 퀵버튼 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '10px' }}>
-            {filterOptions.map(opt => (
-              <button 
-                key={opt} 
-                className={`filter-btn ${filter === opt ? 'active' : ''}`} 
-                onClick={() => applyFilter(opt)}
-                style={{
-                  padding: '5px 2px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  borderRadius: '6px',
-                  border: filter === opt ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                  background: filter === opt ? '#3b82f6' : '#f8fafc',
-                  color: filter === opt ? '#fff' : '#475569',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          {/* 2행: [인쇄] [엑셀] [ ] 일계 [거래처 검색/선택] */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: '100%'
+          }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '5px 8px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                color: '#475569',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              title="인쇄"
+            >
+              <Printer size={13} /> 인쇄
+            </button>
 
-          {/* 3. 업체명 검색 (초성 가능) */}
-          <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={searchRef}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>업체명 검색</span>
-              <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 500 }}>초성 검색 가능 (예: ㅈㅅㅁ)</span>
+            <button
+              type="button"
+              onClick={handleExcelExport}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '5px 8px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                color: '#059669',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              title="엑셀 다운로드"
+            >
+              <Download size={13} /> 엑셀
+            </button>
+
+            <label style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: '#334155',
+              userSelect: 'none',
+              whiteSpace: 'nowrap'
+            }}>
+              <input 
+                type="checkbox"
+                checked={showDailySubtotal}
+                onChange={e => setShowDailySubtotal(e.target.checked)}
+                style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+              />
+              일계
             </label>
-            <div style={{ position: 'relative' }}>
-              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+
+            {/* 거래처 검색 입력란 */}
+            <div style={{ position: 'relative', flex: 1, minWidth: 0 }} ref={searchRef}>
               <input
                 type="text"
                 value={searchText}
-                placeholder="업체명을 입력하세요"
-                onChange={e => { setSearchText(e.target.value); setSelectedPartner(''); setShowSuggestions(true); }}
-                onFocus={() => searchText && setShowSuggestions(true)}
-                style={{ width: '100%', padding: '8px 30px 8px 30px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                placeholder="거래처 검색..."
+                onChange={e => {
+                  setSearchText(e.target.value);
+                  setSelectedPartner(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                style={{
+                  width: '100%',
+                  padding: '5px 24px 5px 8px',
+                  fontSize: '0.82rem',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontWeight: selectedPartner ? 700 : 500,
+                  color: selectedPartner ? '#1d4ed8' : '#1e293b',
+                  background: '#ffffff'
+                }}
               />
-              {searchText && (
-                <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
-                  <X size={15} />
+              {searchText ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchText('');
+                    setSelectedPartner('');
+                    setShowSuggestions(false);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '4px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <X size={13} />
                 </button>
+              ) : (
+                <Search
+                  size={13}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    pointerEvents: 'none'
+                  }}
+                />
+              )}
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 9999,
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  marginTop: '4px'
+                }}>
+                  <div
+                    onMouseDown={() => {
+                      setSelectedPartner('');
+                      setSearchText('');
+                      setShowSuggestions(false);
+                    }}
+                    style={{
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#3b82f6',
+                      borderBottom: '1px solid #f1f5f9'
+                    }}
+                  >
+                    전체 거래처
+                  </div>
+                  {suggestions.map((pName, i) => (
+                    <div
+                      key={i}
+                      onMouseDown={() => {
+                        setSelectedPartner(pName);
+                        setSearchText(pName);
+                        setShowSuggestions(false);
+                      }}
+                      style={{
+                        padding: '8px 10px',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        borderBottom: '1px solid #f1f5f9',
+                        color: '#1e293b'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {pName}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            {showSuggestions && suggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                {suggestions.map((name, i) => (
-                  <div key={i}
-                    onMouseDown={() => { setSelectedPartner(name); setSearchText(name); setShowSuggestions(false); }}
-                    style={{ padding: '9px 14px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {name}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        <>
-          <div style={{ padding: '6px 14px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', gap: '10px', alignItems: 'center', borderRadius: '8px 8px 0 0', flexWrap: 'wrap' }}>
-            🔍 <strong>{selectedPartner || '전체 거래처'}</strong> 매출원장 조회 중
-            {selectedPartner && (
-              <button onClick={() => { setSearchText(''); setSelectedPartner(''); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.78rem', fontWeight: 700 }}>전체 보기</button>
-            )}
-          </div>
+        {/* 컬럼 헤더 (일자 | 상품명 | 단가 | 수량 | 금액) */}
+        <div className="sales-ledger-table-header" style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '7px 10px',
+          background: '#f1f5f9',
+          borderTop: '1px solid #e2e8f0',
+          borderBottom: '1px solid #cbd5e1',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          color: '#475569',
+          flexShrink: 0
+        }}>
+          <div style={{ width: '46px', textAlign: 'left' }}>일자</div>
+          <div style={{ flex: 1, textAlign: 'left', minWidth: 0, paddingLeft: '4px' }}>상품명</div>
+          <div style={{ width: '75px', textAlign: 'right' }}>단가</div>
+          <div style={{ width: '50px', textAlign: 'right' }}>수량</div>
+          <div style={{ width: '85px', textAlign: 'right' }}>금액</div>
+        </div>
 
-            <div className="invoice-table-container" style={{ backgroundColor: 'white', borderRadius: '0 0 12px 12px', border: '1px solid #e2e8f0', borderTop: 'none', overflowX: 'auto' }}>
-              <table className="invoice-table ledger-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-                <thead>
-                  <tr>
-                    {[
-                      { key: 'date', label: '거래일자', width: colWidths.date, align: 'center' },
-                      { key: 'partner', label: '거래처명', width: colWidths.partner, align: 'left' },
-                      { key: 'name', label: '상 품 명', width: colWidths.name, align: 'left' },
-                      { key: 'spec', label: '규 격', width: colWidths.spec, align: 'left' },
-                      { key: 'qty', label: '수량', width: colWidths.qty, align: 'right' },
-                      { key: 'price', label: '단가', width: colWidths.price, align: 'right' },
-                      { key: 'supplyValue', label: '공급가액', width: colWidths.supplyValue, align: 'right' },
-                      { key: 'total', label: '합계액', width: colWidths.total, align: 'right' },
-                      { key: 'received', label: '입금액', width: colWidths.received, align: 'right' },
-                      { key: 'balance', label: '잔액', width: colWidths.balance, align: 'right' },
-                      { key: 'creator', label: '발행자', width: colWidths.creator, align: 'center' },
-                      { key: 'createdAt', label: '최초 발행', width: colWidths.createdAt, align: 'center' },
-                      { key: 'updatedAt', label: '최종 수정', width: colWidths.updatedAt, align: 'center' }
-                    ].map(col => (
-                      <th 
-                        key={col.key} 
-                        style={{ 
-                          width: col.width + 'px', 
-                          position: 'relative', 
-                          userSelect: 'none', 
-                          textAlign: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left'
-                        }}
-                      >
-                        {col.label}
-                        <span
-                          onMouseDown={(e) => onResizeMouseDown(e, col.key)}
-                          style={{
-                            position: 'absolute', right: 0, top: 0, bottom: 0,
-                            width: '6px', cursor: 'col-resize',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 2,
-                          }}
-                          title={`${col.label} 너비 조절`}
-                        >
-                          <span style={{
-                            display: 'block', width: '0px', height: '100%',
-                            borderLeft: '1px dotted #cbd5e1',
-                          }} />
+        {/* 스크롤 거래 내역 목록 */}
+        <div className="sales-ledger-list" style={{
+          flex: 1,
+          overflowY: 'auto',
+          backgroundColor: '#ffffff'
+        }}>
+          {rows.length === 0 ? (
+            <div style={{
+              padding: '60px 16px',
+              textAlign: 'center',
+              color: '#94a3b8',
+              fontSize: '0.88rem'
+            }}>
+              조회기간 내의 거래 내역이 존재하지 않습니다.
+            </div>
+          ) : (
+            rows.map((r, idx) => {
+              const isPayment = r.rowType === 'payment' || r.rowType === 'discount';
+              const isSubtotal = r.rowType === 'subtotal';
+              const inv = r.invObj;
+
+              if (isSubtotal) {
+                return (
+                  <div 
+                    key={idx}
+                    style={{
+                      padding: '7px 10px',
+                      background: '#f8fafc',
+                      borderTop: '1px dashed #cbd5e1',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.78rem',
+                      color: '#475569'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, color: '#64748b', width: '42px' }}>
+                        {formatShortDate(r.date)}
+                      </span>
+                      <span style={{ fontWeight: 800, color: '#2563eb' }}>【 일계 】</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      {r.qty > 0 && <span>수량: <strong>{Number(r.qty).toFixed(1)}</strong></span>}
+                      {r.total > 0 && <span>매출: <strong>{Number(r.total).toLocaleString()}</strong></span>}
+                      {r.received > 0 && <span style={{ color: '#16a34a' }}>입금: <strong>{Number(r.received).toLocaleString()}</strong></span>}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div 
+                  key={idx}
+                  onClick={() => inv && onOpenInvoice && onOpenInvoice(inv)}
+                  style={{
+                    padding: '8px 10px',
+                    borderBottom: '1px solid #f1f5f9',
+                    backgroundColor: isPayment ? '#f0fdf4' : '#ffffff',
+                    cursor: inv ? 'pointer' : 'default',
+                    transition: 'background-color 0.15s'
+                  }}
+                  title={inv ? '클릭하여 해당 전표 열기' : ''}
+                >
+                  {/* 1행: 일자 (MM-DD) + 상품명/내용 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '3px'
+                  }}>
+                    <span style={{
+                      width: '42px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: isPayment ? '#16a34a' : '#64748b',
+                      flexShrink: 0
+                    }}>
+                      {formatShortDate(r.date)}
+                    </span>
+                    <span style={{
+                      flex: 1,
+                      fontSize: '0.86rem',
+                      fontWeight: isPayment ? 700 : 600,
+                      color: isPayment ? '#15803d' : '#1e293b',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {r.name}
+                      {r.spec && (
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400, marginLeft: '4px' }}>
+                          ({r.spec})
                         </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={13} style={{ padding: '60px 0', color: '#94a3b8', textAlign: 'center' }}>
-                        조회기간 내의 거래 내역이 존재하지 않습니다.
-                      </td>
-                    </tr>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* 2행: 단가, 수량, 금액 (매출) 또는 입금액 (입금) */}
+                  {!isPayment ? (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: '0px'
+                    }}>
+                      <div style={{
+                        width: '75px',
+                        textAlign: 'right',
+                        fontSize: '0.82rem',
+                        color: '#64748b',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {Number(r.price || 0).toLocaleString()}
+                      </div>
+                      <div style={{
+                        width: '50px',
+                        textAlign: 'right',
+                        fontSize: '0.82rem',
+                        color: '#334155',
+                        fontWeight: 600,
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {Number(r.qty || 0).toFixed(1)}
+                      </div>
+                      <div style={{
+                        width: '85px',
+                        textAlign: 'right',
+                        fontSize: '0.86rem',
+                        color: '#0f172a',
+                        fontWeight: 700,
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {Number(r.total || 0).toLocaleString()}
+                      </div>
+                    </div>
                   ) : (
-                    rows.map((r, idx) => {
-                      let rowClass = '';
-                      if (r.rowType === 'carriedForward') rowClass = 'row-carried-forward';
-                      else if (r.rowType === 'subtotal') rowClass = 'row-subtotal';
-                      else if (r.rowType === 'payment') rowClass = 'row-payment';
-                      else if (r.rowType === 'discount') rowClass = 'row-discount';
-
-                      const foundInv = r.invoiceId ? salesInvoices.find(i => String(i.id) === String(r.invoiceId)) : null;
-                      const inv = foundInv || (r.invoiceId ? {
-                        id: r.invoiceId,
-                        date: r.date,
-                        partner: r.partner || selectedPartner,
-                        items: (r.rowType === 'sale' || r.rowType === 'normal') ? [{
-                          id: r.itemId || Date.now(),
-                          name: r.name,
-                          spec: r.spec || '',
-                          qty: Number(r.qty) || 1,
-                          price: Number(r.price) || 0,
-                          supplyValue: Number(r.supplyValue) || 0,
-                          tax: Number(r.vat) || 0,
-                          total: Number(r.total) || 0
-                        }] : [],
-                        receivedAmount: Number(r.received) || 0,
-                        payments: { cash: Number(r.received) || 0, account: 0, card: 0, bill: 0 },
-                        discount: r.rowType === 'discount' ? (Number(r.received) || 0) : 0,
-                        isDepositOnly: r.rowType === 'payment' || r.rowType === 'discount'
-                      } : null);
-
-                      return (
-                        <tr 
-                          key={idx} 
-                          onClick={(e) => {
-                            if (e.target.tagName === 'INPUT' || e.target.closest('input')) return;
-                            if (inv) onOpenInvoice(inv);
-                          }}
-                          onDoubleClick={(e) => {
-                            if (e.target.tagName === 'INPUT' || e.target.closest('input')) return;
-                            if (inv) onOpenInvoice(inv);
-                          }}
-                          className={rowClass}
-                          style={{ cursor: inv ? 'pointer' : 'default' }}
-                          title={inv ? '클릭하여 해당 매출전표 열기' : ''}
-                        >
-                          {/* 1. Date */}
-                          <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-                            {r.rowType === 'carriedForward' ? (
-                              <span style={{ fontWeight: 700, color: '#d97706' }}>[전기이월]</span>
-                            ) : (
-                              r.isFirstRowOfDay ? r.date : ''
-                            )}
-                          </td>
-
-                          {/* 2. Partner Name */}
-                          <td style={{ whiteSpace: 'nowrap', color: '#475569', fontWeight: 500 }}>
-                            {r.rowType !== 'carriedForward' && r.rowType !== 'subtotal' ? r.partner : ''}
-                          </td>
-
-                          {/* 3. Product Name */}
-                          <td className={r.rowType === 'subtotal' ? 'cell-name text-center' : 'cell-name'}>
-                            {inv ? (
-                              <span 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onOpenInvoice(inv);
-                                }}
-                                style={{ 
-                                  color: '#2563eb', 
-                                  textDecoration: 'underline', 
-                                  cursor: 'pointer',
-                                  fontWeight: r.rowType === 'payment' || r.rowType === 'discount' ? 600 : 'inherit'
-                                }}
-                                title="클릭하여 해당 매출전표 열기"
-                              >
-                                {r.name}
-                              </span>
-                            ) : (
-                              r.name
-                            )}
-                          </td>
-
-                          {/* 4. Spec */}
-                          <td className="cell-spec">{r.spec}</td>
-
-                          {/* 5. Qty */}
-                          <td className="text-right">
-                            {isAdmin && (r.rowType === 'sale' || r.rowType === 'normal') ? (
-                              <input 
-                                type="number" 
-                                value={r.qty} 
-                                onChange={(e) => handleInlineEdit(r.invoiceId, r.itemId, 'qty', e.target.value)}
-                                className="inline-edit-input text-right"
-                              />
-                            ) : (
-                              r.qty !== '' && r.qty !== undefined ? Number(r.qty).toFixed(1) : ''
-                            )}
-                          </td>
-
-                          {/* 6. Price */}
-                          <td className="text-right">
-                            {isAdmin && (r.rowType === 'sale' || r.rowType === 'normal') ? (
-                              <input 
-                                type="number" 
-                                value={r.price} 
-                                onChange={(e) => handleInlineEdit(r.invoiceId, r.itemId, 'price', e.target.value)}
-                                className="inline-edit-input text-right"
-                              />
-                            ) : (
-                              r.price !== '' && r.price !== undefined ? Number(r.price).toLocaleString() : ''
-                            )}
-                          </td>
-
-                          {/* 7. Supply Value (공급가액) */}
-                          <td className="text-right">
-                            {r.supplyValue !== '' && r.supplyValue !== undefined ? Number(r.supplyValue).toLocaleString() : ''}
-                          </td>
-
-                          {/* 8. Total Amt */}
-                          <td className="text-right" style={{ fontWeight: r.rowType === 'subtotal' ? 700 : 500 }}>
-                            {r.total !== '' && r.total !== undefined ? Number(r.total).toLocaleString() : ''}
-                          </td>
-
-                          {/* 9. Received Amt */}
-                          <td className="text-right" style={{ fontWeight: r.rowType === 'subtotal' ? 700 : 500, color: r.rowType === 'payment' || r.rowType === 'discount' ? '#10b981' : 'inherit' }}>
-                            {r.received !== '' && r.received !== undefined ? Number(r.received).toLocaleString() : ''}
-                          </td>
-
-                          {/* 10. Balance */}
-                          <td className="text-right font-semibold" style={{ color: r.balance > 0 ? '#1d4ed8' : '#475569', fontWeight: 700 }}>
-                            {r.balance !== '' && r.balance !== undefined ? Number(r.balance).toLocaleString() : ''}
-                          </td>
-
-                          {/* 발행자 */}
-                          <td className="text-center" style={{ color: '#475569', fontSize: '0.84rem', fontWeight: 500 }}>
-                            {r.creator || ''}
-                          </td>
-
-                          {/* 11. Created By / Date */}
-                          <td className="text-center" style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                            {r.createdAt ? new Date(r.createdAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : ''}
-                          </td>
-
-                          {/* 12. Updated By / Date */}
-                          <td className="text-center" style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                            {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : ''}
-                          </td>
-                        </tr>
-                      );
-                    })
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 600 }}>입금액</span>
+                      <div style={{
+                        width: '85px',
+                        textAlign: 'right',
+                        fontSize: '0.9rem',
+                        color: '#16a34a',
+                        fontWeight: 800,
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {Number(r.received || 0).toLocaleString()}
+                      </div>
+                    </div>
                   )}
-                </tbody>
-              </table>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* 하단 고정 요약 바 (이월 / 매출 / 입금 / 잔액) */}
+        <div className="sales-ledger-footer" style={{
+          background: '#1e293b',
+          color: '#ffffff',
+          padding: '10px 14px',
+          boxShadow: '0 -3px 10px rgba(0,0,0,0.08)',
+          borderTop: '1px solid #334155',
+          flexShrink: 0
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '6px 20px',
+            fontSize: '0.86rem'
+          }}>
+            {/* 1행: 이월 / 매출 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#94a3b8', fontWeight: 600 }}>이월:</span>
+              <span style={{ fontWeight: 700, color: '#f8fafc', fontVariantNumeric: 'tabular-nums' }}>
+                {Number(carriedForward || 0).toLocaleString()}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#60a5fa', fontWeight: 600 }}>매출:</span>
+              <span style={{ fontWeight: 700, color: '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>
+                {Number(totalSales || 0).toLocaleString()}
+              </span>
             </div>
 
-            <div className="sales-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginTop: '12px' }}>
-              <div className="sales-summary-card summary-card-dark" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>총 건수</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{currentSummaryInvoices.length}</div></div>
-              <div className="sales-summary-card summary-card-purple" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>총수량</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalQty.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-blue" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>매출액</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalSales.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-green" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>입금액</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{totalReceived.toLocaleString()}</div></div>
-              <div className="sales-summary-card summary-card-blue" style={{ padding: '8px 4px' }}><div className="summary-label" style={{ fontSize: '0.72rem' }}>잔액(미수)</div><div className="summary-value" style={{ fontSize: '0.92rem' }}>{balance.toLocaleString()}</div></div>
+            {/* 2행: 입금 / 잔액 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#34d399', fontWeight: 600 }}>입금:</span>
+              <span style={{ fontWeight: 700, color: '#34d399', fontVariantNumeric: 'tabular-nums' }}>
+                {Number(totalReceived || 0).toLocaleString()}
+              </span>
             </div>
-        </>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>잔액:</span>
+              <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#fbbf24', fontVariantNumeric: 'tabular-nums' }}>
+                {Number(balance || 0).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
+
       <style>{`
-        .inline-edit-input {
-          width: 80px;
-          padding: 4px 8px;
-          border: 1px solid transparent;
-          border-radius: 4px;
-          text-align: right;
-          font-size: 0.9rem;
-          background: transparent;
-          transition: all 0.2s;
-        }
-        .inline-edit-input:hover {
-          border-color: #cbd5e1;
-          background: white;
-        }
-        .inline-edit-input:focus {
-          border-color: #3b82f6;
-          background: white;
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-        /* Hide arrows for Chrome, Safari, Edge, Opera */
-        .inline-edit-input::-webkit-outer-spin-button,
-        .inline-edit-input::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        /* Hide arrows for Firefox */
-        .inline-edit-input[type=number] {
-          -moz-appearance: textfield;
-        }
-
-        /* Traditional Ledger Book aesthetics */
-        .ledger-table th, .ledger-table td {
-          padding: 8px 10px !important;
-          font-size: 0.88rem !important;
-          border-bottom: 1px solid #e2e8f0;
-          vertical-align: middle;
-        }
-        
-        .row-carried-forward {
-          background-color: #fffbeb !important; /* amber-50 */
-          color: #b45309; /* amber-700 */
-        }
-        .row-carried-forward td {
-          border-bottom: 2px double #fcd34d !important;
-        }
-        .row-carried-forward .cell-balance {
-          color: #1e3a8a !important; /* dark blue */
-          font-weight: 700 !important;
-        }
-
-        .row-subtotal {
-          background-color: #ecfdf5 !important; /* green-50 */
-          color: #065f46 !important; /* green-800 */
-          font-weight: 600;
-        }
-        .row-subtotal td {
-          border-top: 1px solid #a7f3d0 !important;
-          border-bottom: 2px solid #a7f3d0 !important;
-        }
-        .row-subtotal .cell-name {
-          text-align: center !important;
-          font-weight: 700;
-        }
-
-        .row-payment {
-          background-color: #fcfaff !important; /* very soft purple tint */
-        }
-        .row-payment .cell-name {
-          color: #c2410c !important; /* orange-700 for 입금 */
-          font-weight: 600;
-        }
-        .row-payment .cell-spec {
-          color: #c2410c !important; /* orange-700 for bank details */
-          font-weight: 500;
-        }
-        .row-payment .cell-received {
-          color: #c2410c !important;
-          font-weight: 700;
-        }
-
-        .row-discount {
-          background-color: #fef2f2 !important; /* red-50 */
-        }
-        .row-discount .cell-name {
-          color: #dc2626 !important; /* red-600 for 할인 */
-          font-weight: 600;
-        }
-        .row-discount .cell-received {
-          color: #dc2626 !important;
-          font-weight: 700;
-        }
-
-        .text-right {
-          text-align: right !important;
-        }
-
-        .text-center {
-          text-align: center !important;
+        @media print {
+          .sales-ledger-controls,
+          .window-header,
+          .close-btn {
+            display: none !important;
+          }
+          .sales-ledger-container {
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .sales-ledger-list {
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .sales-ledger-footer {
+            position: static !important;
+            page-break-inside: avoid;
+            background: #f1f5f9 !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+          }
         }
       `}</style>
     </WindowModal>
