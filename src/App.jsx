@@ -104,17 +104,17 @@ const ALL_FAVORITE_MENUS = [
   { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
   { id: 'inventory_mismatch',  name: '재고 불일치 현황', category: '기초자료등록',   emoji: '⚠️' },
   { id: 'inventory_report_1',  name: '일자별 재고현황',  category: '기초자료등록',   emoji: '🗃️' },
-  { id: 'inventory_report_2',  name: '최종 재고 현황',  category: '기초자료등록',   emoji: '📦' },
+  { id: 'inventory_report_2',  name: '최종 재고',       category: '기초자료등록',   emoji: '📦' },
   { id: 'inventory_report_3',  name: '매입처별 재고현황', category: '기초자료등록',   emoji: '📋' },
 
   { id: 'purchase_invoice',    name: '매입전표 등록',  category: '매입/발주관리',   emoji: '📥' },
   { id: 'purchase_ledger',     name: '매입전표 관리',  category: '매입/발주관리',   emoji: '📋' },
   { id: 'purchase_order',      name: '발주 등록',      category: '매입/발주관리',   emoji: '📤' },
 
-  { id: 'sales_invoice',       name: '매출전표등록',    category: '매출/수주관리',   emoji: '🧾' },
+  { id: 'sales_invoice',       name: '매출 전표',       category: '매출/수주관리',   emoji: '🧾' },
   { id: 'sales_invoice_list',  name: '매출전표내역',    category: '매출/수주관리',   emoji: '📄' },
   { id: 'sales_ledger',        name: '매출원장',        category: '매출/수주관리',   emoji: '📊' },
-  { id: 'sales_order',         name: '간편수주 등록',    category: '매출/수주관리',   emoji: '🛒' },
+  { id: 'sales_order',         name: '수주 등록',       category: '매출/수주관리',   emoji: '🛒' },
   { id: 'order_list',          name: '수주목록',        category: '매출/수주관리',   emoji: '📝' },
   { id: 'quotation',           name: '견적서',          category: '매출/수주관리',   emoji: '📑' },
   { id: 'quotation_list',      name: '견적서 관리',      category: '매출/수주관리',   emoji: '📋' },
@@ -3709,12 +3709,12 @@ function App() {
                     { id: 'sales_invoice', name: '매출 전표', icon: <FileOutput size={20} />, action: () => openSalesInvoice() },
                     { id: 'sales_invoice_list', name: '매출전표내역', icon: <List size={20} />, action: () => openSalesInvoiceList() },
                     { id: 'sales_ledger', name: '매출 원장', icon: <List size={20} />, action: () => openSalesLedger() },
-                    { id: 'sales_order', name: '수주 추가', icon: <ShoppingCart size={20} />, action: () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }, highlight: true },
+                    { id: 'sales_order', name: '수주 등록', icon: <ShoppingCart size={20} />, action: () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }, highlight: true },
                     { id: 'cash_report_1', name: '결산 보고', icon: <BarChart2 size={20} />, action: () => openCashReport('결산') },
                     { id: 'cash_report_2', name: '입출금 현황', icon: <TrendingUp size={20} />, action: () => openCashReport('일자별') },
                     { id: 'sales_report', name: '매출 보고', icon: <BarChart2 size={20} />, action: () => setIsSalesReportOpen(true) },
                     { id: 'inventory_report_1', name: '일자별 재고이동', icon: <Box size={20} />, action: () => openInventoryReport('일자별') },
-                    { id: 'inventory_report_2', name: '최종재고', icon: <Box size={20} />, action: () => openInventoryReport('최종') },
+                    { id: 'inventory_report_2', name: '최종 재고', icon: <Box size={20} />, action: () => openInventoryReport('최종') },
                     { id: 'receivables', name: '미수금 보고', icon: <DollarSign size={20} />, action: () => setIsReceivablesReportOpen(true) },
                     { id: 'edit_delete', name: '수정삭제 보고', icon: <FileSearch size={20} />, action: () => setIsEditDeleteReportOpen(true) },
                     { id: 'staff_perf', name: '직원 실적', icon: <TrendingUp size={20} />, action: () => setIsStaffPerformanceReportOpen(true) },
@@ -3726,11 +3726,19 @@ function App() {
 
                   if (!menu) return (
                     <div key={idx} className="favorite-item empty" style={{ 
-                      height: '64px', 
-                      border: '1px dashed #e2e8f0', 
-                      backgroundColor: '#fcfcfc',
-                      borderRadius: '8px'
-                    }}></div>
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <div style={{
+                        width: '42px',
+                        height: '42px',
+                        border: '1px dashed #cbd5e1',
+                        backgroundColor: '#fcfcfc',
+                        borderRadius: '10px'
+                      }} />
+                    </div>
                   );
 
                   return (
@@ -3738,29 +3746,43 @@ function App() {
                       key={idx} 
                       className="favorite-item-v2" 
                       style={{ 
-                        height: '64px', 
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        background: menu.highlight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : '#f8fafc',
-                        border: menu.highlight ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                        borderRadius: '8px',
+                        justifyContent: 'flex-start',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
                         cursor: 'pointer',
+                        padding: '2px 0',
                         transition: 'all 0.2s'
                       }} 
                       onClick={menu.action}
                     >
-                      <div className="menu-icon" style={{ color: menu.highlight ? '#1d4ed8' : '#64748b' }}>
+                      <div className="menu-icon-box" style={{ 
+                        width: '42px',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: menu.highlight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : '#f8fafc',
+                        border: menu.highlight ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        color: menu.highlight ? '#1d4ed8' : '#64748b',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                      }}>
                         {menu.icon}
                       </div>
                       <span className="menu-label" style={{ 
                         fontSize: '0.7rem', 
-                        fontWeight: '600',
-                        color: menu.highlight ? '#1d4ed8' : '#475569',
+                        fontWeight: '700',
+                        color: menu.highlight ? '#1d4ed8' : '#334155',
                         textAlign: 'center',
-                        lineHeight: '1.1'
+                        lineHeight: '1.15',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%'
                       }}>
                         {menu.name}
                       </span>
@@ -7644,17 +7666,34 @@ function FavoriteMenuBar({
                 <button
                   onClick={() => { playMenuClickSound(); setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
                   style={{
-                    width: '100%', height: '50px', border: '1.5px dashed #cbd5e1',
-                    backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
-                    borderColor: isSelecting ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: '8px', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '1px',
-                    cursor: 'pointer', transition: 'all 0.15s'
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px 0',
+                    boxSizing: 'border-box'
                   }}
                   title="클릭하여 메뉴 추가"
                 >
-                  <Plus size={15} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  <span style={{ fontSize: '0.65rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    border: isSelecting ? '1.5px solid #3b82f6' : '1.5px dashed #cbd5e1',
+                    backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s'
+                  }}>
+                    <Plus size={18} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
@@ -7746,31 +7785,64 @@ function FavoriteMenuBar({
               <button
                 onClick={() => { playMenuClickSound(); onMenuAction(menuId); }}
                 style={{
-                  width: '100%', height: '50px', border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc', borderRadius: '8px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'all 0.15s',
-                  padding: '3px 4px', boxSizing: 'border-box'
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  gap: '4px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px 0',
+                  boxSizing: 'border-box'
                 }}
                 title={`${menuInfo.name} 열기`}
               >
-                <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                <span style={{ fontSize: '0.67rem', fontWeight: 700, color: '#334155', textAlign: 'center', wordBreak: 'keep-all', letterSpacing: '-0.3px', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  transition: 'all 0.15s'
+                }}>
+                  <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                </div>
+                {/* 이름: 아이콘 박스 밖 아래쪽에 배치 */}
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#334155',
+                  textAlign: 'center',
+                  wordBreak: 'keep-all',
+                  letterSpacing: '-0.3px',
+                  lineHeight: 1.15,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%'
+                }}>
                   {menuInfo.name}
                 </span>
               </button>
-              {/* X 버튼 – 호버 시 표시 */}
+              {/* X 버튼 – 아이콘 박스 우상단에 맞춤 */}
               <button
                 className="slot-remove-btn"
                 onClick={e => { e.stopPropagation(); removeSlot(idx); }}
                 style={{
-                  position: 'absolute', top: '-4px', right: '-4px',
-                  width: '15px', height: '15px', borderRadius: '50%',
+                  position: 'absolute', top: '-3px', right: 'calc(50% - 25px)',
+                  width: '16px', height: '16px', borderRadius: '50%',
                   backgroundColor: '#ef4444', border: '1.5px solid white',
-                  color: 'white', fontSize: '8px', display: 'flex',
+                  color: 'white', fontSize: '9px', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
-                  padding: 0, lineHeight: 1
+                  padding: 0, lineHeight: 1, zIndex: 2
                 }}
                 title="제거"
               >
