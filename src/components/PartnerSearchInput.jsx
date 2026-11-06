@@ -2,7 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, User, X } from 'lucide-react';
 import { matchesInitialSound, getInitialSound } from '../utils/koreanUtils';
 
-const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder = "거래처 검색...", typeFilter = null, autoFocus = false, currentUser = null }) => {
+const PartnerSearchInput = ({ 
+  partners, 
+  value, 
+  onChange, 
+  onSelect, 
+  placeholder = "거래처 검색...", 
+  typeFilter = null, 
+  autoFocus = false, 
+  currentUser = null,
+  nameOnly = false,
+  hideReceivables = false
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -229,8 +240,8 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                 }}
               >
                 <User size={15} color="#64748b" />
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: nameOnly ? 'row' : 'column', flex: 1, alignItems: nameOnly ? 'center' : 'stretch' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
                       {p.name}
                       {p.abbreviation && p.abbreviation !== p.name && (
@@ -239,27 +250,31 @@ const PartnerSearchInput = ({ partners, value, onChange, onSelect, placeholder =
                         </span>
                       )}
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {Number(p.receivables || 0) > 0 && (
-                        <span style={{ fontSize: '0.73rem', color: '#ef4444', fontWeight: 700 }}>
-                          미수: {Number(p.receivables || 0).toLocaleString()}원
+                    {!nameOnly && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {!hideReceivables && Number(p.receivables || 0) > 0 && (
+                          <span style={{ fontSize: '0.73rem', color: '#ef4444', fontWeight: 700 }}>
+                            미수: {Number(p.receivables || 0).toLocaleString()}원
+                          </span>
+                        )}
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '1px 6px', 
+                          borderRadius: '4px', 
+                          backgroundColor: p.type === '매입처' ? '#fef3c7' : p.type === '혼합' ? '#f3e8ff' : '#e0f2fe',
+                          color: p.type === '매입처' ? '#b45309' : p.type === '혼합' ? '#7e22ce' : '#0369a1',
+                          fontWeight: 700 
+                        }}>
+                          {p.type || '거래처'}
                         </span>
-                      )}
-                      <span style={{ 
-                        fontSize: '0.7rem', 
-                        padding: '1px 6px', 
-                        borderRadius: '4px', 
-                        backgroundColor: p.type === '매입처' ? '#fef3c7' : p.type === '혼합' ? '#f3e8ff' : '#e0f2fe',
-                        color: p.type === '매입처' ? '#b45309' : p.type === '혼합' ? '#7e22ce' : '#0369a1',
-                        fontWeight: 700 
-                      }}>
-                        {p.type || '거래처'}
-                      </span>
-                    </div>
+                      </div>
+                    )}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                    {p.ceo ? `대표: ${p.ceo}` : ''} {p.manager ? `| 담당: ${p.manager}` : ''}
-                  </span>
+                  {!nameOnly && (
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      {p.ceo ? `대표: ${p.ceo}` : ''} {p.manager ? `| 담당: ${p.manager}` : ''}
+                    </span>
+                  )}
                 </div>
               </li>
             ))

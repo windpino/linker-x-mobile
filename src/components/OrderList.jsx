@@ -69,10 +69,12 @@ const OrderList = ({
     // 상차시스템에서 납품완료를 다시 눌러 '대기'로 되돌린 수주는 연결 전표가 있어도 미완료 처리
     if (o.deliveryReverted === true && o.isCompleted !== true) return false;
     if (o.status === '완료' || o.status === '배송완료' || o.isCompleted === true) return true;
-    if (o.salesInvoiceId && (salesInvoices || []).some(inv => String(inv.id) === String(o.salesInvoiceId))) return true;
-    if ((salesInvoices || []).some(inv => 
-      String(inv.salesOrderId) === String(o.id) || 
-      String(inv.orderId) === String(o.id)
+    if (o.salesInvoiceId && (salesInvoices || []).some(inv => inv && inv.id && String(inv.id) === String(o.salesInvoiceId))) return true;
+    if (o.id && (salesInvoices || []).some(inv => 
+      inv && (
+        (inv.salesOrderId && String(inv.salesOrderId) === String(o.id)) || 
+        (inv.orderId && String(inv.orderId) === String(o.id))
+      )
     )) return true;
     return false;
   }, [salesInvoices]);
@@ -91,14 +93,68 @@ const OrderList = ({
     }));
   };
 
-  const handleToggleAllOrders = (shouldCollapse) => {
-    const next = {};
-    staffOrders.forEach(o => {
-      next[o.id] = shouldCollapse;
-    });
-    setCollapsedOrders(next);
+  const getCategoryColor = (category) => {
+    if (!category) return '#64748b';
+    if (category === '미등록상품') return '#ef4444';
+    if (category === '기타') return '#64748b';
+    
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16'];
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) {
+      hash = category.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   };
-  
+
+  const getCategoryBadgeStyle = (category) => {
+    const cat = String(category || '기타');
+    if (cat.includes('생물미끼')) {
+      return { bg: 'rgba(16, 185, 129, 0.22)', border: '#10b981', color: '#34d399' };
+    }
+    if (cat.includes('크릴')) {
+      return { bg: 'rgba(239, 68, 68, 0.22)', border: '#ef4444', color: '#f87171' };
+    }
+    if (cat.includes('파우다') || cat.includes('파우더')) {
+      return { bg: 'rgba(245, 158, 11, 0.22)', border: '#f59e0b', color: '#fbbf24' };
+    }
+    if (cat.includes('미끼')) {
+      return { bg: 'rgba(6, 182, 212, 0.22)', border: '#06b6d4', color: '#22d3ee' };
+    }
+    if (cat.includes('미등록상품')) {
+      return { bg: 'rgba(244, 63, 94, 0.25)', border: '#f43f5e', color: '#f43f5e' };
+    }
+    const colors = [
+      { bg: 'rgba(59, 130, 246, 0.22)', border: '#3b82f6', color: '#60a5fa' },
+      { bg: 'rgba(168, 85, 247, 0.22)', border: '#a855f7', color: '#c084fc' },
+      { bg: 'rgba(236, 72, 153, 0.22)', border: '#ec4899', color: '#f472b6' },
+      { bg: 'rgba(20, 184, 166, 0.22)', border: '#14b8a6', color: '#2dd4bf' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const parseOrderItems = React.useCallback((text) => {
+    if (!text) return [];
+    const tokens = text.trim().split(/[\s\n]+/);
+    return tokens.map((token, idx) => {
+      const match = token.match(/^(.+?)(\d+)$/);
+      if (match) {
+        const nameOrAbbr = match[1];
+        const qty = parseInt(match[2], 10);
+        const product = (products || []).find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
+        return {
+          id: idx,
+          raw: token,
+          category: product ? (product.category || '기타') : '미등록상품',
+          name: product?.name || nameOrAbbr,
+          qty: qty
+        };
+      }
+      return { id: idx, raw: token, category: '알 수 없음', name: token, qty: 0 };
+    });
+  }, [products]);
+
   // [성능 최적화 및 렌더링 폭탄 방지] staffOrders 및 필터링 결과 메모이제이션
   const staffOrders = React.useMemo(() => {
     return (salesOrders || []).filter(o => {
@@ -112,6 +168,14 @@ const OrderList = ({
       return isToday && matchesStaff;
     });
   }, [salesOrders, dateStr, selectedStaff]);
+
+  const handleToggleAllOrders = (shouldCollapse) => {
+    const next = {};
+    staffOrders.forEach(o => {
+      next[o.id] = shouldCollapse;
+    });
+    setCollapsedOrders(next);
+  };
 
   const totalOrderCount = staffOrders.length;
   const completedOrderCount = React.useMemo(() => staffOrders.filter(isOrderCompleted).length, [staffOrders, isOrderCompleted]);
@@ -236,67 +300,7 @@ const OrderList = ({
     });
   };
 
-  const getCategoryColor = (category) => {
-    if (!category) return '#64748b';
-    if (category === '미등록상품') return '#ef4444';
-    if (category === '기타') return '#64748b';
-    
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16'];
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      hash = category.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  };
 
-  const getCategoryBadgeStyle = (category) => {
-    const cat = String(category || '기타');
-    if (cat.includes('생물미끼')) {
-      return { bg: 'rgba(16, 185, 129, 0.22)', border: '#10b981', color: '#34d399' };
-    }
-    if (cat.includes('크릴')) {
-      return { bg: 'rgba(239, 68, 68, 0.22)', border: '#ef4444', color: '#f87171' };
-    }
-    if (cat.includes('파우다') || cat.includes('파우더')) {
-      return { bg: 'rgba(245, 158, 11, 0.22)', border: '#f59e0b', color: '#fbbf24' };
-    }
-    if (cat.includes('미끼')) {
-      return { bg: 'rgba(6, 182, 212, 0.22)', border: '#06b6d4', color: '#22d3ee' };
-    }
-    if (cat.includes('미등록상품')) {
-      return { bg: 'rgba(244, 63, 94, 0.25)', border: '#f43f5e', color: '#f43f5e' };
-    }
-    const colors = [
-      { bg: 'rgba(59, 130, 246, 0.22)', border: '#3b82f6', color: '#60a5fa' },
-      { bg: 'rgba(168, 85, 247, 0.22)', border: '#a855f7', color: '#c084fc' },
-      { bg: 'rgba(236, 72, 153, 0.22)', border: '#ec4899', color: '#f472b6' },
-      { bg: 'rgba(20, 184, 166, 0.22)', border: '#14b8a6', color: '#2dd4bf' }
-    ];
-    let hash = 0;
-    for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  const parseOrderItems = (text) => {
-    if (!text) return [];
-    const tokens = text.trim().split(/[\s\n]+/);
-    return tokens.map((token, idx) => {
-      const match = token.match(/^(.+?)(\d+)$/);
-      if (match) {
-        const nameOrAbbr = match[1];
-        const qty = parseInt(match[2], 10);
-        const product = products.find(p => p.name === nameOrAbbr || p.abbreviation === nameOrAbbr);
-        return {
-          id: idx,
-          raw: token,
-          category: product ? (product.category || '기타') : '미등록상품',
-          name: product?.name || nameOrAbbr,
-          qty: qty
-        };
-      }
-      return { id: idx, raw: token, category: '알 수 없음', name: token, qty: 0 };
-    });
-  };
 
   const handleItemMove = (order, item, itemIdx) => {
     const key = `${order.id}-${itemIdx}`;
@@ -394,9 +398,11 @@ const OrderList = ({
     const isCompleted = isOrderCompleted(order);
     // 연결된 기존 매출전표 탐색
     const linkedInvoice = (salesInvoices || []).find(inv =>
-      (order.salesInvoiceId && String(inv.id) === String(order.salesInvoiceId)) ||
-      String(inv.salesOrderId) === String(order.id) ||
-      String(inv.orderId) === String(order.id)
+      inv && (
+        (order.salesInvoiceId && inv.id && String(inv.id) === String(order.salesInvoiceId)) ||
+        (order.id && inv.salesOrderId && String(inv.salesOrderId) === String(order.id)) ||
+        (order.id && inv.orderId && String(inv.orderId) === String(order.id))
+      )
     );
 
     // [납품완료 상태] 다시 클릭 → 매출전표 저장 이전 상태(대기)로 되돌림

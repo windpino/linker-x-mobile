@@ -556,6 +556,8 @@ const SalesOrder = ({
                   }}
                   typeFilter="매출처"
                   autoFocus={true}
+                  nameOnly={true}
+                  hideReceivables={true}
                 />
               </div>
 
@@ -734,26 +736,6 @@ const SalesOrder = ({
               flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => setStep('partner')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    padding: '4px 8px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    color: '#3b82f6',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  <ArrowLeft size={13} /> 거래처 변경
-                </button>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {orderData.partner || '(거래처 미선택)'}
