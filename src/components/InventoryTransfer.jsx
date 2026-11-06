@@ -1,145 +1,56 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeftRight, Search, Plus, X, Download, Save, Trash2, Check, FileSpreadsheet, Edit2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { ArrowLeftRight, Search, Plus, X, Printer, FileText, Check, Trash2, RotateCw } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
-import './InventoryTransfer.css';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import './InventoryTransfer.css';
 
 const InventoryTransfer = ({ 
-  onClose, currentUser, warehouses = [], products = [], inventory = {}, onMoveStock,
-  onDeleteMoveStock, onUpdateMoveStock, historyData = [], setHistoryData,
-  salesOrders = [], salesInvoices = [], onOpenSalesInvoice, onOpenSalesOrder,
-  purchaseInvoices = [], onOpenPurchaseInvoice,
-  initialDate, initialRecord = null, staffList = []
+  onClose, 
+  currentUser, 
+  warehouses = [], 
+  products = [], 
+  inventory = {}, 
+  onMoveStock,
+  onDeleteMoveStock, 
+  onUpdateMoveStock, 
+  historyData = [], 
+  setHistoryData,
+  salesOrders = [], 
+  salesInvoices = [], 
+  onOpenSalesInvoice, 
+  onOpenSalesOrder,
+  purchaseInvoices = [], 
+  onOpenPurchaseInvoice,
+  initialDate, 
+  initialRecord = null, 
+  staffList = []
 }) => {
-  // ─── 컬럼 너비 조정 (구분, 규격 제거) ───
-  const [colWidths, setColWidths] = useState({
-    select: 40,
-    date: 110,
-    from: 105,
-    to: 105,
-    item: 200,
-    qty: 85,
-    processedAt: 90,
-    operator: 95,
-    memo: 130,
-    manage: 85
-  });
+  // ─── 탭 모드: 'register' (재고이동 등록 - 기본 모바일 양식) / 'history' (이동 이력조회) ───
+  const [activeTab, setActiveTab] = useState('register');
 
-  const resizingCol = useRef(null);
-  const resizeStartX = useRef(0);
-  const resizeStartW = useRef(0);
-  const MIN_COL_W = 35;
-
-  const onResizeMouseDown = useCallback((e, colKey) => {
-    e.preventDefault();
-    resizingCol.current = colKey;
-    resizeStartX.current = e.clientX;
-    resizeStartW.current = colWidths[colKey];
-
-    const onMove = (mv) => {
-      const delta = mv.clientX - resizeStartX.current;
-      const newW = Math.max(MIN_COL_W, resizeStartW.current + delta);
-      setColWidths(prev => ({ ...prev, [resizingCol.current]: newW }));
-    };
-
-    const onUp = () => {
-      resizingCol.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [colWidths]);
-
-  const formatDateLocal = (d) => {
-    if (!d) return '';
-    const dateObj = typeof d === 'string' ? new Date(d) : d;
-    if (isNaN(dateObj.getTime())) return '';
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
+  // ─── 이동 등록 상태 ───
   const getTodayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // ─── 검색 및 기간 필터 상태 ───
-  const [startDateInput, setStartDateInput] = useState(() => {
-    if (initialDate) return formatDateLocal(initialDate);
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
-  const [endDateInput, setEndDateInput] = useState(() => {
-    if (initialDate) return formatDateLocal(initialDate);
-    return getTodayStr();
-  });
-
-  const [startDate, setStartDate] = useState(startDateInput);
-  const [endDate, setEndDate] = useState(endDateInput);
-
-  const [historyFromWarehouse, setHistoryFromWarehouse] = useState('전체창고');
-  const [historyToWarehouse, setHistoryToWarehouse] = useState('전체창고');
-  const [historySearch, setHistorySearch] = useState('');
-
-  const [appliedFromWarehouse, setAppliedFromWarehouse] = useState('전체창고');
-  const [appliedToWarehouse, setAppliedToWarehouse] = useState('전체창고');
-  const [appliedSearch, setAppliedSearch] = useState('');
-
-  // ─── 상단 등록창/수정창 상태 ───
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [transferMemo, setTransferMemo] = useState('수동이동');
   const [transferDate, setTransferDate] = useState(() => {
-    if (initialRecord?.date) return formatDateLocal(initialRecord.date);
-    if (initialDate) return formatDateLocal(initialDate);
-    return getTodayStr();
-  });
-
-  useEffect(() => {
+    if (initialRecord?.date) return initialRecord.date;
     if (initialDate) {
-      const dateStr = formatDateLocal(initialDate);
-      setStartDateInput(dateStr);
-      setEndDateInput(dateStr);
-      setStartDate(dateStr);
-      setEndDate(dateStr);
-      setTransferDate(dateStr);
-    }
-  }, [initialDate]);
-
-  useEffect(() => {
-    if (initialRecord) {
-      setIsRegisterOpen(true);
-      setEditingRecord(initialRecord);
-      const recDate = initialRecord.date ? formatDateLocal(initialRecord.date) : getTodayStr();
-      setTransferDate(recDate);
-      setStartDateInput(recDate);
-      setEndDateInput(recDate);
-      setStartDate(recDate);
-      setEndDate(recDate);
-      if (initialRecord.from) setFromWarehouse(initialRecord.from);
-      if (initialRecord.to) setToWarehouse(initialRecord.to);
-      if (initialRecord.operator) setSelectedOperator(initialRecord.operator);
-      if (initialRecord.memo) setTransferMemo(initialRecord.memo);
-      if (initialRecord.qty) setQuantity(initialRecord.qty);
-      if (initialRecord.item) {
-        setItemSearch(initialRecord.item);
-        const prod = products.find(p => p.name === initialRecord.item);
-        if (prod) setSelectedProduct(prod);
-        else setSelectedProduct({ name: initialRecord.item, spec: initialRecord.spec || '' });
-
-        setHistorySearch(initialRecord.item);
-        setAppliedSearch(initialRecord.item);
+      const dateObj = typeof initialDate === 'string' ? new Date(initialDate) : initialDate;
+      if (!isNaN(dateObj.getTime())) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
       }
     }
-  }, [initialRecord, products]);
+    return getTodayStr();
+  });
 
-  // ─── 메인 창고 & 담당자 기본 설정 ───
+  // 메인 창고 & 기본 입고창고
   const mainWarehouseName = useMemo(() => {
     const mainWh = warehouses.find(w => w.isMain) || 
       warehouses.find(w => (w.name || '').includes('메인') || (w.name || '').includes('본사')) || 
@@ -158,1654 +69,995 @@ const InventoryTransfer = ({
   const [fromWarehouse, setFromWarehouse] = useState(mainWarehouseName);
   const [toWarehouse, setToWarehouse] = useState(defaultToWarehouse);
 
-  // 기본 담당자: 로그인한 사용자 기본 설정
-  const [selectedOperator, setSelectedOperator] = useState(() => {
-    return currentUser?.name || (staffList.length > 0 ? staffList[0].name : '관리자');
-  });
-
   useEffect(() => {
-    if (mainWarehouseName) {
+    if (mainWarehouseName && !fromWarehouse) {
       setFromWarehouse(mainWarehouseName);
     }
-  }, [mainWarehouseName]);
+  }, [mainWarehouseName, fromWarehouse]);
 
-  useEffect(() => {
-    if (currentUser?.name) {
-      setSelectedOperator(currentUser.name);
-    } else if (staffList.length > 0 && !selectedOperator) {
-      setSelectedOperator(staffList[0].name);
-    }
-  }, [currentUser, staffList]);
-
-  // ─── 엑셀 직접 수정(인라인 그리드) 상태 관리 ───
-  const [modifiedRows, setModifiedRows] = useState({});
-  const [newRows, setNewRows] = useState([]);
-  const [activeItemSuggestRowId, setActiveItemSuggestRowId] = useState(null);
-  const [itemSuggestQuery, setItemSuggestQuery] = useState('');
-  const [gridSelectedIndex, setGridSelectedIndex] = useState(-1);
-  const gridItemInputRefs = useRef({});
-  const gridQtyInputRefs = useRef({});
-
-  const handleSearch = () => {
-    setStartDate(startDateInput);
-    setEndDate(endDateInput);
-    setAppliedFromWarehouse(historyFromWarehouse);
-    setAppliedToWarehouse(historyToWarehouse);
-    setAppliedSearch(historySearch);
-  };
-
-  const handleQuickDate = (type) => {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = today.getMonth() + 1;
-    
-    const formatDate = (date) => {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    };
-
-    let start = "";
-    let end = formatDate(today);
-
-    switch (type) {
-      case '당일':
-        start = formatDate(today);
-        end = formatDate(today);
-        break;
-      case '1주일':
-        const day = today.getDay();
-        const sun = new Date(today);
-        sun.setDate(today.getDate() - day);
-        start = formatDate(sun);
-        break;
-      case '한달':
-        start = `${y}-${String(m).padStart(2, '0')}-01`;
-        break;
-      case '상반기':
-        start = `${y}-01-01`;
-        end = `${y}-06-30`;
-        break;
-      case '하반기':
-        start = `${y}-07-01`;
-        end = `${y}-12-31`;
-        break;
-      case '1년':
-        start = `${y}-01-01`;
-        end = `${y}-12-31`;
-        break;
-      case '전체':
-        start = '2000-01-01';
-        end = '2099-12-31';
-        break;
-      default:
-        start = `${y}-${String(m).padStart(2, '0')}-01`;
-    }
-
-    setStartDateInput(start);
-    setEndDateInput(end);
-    setStartDate(start);
-    setEndDate(end);
-    setAppliedFromWarehouse(historyFromWarehouse);
-    setAppliedToWarehouse(historyToWarehouse);
-    setAppliedSearch(historySearch);
-  };
-
-  const renderWarehouseOptions = (includeAll = true) => {
-    return (
-      <>
-        {includeAll && <option value="전체창고">전체창고</option>}
-        {warehouses.map(w => (
-          <option key={w.id} value={w.name}>
-            {w.name} {w.isMain ? '(메인)' : (w.manager && !w.name.includes(w.manager) ? `(${w.manager})` : '')}
-          </option>
-        ))}
-      </>
-    );
-  };
-
-  const getTransferBadge = (row) => {
-    if (row.isNew) {
-      return { text: '신규등록', bg: '#ecfdf5', color: '#059669' };
-    }
-    if (row.memo === '상차(자동이동)') {
-      return { text: '주문상차', bg: '#e0e7ff', color: '#4f46e5' };
-    }
-    if (row.to === '매출출고' || row.memo?.startsWith('[매출]') || row.memo?.includes('매출')) {
-      return { text: '매출전표', bg: '#dcfce7', color: '#16a34a' };
-    }
-    if (row.from === '매입입고' || row.memo?.startsWith('[매입]') || row.memo?.includes('매입')) {
-      return { text: '매입전표', bg: '#fee2e2', color: '#dc2626' };
-    }
-    return { text: '창고이동', bg: '#f1f5f9', color: '#475569' };
-  };
-
-  const getWarehouseColor = (name) => {
-    const wh = warehouses.find(w => w.name === name);
-    return wh?.color || '#3b82f6';
-  };
-
-  const getProductStockInWarehouse = (productName, whName) => {
-    if (!whName || whName === '전체창고') return 0;
-    const product = products?.find(p => p.name === productName);
-    const initialStock = product ? (Number(product.initialStock) || 0) : 0;
-    const delta = (inventory && inventory[whName] && inventory[whName][productName])
-      ? Number(inventory[whName][productName])
-      : 0;
-    return initialStock + delta;
-  };
-
-  const findWarehousesWithStock = (productName) => {
-    const result = [];
-    const product = products?.find(p => p.name === productName);
-    const initialStock = product ? (Number(product.initialStock) || 0) : 0;
-
-    for (const wh of warehouses) {
-      if (!wh.name || wh.name === '전체창고') continue;
-      const delta = (inventory && inventory[wh.name] && inventory[wh.name][productName])
-        ? Number(inventory[wh.name][productName])
-        : 0;
-      const stock = initialStock + delta;
-      if (stock > 0) {
-        result.push({
-          id: wh.id,
-          name: wh.name,
-          manager: wh.manager || '',
-          color: wh.color || '#3b82f6',
-          stock
-        });
-      }
-    }
-    result.sort((a, b) => b.stock - a.stock);
-    return result;
-  };
-
-  const [itemSearch, setItemSearch] = useState('');
-  const [quantity, setQuantity] = useState(0);
-  const [selectedHistoryIds, setSelectedHistoryIds] = useState([]);
-  
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  // 상품 검색 및 입력 상태
+  const [searchCriterion, setSearchCriterion] = useState('상품명');
+  const [itemSearchText, setItemSearchText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [warehousePickerState, setWarehousePickerState] = useState({
-    show: false,
-    candidates: [],
-    product: null
+  const searchInputRef = useRef(null);
+  const searchContainerRef = useRef(null);
+
+  // 이동 대상 품목 목록 (현재 전표에 담긴 품목들)
+  const [transferItems, setTransferItems] = useState([]);
+  const [printBoxQty, setPrintBoxQty] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // ─── 이력 조회 관련 상태 ───
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
-  const searchRef = useRef(null);
+  const [historyEndDate, setHistoryEndDate] = useState(getTodayStr());
+  const [historyFromFilter, setHistoryFromFilter] = useState('전체창고');
+  const [historyToFilter, setHistoryToFilter] = useState('전체창고');
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
 
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const productInputRef = useRef(null);
-  const qtyInputRef = useRef(null);
-  const submitBtnRef = useRef(null);
-  const productListRef = useRef(null);
-
-  const handleSelectProduct = (prod) => {
-    if (!prod) return;
-    setSelectedProduct(prod);
-    setItemSearch(prod.name);
-    setShowSuggestions(false);
-
-    // 출고 창고는 항상 메인창고가 선택되어 있도록 유지
-    setFromWarehouse(mainWarehouseName);
-    if (toWarehouse === mainWarehouseName) {
-      setToWarehouse(defaultToWarehouse);
-    }
-
-    setTimeout(() => {
-      if (qtyInputRef.current) {
-        qtyInputRef.current.focus();
-        qtyInputRef.current.select();
-      }
-    }, 10);
-  };
-
-  const handleChooseWarehouse = (whName) => {
-    setFromWarehouse(whName);
-    if (toWarehouse === whName) {
-      const otherWh = warehouses.find(w => w.name !== whName && w.name !== '전체창고');
-      if (otherWh) setToWarehouse(otherWh.name);
-    }
-    setWarehousePickerState({ show: false, candidates: [], product: null });
-    setTimeout(() => {
-      if (qtyInputRef.current) {
-        qtyInputRef.current.focus();
-        qtyInputRef.current.select();
-      }
-    }, 10);
-  };
-
-  const handleStartEditInTopForm = (row) => {
-    setIsRegisterOpen(true);
-    setEditingRecord(row);
-    const recDate = row.date ? formatDateLocal(row.date) : getTodayStr();
-    setTransferDate(recDate);
-    if (row.from) setFromWarehouse(row.from);
-    if (row.to) setToWarehouse(row.to);
-    if (row.operator) setSelectedOperator(row.operator);
-    setTransferMemo(row.memo || '수동이동');
-    setQuantity(row.qty || 1);
-    if (row.item) {
-      setItemSearch(row.item);
-      const prod = products.find(p => p.name === row.item);
-      if (prod) setSelectedProduct(prod);
-      else setSelectedProduct({ name: row.item, spec: row.spec || '' });
-    }
-    setTimeout(() => {
-      qtyInputRef.current?.focus();
-      qtyInputRef.current?.select();
-    }, 50);
-  };
-
+  // 외부 클릭 시 검색 제안 닫기
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setShowSuggestions(false);
-      }
-      if (!e.target.closest('.grid-autocomplete-container')) {
-        setActiveItemSuggestRowId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filterProducts = useCallback((query) => {
-    const q = (query || '').trim().toLowerCase();
-    if (!q) return [];
-    return products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const abbr = (p.abbreviation || '').toLowerCase();
-      const matchNameSound = matchesInitialSound(p.name || '', q);
-      const matchAbbrSound = p.abbreviation ? matchesInitialSound(p.abbreviation, q) : false;
-      const matchNameText = name.includes(q);
-      const matchAbbrText = abbr ? abbr.includes(q) : false;
-      return matchNameSound || matchNameText || matchAbbrSound || matchAbbrText;
-    });
-  }, [products]);
-
-  const suggestions = useMemo(() => {
-    if (!itemSearch.trim()) return [];
-    return filterProducts(itemSearch).slice(0, 50);
-  }, [itemSearch, filterProducts]);
-
-  const gridSuggestions = useMemo(() => {
-    if (!itemSuggestQuery.trim()) return products.slice(0, 30);
-    return filterProducts(itemSuggestQuery).slice(0, 50);
-  }, [itemSuggestQuery, filterProducts, products]);
-
-  useEffect(() => {
-    setSelectedIndex(suggestions.length > 0 ? 0 : -1);
-  }, [itemSearch, suggestions]);
-
-  useEffect(() => {
-    if (selectedIndex !== -1 && productListRef.current) {
-      const activeItem = productListRef.current.children[selectedIndex];
-      if (activeItem) {
-        activeItem.scrollIntoView({ block: 'nearest' });
-      }
-    }
-  }, [selectedIndex]);
-
-  // ─── 날짜 정규화 및 필터링 ───
-  const normalizeDate = (d) => {
-    if (!d) return '';
-    return String(d).trim().replace(/[./]/g, '-').slice(0, 10);
+  // 창고별 재고 조회 유틸
+  const getStock = (whName, prodName) => {
+    const prod = products.find(p => p.name === prodName);
+    const initStock = prod?.initialStock || 0;
+    const invStock = inventory[whName]?.[prodName] !== undefined ? inventory[whName][prodName] : 0;
+    return initStock + invStock;
   };
 
-  const recentHistory = useMemo(() => {
-    return historyData.filter(item => {
-      if (item.isPhysicalAdjustment || item.isAdjustment || item.adjustmentId) return false;
+  // 상품 자동완성 목록
+  const cleanSearch = itemSearchText.trim();
+  const suggestions = useMemo(() => {
+    if (!cleanSearch) return [];
+    return products.filter(p => {
+      return (
+        p.name.includes(cleanSearch) ||
+        (p.abbreviation && p.abbreviation.includes(cleanSearch)) ||
+        matchesInitialSound(p.name, cleanSearch) ||
+        (p.abbreviation && matchesInitialSound(p.abbreviation, cleanSearch)) ||
+        (p.code && p.code.includes(cleanSearch))
+      );
+    }).slice(0, 30);
+  }, [products, cleanSearch]);
 
-      // 매출출고 제외: 각 차량/창고에서 매출로 출고된 내역은 창고이동 내역에서 제외 (실제 상차 및 창고간 이동만 표시)
-      if (
-        item.to === '매출출고' || 
-        item.salesInvoiceId || 
-        (typeof item.to === 'string' && item.to.includes('매출')) ||
-        (typeof item.memo === 'string' && (item.memo.startsWith('[매출]') || item.memo.includes('매출출고')))
-      ) {
-        return false;
+  // 상품 추가 핸들러
+  const handleAddProduct = (prod) => {
+    if (!prod) return;
+    setTransferItems(prev => {
+      const existingIdx = prev.findIndex(item => item.name === prod.name);
+      if (existingIdx >= 0) {
+        // 이미 추가된 상품이면 수량 1 증가
+        const next = [...prev];
+        next[existingIdx] = {
+          ...next[existingIdx],
+          qty: Number(next[existingIdx].qty || 0) + 1
+        };
+        return next;
       }
+      // 신규 추가
+      return [
+        ...prev,
+        {
+          id: Date.now() + Math.random(),
+          name: prod.name,
+          spec: prod.spec || '',
+          unit: prod.unit || '개',
+          qty: 1,
+          boxPerUnits: prod.boxPerUnits || prod.boxQuantity || 20,
+          checked: true // 영수증 출력 기본 선택
+        }
+      ];
+    });
+    setItemSearchText('');
+    setShowSuggestions(false);
+  };
 
-      const itemDate = normalizeDate(item.date);
-      if (startDate && itemDate && itemDate < startDate) return false;
-      if (endDate && itemDate && itemDate > endDate) return false;
+  // 수량 변경
+  const handleUpdateQty = (idx, newQty) => {
+    const val = parseFloat(newQty);
+    setTransferItems(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], qty: isNaN(val) ? 0 : val };
+      return next;
+    });
+  };
 
-      if (appliedFromWarehouse !== '전체창고' && appliedFromWarehouse !== '전체') {
-        if (item.from !== appliedFromWarehouse) return false;
+  // 품목 삭제
+  const handleRemoveItem = (idx) => {
+    setTransferItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  // 영수증 체크 토글
+  const handleToggleCheck = (idx) => {
+    setTransferItems(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], checked: !next[idx].checked };
+      return next;
+    });
+  };
+
+  // 전체 선택/해제 토글
+  const allChecked = transferItems.length > 0 && transferItems.every(i => i.checked);
+  const handleToggleAllChecks = () => {
+    const targetState = !allChecked;
+    setTransferItems(prev => prev.map(item => ({ ...item, checked: targetState })));
+  };
+
+  // 새전표 (초기화)
+  const handleNewSlip = () => {
+    if (transferItems.length > 0) {
+      if (!window.confirm('입력 중인 품목이 모두 초기화됩니다. 새 전표를 작성하시겠습니까?')) {
+        return;
       }
+    }
+    setTransferItems([]);
+    setItemSearchText('');
+  };
 
-      if (appliedToWarehouse !== '전체창고' && appliedToWarehouse !== '전체') {
-        if (item.to !== appliedToWarehouse) return false;
+  // 재고이동 실행 및 저장
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleSaveTransfer = async () => {
+    if (transferItems.length === 0) {
+      alert('이동할 상품을 1개 이상 추가해주세요.');
+      return;
+    }
+    if (!fromWarehouse || !toWarehouse) {
+      alert('출고창고와 입고창고를 선택해주세요.');
+      return;
+    }
+    if (fromWarehouse === toWarehouse) {
+      alert('출고창고와 입고창고가 동일합니다. 서로 다른 창고를 선택해주세요.');
+      return;
+    }
+
+    const invalidItem = transferItems.find(it => Number(it.qty || 0) <= 0);
+    if (invalidItem) {
+      alert(`[${invalidItem.name}]의 이동 수량이 0이거나 올바르지 않습니다.`);
+      return;
+    }
+
+    if (!window.confirm(`총 ${transferItems.length}건의 상품을\n[${fromWarehouse}] ➔ [${toWarehouse}] 로 이동하시겠습니까?`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      for (const item of transferItems) {
+        await onMoveStock(
+          fromWarehouse,
+          toWarehouse,
+          item.name,
+          Number(item.qty),
+          false,
+          transferDate,
+          null,
+          currentUser?.name || (staffList.length > 0 ? staffList[0].name : '관리자')
+        );
       }
+      alert(`재고이동이 정상적으로 완료되었습니다.`);
+      setTransferItems([]);
+    } catch (e) {
+      console.error(e);
+      alert('재고이동 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      if (appliedSearch.trim()) {
-        const q = appliedSearch.trim().toLowerCase();
-        const product = products?.find(p => p.name === item.item);
-        const matchItem = matchesInitialSound(item.item || '', q) || (item.item || '').toLowerCase().includes(q);
-        const matchSpec = (item.spec || '').toLowerCase().includes(q);
-        const matchAbbr = product?.abbreviation && (matchesInitialSound(product.abbreviation, q) || product.abbreviation.toLowerCase().includes(q));
-        const matchFrom = matchesInitialSound(item.from || '', q) || (item.from || '').toLowerCase().includes(q);
-        const matchTo = matchesInitialSound(item.to || '', q) || (item.to || '').toLowerCase().includes(q);
-        const matchOperator = matchesInitialSound(item.operator || '', q) || (item.operator || '').toLowerCase().includes(q);
-        const matchMemo = matchesInitialSound(item.memo || '', q) || (item.memo || '').toLowerCase().includes(q);
-        return matchItem || matchSpec || matchAbbr || matchFrom || matchTo || matchOperator || matchMemo;
+  // 총 건수 및 총 수량 계산
+  const totalCount = transferItems.length;
+  const totalQuantity = transferItems.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+
+  // 이력 필터링 결과
+  const filteredHistory = useMemo(() => {
+    return (historyData || []).filter(h => {
+      if (h.date < historyStartDate || h.date > historyEndDate) return false;
+      if (historyFromFilter !== '전체창고' && h.from !== historyFromFilter) return false;
+      if (historyToFilter !== '전체창고' && h.to !== historyToFilter) return false;
+      if (historySearchTerm.trim()) {
+        const q = historySearchTerm.trim();
+        const matches = (h.item || '').includes(q) || (h.operator || '').includes(q) || (h.memo || '').includes(q);
+        if (!matches) return false;
       }
       return true;
     });
-  }, [historyData, startDate, endDate, appliedFromWarehouse, appliedToWarehouse, appliedSearch, products]);
-
-  const combinedGridRows = useMemo(() => {
-    const formattedNewRows = newRows.map(nr => ({
-      ...nr,
-      isNew: true,
-      processedAt: '입력중',
-      id: nr.tempId
-    }));
-    return [...formattedNewRows, ...recentHistory];
-  }, [newRows, recentHistory]);
-
-  const deletableHistory = useMemo(() => {
-    return recentHistory.filter(h => {
-      const badge = getTransferBadge(h);
-      return badge.text === '창고이동';
-    });
-  }, [recentHistory]);
-
-  const isAllSelected = useMemo(() => {
-    return deletableHistory.length > 0 && deletableHistory.every(h => selectedHistoryIds.includes(h.id));
-  }, [deletableHistory, selectedHistoryIds]);
-
-  const isSomeSelected = useMemo(() => {
-    return deletableHistory.length > 0 && 
-      deletableHistory.some(h => selectedHistoryIds.includes(h.id)) && 
-      !isAllSelected;
-  }, [deletableHistory, selectedHistoryIds, isAllSelected]);
-
-  const handleSelectAll = useCallback(() => {
-    if (isAllSelected) {
-      const deletableIds = deletableHistory.map(h => h.id);
-      setSelectedHistoryIds(prev => prev.filter(id => !deletableIds.includes(id)));
-    } else {
-      const deletableIds = deletableHistory.map(h => h.id);
-      setSelectedHistoryIds(prev => {
-        const otherIds = prev.filter(id => !deletableIds.includes(id));
-        return [...otherIds, ...deletableIds];
-      });
-    }
-  }, [isAllSelected, deletableHistory]);
-
-  // ─── 엑셀 인라인 셀 편집 ───
-  const handleCellChange = (row, field, value) => {
-    if (row.isNew) {
-      setNewRows(prev => prev.map(nr => {
-        if (nr.tempId === row.id) {
-          const updated = { ...nr, [field]: value };
-          if (field === 'item') {
-            const matchedProd = products.find(p => p.name === value);
-            if (matchedProd) {
-              updated.spec = matchedProd.spec || '';
-            }
-          }
-          return updated;
-        }
-        return nr;
-      }));
-    } else {
-      setModifiedRows(prev => {
-        const currentMod = prev[row.id] || { ...row };
-        const updated = { ...currentMod, [field]: value };
-        if (field === 'item') {
-          const matchedProd = products.find(p => p.name === value);
-          if (matchedProd) {
-            updated.spec = matchedProd.spec || '';
-          }
-        }
-        return {
-          ...prev,
-          [row.id]: updated
-        };
-      });
-    }
-  };
-
-  const handleAddNewRow = () => {
-    const newTempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    const newRow = {
-      tempId: newTempId,
-      date: getTodayStr(),
-      from: mainWarehouseName,
-      to: defaultToWarehouse,
-      item: '',
-      qty: 1,
-      operator: selectedOperator || currentUser?.name || '관리자',
-      memo: '수동이동'
-    };
-    setNewRows(prev => [...prev, newRow]);
-    setTimeout(() => {
-      gridItemInputRefs.current[newTempId]?.focus();
-    }, 50);
-  };
-
-  const handleSaveSingleRow = async (row, isSilent = false) => {
-    const targetData = row.isNew 
-      ? newRows.find(nr => nr.tempId === row.id)
-      : (modifiedRows[row.id] || row);
-
-    if (!targetData) return;
-
-    if (!targetData.item?.trim()) {
-      alert('품목명을 입력해주세요.');
-      gridItemInputRefs.current[row.id]?.focus();
-      return;
-    }
-    if (targetData.from === targetData.to) {
-      alert('출고창고와 입고창고가 같을 수 없습니다.');
-      return;
-    }
-    if (Number(targetData.qty) <= 0) {
-      alert('이동 수량을 1개 이상 입력해주세요.');
-      gridQtyInputRefs.current[row.id]?.focus();
-      return;
-    }
-
-    const rowOperator = targetData.operator || selectedOperator || currentUser?.name || '관리자';
-
-    try {
-      if (row.isNew) {
-        await onMoveStock(
-          targetData.from,
-          targetData.to,
-          targetData.item.trim(),
-          Number(targetData.qty),
-          false,
-          targetData.date,
-          null,
-          rowOperator
-        );
-        setNewRows(prev => prev.filter(nr => nr.tempId !== row.id));
-        if (!isSilent) alert('신규 재고이동이 등록되었습니다.');
-      } else {
-        if (onUpdateMoveStock) {
-          await onUpdateMoveStock(row.id, {
-            ...targetData,
-            qty: Number(targetData.qty),
-            operator: rowOperator
-          });
-        } else {
-          await onDeleteMoveStock(row.id);
-          await onMoveStock(
-            targetData.from,
-            targetData.to,
-            targetData.item.trim(),
-            Number(targetData.qty),
-            false,
-            targetData.date,
-            null,
-            rowOperator
-          );
-        }
-        setModifiedRows(prev => {
-          const next = { ...prev };
-          delete next[row.id];
-          return next;
-        });
-        if (!isSilent) alert('재고이동 내역이 성공적으로 수정되었습니다.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('저장 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleCancelRowEdit = (row) => {
-    if (row.isNew) {
-      setNewRows(prev => prev.filter(nr => nr.tempId !== row.id));
-    } else {
-      setModifiedRows(prev => {
-        const next = { ...prev };
-        delete next[row.id];
-        return next;
-      });
-    }
-  };
-
-  const handleGridItemKeyDown = (e, row) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setGridSelectedIndex(prev => (prev < gridSuggestions.length - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setGridSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeItemSuggestRowId === row.id && gridSuggestions.length > 0) {
-        const sel = gridSuggestions[gridSelectedIndex >= 0 ? gridSelectedIndex : 0];
-        if (sel) {
-          handleCellChange(row, 'item', sel.name);
-          setActiveItemSuggestRowId(null);
-          setTimeout(() => {
-            gridQtyInputRefs.current[row.id]?.focus();
-            gridQtyInputRefs.current[row.id]?.select();
-          }, 30);
-          return;
-        }
-      }
-      gridQtyInputRefs.current[row.id]?.focus();
-      gridQtyInputRefs.current[row.id]?.select();
-    } else if (e.key === 'Escape') {
-      setActiveItemSuggestRowId(null);
-    }
-  };
-
-  const handleGridQtyKeyDown = async (e, row) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const targetData = row.isNew 
-        ? newRows.find(nr => nr.tempId === row.id)
-        : (modifiedRows[row.id] || row);
-
-      if (!targetData?.item?.trim()) {
-        alert('품목명을 입력해주세요.');
-        gridItemInputRefs.current[row.id]?.focus();
-        return;
-      }
-      if (Number(targetData?.qty) <= 0) {
-        alert('이동 수량을 1개 이상 입력해주세요.');
-        return;
-      }
-
-      await handleSaveSingleRow(row, true);
-
-      const newTempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const nextRow = {
-        tempId: newTempId,
-        date: targetData.date || getTodayStr(),
-        from: targetData.from || mainWarehouseName,
-        to: targetData.to || defaultToWarehouse,
-        item: '',
-        qty: 1,
-        operator: targetData.operator || selectedOperator || currentUser?.name || '관리자',
-        memo: '수동이동'
-      };
-      setNewRows(prev => [...prev, nextRow]);
-      setTimeout(() => {
-        gridItemInputRefs.current[newTempId]?.focus();
-      }, 50);
-    }
-  };
-
-  const totalModifiedCount = Object.keys(modifiedRows).length + newRows.length;
-
-  const handleBatchSave = async () => {
-    if (totalModifiedCount === 0) {
-      alert('저장할 변경사항이 없습니다.');
-      return;
-    }
-
-    for (const nr of newRows) {
-      if (!nr.item?.trim()) {
-        alert(`신규 추가 행의 품목명을 입력해주세요.`);
-        return;
-      }
-      if (nr.from === nr.to) {
-        alert(`신규 추가 행 [${nr.item}]의 출고창고와 입고창고가 같습니다.`);
-        return;
-      }
-      if (Number(nr.qty) <= 0) {
-        alert(`신규 추가 행 [${nr.item}]의 수량을 1개 이상 입력해주세요.`);
-        return;
-      }
-    }
-
-    for (const id of Object.keys(modifiedRows)) {
-      const mr = modifiedRows[id];
-      if (!mr.item?.trim()) {
-        alert(`수정 행의 품목명을 입력해주세요.`);
-        return;
-      }
-      if (mr.from === mr.to) {
-        alert(`수정 행 [${mr.item}]의 출고창고와 입고창고가 같습니다.`);
-        return;
-      }
-      if (Number(mr.qty) <= 0) {
-        alert(`수정 행 [${mr.item}]의 수량을 1개 이상 입력해주세요.`);
-        return;
-      }
-    }
-
-    try {
-      for (const nr of newRows) {
-        await onMoveStock(
-          nr.from, 
-          nr.to, 
-          nr.item.trim(), 
-          Number(nr.qty), 
-          false, 
-          nr.date, 
-          null, 
-          nr.operator || selectedOperator || currentUser?.name || '관리자'
-        );
-      }
-      for (const id of Object.keys(modifiedRows)) {
-        const mr = modifiedRows[id];
-        const rowOp = mr.operator || selectedOperator || currentUser?.name || '관리자';
-        if (onUpdateMoveStock) {
-          await onUpdateMoveStock(id, { ...mr, qty: Number(mr.qty), operator: rowOp });
-        } else {
-          await onDeleteMoveStock(id);
-          await onMoveStock(
-            mr.from, 
-            mr.to, 
-            mr.item.trim(), 
-            Number(mr.qty), 
-            false, 
-            mr.date, 
-            null, 
-            rowOp
-          );
-        }
-      }
-
-      setNewRows([]);
-      setModifiedRows({});
-      alert(`${totalModifiedCount}건의 변경사항이 일괄 저장되었습니다.`);
-    } catch (err) {
-      console.error(err);
-      alert('일괄 저장 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleExcelExport = () => {
-    if (recentHistory.length === 0) {
-      alert('내보낼 이동 내역이 없습니다.');
-      return;
-    }
-    const exportData = recentHistory.map(row => ({
-      '이동일자': row.date || '',
-      '출고창고': row.from || '',
-      '입고창고': row.to || '',
-      '품목명': row.item || '',
-      '수량': Number(row.qty) || 0,
-      '처리시간': row.processedAt || '',
-      '담당자': row.operator || '',
-      '비고': row.memo || ''
-    }));
-    exportToExcel(exportData, `재고이동내역_${startDate}_${endDate}`, '재고이동내역');
-  };
-
-  const [successMsg, setSuccessMsg] = useState('');
-
-  const handleTransfer = async () => {
-    if (fromWarehouse === '전체창고' || toWarehouse === '전체창고') {
-      alert('출고창고와 입고창고는 "전체창고" 이외의 실제 창고를 지정해야 이동할 수 있습니다.');
-      productInputRef.current?.focus();
-      return;
-    }
-
-    if (!selectedProduct || Number(quantity) <= 0) {
-      alert('품목과 수량을 정확히 입력해주세요.');
-      if (!selectedProduct) productInputRef.current?.focus();
-      else qtyInputRef.current?.focus();
-      return;
-    }
-    
-    if (fromWarehouse === toWarehouse) {
-      alert('출고창고와 입고창고가 같습니다.');
-      productInputRef.current?.focus();
-      return;
-    }
-
-    const movingName = selectedProduct.name;
-    const movingQty = parseInt(quantity, 10);
-
-    const prodObj = products.find(p => p.name === movingName);
-    const initialStock = prodObj?.initialStock || 0;
-    const available = initialStock + ((inventory[fromWarehouse]?.[movingName]) || 0);
-    if (available < movingQty) {
-      if (!window.confirm(`선택한 창고의 재고(${available}개)가 부족합니다. 그래도 이동하시겠습니까?`)) {
-        qtyInputRef.current?.focus();
-        return;
-      }
-    }
-
-    if (editingRecord) {
-      try {
-        const rowOperator = selectedOperator || currentUser?.name || '관리자';
-        const updatedEntry = {
-          ...editingRecord,
-          from: fromWarehouse,
-          to: toWarehouse,
-          item: movingName,
-          spec: prodObj?.spec || editingRecord.spec || '',
-          qty: movingQty,
-          date: transferDate,
-          operator: rowOperator,
-          memo: transferMemo || editingRecord.memo || '수동이동'
-        };
-
-        if (onUpdateMoveStock) {
-          await onUpdateMoveStock(editingRecord.id, updatedEntry);
-        } else {
-          await onDeleteMoveStock(editingRecord.id);
-          await onMoveStock(
-            fromWarehouse,
-            toWarehouse,
-            movingName,
-            movingQty,
-            false,
-            transferDate,
-            null,
-            rowOperator
-          );
-        }
-
-        setSuccessMsg(`✓ [${movingName}] 재고이동 내역이 성공적으로 수정되었습니다.`);
-        setTimeout(() => setSuccessMsg(''), 3000);
-        setEditingRecord(null);
-        setItemSearch('');
-        setSelectedProduct(null);
-        setQuantity(0);
-        setTransferMemo('수동이동');
-      } catch (err) {
-        console.error(err);
-        alert('재고이동 수정 중 오류가 발생했습니다.');
-      }
-      return;
-    }
-
-    try {
-      await onMoveStock(
-        fromWarehouse, 
-        toWarehouse, 
-        movingName, 
-        movingQty, 
-        false, 
-        transferDate, 
-        null, 
-        selectedOperator || currentUser?.name || '관리자'
-      );
-      
-      setSuccessMsg(`✓ [${movingName}] ${movingQty}개 이동 저장 완료! 다음 품목을 입력하세요.`);
-      setTimeout(() => setSuccessMsg(''), 3000);
-
-      setItemSearch('');
-      setSelectedProduct(null);
-      setQuantity(1);
-      setShowSuggestions(false);
-      setTimeout(() => {
-        productInputRef.current?.focus();
-      }, 20);
-    } catch (err) {
-      console.error(err);
-      alert('재고이동 저장 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleRowClickOrDoubleClick = (row) => {
-    const badge = getTransferBadge(row);
-    
-    if (badge.text === '매출전표') {
-      const foundInvoice = salesInvoices.find(inv => 
-        inv.date === row.date && 
-        inv.items?.some(item => item.name === row.item && Number(item.qty) === Number(row.qty))
-      );
-      if (foundInvoice) {
-        onOpenSalesInvoice(foundInvoice);
-        onClose();
-      } else {
-        alert('매칭되는 매출전표를 찾을 수 없습니다.');
-      }
-    } else if (badge.text === '매입전표') {
-      const foundInvoice = purchaseInvoices.find(inv => 
-        inv.date === row.date && 
-        inv.items?.some(item => item.name === row.item && Number(item.qty) === Number(row.qty))
-      );
-      if (foundInvoice) {
-        if (onOpenPurchaseInvoice) {
-          onOpenPurchaseInvoice(foundInvoice);
-          onClose();
-        }
-      } else {
-        alert('매칭되는 매입전표를 찾을 수 없습니다.');
-      }
-    } else if (badge.text === '주문상차') {
-      const parseOrderItems = (text) => {
-        if (!text) return [];
-        const tokens = text.trim().split(/[\s\n]+/);
-        return tokens.map(token => {
-          const match = token.match(/^(.+?)(\d+)$/);
-          if (match) {
-            return { name: match[1], qty: parseInt(match[2], 10) };
-          }
-          return { name: token, qty: 0 };
-        });
-      };
-      
-      const foundOrder = salesOrders.find(order => 
-        order.date === row.date && 
-        parseOrderItems(order.itemsText).some(item => item.name === row.item && Number(item.qty) === Number(row.qty))
-      );
-      if (foundOrder) {
-        onOpenSalesOrder(foundOrder);
-        onClose();
-      } else {
-        alert('매칭되는 주문서를 찾을 수 없습니다.');
-      }
-    }
-  };
-
-  const totalQuantity = recentHistory.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  }, [historyData, historyStartDate, historyEndDate, historyFromFilter, historyToFilter, historySearchTerm]);
 
   return (
-    <WindowModal title="재고이동 관리 (엑셀형 수정)" onClose={onClose} width="96%">
-      <div className="inv-wrapper" style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        
-        {/* 상단 필터 바 */}
+    <WindowModal title="재고이동" onClose={onClose} width="100%">
+      <div className="inv-transfer-mobile-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        backgroundColor: '#ffffff',
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}>
+        {/* 상단 탭 전환 바 ([이동등록] / [이력조회]) */}
         <div style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '10px',
-          padding: '10px 12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
+          borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc',
+          flexShrink: 0
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>이력조회:</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                <DateNavButton
-                  direction="prev"
-                  title="이력조회 하루 전"
-                  onClick={() => {
-                    const prevStart = addDays(startDateInput, -1);
-                    const prevEnd = (startDateInput === endDateInput) ? prevStart : addDays(endDateInput, -1);
-                    setStartDateInput(prevStart);
-                    setEndDateInput(prevEnd);
-                    setStartDate(prevStart);
-                    setEndDate(prevEnd);
-                  }}
-                />
-                <input 
-                  type="date" 
-                  value={startDateInput} 
-                  onChange={e => {
-                    setStartDateInput(e.target.value);
-                    setStartDate(e.target.value);
-                  }} 
-                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#1e293b', fontWeight: 700 }} 
-                />
-                <span style={{ color: '#94a3b8', fontWeight: 700 }}>~</span>
-                <input 
-                  type="date" 
-                  value={endDateInput} 
-                  onChange={e => {
-                    setEndDateInput(e.target.value);
-                    setEndDate(e.target.value);
-                  }} 
-                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', color: '#1e293b', fontWeight: 700 }} 
-                />
-                <DateNavButton
-                  direction="next"
-                  title="이력조회 하루 뒤"
-                  onClick={() => {
-                    const nextStart = addDays(startDateInput, 1);
-                    const nextEnd = (startDateInput === endDateInput) ? nextStart : addDays(endDateInput, 1);
-                    setStartDateInput(nextStart);
-                    setEndDateInput(nextEnd);
-                    setStartDate(nextStart);
-                    setEndDate(nextEnd);
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {['당일', '1주일', '한달', '1년', '전체'].map(btn => (
-                  <button
-                    key={btn}
-                    type="button"
-                    onClick={() => handleQuickDate(btn)}
-                    style={{
-                      padding: '3px 6px',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '4px',
-                      background: '#fff',
-                      color: '#475569',
-                      cursor: 'pointer'
-                    }}
-                  >{btn}</button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}>
-                <span style={{ color: '#64748b', fontWeight: 700 }}>출고:</span>
-                <select
-                  value={historyFromWarehouse}
-                  onChange={e => {
-                    setHistoryFromWarehouse(e.target.value);
-                    setAppliedFromWarehouse(e.target.value);
-                  }}
-                  style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
-                >
-                  {renderWarehouseOptions(true)}
-                </select>
-
-                <span style={{ color: '#64748b', fontWeight: 700 }}>입고:</span>
-                <select
-                  value={historyToWarehouse}
-                  onChange={e => {
-                    setHistoryToWarehouse(e.target.value);
-                    setAppliedToWarehouse(e.target.value);
-                  }}
-                  style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#fff', outline: 'none' }}
-                >
-                  {renderWarehouseOptions(true)}
-                </select>
-              </div>
-
-              <div style={{ position: 'relative' }}>
-                <Search size={13} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-                <input
-                  type="text"
-                  value={historySearch}
-                  onChange={e => setHistorySearch(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                  placeholder="품목/창고/담당자"
-                  style={{
-                    paddingLeft: '24px', paddingRight: '6px',
-                    height: '28px', border: '1px solid #cbd5e1',
-                    borderRadius: '6px', fontSize: '0.78rem',
-                    outline: 'none', width: '130px',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-
-              <button 
-                type="button"
-                onClick={handleSearch}
-                style={{
-                  background: '#2563eb',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <Search size={13} /> 검색
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsRegisterOpen(prev => !prev)}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '6px',
-                border: isRegisterOpen ? '1px solid #ef4444' : '1px solid #3b82f6',
-                background: isRegisterOpen ? '#fef2f2' : '#eff6ff',
-                color: isRegisterOpen ? '#dc2626' : '#2563eb',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {isRegisterOpen ? <X size={13} /> : <Plus size={13} />}
-              {isRegisterOpen ? '등록창 닫기' : '신규 이동 폼'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('register')}
+            style={{
+              flex: 1,
+              padding: '9px 0',
+              fontSize: '0.84rem',
+              fontWeight: activeTab === 'register' ? 800 : 600,
+              color: activeTab === 'register' ? '#2563eb' : '#64748b',
+              borderBottom: activeTab === 'register' ? '2px solid #2563eb' : 'none',
+              background: activeTab === 'register' ? '#ffffff' : 'transparent',
+              borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            📦 재고 이동등록
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            style={{
+              flex: 1,
+              padding: '9px 0',
+              fontSize: '0.84rem',
+              fontWeight: activeTab === 'history' ? 800 : 600,
+              color: activeTab === 'history' ? '#2563eb' : '#64748b',
+              borderBottom: activeTab === 'history' ? '2px solid #2563eb' : 'none',
+              background: activeTab === 'history' ? '#ffffff' : 'transparent',
+              borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            📋 이동 내역조회 ({filteredHistory.length})
+          </button>
         </div>
 
-        {/* 신규 등록/수정 폼 (토글) */}
-        {isRegisterOpen && (
-          <div className="inv-form-box" style={{ background: '#fff', border: editingRecord ? '2px solid #2563eb' : '1.5px solid #3b82f6', padding: '12px 14px', borderRadius: '10px', boxShadow: editingRecord ? '0 4px 12px rgba(37, 99, 235, 0.12)' : '0 2px 8px rgba(59, 130, 246, 0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-              <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: editingRecord ? '#1d4ed8' : '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {editingRecord ? <Edit2 size={14} color="#2563eb" /> : <Plus size={14} color="#3b82f6" />}
-                {editingRecord ? '재고이동 상세 수정' : '신규 재고이동 간편등록'}
-              </h4>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {editingRecord && (
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setEditingRecord(null);
-                      setItemSearch('');
-                      setSelectedProduct(null);
-                      setQuantity(1);
-                      setTransferMemo('수동이동');
-                    }}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '2px 7px', color: '#475569', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
-                  >
-                    + 신규 등록 전환
-                  </button>
-                )}
-                <button 
-                  type="button"
-                  onClick={() => { setIsRegisterOpen(false); setEditingRecord(null); }}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            </div>
-
-            {editingRecord && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700 }}>
-                  ✏️ <b>{editingRecord.item}</b> ({Number(editingRecord.qty).toLocaleString()}개) 수정 중
+        {activeTab === 'register' ? (
+          <>
+            {/* 상단 폼 헤더: 이동일자, 출고창고, 입고창고 */}
+            <div style={{
+              padding: '10px 14px',
+              backgroundColor: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              flexShrink: 0
+            }}>
+              {/* 1. 이동일자 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
+                  이동일자:
                 </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (window.confirm('이 재고이동 내역을 삭제하시겠습니까?\n삭제 시 이동된 재고는 원래 창고로 자동 환원됩니다.')) {
-                      if (onDeleteMoveStock) {
-                        await onDeleteMoveStock(editingRecord.id);
-                      } else {
-                        setHistoryData(historyData.filter(h => h.id !== editingRecord.id));
-                      }
-                      setEditingRecord(null);
-                      setIsRegisterOpen(false);
-                    }
+                <input 
+                  type="date"
+                  value={transferDate}
+                  onChange={e => setTransferDate(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#ffffff',
+                    color: '#1e293b',
+                    outline: 'none'
                   }}
-                  style={{ padding: '2px 7px', fontSize: '0.72rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
-                >
-                  <Trash2 size={12} /> 이 내역 삭제
-                </button>
+                />
               </div>
-            )}
 
-            {successMsg && (
-              <div style={{ padding: '6px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#059669', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Check size={14} /> {successMsg}
-              </div>
-            )}
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-              <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>담당자</label>
-                <select 
-                  className="inv-select" 
-                  value={selectedOperator} 
-                  onChange={e => setSelectedOperator(e.target.value)} 
-                  style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.8rem', color: '#1e293b' }}
+              {/* 2. 출고창고 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
+                  출고창고:
+                </span>
+                <select
+                  value={fromWarehouse}
+                  onChange={e => setFromWarehouse(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '7px 10px',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#ffffff',
+                    color: '#1e293b',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
                 >
-                  {staffList.map(s => (
-                    <option key={s.id || s.name} value={s.name}>
-                      {s.name} {s.position ? `(${s.position})` : ''}
+                  {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
+                    <option key={w.id || idx} value={w.name}>
+                      [{idx + 1}] {w.name}
                     </option>
                   ))}
-                  {(!staffList || staffList.length === 0 || !staffList.some(s => s.name === selectedOperator)) && (
-                    <option value={selectedOperator || currentUser?.name || '관리자'}>
-                      {selectedOperator || currentUser?.name || '관리자'}
+                </select>
+              </div>
+
+              {/* 3. 입고창고 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
+                  입고창고:
+                </span>
+                <select
+                  value={toWarehouse}
+                  onChange={e => setToWarehouse(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '7px 10px',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#ffffff',
+                    color: '#1e293b',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
+                    <option key={w.id || idx} value={w.name}>
+                      [{idx + 1}] {w.name}
                     </option>
-                  )}
+                  ))}
                 </select>
               </div>
-              <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>이동 일자</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <DateNavButton
-                    direction="prev"
-                    onClick={() => setTransferDate(prev => addDays(prev, -1))}
-                  />
+
+              {/* 4. 상품명 검색 입력 영역 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} ref={searchContainerRef}>
+                <select
+                  value={searchCriterion}
+                  onChange={e => setSearchCriterion(e.target.value)}
+                  style={{
+                    width: '82px',
+                    padding: '7px 6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#334155',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="상품명">상품명</option>
+                  <option value="초성">초성</option>
+                  <option value="코드">코드</option>
+                </select>
+
+                <div style={{ position: 'relative', flex: 1 }}>
                   <input 
-                    type="date" 
-                    className="inv-input" 
-                    value={transferDate} 
-                    onChange={e => setTransferDate(e.target.value)} 
-                    style={{ flex: 1, minWidth: 0, padding: '5px 6px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.76rem' }} 
+                    ref={searchInputRef}
+                    type="text"
+                    value={itemSearchText}
+                    placeholder="상품 입력 (초성 가능)"
+                    onChange={e => {
+                      setItemSearchText(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 28px 7px 10px',
+                      fontSize: '0.86rem',
+                      fontWeight: 600,
+                      border: '2px solid #f97316', // 주황색 테두리 (스크린샷 매칭)
+                      borderRadius: '6px',
+                      backgroundColor: '#ffffff',
+                      color: '#1e293b',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
                   />
-                  <DateNavButton
-                    direction="next"
-                    onClick={() => setTransferDate(prev => addDays(prev, 1))}
-                  />
+                  {itemSearchText && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setItemSearchText('');
+                        setShowSuggestions(false);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '6px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#94a3b8',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+
+                  {/* 자동완성 제안 팝업 */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 9999,
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                      maxHeight: '230px',
+                      overflowY: 'auto',
+                      marginTop: '4px'
+                    }}>
+                      {suggestions.map((p, i) => {
+                        const curStock = getStock(fromWarehouse, p.name);
+                        return (
+                          <div
+                            key={p.id || i}
+                            onMouseDown={() => handleAddProduct(p)}
+                            style={{
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #f1f5f9',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.84rem'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{p.name}</span>
+                              {p.spec && <span style={{ fontSize: '0.74rem', color: '#64748b' }}>규격: {p.spec}</span>}
+                            </div>
+                            <span style={{
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              color: curStock > 0 ? '#16a34a' : '#ef4444',
+                              backgroundColor: curStock > 0 ? '#dcfce7' : '#fee2e2',
+                              padding: '2px 6px',
+                              borderRadius: '4px'
+                            }}>
+                              현재고: {curStock}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>출고 창고(메인)</label>
-                <select 
-                  className="inv-select" 
-                  value={fromWarehouse} 
-                  onChange={e => setFromWarehouse(e.target.value)} 
-                  style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.8rem', color: '#1e293b' }}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (suggestions.length === 1) {
+                      handleAddProduct(suggestions[0]);
+                    } else {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  style={{
+                    padding: '7px 10px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#334155'
+                  }}
                 >
-                  {renderWarehouseOptions(false)}
-                </select>
-              </div>
-              <div className="inv-col">
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>입고 창고</label>
-                <select 
-                  className="inv-select" 
-                  value={toWarehouse} 
-                  onChange={e => setToWarehouse(e.target.value)} 
-                  style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '0.8rem', color: '#1e293b' }}
-                >
-                  {renderWarehouseOptions(false)}
-                </select>
+                  <Search size={16} />
+                </button>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} ref={searchRef}>
-              <div style={{ position: 'relative' }}>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
-                  품목 검색 (단축어/초성)
-                </label>
-                <input 
-                  ref={productInputRef}
-                  type="text" 
-                  className="inv-input" 
-                  placeholder="품목명/단축어/초성 후 Enter" 
-                  value={itemSearch}
-                  onChange={e => {
-                    setItemSearch(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => {
-                    if (itemSearch) setShowSuggestions(true);
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-                    } else if (e.key === 'Enter') {
-                      if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
-                        e.preventDefault();
-                        handleSelectProduct(suggestions[selectedIndex]);
-                      } else if (suggestions.length > 0) {
-                        e.preventDefault();
-                        handleSelectProduct(suggestions[0]);
-                      }
-                    } else if (e.key === 'Escape') {
-                      setShowSuggestions(false);
-                    }
-                  }}
-                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                />
-                {showSuggestions && suggestions.length > 0 && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)', maxHeight: '180px', overflowY: 'auto'
-                  }}>
-                    {suggestions.map((p, idx) => (
-                      <div
-                        key={p.id}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSelectProduct(p);
-                        }}
-                        style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.78rem', backgroundColor: idx === selectedIndex ? '#eff6ff' : 'transparent' }}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                      >
-                        <b>{p.name}</b> {p.abbreviation && <span style={{ color: '#2563eb', marginLeft: '4px', fontSize: '0.72rem' }}>[{p.abbreviation}]</span>}
+            {/* 컬럼 헤더 (순번 | 상품명 | 수량 | 영수증선택) */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '7px 12px',
+              backgroundColor: '#f1f5f9',
+              borderBottom: '1px solid #cbd5e1',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              color: '#334155',
+              flexShrink: 0
+            }}>
+              <div style={{ width: '40px', textAlign: 'center' }}>순번</div>
+              <div style={{ flex: 1, paddingLeft: '6px' }}>상품명</div>
+              <div style={{ width: '65px', textAlign: 'right', paddingRight: '8px' }}>수량</div>
+              <div 
+                onClick={handleToggleAllChecks}
+                style={{
+                  width: '60px',
+                  textAlign: 'center',
+                  color: '#16a34a',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  fontSize: '0.74rem',
+                  lineHeight: 1.1
+                }}
+                title="클릭하여 전체 선택/해제"
+              >
+                영수증<br/>선택
+              </div>
+              <div style={{ width: '32px', textAlign: 'center' }}>삭제</div>
+            </div>
+
+            {/* 품목 목록 (스크롤) */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              backgroundColor: '#ffffff'
+            }}>
+              {transferItems.length === 0 ? (
+                <div style={{
+                  padding: '70px 16px',
+                  textAlign: 'center',
+                  color: '#94a3b8',
+                  fontSize: '0.88rem'
+                }}>
+                  위 검색창에서 이동할 상품을 검색하여 추가하세요.
+                </div>
+              ) : (
+                transferItems.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      borderBottom: '1px solid #f1f5f9',
+                      backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafafa'
+                    }}
+                  >
+                    {/* 순번 */}
+                    <div style={{ width: '40px', textAlign: 'center', fontSize: '0.84rem', fontWeight: 700, color: '#64748b' }}>
+                      {idx + 1}
+                    </div>
+
+                    {/* 상품명 */}
+                    <div style={{ flex: 1, minWidth: 0, paddingLeft: '6px' }}>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.name}
                       </div>
-                    ))}
+                      {item.spec && (
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          {item.spec}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 수량 입력 */}
+                    <div style={{ width: '65px', textAlign: 'right', paddingRight: '4px' }}>
+                      <input 
+                        type="number"
+                        step="any"
+                        value={item.qty}
+                        onChange={e => handleUpdateQty(idx, e.target.value)}
+                        style={{
+                          width: '58px',
+                          padding: '4px',
+                          fontSize: '0.86rem',
+                          fontWeight: 800,
+                          textAlign: 'right',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          color: '#0f172a',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    {/* 영수증 선택 체크박스 */}
+                    <div style={{ width: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <input 
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={() => handleToggleCheck(idx)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    {/* 삭제 버튼 */}
+                    <div style={{ width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '3px'
+                        }}
+                        title="항목 삭제"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
-                )}
+                ))
+              )}
+            </div>
+
+            {/* 하단 고정 통계 바 ([총 건수] N / [총 수량] M.0) */}
+            <div style={{
+              padding: '8px 14px',
+              backgroundColor: '#1e293b',
+              color: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              borderTop: '1px solid #334155',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#4ade80' }}>
+                  [총 건수]
+                </span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc', fontVariantNumeric: 'tabular-nums' }}>
+                  {totalCount}
+                </span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#4ade80' }}>
+                  [총 수량]
+                </span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc', fontVariantNumeric: 'tabular-nums' }}>
+                  {totalQuantity.toFixed(1)}
+                </span>
+              </div>
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 90px', gap: '8px', alignItems: 'end' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
-                    수량
-                  </label>
-                  <input 
-                    ref={qtyInputRef}
-                    type="number" 
-                    className="inv-input" 
-                    value={quantity}
-                    onChange={e => setQuantity(e.target.value)}
-                    onFocus={e => e.target.select()}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleTransfer();
-                      }
-                    }}
-                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>
-                    비고
-                  </label>
-                  <input 
-                    type="text" 
-                    className="inv-input" 
-                    value={transferMemo}
-                    onChange={e => setTransferMemo(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleTransfer();
-                      }
-                    }}
-                    placeholder="비고"
-                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', height: '34px', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <button 
-                  ref={submitBtnRef}
-                  onClick={handleTransfer}
-                  style={{ height: '34px', background: editingRecord ? '#2563eb' : '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+            {/* 하단 액션 버튼 바: [새전표] [영수증] [v 박스 수량 인쇄] + [재고이동 저장] */}
+            <div style={{
+              padding: '10px 12px',
+              backgroundColor: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* 새전표 */}
+                <button
+                  type="button"
+                  onClick={handleNewSlip}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    color: '#334155',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <Save size={13} /> {editingRecord ? '수정 저장' : '이동 저장'}
+                  <FileText size={14} /> 새전표
                 </button>
+
+                {/* 영수증 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const checkedItems = transferItems.filter(i => i.checked);
+                    if (checkedItems.length === 0) {
+                      alert('영수증으로 출력할 선택된 품목이 없습니다.');
+                      return;
+                    }
+                    setIsReceiptModalOpen(true);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    color: '#334155',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Printer size={14} /> 영수증
+                </button>
+
+                {/* 박스 수량 인쇄 체크박스 */}
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}>
+                  <input 
+                    type="checkbox"
+                    checked={printBoxQty}
+                    onChange={e => setPrintBoxQty(e.target.checked)}
+                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                  />
+                  박스 수량 인쇄
+                </label>
               </div>
+
+              {/* 이동 저장 버튼 */}
+              <button
+                type="button"
+                disabled={isSubmitting || transferItems.length === 0}
+                onClick={handleSaveTransfer}
+                style={{
+                  padding: '8px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  backgroundColor: transferItems.length === 0 ? '#94a3b8' : '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: transferItems.length === 0 ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+                }}
+              >
+                {isSubmitting ? '처리 중...' : '💾 이동 저장'}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* 내역조회 탭 */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* 이력 필터 */}
+            <div style={{ padding: '10px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>조회기간:</span>
+                <input 
+                  type="date"
+                  value={historyStartDate}
+                  onChange={e => setHistoryStartDate(e.target.value)}
+                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                />
+                <span>~</span>
+                <input 
+                  type="date"
+                  value={historyEndDate}
+                  onChange={e => setHistoryEndDate(e.target.value)}
+                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <select
+                  value={historyFromFilter}
+                  onChange={e => setHistoryFromFilter(e.target.value)}
+                  style={{ flex: 1, padding: '5px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                >
+                  <option value="전체창고">출고: 전체창고</option>
+                  {warehouses.map((w, idx) => <option key={idx} value={w.name}>{w.name}</option>)}
+                </select>
+                <select
+                  value={historyToFilter}
+                  onChange={e => setHistoryToFilter(e.target.value)}
+                  style={{ flex: 1, padding: '5px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                >
+                  <option value="전체창고">입고: 전체창고</option>
+                  {warehouses.map((w, idx) => <option key={idx} value={w.name}>{w.name}</option>)}
+                </select>
+                <input 
+                  type="text"
+                  placeholder="품목/담당자 검색"
+                  value={historySearchTerm}
+                  onChange={e => setHistorySearchTerm(e.target.value)}
+                  style={{ flex: 1.2, padding: '5px 8px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                />
+              </div>
+            </div>
+
+            {/* 이력 목록 */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+              {filteredHistory.length === 0 ? (
+                <div style={{ padding: '50px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.86rem' }}>
+                  해당 기간 내의 재고이동 이력이 없습니다.
+                </div>
+              ) : (
+                filteredHistory.map((item, idx) => (
+                  <div key={item.id || idx} style={{
+                    padding: '9px 12px',
+                    marginBottom: '6px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>{item.item}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#2563eb' }}>{item.qty}개</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: '#64748b' }}>
+                      <span>{item.date} {item.processedAt ? `· ${item.processedAt}` : ''}</span>
+                      <span>담당: {item.operator || '관리자'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 600, color: '#059669', background: '#f0fdf4', padding: '3px 8px', borderRadius: '4px' }}>
+                      <span>출고: {item.from}</span>
+                      <span>➔</span>
+                      <span>입고: {item.to}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
-
-        {/* 엑셀 스타일 그리드 */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {/* 그리드 툴바 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <FileSpreadsheet size={15} color="#059669" />
-                이동내역 ({recentHistory.length}건, {totalQuantity.toLocaleString()}개)
-              </span>
-              {totalModifiedCount > 0 && (
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px' }}>
-                  {totalModifiedCount}건 미저장
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <button
-                type="button"
-                onClick={handleAddNewRow}
-                style={{ padding: '4px 8px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-              >
-                <Plus size={12} /> 행추가
-              </button>
-
-              {totalModifiedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBatchSave}
-                  style={{ padding: '4px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                >
-                  <Save size={12} /> 저장 ({totalModifiedCount})
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleExcelExport}
-                style={{ padding: '4px 8px', background: '#fff', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-              >
-                <Download size={12} /> 엑셀
-              </button>
-            </div>
-          </div>
-
-          {/* 테이블 */}
-          <div style={{ maxHeight: isRegisterOpen ? '320px' : '480px', overflowY: 'auto', overflowX: 'auto' }}>
-            <table style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9', position: 'sticky', top: 0, zIndex: 10 }}>
-                  {[
-                    { key: 'select', label: '', width: colWidths.select, align: 'center' },
-                    { key: 'date', label: '일자', width: colWidths.date, align: 'center' },
-                    { key: 'from', label: '출고', width: colWidths.from, align: 'center' },
-                    { key: 'to', label: '입고', width: colWidths.to, align: 'center' },
-                    { key: 'item', label: '품목명', width: colWidths.item, align: 'left' },
-                    { key: 'qty', label: '수량', width: colWidths.qty, align: 'right' },
-                    { key: 'processedAt', label: '시간', width: colWidths.processedAt, align: 'center' },
-                    { key: 'operator', label: '담당자', width: colWidths.operator, align: 'center' },
-                    { key: 'memo', label: '비고', width: colWidths.memo, align: 'left' },
-                    { key: 'manage', label: '관리', width: colWidths.manage, align: 'center' }
-                  ].map(col => (
-                    <th key={col.key} style={{ width: col.width + 'px', padding: '6px 4px', borderRight: '1px solid #cbd5e1', borderBottom: '2px solid #cbd5e1', fontWeight: 800, color: '#334155', textAlign: col.align }}>
-                      {col.key === 'select' ? (
-                        <input
-                          type="checkbox"
-                          checked={isAllSelected}
-                          ref={el => { if (el) el.indeterminate = isSomeSelected; }}
-                          onChange={handleSelectAll}
-                          disabled={deletableHistory.length === 0}
-                        />
-                      ) : col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {combinedGridRows.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" style={{ padding: '40px 10px', textAlign: 'center', color: '#94a3b8' }}>
-                      해당 조건 및 기간에 발생한 이동 내역이 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  combinedGridRows.map((row, rIdx) => {
-                    const badge = getTransferBadge(row);
-                    const isNew = !!row.isNew;
-                    const isModified = !!modifiedRows[row.id];
-                    const isEditableType = isNew || badge.text === '창고이동';
-                    
-                    const rowData = isNew 
-                      ? (newRows.find(nr => nr.tempId === row.id) || row)
-                      : (modifiedRows[row.id] || row);
-
-                    const isSuggestOpen = activeItemSuggestRowId === row.id;
-
-                    const rowBg = isNew ? '#f0fdf4' : isModified ? '#fffbeb' : (rIdx % 2 === 1 ? '#f8fafc' : '#ffffff');
-
-                    return (
-                      <tr key={row.id} style={{ backgroundColor: rowBg, borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ textAlign: 'center', padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {!isNew ? (
-                            <input
-                              type="checkbox"
-                              checked={selectedHistoryIds.includes(row.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) setSelectedHistoryIds(prev => [...prev, row.id]);
-                                else setSelectedHistoryIds(prev => prev.filter(id => id !== row.id));
-                              }}
-                              disabled={!isEditableType}
-                            />
-                          ) : (
-                            <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800 }}>NEW</span>
-                          )}
-                        </td>
-
-                        {/* 일자 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <input
-                              type="date"
-                              value={rowData.date || ''}
-                              onChange={e => handleCellChange(row, 'date', e.target.value)}
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.76rem', padding: '2px', outline: 'none', textAlign: 'center', fontWeight: 600 }}
-                            />
-                          ) : (
-                            <div style={{ textAlign: 'center', fontSize: '0.76rem', fontWeight: 600 }}>{rowData.date}</div>
-                          )}
-                        </td>
-
-                        {/* 출고 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <select
-                              value={rowData.from || ''}
-                              onChange={e => handleCellChange(row, 'from', e.target.value)}
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.76rem', padding: '2px', outline: 'none', fontWeight: 700, color: getWarehouseColor(rowData.from) }}
-                            >
-                              {renderWarehouseOptions(false)}
-                            </select>
-                          ) : (
-                            <div style={{ textAlign: 'center', fontSize: '0.74rem', fontWeight: 700, color: getWarehouseColor(rowData.from) }}>{rowData.from}</div>
-                          )}
-                        </td>
-
-                        {/* 입고 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <select
-                              value={rowData.to || ''}
-                              onChange={e => handleCellChange(row, 'to', e.target.value)}
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.76rem', padding: '2px', outline: 'none', fontWeight: 700, color: getWarehouseColor(rowData.to) }}
-                            >
-                              {renderWarehouseOptions(false)}
-                            </select>
-                          ) : (
-                            <div style={{ textAlign: 'center', fontSize: '0.74rem', fontWeight: 700, color: getWarehouseColor(rowData.to) }}>{rowData.to}</div>
-                          )}
-                        </td>
-
-                        {/* 품목명 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0', position: 'relative' }} className="grid-autocomplete-container">
-                          {isEditableType ? (
-                            <div>
-                              <input
-                                ref={el => { gridItemInputRefs.current[row.id] = el; }}
-                                type="text"
-                                value={rowData.item || ''}
-                                placeholder="품목명/초성"
-                                onChange={e => {
-                                  handleCellChange(row, 'item', e.target.value);
-                                  setItemSuggestQuery(e.target.value);
-                                  setActiveItemSuggestRowId(row.id);
-                                }}
-                                onFocus={() => {
-                                  setItemSuggestQuery(rowData.item || '');
-                                  setActiveItemSuggestRowId(row.id);
-                                }}
-                                onKeyDown={e => handleGridItemKeyDown(e, row)}
-                                style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.78rem', padding: '2px 4px', outline: 'none', fontWeight: 700 }}
-                              />
-                              {isSuggestOpen && gridSuggestions.length > 0 && (
-                                <div style={{
-                                  position: 'absolute', top: '100%', left: 0, zIndex: 1000,
-                                  width: '240px', maxHeight: '180px', overflowY: 'auto',
-                                  backgroundColor: '#fff', border: '1px solid #3b82f6',
-                                  borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
-                                }}>
-                                  {gridSuggestions.map((p, idx) => (
-                                    <div
-                                      key={p.id}
-                                      onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        handleCellChange(row, 'item', p.name);
-                                        setActiveItemSuggestRowId(null);
-                                        setTimeout(() => {
-                                          gridQtyInputRefs.current[row.id]?.focus();
-                                          gridQtyInputRefs.current[row.id]?.select();
-                                        }, 30);
-                                      }}
-                                      style={{ padding: '5px 8px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.74rem', backgroundColor: idx === gridSelectedIndex ? '#eff6ff' : 'transparent' }}
-                                      onMouseEnter={() => setGridSelectedIndex(idx)}
-                                    >
-                                      <b>{p.name}</b> {p.abbreviation && <span style={{ color: '#2563eb', marginLeft: '4px', fontSize: '0.7rem' }}>[{p.abbreviation}]</span>}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div 
-                              onClick={() => handleRowClickOrDoubleClick(row)}
-                              style={{ fontWeight: 700, cursor: 'pointer', color: '#2563eb', textDecoration: 'underline', padding: '2px' }}
-                            >
-                              {rowData.item}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* 수량 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <input
-                              ref={el => { gridQtyInputRefs.current[row.id] = el; }}
-                              type="number"
-                              value={rowData.qty}
-                              onChange={e => handleCellChange(row, 'qty', e.target.value)}
-                              onKeyDown={e => handleGridQtyKeyDown(e, row)}
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.84rem', padding: '2px', outline: 'none', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}
-                            />
-                          ) : (
-                            <div style={{ textAlign: 'right', fontWeight: 800, color: '#2563eb', padding: '2px' }}>
-                              {Number(rowData.qty || 0).toLocaleString()}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* 처리시간 */}
-                        <td style={{ textAlign: 'center', padding: '2px', borderRight: '1px solid #e2e8f0', fontSize: '0.72rem', color: '#64748b' }}>
-                          {rowData.processedAt || '-'}
-                        </td>
-
-                        {/* 담당자 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <select
-                              value={rowData.operator || selectedOperator || ''}
-                              onChange={e => handleCellChange(row, 'operator', e.target.value)}
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.74rem', padding: '2px', outline: 'none', textAlign: 'center', fontWeight: 600 }}
-                            >
-                              {staffList.map(s => (
-                                <option key={s.id || s.name} value={s.name}>
-                                  {s.name} {s.position ? `(${s.position})` : ''}
-                                </option>
-                              ))}
-                              {(!staffList || staffList.length === 0 || !staffList.some(s => s.name === (rowData.operator || selectedOperator))) && (
-                                <option value={rowData.operator || selectedOperator || currentUser?.name || '관리자'}>
-                                  {rowData.operator || selectedOperator || currentUser?.name || '관리자'}
-                                </option>
-                              )}
-                            </select>
-                          ) : (
-                            <div style={{ textAlign: 'center', fontSize: '0.74rem', fontWeight: 600 }}>{rowData.operator || '-'}</div>
-                          )}
-                        </td>
-
-                        {/* 비고 */}
-                        <td style={{ padding: '2px', borderRight: '1px solid #e2e8f0' }}>
-                          {isEditableType ? (
-                            <input
-                              type="text"
-                              value={rowData.memo || ''}
-                              onChange={e => handleCellChange(row, 'memo', e.target.value)}
-                              placeholder="비고"
-                              style={{ width: '100%', border: '1px solid transparent', background: 'transparent', fontSize: '0.74rem', padding: '2px', outline: 'none', color: '#475569' }}
-                            />
-                          ) : (
-                            <div style={{ fontSize: '0.72rem', color: '#64748b', padding: '2px' }}>{rowData.memo || '-'}</div>
-                          )}
-                        </td>
-
-                        {/* 관리 */}
-                        <td style={{ textAlign: 'center', padding: '2px' }}>
-                          <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center' }}>
-                            {isNew || isModified ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveSingleRow(row)}
-                                  style={{ padding: '2px 5px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700 }}
-                                >
-                                  저장
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCancelRowEdit(row)}
-                                  style={{ padding: '2px 5px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700 }}
-                                >
-                                  취소
-                                </button>
-                              </>
-                            ) : isEditableType ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartEditInTopForm(row);
-                                  }}
-                                  style={{
-                                    padding: '2px 4px',
-                                    background: '#eff6ff',
-                                    color: '#2563eb',
-                                    border: '1px solid #bfdbfe',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '2px'
-                                  }}
-                                  title="상단 폼으로 열어 수정"
-                                >
-                                  <Edit2 size={10} /> 수정
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (window.confirm('이 이동 내역을 삭제하시겠습니까?')) {
-                                      if (onDeleteMoveStock) await onDeleteMoveStock(row.id);
-                                      else setHistoryData(historyData.filter(h => h.id !== row.id));
-                                      if (editingRecord?.id === row.id) {
-                                        setEditingRecord(null);
-                                        setIsRegisterOpen(false);
-                                      }
-                                    }
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, padding: '2px' }}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>-</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
 
-      {/* 창고 선택 모달 */}
-      {warehousePickerState.show && (
+      {/* 영수증 모달 */}
+      {isReceiptModalOpen && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
-        }} onClick={() => setWarehousePickerState({ show: false, candidates: [], product: null })}>
-          <div 
-            style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', maxWidth: '400px', width: '90%' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800 }}>출고 창고 선택</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
-              {warehousePickerState.candidates.map(wh => (
-                <button
-                  key={wh.name}
-                  type="button"
-                  onClick={() => handleChooseWarehouse(wh.name)}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer' }}
-                >
-                  <b>{wh.name}</b>
-                  <span style={{ color: '#059669', fontWeight: 700 }}>{wh.stock.toLocaleString()}개</span>
-                </button>
-              ))}
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* 영수증 상단 헤더 */}
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#1e293b',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.92rem', fontWeight: 800 }}>🧾 재고이동 영수증</span>
+              <button 
+                type="button"
+                onClick={() => setIsReceiptModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setWarehousePickerState({ show: false, candidates: [], product: null })}
-              style={{ marginTop: '12px', width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', fontWeight: 700 }}
-            >
-              닫기
-            </button>
+
+            {/* 영수증 내용 (프린트 타겟) */}
+            <div id="receipt-print-area" style={{ padding: '16px', backgroundColor: '#ffffff', color: '#0f172a' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px', borderBottom: '2px dashed #000000', paddingBottom: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>재고이동 전표</h3>
+                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>
+                  일자: {transferDate}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.82rem', marginBottom: '12px', lineHeight: '1.5' }}>
+                <div><strong>출고창고:</strong> {fromWarehouse}</div>
+                <div><strong>입고창고:</strong> {toWarehouse}</div>
+                <div><strong>담당자:</strong> {currentUser?.name || '관리자'}</div>
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', marginBottom: '12px' }}>
+                <thead>
+                  <tr style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000' }}>
+                    <th style={{ textAlign: 'left', padding: '4px 0' }}>품목명</th>
+                    <th style={{ textAlign: 'right', padding: '4px 0' }}>수량</th>
+                    {printBoxQty && <th style={{ textAlign: 'right', padding: '4px 0' }}>박스</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {transferItems.filter(i => i.checked).map((it, idx) => {
+                    const boxCount = it.boxPerUnits > 0 ? (it.qty / it.boxPerUnits).toFixed(1) : '-';
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px dotted #cbd5e1' }}>
+                        <td style={{ padding: '4px 0', fontWeight: 600 }}>{it.name}</td>
+                        <td style={{ textAlign: 'right', padding: '4px 0', fontWeight: 700 }}>{it.qty}</td>
+                        {printBoxQty && <td style={{ textAlign: 'right', padding: '4px 0' }}>{boxCount}</td>}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div style={{ borderTop: '2px dashed #000', paddingTop: '8px', fontSize: '0.86rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <strong>선택 건수:</strong>
+                  <strong>{transferItems.filter(i => i.checked).length} 건</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.94rem' }}>
+                  <strong>총 수량:</strong>
+                  <strong style={{ color: '#2563eb' }}>
+                    {transferItems.filter(i => i.checked).reduce((s, it) => s + Number(it.qty || 0), 0).toFixed(1)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* 영수증 하단 버튼 */}
+            <div style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px 0',
+                  fontSize: '0.86rem',
+                  fontWeight: 800,
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Printer size={16} /> 인쇄하기
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsReceiptModalOpen(false)}
+                style={{
+                  padding: '9px 14px',
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
