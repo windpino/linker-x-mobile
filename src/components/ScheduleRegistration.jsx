@@ -212,22 +212,22 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
               {/* 시작 → 종료 한 행 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 {/* 시작 일시 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '28px' }}>시작</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%', minWidth: 0, width: '100%' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '26px', flexShrink: 0 }}>시작</span>
                   <DateNavButton
                     direction="prev"
                     onClick={() => handleStartChange('startDate', addDays(formData.startDate, -1))}
                     size={12}
-                    style={{ width: '20px', height: '20px' }}
+                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                   />
                   <input 
                     type="date" 
                     value={formData.startDate} 
                     onChange={(e) => handleStartChange('startDate', e.target.value)}
                     style={{ 
-                      flex: 2, 
-                      padding: '5px 6px', 
-                      fontSize: '0.78rem',
+                      flex: '1.35 1 0', minWidth: 0, width: 0,
+                      padding: '5px 3px',
+                      fontSize: '0.74rem',
                       border: '1px solid #cbd5e1', 
                       borderRadius: '6px', 
                       backgroundColor: '#ffffff',
@@ -238,7 +238,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     direction="next"
                     onClick={() => handleStartChange('startDate', addDays(formData.startDate, 1))}
                     size={12}
-                    style={{ width: '20px', height: '20px' }}
+                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                   />
                   <input 
                     type="time" 
@@ -246,9 +246,9 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     onChange={(e) => handleStartChange('startTime', e.target.value)}
                     step="300"
                     style={{ 
-                      flex: 1, 
-                      padding: '5px 6px', 
-                      fontSize: '0.78rem',
+                      flex: '1 1 0', minWidth: 0, width: 0,
+                      padding: '5px 3px',
+                      fontSize: '0.74rem',
                       border: '1px solid #cbd5e1', 
                       borderRadius: '6px', 
                       backgroundColor: '#ffffff',
@@ -258,13 +258,13 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                 </div>
 
                 {/* 종료 일시 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%', marginTop: '4px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '28px' }}>종료</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 100%', minWidth: 0, width: '100%', marginTop: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', minWidth: '26px', flexShrink: 0 }}>종료</span>
                   <DateNavButton
                     direction="prev"
                     onClick={() => setFormData(prev => ({ ...prev, endDate: addDays(prev.endDate, -1) }))}
                     size={12}
-                    style={{ width: '20px', height: '20px' }}
+                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                   />
                   <input 
                     type="date" 
@@ -272,9 +272,9 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     value={formData.endDate} 
                     onChange={handleChange}
                     style={{ 
-                      flex: 2, 
-                      padding: '5px 6px', 
-                      fontSize: '0.78rem',
+                      flex: '1.35 1 0', minWidth: 0, width: 0,
+                      padding: '5px 3px',
+                      fontSize: '0.74rem',
                       border: '1px solid #cbd5e1', 
                       borderRadius: '6px', 
                       backgroundColor: '#ffffff',
@@ -285,7 +285,7 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     direction="next"
                     onClick={() => setFormData(prev => ({ ...prev, endDate: addDays(prev.endDate, 1) }))}
                     size={12}
-                    style={{ width: '20px', height: '20px' }}
+                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                   />
                   <input 
                     type="time" 
@@ -293,9 +293,9 @@ const ScheduleRegistration = ({ onClose, selectedDate, onSave, initialData = nul
                     value={formData.endTime} 
                     onChange={handleChange}
                     style={{ 
-                      flex: 1, 
-                      padding: '5px 6px', 
-                      fontSize: '0.78rem',
+                      flex: '1 1 0', minWidth: 0, width: 0,
+                      padding: '5px 3px',
+                      fontSize: '0.74rem',
                       border: '1px solid #cbd5e1', 
                       borderRadius: '6px', 
                       backgroundColor: '#ffffff',
