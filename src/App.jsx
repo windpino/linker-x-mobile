@@ -487,9 +487,13 @@ function App() {
     setIsQuotationManagementOpen(true);
   };
   const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => 'all');
+  const [orderListStatusFilter, setOrderListStatusFilter] = useState('all');
 
-  const openOrderList = (staffName = null, date = null) => {
+  const openOrderList = (staffName = null, date = null, initialStatus = 'all') => {
     setOrderListSelectedStaff(staffName || 'all');
+    if (initialStatus) {
+      setOrderListStatusFilter(initialStatus);
+    }
     if (date) {
       setSelectedDate(date instanceof Date ? date : new Date(date));
     }
@@ -2690,6 +2694,16 @@ function App() {
         setIsSalesInvoiceOpen(false);
         setEditingInvoice(null);
         alert('매출전표가 발행되었으며 실시간 재고에 출고 반영되었습니다.');
+
+        // 납품완료 후 매출전표가 저장된 후에는 다시 수주목록의 '대기' 창으로 복귀
+        const isFromOrder = Boolean(orderToUpdate || invData.orderId || invData.salesOrderId || invData.isFromOrder);
+        if (isFromOrder) {
+          setOrderListStatusFilter('waiting');
+          if (finalData.date) {
+            setSelectedDate(new Date(finalData.date));
+          }
+          setIsOrderListOpen(true);
+        }
       }
       return finalData;
     } catch (err) { 
@@ -6059,7 +6073,15 @@ function App() {
       {isSalesInvoiceOpen && <SalesInvoice
         themeColor={systemSettings.display?.salesThemeColor || '#3b82f6'}
         zIndex={activeSalesModal === 'invoice' ? 8500 : 3000}
-        onClose={() => { setIsSalesInvoiceOpen(false); setEditingInvoice(null); }}
+        onClose={() => { 
+          setIsSalesInvoiceOpen(false); 
+          const wasFromOrder = Boolean(editingInvoice?.isFromOrder || editingInvoice?.salesOrderId || editingInvoice?.orderId);
+          setEditingInvoice(null); 
+          if (wasFromOrder) {
+            setOrderListStatusFilter('waiting');
+            setIsOrderListOpen(true);
+          }
+        }}
         selectedDate={selectedDate}
         products={products}
         partners={partners}
@@ -6327,7 +6349,11 @@ function App() {
       )}
 
       {isOrderListOpen && <OrderList 
-        onClose={() => { setIsOrderListOpen(false); setOrderListSelectedStaff(currentUser?.name || 'all'); }} 
+        onClose={() => { 
+          setIsOrderListOpen(false); 
+          setOrderListSelectedStaff(currentUser?.name || 'all'); 
+          setOrderListStatusFilter('all');
+        }} 
         salesOrders={salesOrders} 
         salesInvoices={salesInvoices}
         products={products}
@@ -6336,6 +6362,7 @@ function App() {
         staffList={staffList} 
         currentUser={currentUser}
         initialSelectedStaff={orderListSelectedStaff}
+        initialStatusFilter={orderListStatusFilter}
         onEditOrder={(order) => { 
           setEditingOrder(order); 
           setSalesOrderSource('orderList');

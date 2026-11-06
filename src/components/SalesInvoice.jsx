@@ -712,7 +712,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
       }
 
       const saveInv = { ...invoiceData };
-      delete saveInv.isFromOrder;
       await onSave(saveInv, false);
     } finally {
       setIsSaving(false);

@@ -22,6 +22,7 @@ const OrderList = ({
   onMoveStock,
   onRevertAutoMoveStock,
   initialSelectedStaff,
+  initialStatusFilter = 'all',
   onOpenInventoryMismatch
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
@@ -46,7 +47,13 @@ const OrderList = ({
   const stockOverrides = React.useRef({}); // 창고별 품목 재고 연속 클릭 오차 방지용 세션 캐시
   const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'waiting', 'completed'
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all'); // 'all', 'waiting', 'completed'
+
+  React.useEffect(() => {
+    if (initialStatusFilter) {
+      setStatusFilter(initialStatusFilter);
+    }
+  }, [initialStatusFilter]);
   
   const [dateStr, setDateStr] = useState(() => {
     const d = selectedDate || new Date();
@@ -1107,16 +1114,20 @@ const OrderList = ({
                         borderRadius: '16px', 
                         backgroundColor: '#ffffff', 
                         border: '1px solid #e2e8f0', 
-                        overflow: 'hidden', 
+                        position: 'relative',
                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                        marginBottom: '14px',
+                        marginBottom: '8px',
                         flexShrink: 0
                       }}>
-                        {/* 1. Header (Matching screenshot: light mint background, -/+ Partner Phone, [납품 완료], Edit, Delete) */}
+                        {/* 1. Header (Matching screenshot: richer mint background, -/+ Partner Phone, [납품 완료], Edit, Delete) */}
                         <div style={{ 
                           padding: '8px 12px', 
-                          backgroundColor: '#f0fdf4', 
-                          borderBottom: isCollapsed ? 'none' : '1px solid #dcfce7',
+                          backgroundColor: '#dcfce7', 
+                          borderBottom: isCollapsed ? 'none' : '1px solid #bbf7d0',
+                          borderTopLeftRadius: '15px',
+                          borderTopRightRadius: '15px',
+                          borderBottomLeftRadius: isCollapsed ? '15px' : 0,
+                          borderBottomRightRadius: isCollapsed ? '15px' : 0,
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'space-between',
@@ -1134,7 +1145,7 @@ const OrderList = ({
                                 width: '22px',
                                 height: '22px',
                                 borderRadius: '6px',
-                                backgroundColor: isCollapsed ? '#ffffff' : '#dcfce7',
+                                backgroundColor: isCollapsed ? '#ffffff' : '#bbf7d0',
                                 border: '1px solid #86efac',
                                 color: '#059669',
                                 display: 'flex',
@@ -1360,21 +1371,21 @@ const OrderList = ({
                                   재고불일치
                                 </button>
 
-                                {/* Temporary Stock Feedback Toast */}
+                                {/* Temporary Stock Feedback Toast (품목 아래쪽에 표시) */}
                                 {feedback && (
                                   <div style={{ 
                                     position: 'absolute', 
-                                    top: '50%', 
+                                    top: 'calc(100% - 2px)', 
                                     left: '50%', 
-                                    transform: 'translate(-50%, -50%)', 
+                                    transform: 'translateX(-50%)', 
                                     backgroundColor: '#020617', 
                                     color: '#38bdf8', 
-                                    padding: '5px 12px', 
-                                    borderRadius: '8px', 
-                                    fontSize: '0.75rem', 
+                                    padding: '4px 10px', 
+                                    borderRadius: '6px', 
+                                    fontSize: '0.74rem', 
                                     fontWeight: 800,
                                     whiteSpace: 'nowrap', 
-                                    zIndex: 20, 
+                                    zIndex: 50, 
                                     border: '1px solid #38bdf8', 
                                     boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
                                     pointerEvents: 'none'
@@ -1833,17 +1844,17 @@ const OrderList = ({
                                   {feedback && (
                                     <div style={{ 
                                       position: 'absolute', 
-                                      top: '50%', 
+                                      top: 'calc(100% - 2px)', 
                                       left: '50%', 
-                                      transform: 'translate(-50%, -50%)', 
+                                      transform: 'translateX(-50%)', 
                                       backgroundColor: '#0f172a', 
                                       color: '#38bdf8', 
-                                      padding: '6px 14px', 
-                                      borderRadius: '8px', 
-                                      fontSize: '0.78rem', 
+                                      padding: '4px 10px', 
+                                      borderRadius: '6px', 
+                                      fontSize: '0.74rem', 
                                       fontWeight: 800,
                                       whiteSpace: 'nowrap', 
-                                      zIndex: 20, 
+                                      zIndex: 50, 
                                       border: '1px solid #38bdf8', 
                                       boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
                                       pointerEvents: 'none'
