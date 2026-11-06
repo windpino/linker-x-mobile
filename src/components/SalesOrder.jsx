@@ -44,6 +44,7 @@ const SalesOrder = ({
 
   // Step 1: 'partner' (날짜, 담당자, 거래처 선택)
   // Step 2: 'order' (간편주문 입력, 비고, 전표전송, 저장)
+  const [isOrderSettingsOpen, setIsOrderSettingsOpen] = useState(false);
   const [step, setStep] = useState(() => (editingOrder || initialPartner?.name) ? 'order' : 'partner');
 
   const [partnerDayOrders, setPartnerDayOrders] = useState([]);
@@ -481,7 +482,7 @@ const SalesOrder = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShoppingCart size={18} style={{ color: themeColor }} />
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주 거래처 선택</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button 
@@ -523,8 +524,90 @@ const SalesOrder = ({
               </div>
             </div>
 
-            {/* 카드 1: 수주일자 & 담당자 설정 */}
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            {/* 카드 1: 거래처 입력란 (입력/선택 즉시 주문 화면으로 전환) */}
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 14px', border: '2px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 4px 12px rgba(59,130,246,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
+                  거래처 입력 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <span style={{ fontSize: '0.74rem', color: '#3b82f6', fontWeight: 700 }}>
+                  선택 시 주문창으로 자동 전환 ➔
+                </span>
+              </div>
+              
+              <div style={{ minHeight: '44px' }}>
+                <PartnerSearchInput 
+                  partners={partners} 
+                  currentUser={currentUser}
+                  value={orderData.partner} 
+                  placeholder="거래처명 또는 초성 입력 (예: 링, ㄹㅋ)"
+                  onChange={(val) => setOrderData(prev => ({ ...prev, partner: val }))} 
+                  onSelect={(partner) => {
+                    setOrderData(prev => ({
+                      ...prev,
+                      partner: partner.name,
+                      inWarehouse: staffWH
+                    }));
+                    // 거래처 선택 시 주문창으로 자동 전환!
+                    setStep('order');
+                    setTimeout(() => {
+                      if (itemInputRef.current) itemInputRef.current.focus();
+                    }, 100);
+                  }}
+                  typeFilter="매출처"
+                  autoFocus={true}
+                />
+              </div>
+
+              {orderData.partner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('order');
+                    setTimeout(() => {
+                      if (itemInputRef.current) itemInputRef.current.focus();
+                    }, 100);
+                  }}
+                  style={{
+                    marginTop: '8px',
+                    height: '42px',
+                    background: '#3b82f6',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  [{orderData.partner}] 주문서 작성으로 이동 <ArrowRight size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* 카드 2: 수주일자 & 담당자 설정 (가리기/펼치기) */}
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setIsOrderSettingsOpen(v => !v)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#475569', minWidth: 0 }}>
+                  <Calendar size={14} style={{ color: themeColor, flexShrink: 0 }} />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {orderData.date} · 담당 {orderData.manager && orderData.manager !== '알 수 없음' ? orderData.manager : '선택안함'}
+                  </span>
+                </span>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#3b82f6', flexShrink: 0 }}>
+                  {isOrderSettingsOpen ? '▲ 가리기' : '▼ 펼치기'}
+                </span>
+              </button>
+              {isOrderSettingsOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 14px 14px 14px', borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
               
               {/* 수주일자 선택 */}
               <div>
@@ -623,70 +706,7 @@ const SalesOrder = ({
                 </div>
               </div>
 
-            </div>
-
-            {/* 카드 2: 거래처 입력란 (입력/선택 즉시 주문 화면으로 전환) */}
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 14px', border: '2px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 4px 12px rgba(59,130,246,0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
-                  거래처 입력 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <span style={{ fontSize: '0.74rem', color: '#3b82f6', fontWeight: 700 }}>
-                  선택 시 주문창으로 자동 전환 ➔
-                </span>
               </div>
-              
-              <div style={{ minHeight: '44px' }}>
-                <PartnerSearchInput 
-                  partners={partners} 
-                  currentUser={currentUser}
-                  value={orderData.partner} 
-                  placeholder="거래처명 또는 초성 입력 (예: 링, ㄹㅋ)"
-                  onChange={(val) => setOrderData(prev => ({ ...prev, partner: val }))} 
-                  onSelect={(partner) => {
-                    setOrderData(prev => ({
-                      ...prev,
-                      partner: partner.name,
-                      inWarehouse: staffWH
-                    }));
-                    // 거래처 선택 시 주문창으로 자동 전환!
-                    setStep('order');
-                    setTimeout(() => {
-                      if (itemInputRef.current) itemInputRef.current.focus();
-                    }, 100);
-                  }}
-                  typeFilter="매출처"
-                  autoFocus={true}
-                />
-              </div>
-
-              {orderData.partner && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('order');
-                    setTimeout(() => {
-                      if (itemInputRef.current) itemInputRef.current.focus();
-                    }, 100);
-                  }}
-                  style={{
-                    marginTop: '8px',
-                    height: '42px',
-                    background: '#3b82f6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  [{orderData.partner}] 주문서 작성으로 이동 <ArrowRight size={16} />
-                </button>
               )}
             </div>
 
