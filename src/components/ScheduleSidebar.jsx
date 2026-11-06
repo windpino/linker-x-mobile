@@ -1,9 +1,10 @@
 import React from 'react';
-import { Clock, CheckCircle2, Trash2, Edit3, Plus, Copy } from 'lucide-react';
-import { format, isSameDay, startOfDay, isWithinInterval } from 'date-fns';
+import { Clock, CheckCircle2, Trash2, Edit3, Plus, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { playMenuClickSound } from '../utils/audio';
+import { format, isSameDay, startOfDay, isWithinInterval, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUser, onAdd, onCopy, onEdit, onDelete, isDashboardLocked, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [] }) => {
+const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedules, currentUser, onAdd, onAddOrder, onCopy, onEdit, onDelete, isDashboardLocked, onOpenScheduleDetail, scheduleTypes = [], hiddenScheduleTypes = [] }) => {
   const getBadgeStyles = (type) => {
     const match = scheduleTypes.find(t => t.name === type);
     if (match) {
@@ -35,7 +36,7 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
   };
 
   const [deletingId, setDeletingId] = React.useState(null);
-  const formattedDate = format(selectedDate, 'd일', { locale: ko });
+  const formattedDate = format(selectedDate, 'M월 d일', { locale: ko });
   
   const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
   const dailySchedules = (schedules || [])
@@ -66,27 +67,99 @@ const ScheduleSidebar = ({ selectedDate, schedules = [], setSchedules, currentUs
 
   return (
     <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '0 0 6px 0', borderBottom: '1px solid #f1f5f9', marginBottom: '6px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
-          <Clock size={16} color="#3b82f6" />
-          <span>{formattedDate} 일정</span>
+      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', padding: '0 0 6px 0', borderBottom: '1px solid #f1f5f9', marginBottom: '6px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', minWidth: 0 }}>
+          <Clock size={16} color="#3b82f6" style={{ flexShrink: 0 }} />
+          {onDateSelect && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                playMenuClickSound();
+                onDateSelect(addDays(selectedDate, -1));
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '20px',
+                height: '20px',
+                padding: 0,
+                borderRadius: '50%',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+              title="이전 날짜 (하루 전)"
+            >
+              <ChevronLeft size={13} />
+            </button>
+          )}
+          <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap' }}>
+            {formattedDate} 일정
+          </span>
+          {onDateSelect && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                playMenuClickSound();
+                onDateSelect(addDays(selectedDate, 1));
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '20px',
+                height: '20px',
+                padding: 0,
+                borderRadius: '50%',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+              title="다음 날짜 (하루 뒤)"
+            >
+              <ChevronRight size={13} />
+            </button>
+          )}
           {dailySchedules.length > 0 && (
-            <span style={{ fontSize: '0.7rem', color: '#3b82f6', backgroundColor: '#eff6ff', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.7rem', color: '#3b82f6', backgroundColor: '#eff6ff', padding: '1px 5px', borderRadius: '10px', fontWeight: 700, flexShrink: 0 }}>
               {dailySchedules.length}건
             </span>
           )}
         </div>
-        <button 
-          className="btn-sub-primary" 
-          onClick={(e) => { e.stopPropagation(); onAdd(); }} 
-          style={{ 
-            padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, 
-            display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
-            backgroundColor: '#3b82f6', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
-          }}
-        >
-          <Plus size={14} /> 일정 추가
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          {onAddOrder && (
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAddOrder(); }} 
+              style={{ 
+                padding: '4px 7px', fontSize: '0.73rem', fontWeight: 800, 
+                display: 'flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap',
+                backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
+              }}
+            >
+              <Plus size={12} /> 수주 추가
+            </button>
+          )}
+          <button 
+            className="btn-sub-primary" 
+            type="button"
+            onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAdd(); }} 
+            style={{ 
+              padding: '4px 7px', fontSize: '0.73rem', fontWeight: 800, 
+              display: 'flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap',
+              backgroundColor: '#0284c7', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
+            }}
+          >
+            <Plus size={12} /> 일정 추가
+          </button>
+        </div>
       </div>
 
       <div className="sidebar-content" style={{ padding: '0', flex: 1, minHeight: 0, overflowY: 'auto' }}>

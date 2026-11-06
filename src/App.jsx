@@ -3564,12 +3564,14 @@ function App() {
         >
           <ScheduleSidebar 
             selectedDate={selectedDate} 
+            onDateSelect={setSelectedDate}
             schedules={schedules} 
             setSchedules={setSchedules} 
             currentUser={currentUser} 
             scheduleTypes={scheduleTypes}
             hiddenScheduleTypes={hiddenScheduleTypes}
             onAdd={() => setIsScheduleRegistrationOpen(true)}
+            onAddOrder={() => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }}
             isDashboardLocked={isDashboardLocked}
             onOpenScheduleDetail={handleOpenScheduleDetail}
             onCopy={(s) => {
@@ -5559,12 +5561,14 @@ function App() {
         }}>
           <ScheduleSidebar 
             selectedDate={selectedDate} 
+            onDateSelect={setSelectedDate}
             schedules={schedules} 
             setSchedules={setSchedules} 
             currentUser={currentUser} 
             scheduleTypes={scheduleTypes}
             hiddenScheduleTypes={hiddenScheduleTypes}
             onAdd={() => setIsScheduleRegistrationOpen(true)}
+            onAddOrder={() => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); }}
             isDashboardLocked={true}
             onOpenScheduleDetail={handleOpenScheduleDetail}
             onCopy={(s) => {

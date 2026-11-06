@@ -263,7 +263,7 @@ const Calendar = ({
           </div>
         </div>
 
-        {/* 행 2: 액션 버튼 그룹 (오늘, 일정 추가, 수주 추가) */}
+        {/* 행 2: 액션 버튼 그룹 (오늘, 수주 추가, 일정 추가) */}
         <div className="calendar-actions" style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
           <button 
             style={{ padding: '4px 8px', fontSize: '0.74rem', fontWeight: 700, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }} 
@@ -272,16 +272,16 @@ const Calendar = ({
             오늘
           </button>
           <button 
-            style={{ flex: 1, padding: '4px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#0284c7', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }} 
-            onClick={handleAddSchedule}
-          >
-            <Plus size={12} /> 일정 추가
-          </button>
-          <button 
             style={{ flex: 1, padding: '4px 8px', fontSize: '0.74rem', fontWeight: 800, color: 'white', backgroundColor: '#2563eb', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }} 
             onClick={handleAddOrder}
           >
             <Plus size={12} /> 수주 추가
+          </button>
+          <button 
+            style={{ flex: 1, padding: '4px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#0284c7', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }} 
+            onClick={handleAddSchedule}
+          >
+            <Plus size={12} /> 일정 추가
           </button>
         </div>
       </div>
