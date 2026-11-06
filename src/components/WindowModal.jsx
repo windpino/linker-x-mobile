@@ -104,6 +104,34 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
   const [minimizedIndex, setMinimizedIndex] = useState(-1);
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
+  const [viewportHeight, setViewportHeight] = useState(() => {
+    return (typeof window !== 'undefined' && window.visualViewport) ? window.visualViewport.height : null;
+  });
+  const [viewportTop, setViewportTop] = useState(() => {
+    return (typeof window !== 'undefined' && window.visualViewport) ? window.visualViewport.offsetTop : 0;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const onVisualViewportChange = () => {
+      const vv = window.visualViewport;
+      setViewportHeight(vv.height);
+      setViewportTop(vv.offsetTop);
+      document.documentElement.style.setProperty('--app-visual-viewport-height', `${vv.height}px`);
+      document.documentElement.style.setProperty('--app-visual-viewport-top', `${vv.offsetTop}px`);
+    };
+
+    onVisualViewportChange();
+    window.visualViewport.addEventListener('resize', onVisualViewportChange);
+    window.visualViewport.addEventListener('scroll', onVisualViewportChange);
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', onVisualViewportChange);
+      window.visualViewport.removeEventListener('scroll', onVisualViewportChange);
+    };
+  }, []);
+
   const [localZIndex, setLocalZIndex] = useState(() => {
     if (zIndex && zIndex > globalZIndex) {
       globalZIndex = zIndex;
@@ -284,7 +312,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     };
   }, [title, isMaximized]);
 
-  const isMobileSize = isMobileView || window.innerWidth <= 480;
+  const isMobileSize = isMobileView || window.innerWidth <= 768;
   // 최소화 배치 시 모바일 부모 폭(최대 430px)을 기준으로 정렬
   const targetX = isMinimized 
     ? (desktopOnly ? -(windowSize.width / 2) + 140 + 20 + (minimizedIndex * 290) : -100 + (minimizedIndex * 70)) 
@@ -294,7 +322,17 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
     : position.y;
 
   const modalContent = (
-    <div className={`window-overlay ${desktopOnly ? 'desktop-only' : 'mobile-modal'} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} style={{ zIndex: localZIndex }}>
+    <div 
+      className={`window-overlay ${desktopOnly ? 'desktop-only' : 'mobile-modal'} ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`} 
+      style={{ 
+        zIndex: localZIndex,
+        ...(viewportHeight && (isMobileSize || isMaximized) ? {
+          height: `${viewportHeight}px`,
+          maxHeight: `${viewportHeight}px`,
+          top: `${viewportTop}px`
+        } : {})
+      }}
+    >
       <div 
         ref={containerRef}
         onMouseDownCapture={bringToFront}
@@ -307,8 +345,9 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
             ? (desktopOnly ? '100vw' : '100%') 
             : (isMinimized ? (desktopOnly ? '280px' : '120px') : (savedData?.width ? `${savedData.width}px` : defaultWidth)),
           height: isMaximized 
-            ? (desktopOnly ? '100vh' : '100%') 
+            ? (viewportHeight && isMobileSize ? `${viewportHeight}px` : (desktopOnly ? '100vh' : '100%')) 
             : (isMinimized ? (desktopOnly ? '40px' : '36px') : (savedData?.height ? `${savedData.height}px` : defaultHeight)),
+          maxHeight: (viewportHeight && isMobileSize) ? `${viewportHeight}px` : undefined,
           top: isMaximized ? 0 : undefined,
           left: isMaximized ? 0 : undefined,
           borderRadius: isMaximized ? 0 : undefined,
@@ -364,7 +403,8 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
           <div 
             className="window-content-area" 
             style={{ 
-              height: isMaximized ? 'calc(100% - 40px)' : undefined,
+              height: isMaximized ? (viewportHeight && isMobileSize ? `${viewportHeight - 40}px` : 'calc(100% - 40px)') : undefined,
+              maxHeight: (viewportHeight && isMobileSize) ? `${viewportHeight - 40}px` : undefined,
               flex: 1,
               padding: contentPadding || undefined,
               overflowY: noScroll ? 'hidden' : 'auto',

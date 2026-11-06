@@ -154,14 +154,13 @@
 @media (max-width: 768px) {
   .window-overlay {
     position: fixed !important;
-    top: 0 !important;
+    top: var(--app-visual-viewport-top, 0px) !important;
     left: 0 !important;
     right: 0 !important;
-    bottom: 0 !important;
+    bottom: auto !important;
     width: 100vw !important;
-    height: 100% !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    height: var(--app-visual-viewport-height, 100%) !important;
+    max-height: var(--app-visual-viewport-height, 100%) !important;
     overflow: hidden !important;
   }
 
@@ -170,9 +169,7 @@
     width: 100% !important;
     max-width: 100% !important;
     height: 100% !important;
-    height: 100dvh !important;
     max-height: 100% !important;
-    max-height: 100dvh !important;
     border-radius: 0 !important;
     border: none !important;
     resize: none !important;
@@ -201,14 +198,13 @@
 /* Mobile Dedicated Modal Overrides */
 .window-overlay.mobile-modal {
   position: fixed !important;
-  top: 0 !important;
+  top: var(--app-visual-viewport-top, 0px) !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important;
+  bottom: auto !important;
   width: 100vw !important;
-  height: 100% !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
+  height: var(--app-visual-viewport-height, 100%) !important;
+  max-height: var(--app-visual-viewport-height, 100%) !important;
   overflow: hidden !important;
   pointer-events: auto !important;
   background-color: transparent !important;
@@ -218,9 +214,7 @@
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
-  height: 100dvh !important;
   max-height: 100% !important;
-  max-height: 100dvh !important;
   border-radius: 0 !important;
   border: none !important;
   resize: none !important;
