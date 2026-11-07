@@ -1266,7 +1266,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           backgroundColor: '#ffffff',
           position: 'relative'
         }}>
-          /* TOP CONTROLS (flexShrink: 0) */
+          {/* TOP CONTROLS (flexShrink: 0) */}
           <div style={{
             flexShrink: 0,
             padding: '8px 10px',
@@ -1412,7 +1412,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                   <Calendar size={14} color="#3b82f6" />
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {invoiceData.date} · [{invoiceData.warehouse || '차량/창고'}]
+                    {invoiceData.date} · {invoiceData.warehouse?.startsWith('[') ? invoiceData.warehouse : `[${invoiceData.warehouse || '차량/창고'}]`}
                   </span>
                 </span>
                 <span style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 800, flexShrink: 0 }}>
@@ -1887,35 +1887,52 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           {/* SUMMARY ROW (flexShrink: 0) */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '3px',
             backgroundColor: '#0f172a',
             color: '#ffffff',
-            padding: '8px 12px',
-            flexShrink: 0
+            padding: '7px 12px',
+            flexShrink: 0,
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{
-                backgroundColor: '#10b981',
-                color: '#ffffff',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                letterSpacing: '0.5px'
-              }}>
-                [합계]
-              </span>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fcd34d', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                미수: <strong style={{ color: '#fbbf24', fontSize: '0.88rem' }}>{finalBalance.toLocaleString()}원</strong>
+            {/* 1행: [합계] · 총수량 ---------------- 합계금액 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  letterSpacing: '0.5px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  [합계]
+                </span>
+                <span style={{ fontSize: '0.82rem', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                  총수량: <strong style={{ color: '#38bdf8' }}>{totalQty}</strong>
+                </span>
+              </div>
+              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap' }}>
+                {totalAmount.toLocaleString()}원
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.86rem', fontWeight: 700 }}>
-              <span style={{ color: '#cbd5e1' }}>
-                총수량: <strong style={{ color: '#38bdf8' }}>{totalQty}</strong>
+
+            {/* 2행: 미수금 (하단에 줄바꿈 없이 깔끔하게 분리 표시) */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              paddingTop: '3px',
+              marginTop: '1px'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                거래처 총 미수금:
               </span>
-              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff' }}>
-                {totalAmount.toLocaleString()}원
+              <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#fbbf24', letterSpacing: '-0.2px', whiteSpace: 'nowrap' }}>
+                {finalBalance.toLocaleString()}원
               </span>
             </div>
           </div>
