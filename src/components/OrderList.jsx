@@ -1383,11 +1383,11 @@ const OrderList = ({
                                   재고불일치
                                 </button>
 
-                                {/* Temporary Stock Feedback Toast (품목 아래쪽에 표시) */}
+                                {/* Temporary Stock Feedback Toast (품목 위쪽에 표시하여 품목 가림 방지) */}
                                 {feedback && (
                                   <div style={{ 
                                     position: 'absolute', 
-                                    top: 'calc(100% - 2px)', 
+                                    bottom: 'calc(100% + 3px)', 
                                     left: '50%', 
                                     transform: 'translateX(-50%)', 
                                     backgroundColor: '#020617', 
@@ -1397,7 +1397,7 @@ const OrderList = ({
                                     fontSize: '0.74rem', 
                                     fontWeight: 800,
                                     whiteSpace: 'nowrap', 
-                                    zIndex: 50, 
+                                    zIndex: 60, 
                                     border: '1px solid #38bdf8', 
                                     boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
                                     pointerEvents: 'none'
@@ -1856,7 +1856,7 @@ const OrderList = ({
                                   {feedback && (
                                     <div style={{ 
                                       position: 'absolute', 
-                                      top: 'calc(100% - 2px)', 
+                                      bottom: 'calc(100% + 3px)', 
                                       left: '50%', 
                                       transform: 'translateX(-50%)', 
                                       backgroundColor: '#0f172a', 
@@ -1866,7 +1866,7 @@ const OrderList = ({
                                       fontSize: '0.74rem', 
                                       fontWeight: 800,
                                       whiteSpace: 'nowrap', 
-                                      zIndex: 50, 
+                                      zIndex: 60, 
                                       border: '1px solid #38bdf8', 
                                       boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
                                       pointerEvents: 'none'
