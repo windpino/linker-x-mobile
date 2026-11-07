@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X, Calendar } from 'lucide-react';
+import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
@@ -1266,7 +1266,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           backgroundColor: '#ffffff',
           position: 'relative'
         }}>
-          {/* TOP CONTROLS (flexShrink: 0) - 짙은 배경에 흰색 입력칸 */}
           <div style={{
             flexShrink: 0,
             padding: '8px 10px',
@@ -1276,16 +1275,16 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {/* Row 1: [ 메뉴 ] | ◀ 2026-11-06 ▶ | [3] 통영9183 ▼ */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            {/* Row 1: [ 메뉴 ] + [ 거래처 검색 ] + [ 상하 화살표 가리기/펼치기 ] */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
               {/* [ 메뉴 ] Dropdown */}
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => setIsMenuOpen(prev => !prev)}
                   style={{
                     height: '34px',
-                    padding: '0 12px',
+                    padding: '0 10px',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
                     backgroundColor: '#ffffff',
@@ -1389,36 +1388,72 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 )}
               </div>
 
-              {/* Row 1: [메뉴] + [📅 2026-11-06 · [3] 통영9183 ▼ 펼치기] */}
+              {/* [ 거래처 검색 ] (메뉴 바로 뒤로 배치, flex: 1) */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PartnerSearchInput 
+                  partners={partners} 
+                  currentUser={currentUser}
+                  typeFilter="매출처"
+                  value={invoiceData.partner} 
+                  nameOnly={true}
+                  hideReceivables={true}
+                  placeholder="거래처 검색..."
+                  onChange={(val) => {
+                    const updatedInvoice = { ...invoiceData, partner: val };
+                    setInvoiceData(updatedInvoice);
+                    if (updatedInvoice.items && updatedInvoice.items.length > 0) {
+                      handleAutoSave(updatedInvoice);
+                    }
+                  }} 
+                  onSelect={(partner) => {
+                    const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
+                    if (stack.length > 0 && !editingInvoice) {
+                      const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
+                      setInvoiceData({ ...latestInvoice });
+                      setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
+                      handleAutoSave(latestInvoice);
+                    } else {
+                      const targetMgr = currentUser?.name || invoiceData.manager;
+                      setInvoiceData(prev => ({ 
+                        ...prev, 
+                        id: Date.now(), 
+                        partner: partner.name, 
+                        manager: targetMgr,
+                        warehouse: getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
+                        items: [], 
+                        receivedAmount: 0, 
+                        creator: currentUser?.name || '시스템'
+                      }));
+                      setCurrentIndex(0);
+                    }
+                    productInputRef.current?.focus();
+                  }}
+                  autoFocus={!invoiceData.partner}
+                />
+              </div>
+
+              {/* [ 가리기/펼치기 버튼 ] (작게 오른쪽 끝에 상하화살표로) */}
               <button
                 type="button"
                 onClick={() => setShowDateVehicle(prev => !prev)}
                 style={{
-                  flex: 1,
                   height: '34px',
-                  padding: '0 10px',
+                  width: '34px',
+                  padding: 0,
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  backgroundColor: showDateVehicle ? '#eff6ff' : '#ffffff',
-                  color: '#1e293b',
-                  display: 'flex',
+                  backgroundColor: showDateVehicle ? '#38bdf8' : '#ffffff',
+                  color: showDateVehicle ? '#ffffff' : '#0f172a',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 700
+                  flexShrink: 0,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                 }}
-                title={showDateVehicle ? "일자/차량설정 가리기" : "일자/차량설정 펼치기"}
+                title={showDateVehicle ? "일자/차량설정 접기" : `일자/차량설정 펼치기 (${invoiceData.date})`}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                  <Calendar size={14} color="#3b82f6" />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {invoiceData.date} · {invoiceData.warehouse?.startsWith('[') ? invoiceData.warehouse : `[${invoiceData.warehouse || '차량/창고'}]`}
-                  </span>
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 800, flexShrink: 0 }}>
-                  {showDateVehicle ? '▲ 가리기' : '▼ 펼치기'}
-                </span>
+                {showDateVehicle ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
             </div>
 
@@ -1519,50 +1554,6 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 </select>
               </div>
             )}
-
-            {/* Row 2: 거래처명 검색 (미수금은 아래쪽 합계줄로 이동하여 100% 전체 너비 확보) */}
-            <div style={{ width: '100%' }}>
-              <PartnerSearchInput 
-                partners={partners} 
-                currentUser={currentUser}
-                typeFilter="매출처"
-                value={invoiceData.partner} 
-                nameOnly={true}
-                hideReceivables={true}
-                placeholder="거래처 검색..."
-                onChange={(val) => {
-                  const updatedInvoice = { ...invoiceData, partner: val };
-                  setInvoiceData(updatedInvoice);
-                  if (updatedInvoice.items && updatedInvoice.items.length > 0) {
-                    handleAutoSave(updatedInvoice);
-                  }
-                }} 
-                onSelect={(partner) => {
-                  const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
-                  if (stack.length > 0 && !editingInvoice) {
-                    const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
-                    setInvoiceData({ ...latestInvoice });
-                    setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
-                    handleAutoSave(latestInvoice);
-                  } else {
-                    const targetMgr = currentUser?.name || invoiceData.manager;
-                    setInvoiceData(prev => ({ 
-                      ...prev, 
-                      id: Date.now(), 
-                      partner: partner.name, 
-                      manager: targetMgr,
-                      warehouse: getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
-                      items: [], 
-                      receivedAmount: 0, 
-                      creator: currentUser?.name || '시스템'
-                    }));
-                    setCurrentIndex(0);
-                  }
-                  productInputRef.current?.focus();
-                }}
-                autoFocus={!invoiceData.partner}
-              />
-            </div>
 
             {/* Row 3: [ 상품명 ▼ ] [ 상품 입력 (오렌지 테두리) ] [ 🔍 ] */}
             <div style={{ position: 'relative', width: '100%' }} ref={productSearchRef}>
