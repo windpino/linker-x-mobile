@@ -476,6 +476,7 @@ function App() {
   const [isSalesOrderOpen, setIsSalesOrderOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [salesOrderSource, setSalesOrderSource] = useState(null);
+  const [salesInvoiceSource, setSalesInvoiceSource] = useState(null);
   const [isOrderListOpen, setIsOrderListOpen] = useState(false);
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState(null);
@@ -2731,13 +2732,14 @@ function App() {
       if (isSilent) {
         setEditingInvoice(finalData);
       } else {
+        const returnToOrderList = salesInvoiceSource === 'orderList' || Boolean(orderToUpdate || invData.orderId || invData.salesOrderId || invData.isFromOrder);
+        setSalesInvoiceSource(null);
         setIsSalesInvoiceOpen(false);
         setEditingInvoice(null);
         alert('매출전표가 발행되었으며 실시간 재고에 출고 반영되었습니다.');
 
         // 납품완료 후 매출전표가 저장된 후에는 다시 수주목록의 '대기' 창으로 복귀
-        const isFromOrder = Boolean(orderToUpdate || invData.orderId || invData.salesOrderId || invData.isFromOrder);
-        if (isFromOrder) {
+        if (returnToOrderList) {
           setOrderListStatusFilter('waiting');
           if (finalData.date) {
             setSelectedDate(new Date(finalData.date));
@@ -6115,8 +6117,9 @@ function App() {
         zIndex={activeSalesModal === 'invoice' ? 8500 : 3000}
         onClose={() => { 
           setIsSalesInvoiceOpen(false); 
-          const wasFromOrder = Boolean(editingInvoice?.isFromOrder || editingInvoice?.salesOrderId || editingInvoice?.orderId);
+          const wasFromOrder = salesInvoiceSource === 'orderList' || Boolean(editingInvoice?.isFromOrder || editingInvoice?.salesOrderId || editingInvoice?.orderId);
           setEditingInvoice(null); 
+          setSalesInvoiceSource(null);
           if (wasFromOrder) {
             setOrderListStatusFilter('waiting');
             setIsOrderListOpen(true);
@@ -6410,7 +6413,11 @@ function App() {
           setIsOrderListOpen(false); 
         }}
         onDeleteOrder={handleDeleteSalesOrder}
-        onTransferToInvoice={(invData) => { setIsOrderListOpen(false); openSalesInvoice(invData); }}
+        onTransferToInvoice={(invData) => { 
+          setIsOrderListOpen(false); 
+          setSalesInvoiceSource('orderList');
+          openSalesInvoice(invData); 
+        }}
         onOpenInventoryMismatch={openMismatchFromOrder}
         onUpdateOrder={async (id, updates) => {
           try {
