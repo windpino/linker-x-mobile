@@ -78,6 +78,7 @@ import { getStaffWarehouse } from './utils/warehouseUtils';
 import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import MobileBottomNav from './components/MobileBottomNav';
 import useDevice from './hooks/useDevice';
 import { db } from './firebase';
 import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
@@ -7606,6 +7607,49 @@ function App() {
         />
       )}
       <PwaInstallPrompt />
+
+      {/* 모바일 최적화 하단 고정 네비게이션 바 (Bottom Navigation Bar) */}
+      {currentUser && (
+        <MobileBottomNav
+          activeTab={
+            isSalesOrderOpen ? 'sales_order' :
+            isOrderListOpen ? 'order_list' :
+            isInventoryTransferOpen ? 'inventory_transfer' :
+            isMobileMenuOpen ? 'menu' : 'home'
+          }
+          onGoHome={() => {
+            setIsOrderListOpen(false);
+            setIsSalesOrderOpen(false);
+            setIsInventoryTransferOpen(false);
+            setIsCalendarModalOpen(false);
+            setIsWidgetModalOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+          }}
+          onOpenOrderList={() => {
+            setIsSalesOrderOpen(false);
+            setIsInventoryTransferOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+            openOrderList();
+          }}
+          onOpenSalesOrder={() => {
+            setIsOrderListOpen(false);
+            setIsInventoryTransferOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+            setEditingOrder(null);
+            setOrderingPartner(null);
+            setIsSalesOrderOpen(true);
+          }}
+          onOpenInventoryTransfer={() => {
+            setIsOrderListOpen(false);
+            setIsSalesOrderOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+            openInventoryTransfer();
+          }}
+          onToggleMenu={() => {
+            window.dispatchEvent(new CustomEvent('linkerx_toggle_mobile_menu'));
+          }}
+        />
+      )}
     </div>
   );
 }

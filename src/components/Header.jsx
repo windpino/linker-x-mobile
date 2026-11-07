@@ -582,8 +582,20 @@ const Header = ({
     const handleCloseMenu = () => {
       setIsMobileMenuOpen(false);
     };
+    const handleOpenMenu = () => {
+      setIsMobileMenuOpen(true);
+    };
+    const handleToggleMenu = () => {
+      setIsMobileMenuOpen(prev => !prev);
+    };
     window.addEventListener('linkerx_close_mobile_menu', handleCloseMenu);
-    return () => window.removeEventListener('linkerx_close_mobile_menu', handleCloseMenu);
+    window.addEventListener('linkerx_open_mobile_menu', handleOpenMenu);
+    window.addEventListener('linkerx_toggle_mobile_menu', handleToggleMenu);
+    return () => {
+      window.removeEventListener('linkerx_close_mobile_menu', handleCloseMenu);
+      window.removeEventListener('linkerx_open_mobile_menu', handleOpenMenu);
+      window.removeEventListener('linkerx_toggle_mobile_menu', handleToggleMenu);
+    };
   }, []);
 
   return (
