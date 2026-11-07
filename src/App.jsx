@@ -7679,11 +7679,11 @@ function FavoriteMenuBar({
 
   return (
     <div className="calendar-favorites-section" style={{
-      backgroundColor: 'white',
+      backgroundColor: '#1e293b',
       borderRadius: '12px',
       padding: '8px 10px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid #334155',
       position: 'relative',
       flexShrink: 0
     }}>
@@ -7714,7 +7714,7 @@ function FavoriteMenuBar({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Star size={14} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>자주 찾는 메뉴</h4>
+          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc' }}>자주 찾는 메뉴</h4>
         </div>
 
         <button
@@ -7727,8 +7727,8 @@ function FavoriteMenuBar({
       </div>
 
       {/* 8칸 메뉴 그리드 (1열당 4개 x 2행 = 총 8개, 컴팩트) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-        {Array.from({ length: 8 }).map((_, idx) => {
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+        {Array.from({ length: 10 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
           const isSelecting = selectingSlot === idx;
@@ -7755,10 +7755,8 @@ function FavoriteMenuBar({
                   title="클릭하여 메뉴 추가"
                 >
                   <div style={{
-                    width: '42px',
-                    height: '42px',
-                    border: isSelecting ? '1.5px solid #3b82f6' : '1.5px dashed #cbd5e1',
-                    backgroundColor: isSelecting ? '#eff6ff' : '#f8fafc',
+                    width: '38px', height: '38px',
+                    border: isSelecting ? '1.5px solid #3b82f6' : '1.5px dashed #cbd5e1', backgroundColor: isSelecting ? '#eff6ff' : '#ffffff',
                     borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
@@ -7875,10 +7873,8 @@ function FavoriteMenuBar({
               >
                 {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
                 <div style={{
-                  width: '42px',
-                  height: '42px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
+                  width: '38px', height: '38px',
+                  border: '1px solid #e2e8f0', backgroundColor: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                   borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
@@ -7890,9 +7886,7 @@ function FavoriteMenuBar({
                 </div>
                 {/* 이름: 아이콘 박스 밖 아래쪽에 배치 */}
                 <span style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  color: '#334155',
+                  fontSize: '0.64rem', fontWeight: 700, color: '#f1f5f9',
                   textAlign: 'center',
                   wordBreak: 'keep-all',
                   letterSpacing: '-0.3px',

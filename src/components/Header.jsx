@@ -720,39 +720,6 @@ const Header = ({
             </button>
           )}
 
-          {/* 모바일 전용 환경설정 배너 버튼 */}
-          <button
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              playMenuClickSound();
-              if (onOpenMobileSettings) onOpenMobileSettings();
-              else if (onOpenSettings) onOpenSettings();
-            }}
-            style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, rgba(37, 99, 246, 0.18) 0%, rgba(59, 130, 246, 0.08) 100%)',
-              border: '1px solid rgba(96, 165, 250, 0.35)',
-              borderRadius: '10px',
-              padding: '9px 12px',
-              color: '#93c5fd',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              marginBottom: '10px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚙️</span>
-              <span>📱 모바일 전용 환경설정 (효과음/진동/글자)</span>
-            </div>
-            <span style={{ fontSize: '0.74rem', background: 'rgba(59, 130, 246, 0.25)', color: '#bfdbfe', padding: '2px 7px', borderRadius: '4px' }}>
-              설정 ➔
-            </span>
-          </button>
-
           {/* 검색 바 */}
           <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px', position: 'relative' }}>
             <Search size={16} className="search-icon" style={{ color: '#64748b', left: '10px' }} />
@@ -881,7 +848,7 @@ const Header = ({
                     boxShadow: isOpen ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
                     color: isOpen ? '#ffffff' : '#93c5fd',
                     fontWeight: isOpen ? 800 : 700,
-                    fontSize: '0.84rem',
+                    fontSize: '0.98rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'all 0.18s ease'
@@ -889,7 +856,7 @@ const Header = ({
                 >
                   <span>{group.label}</span>
                   <ChevronDown
-                    size={15}
+                    size={17}
                     style={{
                       color: isOpen ? '#93c5fd' : '#60a5fa',
                       transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -904,7 +871,7 @@ const Header = ({
                     padding: '4px 0 4px 12px',
                     marginLeft: '10px',
                     borderLeft: '1px solid rgba(96, 165, 250, 0.22)',
-                    gap: '2px'
+                    gap: '4px'
                   }}>
                     {visibleItems.map((item, idx) => (
                       <button 
@@ -918,9 +885,9 @@ const Header = ({
                           }
                         }}
                         style={{
-                          padding: '8px 10px',
-                          fontSize: '0.84rem',
-                          color: '#cbd5e1',
+                          padding: '9px 10px',
+                          fontSize: '0.96rem',
+                          color: '#e2e8f0',
                           background: 'transparent',
                           border: 'none',
                           cursor: 'pointer',
@@ -929,7 +896,8 @@ const Header = ({
                           alignItems: 'center',
                           gap: '8px',
                           textAlign: 'left',
-                          width: '100%'
+                          width: '100%',
+                          fontWeight: 600
                         }}
                       >
                         {showMenuIcons && <span>{MENU_EMOJIS[item.label] || '📄'}</span>}
