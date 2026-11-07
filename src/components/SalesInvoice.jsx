@@ -1266,12 +1266,12 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           backgroundColor: '#ffffff',
           position: 'relative'
         }}>
-          {/* TOP CONTROLS (flexShrink: 0) */}
+          {/* TOP CONTROLS (flexShrink: 0) - 짙은 배경에 흰색 입력칸 */}
           <div style={{
             flexShrink: 0,
             padding: '8px 10px',
-            backgroundColor: '#ffffff',
-            borderBottom: '1px solid #e2e8f0',
+            backgroundColor: '#1e293b',
+            borderBottom: '1px solid #0f172a',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
@@ -1287,15 +1287,16 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     height: '34px',
                     padding: '0 12px',
                     borderRadius: '6px',
-                    border: '1px solid #334155',
-                    backgroundColor: '#1e293b',
-                    color: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
                     fontSize: '0.82rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                   }}
                 >
                   메뉴
@@ -1429,9 +1430,9 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 justifyContent: 'space-between',
                 gap: '8px',
                 padding: '6px 8px',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#0f172a',
                 borderRadius: '8px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #334155',
                 boxSizing: 'border-box'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
@@ -1655,12 +1656,13 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                     justifyContent: 'center',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
-                    backgroundColor: '#f1f5f9',
+                    backgroundColor: '#ffffff',
                     cursor: 'pointer',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                   }}
                 >
-                  <Search size={16} color="#475569" />
+                  <Search size={16} color="#0f172a" />
                 </button>
               </div>
 

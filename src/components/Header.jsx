@@ -754,8 +754,8 @@ const Header = ({
           </button>
 
           {/* 검색 바 */}
-          <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px' }}>
-            <Search size={16} className="search-icon" />
+          <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px', position: 'relative' }}>
+            <Search size={16} className="search-icon" style={{ color: '#64748b', left: '10px' }} />
             <input 
               type="text" 
               placeholder="메뉴 검색" 
@@ -763,7 +763,17 @@ const Header = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onKeyDown={handleSearchKeyDown}
-              style={{ width: '100%' }}
+              style={{
+                width: '100%',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '8px 12px 8px 34px',
+                fontSize: '0.85rem',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
             />
             {isSearchFocused && searchQuery.trim() !== '' && (
               <div className="search-results-dropdown" style={{ left: 0, right: 0, width: 'auto' }}>
