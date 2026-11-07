@@ -1748,8 +1748,12 @@ const OrderList = ({
 
                         {/* Hide header row on mobile */}
                         {!isMobileView && (
-                          <div style={{ display: 'grid', gridTemplateColumns: '80px 120px 1fr 100px 100px', gap: '12px', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-                            <span>No. (체크)</span><span>카테고리</span><span>품목명</span><span style={{ textAlign: 'right' }}>수량</span><span style={{ textAlign: 'center' }}>창고 이동</span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '100px 120px 1fr 100px 100px', gap: '12px', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '8px', alignItems: 'center' }}>
+                            <span style={{ whiteSpace: 'nowrap' }}>No. (체크)</span>
+                            <span style={{ whiteSpace: 'nowrap' }}>카테고리</span>
+                            <span style={{ whiteSpace: 'nowrap' }}>품목명</span>
+                            <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>수량</span>
+                            <span style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>창고 이동</span>
                           </div>
                         )}
 
@@ -1879,7 +1883,7 @@ const OrderList = ({
                             }
 
                             return (
-                              <div key={iIdx} onClick={() => handleItemMove(order, item, iIdx)} style={{ display: 'grid', gridTemplateColumns: '80px 120px 1fr 100px 100px', gap: '12px', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: isProcessed ? '#f0fdf4' : 'transparent', transition: 'all 0.2s', position: 'relative' }}>
+                              <div key={iIdx} onClick={() => handleItemMove(order, item, iIdx)} style={{ display: 'grid', gridTemplateColumns: '100px 120px 1fr 100px 100px', gap: '12px', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: isProcessed ? '#f0fdf4' : 'transparent', transition: 'all 0.2s', position: 'relative', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span style={{ color: '#94a3b8' }}>{iIdx + 1}</span>
                                   <input type="checkbox" checked={!!isProcessed} onChange={() => handleItemMove(order, item, iIdx)} style={{ cursor: 'pointer' }} />
