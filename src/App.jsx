@@ -2614,26 +2614,51 @@ function App() {
         : null;
 
       let nextSalesOrders = salesOrders;
-      if (orderToUpdate) {
-        const updatedOrder = {
-          ...orderToUpdate,
-          status: '완료',
-          isCompleted: true,
-          deliveryReverted: false,
-          salesInvoiceId: String(id),
-          updatedAt: now.toISOString()
-        };
-        batch.set(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
-          status: '완료',
-          isCompleted: true,
-          deliveryReverted: false,
-          salesInvoiceId: String(id),
-          updatedAt: now.toISOString()
-        }, { merge: true });
+      const remainingOrderItems = invData.remainingOrderItems;
+      const isPartialDelivery = Array.isArray(remainingOrderItems) && remainingOrderItems.length > 0;
 
-        nextSalesOrders = salesOrders.map(so => 
-          String(so.id) === String(orderToUpdate.id) ? updatedOrder : so
-        );
+      if (orderToUpdate) {
+        if (isPartialDelivery) {
+          // 상차한 품목만 매출전표로 이동되고, 미상차 품목은 대기 상태로 그대로 표시/유지
+          const newItemsText = remainingOrderItems.map(i => i.raw || (i.name + (i.qty ? String(i.qty) : ''))).join(' ');
+          const newTotalPrice = remainingOrderItems.reduce((acc, i) => acc + (Number(i.qty || 0) * Number(i.price || 0)), 0);
+          const updatedOrder = {
+            ...orderToUpdate,
+            items: remainingOrderItems,
+            itemsText: newItemsText,
+            totalPrice: newTotalPrice,
+            status: '대기',
+            isCompleted: false,
+            deliveryReverted: false,
+            salesInvoiceId: null,
+            updatedAt: now.toISOString()
+          };
+          batch.set(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), updatedOrder, { merge: true });
+          nextSalesOrders = salesOrders.map(so => 
+            String(so.id) === String(orderToUpdate.id) ? updatedOrder : so
+          );
+        } else {
+          // 전체 품목 상차 완료: 수주 완료 상태로 전환
+          const updatedOrder = {
+            ...orderToUpdate,
+            status: '완료',
+            isCompleted: true,
+            deliveryReverted: false,
+            salesInvoiceId: String(id),
+            updatedAt: now.toISOString()
+          };
+          batch.set(doc(db, 'companies', companyId, 'salesOrders', String(orderToUpdate.id)), {
+            status: '완료',
+            isCompleted: true,
+            deliveryReverted: false,
+            salesInvoiceId: String(id),
+            updatedAt: now.toISOString()
+          }, { merge: true });
+
+          nextSalesOrders = salesOrders.map(so => 
+            String(so.id) === String(orderToUpdate.id) ? updatedOrder : so
+          );
+        }
       }
 
       // 1회 단일 네트워크 커밋 (모바일 초고속 저장)
@@ -2660,7 +2685,22 @@ function App() {
         setSalesOrders(nextSalesOrders);
         const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
         const updatedCache = curCache.map(so => String(so.id) === String(orderToUpdate.id) ? {
-          ...so, status: '완료', isCompleted: true, salesInvoiceId: String(id), updatedAt: now.toISOString()
+          ...so,
+          ...(isPartialDelivery ? {
+            items: remainingOrderItems,
+            itemsText: remainingOrderItems.map(i => i.raw || (i.name + (i.qty ? String(i.qty) : ''))).join(' '),
+            totalPrice: remainingOrderItems.reduce((acc, i) => acc + (Number(i.qty || 0) * Number(i.price || 0)), 0),
+            status: '대기',
+            isCompleted: false,
+            deliveryReverted: false,
+            salesInvoiceId: null
+          } : {
+            status: '완료',
+            isCompleted: true,
+            deliveryReverted: false,
+            salesInvoiceId: String(id)
+          }),
+          updatedAt: now.toISOString()
         } : so);
         localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
       }

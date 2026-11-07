@@ -420,19 +420,17 @@ const OrderList = ({
       return;
     }
 
-    // [대기 상태 + 기존 전표 존재] → 기존 매출전표를 열어 저장 시 다시 납품완료 처리 (중복 전표 방지)
-    if (linkedInvoice && onTransferToInvoice) {
-      onTransferToInvoice({ ...linkedInvoice, orderId: order.id, salesOrderId: order.id, isFromOrder: true });
-      return;
-    }
     const allItems = order.items || parseOrderItems(order.itemsText);
     const checkedItems = allItems.filter((item, idx) => (`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
-    const itemsToTransfer = checkedItems.length > 0 ? checkedItems : allItems;
+    const unloadedItems = allItems.filter((item, idx) => !(`${order.id}-${idx}` in processedItems ? processedItems[`${order.id}-${idx}`] : item.loaded));
 
-    if (itemsToTransfer.length === 0) {
-      alert('전표로 전송할 품목이 없습니다.');
+    // 1. 상차하지 않은 품목에 대해서는 매출전표로 품목 전송하지 않음
+    if (checkedItems.length === 0) {
+      alert('상차 완료된 품목이 없습니다.\n상차할 품목을 먼저 터치하여 체크한 후 [납품 완료]를 눌러주세요.');
       return;
     }
+
+    const itemsToTransfer = checkedItems;
 
     const outWH = order.outWarehouse || '본사창고';
     const inWH = order.inWarehouse || '차량';
@@ -462,11 +460,24 @@ const OrderList = ({
       };
     });
 
+    // [대기 상태 + 기존 전표 존재] → 상차 품목으로 기존 전표 갱신
+    if (linkedInvoice && onTransferToInvoice) {
+      onTransferToInvoice({ 
+        ...linkedInvoice, 
+        orderId: order.id, 
+        salesOrderId: order.id, 
+        isFromOrder: true,
+        items: invoiceItems,
+        remainingOrderItems: unloadedItems
+      });
+      return;
+    }
+
     // 주의: 여기서 수주 상태를 바로 '완료'로 변경하지 않습니다!
     // 전표 등록 화면에서 사용자가 [저장] 버튼을 눌러야만 실제 전표가 저장되고 수주도 완료 상태로 전환됩니다.
     // 저장을 안 누르고 창을 닫으면 납품완료가 안 된 것(대기)으로 유지됩니다.
 
-    // 2. 매출 전표 화면으로 즉시 전송
+    // 2. 매출 전표 화면으로 상차 품목만 전송 (미상차 품목은 remainingOrderItems로 전달)
     if (onTransferToInvoice) {
       onTransferToInvoice({
         ...order,
@@ -481,7 +492,8 @@ const OrderList = ({
         receivedAmount: 0,
         payments: { cash: 0, account: 0, card: 0, bill: 0 },
         discount: 0,
-        isFromOrder: true
+        isFromOrder: true,
+        remainingOrderItems: unloadedItems
       });
     }
 

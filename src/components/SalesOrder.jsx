@@ -386,7 +386,7 @@ const SalesOrder = ({
       showToast('수주 품목을 입력해주세요.', 'error');
       return;
     }
-    if (!canIssuePastDateSlip && orderData?.date && orderData.date < todayStr && (!editingOrder || orderData.date !== editingOrder.date)) {
+    if (!canIssuePastDateSlip && !editingOrder && orderData?.date && orderData.date < todayStr) {
       alert('과거일자 전표발행 권한이 없습니다. 당일 또는 미래일자만 발행할 수 있습니다.');
       return;
     }
@@ -619,10 +619,10 @@ const SalesOrder = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                   <DateNavButton
                     direction="prev"
-                    disabled={!canIssuePastDateSlip && orderData.date <= todayStr}
+                    disabled={!canIssuePastDateSlip && !editingOrder && orderData.date <= todayStr}
                     onClick={() => {
                       const prevDate = addDays(orderData.date, -1);
-                      if (!canIssuePastDateSlip && prevDate < todayStr) {
+                      if (!canIssuePastDateSlip && !editingOrder && prevDate < todayStr) {
                         alert('과거일자 전표발행 권한이 없습니다.');
                         return;
                       }
@@ -634,10 +634,10 @@ const SalesOrder = ({
                   <input 
                     type="date"
                     value={orderData.date}
-                    min={!canIssuePastDateSlip ? todayStr : undefined}
+                    min={!canIssuePastDateSlip && !editingOrder ? todayStr : undefined}
                     onChange={(e) => {
                       const newDate = e.target.value;
-                      if (!canIssuePastDateSlip && newDate < todayStr) {
+                      if (!canIssuePastDateSlip && !editingOrder && newDate < todayStr) {
                         alert('과거일자 전표발행 권한이 없습니다.');
                         return;
                       }
@@ -740,9 +740,37 @@ const SalesOrder = ({
                   <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {orderData.partner || '(거래처 미선택)'}
                   </span>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {orderData.date} · 담당: {orderData.manager}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <input 
+                      type="date"
+                      value={orderData.date}
+                      min={!canIssuePastDateSlip && !editingOrder ? todayStr : undefined}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        if (!canIssuePastDateSlip && !editingOrder && newDate < todayStr) {
+                          alert('과거일자 전표발행 권한이 없습니다.');
+                          return;
+                        }
+                        if (newDate) {
+                          setOrderData(prev => ({ ...prev, date: newDate }));
+                        }
+                      }}
+                      style={{
+                        padding: '1px 5px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      title="수주일자 변경"
+                    />
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      · 담당: {orderData.manager || '미지정'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
