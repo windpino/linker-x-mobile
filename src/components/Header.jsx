@@ -381,41 +381,6 @@ const Header = ({
       perm: hasPerm('데이터 전체 저장/불러오기/삭제'),
       keywords: '백업 복원 데이터백업 db저장 삭제 데이터삭제 전체삭제',
     },
-    {
-      title: '거래처 엑셀파일로 저장/불러오기/삭제',
-      category: '데이터관리',
-      action: onOpenPartnerExcel,
-      perm: hasPerm('거래처 엑셀파일로 저장/불러오기/삭제'),
-      keywords: '거래처엑셀 업로드 다운로드 거래처삭제 삭제',
-    },
-    {
-      title: '품목 엑셀파일로 저장/불러오기/삭제',
-      category: '데이터관리',
-      action: onOpenProductExcel,
-      perm: hasPerm('품목 엑셀파일로 저장/불러오기/삭제'),
-      keywords: '품목엑셀 상품엑셀 업로드 다운로드 품목삭제 상품삭제 삭제',
-    },
-    {
-      title: '재고이동 내역 저장/불러오기/삭제',
-      category: '데이터관리',
-      action: onOpenInventoryTransferExcel,
-      perm: hasPerm('재고이동 내역 저장/불러오기/삭제'),
-      keywords: '재고이동 엑셀 이동내역 창고이동 이동기록 엑셀저장 재고이동내역 이동삭제',
-    },
-    {
-      title: '매출처원장 저장/불러오기/삭제',
-      category: '데이터관리',
-      action: onOpenSalesLedgerExcel,
-      perm: hasPerm('매출처원장 저장/불러오기/삭제'),
-      keywords: '매출처엑셀 매출원장엑셀 매출원장삭제 삭제',
-    },
-    {
-      title: '매입처원장 저장/불러오기/삭제',
-      category: '데이터관리',
-      action: onOpenPurchaseLedgerExcel,
-      perm: hasPerm('매입처원장 저장/불러오기/삭제'),
-      keywords: '매입처엑셀 매입원장엑셀 매입원장삭제 삭제',
-    },
     // 환경설정
     {
       title: '모바일 전용 환경설정',
@@ -874,11 +839,6 @@ const Header = ({
             ]},
             { id: 'data', label: '데이터관리', items: [
               { perm: hasPerm('데이터 전체 저장/불러오기/삭제'), label: '데이터 전체 저장/불러오기/삭제', action: onOpenDataManager },
-              { perm: hasPerm('거래처 엑셀파일로 저장/불러오기/삭제'), label: '거래처 엑셀파일로 저장/불러오기/삭제', action: onOpenPartnerExcel },
-              { perm: hasPerm('품목 엑셀파일로 저장/불러오기/삭제'), label: '품목 엑셀파일로 저장/불러오기/삭제', action: onOpenProductExcel },
-              { perm: hasPerm('재고이동 내역 저장/불러오기/삭제'), label: '재고이동 내역 저장/불러오기/삭제', action: onOpenInventoryTransferExcel },
-              { perm: hasPerm('매출처원장 저장/불러오기/삭제'), label: '매출처원장 저장/불러오기/삭제', action: onOpenSalesLedgerExcel },
-              { perm: hasPerm('매입처원장 저장/불러오기/삭제'), label: '매입처원장 저장/불러오기/삭제', action: onOpenPurchaseLedgerExcel },
             ]},
             { id: 'settings_license', label: '환경설정', items: [
               { perm: true, label: '📱 모바일 전용 환경설정', action: onOpenMobileSettings || onOpenSettings },

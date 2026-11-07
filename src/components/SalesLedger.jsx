@@ -371,7 +371,7 @@ const SalesLedger = ({
             </button>
           </div>
 
-          {/* 2행: [인쇄] [엑셀] [ ] 일계 [거래처 검색/선택] */}
+          {/* 2행: [인쇄] [ ] 일계 [거래처 검색/선택] */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -398,28 +398,6 @@ const SalesLedger = ({
               title="인쇄"
             >
               <Printer size={13} /> 인쇄
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExcelExport}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                padding: '5px 8px',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                color: '#059669',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-              title="엑셀 다운로드"
-            >
-              <Download size={13} /> 엑셀
             </button>
 
             <label style={{
