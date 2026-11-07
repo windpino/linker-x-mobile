@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X } from 'lucide-react';
+import { FileText, Plus, Search, Trash2, Printer, Save, Wallet, BookOpen, RefreshCw, X, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
