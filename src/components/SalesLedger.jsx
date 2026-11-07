@@ -3,6 +3,7 @@ import { Printer, Download, Search, RotateCw, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
+import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
 
 const SalesLedger = ({ 
   onClose, 
@@ -296,78 +297,113 @@ const SalesLedger = ({
           gap: '8px',
           flexShrink: 0
         }}>
-          {/* 1행: 기간 [시작일] ~ [종료일] [조회] */}
+          {/* 1행: 기간 [<] [시작일] [>] ~ [<] [종료일] [>] [조회] */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '3px',
             width: '100%'
           }}>
             <span style={{
-              fontSize: '0.86rem',
+              fontSize: '0.82rem',
               fontWeight: 800,
               color: '#1e293b',
               whiteSpace: 'nowrap'
             }}>
               기간:
             </span>
-            <input 
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '6px 4px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                background: '#ffffff',
-                color: '#1e293b',
-                outline: 'none',
-                textAlign: 'center'
-              }}
-            />
-            <span style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 700 }}>~</span>
-            <input 
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '6px 4px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                background: '#ffffff',
-                color: '#1e293b',
-                outline: 'none',
-                textAlign: 'center'
-              }}
-            />
+
+            {/* 시작일 + 화살표 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1px', flex: 1, minWidth: 0 }}>
+              <DateNavButton
+                direction="prev"
+                onClick={() => setStartDate(prev => addDays(prev, -1))}
+                size={11}
+                style={{ width: '18px', height: '28px', padding: 0 }}
+              />
+              <input 
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '4px 2px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '5px',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  outline: 'none',
+                  textAlign: 'center'
+                }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setStartDate(prev => addDays(prev, 1))}
+                size={11}
+                style={{ width: '18px', height: '28px', padding: 0 }}
+              />
+            </div>
+
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>~</span>
+
+            {/* 종료일 + 화살표 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1px', flex: 1, minWidth: 0 }}>
+              <DateNavButton
+                direction="prev"
+                onClick={() => setEndDate(prev => addDays(prev, -1))}
+                size={11}
+                style={{ width: '18px', height: '28px', padding: 0 }}
+              />
+              <input 
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '4px 2px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '5px',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  outline: 'none',
+                  textAlign: 'center'
+                }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setEndDate(prev => addDays(prev, 1))}
+                size={11}
+                style={{ width: '18px', height: '28px', padding: 0 }}
+              />
+            </div>
+
             <button
               type="button"
               onClick={() => setRefreshTrigger(k => k + 1)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '6px 10px',
-                fontSize: '0.82rem',
+                gap: '2px',
+                padding: '4px 7px',
+                fontSize: '0.78rem',
                 fontWeight: 700,
                 color: '#ffffff',
                 background: '#3b82f6',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '5px',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                height: '28px',
                 boxShadow: '0 1px 2px rgba(59,130,246,0.2)'
               }}
             >
-              <RotateCw size={13} /> 조회
+              <RotateCw size={11} /> 조회
             </button>
           </div>
 
@@ -547,19 +583,19 @@ const SalesLedger = ({
         <div className="sales-ledger-table-header" style={{
           display: 'flex',
           alignItems: 'center',
-          padding: '7px 10px',
+          padding: '4px 8px',
           background: '#f1f5f9',
           borderTop: '1px solid #e2e8f0',
           borderBottom: '1px solid #cbd5e1',
-          fontSize: '0.78rem',
+          fontSize: '0.76rem',
           fontWeight: 700,
           color: '#475569',
           flexShrink: 0
         }}>
-          <div style={{ width: '46px', textAlign: 'left' }}>일자</div>
+          <div style={{ width: '42px', textAlign: 'left' }}>일자</div>
           <div style={{ flex: 1, textAlign: 'left', minWidth: 0, paddingLeft: '4px' }}>상품명</div>
           <div style={{ width: '75px', textAlign: 'right' }}>단가</div>
-          <div style={{ width: '50px', textAlign: 'right' }}>수량</div>
+          <div style={{ width: '48px', textAlign: 'right' }}>수량</div>
           <div style={{ width: '85px', textAlign: 'right' }}>금액</div>
         </div>
 
@@ -571,10 +607,10 @@ const SalesLedger = ({
         }}>
           {rows.length === 0 ? (
             <div style={{
-              padding: '60px 16px',
+              padding: '40px 16px',
               textAlign: 'center',
               color: '#94a3b8',
-              fontSize: '0.88rem'
+              fontSize: '0.86rem'
             }}>
               조회기간 내의 거래 내역이 존재하지 않습니다.
             </div>
@@ -589,24 +625,25 @@ const SalesLedger = ({
                   <div 
                     key={idx}
                     style={{
-                      padding: '7px 10px',
+                      padding: '3px 8px',
                       background: '#f8fafc',
                       borderTop: '1px dashed #cbd5e1',
                       borderBottom: '1px solid #e2e8f0',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      fontSize: '0.78rem',
-                      color: '#475569'
+                      fontSize: '0.75rem',
+                      color: '#475569',
+                      lineHeight: '1.2'
                     }}
                   >
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, color: '#64748b', width: '42px' }}>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, color: '#64748b', width: '38px' }}>
                         {formatShortDate(r.date)}
                       </span>
                       <span style={{ fontWeight: 800, color: '#2563eb' }}>【 일계 】</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {r.qty > 0 && <span>수량: <strong>{Number(r.qty).toFixed(1)}</strong></span>}
                       {r.total > 0 && <span>매출: <strong>{Number(r.total).toLocaleString()}</strong></span>}
                       {r.received > 0 && <span style={{ color: '#16a34a' }}>입금: <strong>{Number(r.received).toLocaleString()}</strong></span>}
@@ -620,11 +657,12 @@ const SalesLedger = ({
                   key={idx}
                   onClick={() => inv && onOpenInvoice && onOpenInvoice(inv)}
                   style={{
-                    padding: '8px 10px',
+                    padding: '3px 8px',
                     borderBottom: '1px solid #f1f5f9',
                     backgroundColor: isPayment ? '#f0fdf4' : '#ffffff',
                     cursor: inv ? 'pointer' : 'default',
-                    transition: 'background-color 0.15s'
+                    transition: 'background-color 0.15s',
+                    lineHeight: '1.2'
                   }}
                   title={inv ? '클릭하여 해당 전표 열기' : ''}
                 >
@@ -632,12 +670,12 @@ const SalesLedger = ({
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '3px'
+                    gap: '4px',
+                    marginBottom: '1px'
                   }}>
                     <span style={{
-                      width: '42px',
-                      fontSize: '0.82rem',
+                      width: '38px',
+                      fontSize: '0.78rem',
                       fontWeight: 700,
                       color: isPayment ? '#16a34a' : '#64748b',
                       flexShrink: 0
