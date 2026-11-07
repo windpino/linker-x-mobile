@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ShoppingCart, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2, ArrowLeft, ArrowRight, UserCheck, Calendar, X } from 'lucide-react';
+import { ShoppingCart, Save, Package, RefreshCw, FileText, List, Check, AlertTriangle, Info, Trash2, ArrowLeft, ArrowRight, UserCheck, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
 import WindowModal from './WindowModal';
 import PartnerSearchInput from './PartnerSearchInput';
 import { matchesInitialSound } from '../utils/koreanUtils';
@@ -45,7 +45,8 @@ const SalesOrder = ({
   // Step 1: 'partner' (날짜, 담당자, 거래처 선택)
   // Step 2: 'order' (간편주문 입력, 비고, 전표전송, 저장)
   const [isOrderSettingsOpen, setIsOrderSettingsOpen] = useState(false);
-  const [step, setStep] = useState(() => (editingOrder || initialPartner?.name) ? 'order' : 'partner');
+  // Unified single-view mode: step is always 'order'
+  const [step, setStep] = useState('order');
 
   const [partnerDayOrders, setPartnerDayOrders] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -470,655 +471,478 @@ const SalesOrder = ({
       width="100%" 
       contentPadding="0"
     >
-      <div className="so-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
-        
-        {/* ========================================================
-            STEP 1: 거래처 선택 화면 (날짜 선택 + 담당자 설정 + 거래처 입력)
-           ======================================================== */}
-        {step === 'partner' && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '14px', gap: '14px', boxSizing: 'border-box' }}>
-            
-            {/* 헤더 바: 상단 네비게이션 & 빠른 전환 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <ShoppingCart size={18} style={{ color: themeColor }} />
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>수주</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button 
-                  onClick={() => onOpenOrderList && onOpenOrderList(orderData.date)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '5px 10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    color: '#475569',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <List size={13} /> 수주목록
-                </button>
-                <button 
-                  onClick={onClose}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '5px 10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    color: '#64748b',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={13} /> 취소
-                </button>
-              </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        maxHeight: '100%',
+        backgroundColor: '#f8fafc',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
+        {/* 상단 거래처 검색 & 가리기/펼치기 & 보조 도구 바 (매출전표창과 일원화된 컴팩트 디자인) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 10px',
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          flexShrink: 0
+        }}>
+          {/* 거래처 검색 입력란 */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <PartnerSearchInput 
+              partners={partners} 
+              currentUser={currentUser}
+              value={orderData.partner} 
+              placeholder="거래처명 또는 초성 입력 (예: 링, ㄹㅋ)"
+              onChange={(val) => setOrderData(prev => ({ ...prev, partner: val }))} 
+              onSelect={(partner) => {
+                setOrderData(prev => ({
+                  ...prev,
+                  partner: partner.name,
+                  inWarehouse: staffWH
+                }));
+                setTimeout(() => {
+                  if (itemInputRef.current) itemInputRef.current.focus();
+                }, 50);
+              }}
+              typeFilter="매출처"
+              autoFocus={!orderData.partner}
+              nameOnly={true}
+              hideReceivables={true}
+            />
+          </div>
+
+          {/* [ 가리기/펼치기 버튼 ] (거래처명 검색란 오른쪽에 작은 화살표로 날짜와 담당자 토글) */}
+          <button
+            type="button"
+            onClick={() => setIsOrderSettingsOpen(prev => !prev)}
+            style={{
+              height: '36px',
+              width: '36px',
+              padding: 0,
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: isOrderSettingsOpen ? '#3b82f6' : '#ffffff',
+              color: isOrderSettingsOpen ? '#ffffff' : '#0f172a',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+              transition: 'all 0.15s'
+            }}
+            title={isOrderSettingsOpen ? "수주일자/담당자 접기" : `수주일자/담당자 펼치기 (${orderData.date})`}
+          >
+            {isOrderSettingsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {/* 새로고침 (지우기) */}
+          <button
+            type="button"
+            onClick={() => {
+              setOrderData(prev => ({
+                ...prev,
+                id: Date.now(),
+                partner: '',
+                itemsText: '',
+                memo: ''
+              }));
+              if (itemInputRef.current) itemInputRef.current.focus();
+            }}
+            style={{
+              height: '36px',
+              padding: '0 8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              color: '#64748b',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px',
+              flexShrink: 0
+            }}
+            title="새 전표 작성"
+          >
+            <RefreshCw size={13} />
+          </button>
+
+          {/* 취소 / 닫기 */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              height: '36px',
+              padding: '0 8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              color: '#64748b',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px',
+              flexShrink: 0
+            }}
+            title="창 닫기"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Collapsible 수주일자 & 담당자 설정 (작은 화살표 클릭 시 펼쳐짐) */}
+        {isOrderSettingsOpen && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 10px',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            flexWrap: 'wrap',
+            flexShrink: 0
+          }}>
+            {/* 수주일자 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff', padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <DateNavButton
+                direction="prev"
+                disabled={!canIssuePastDateSlip && !editingOrder && orderData.date <= todayStr}
+                onClick={() => {
+                  const prevDate = addDays(orderData.date, -1);
+                  if (!canIssuePastDateSlip && !editingOrder && prevDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다.');
+                    return;
+                  }
+                  setOrderData(prev => ({ ...prev, date: prevDate }));
+                }}
+                size={13}
+                style={{ width: '26px', height: '26px', borderRadius: '4px', background: '#f1f5f9' }}
+              />
+              <input 
+                type="date"
+                value={orderData.date}
+                min={!canIssuePastDateSlip && !editingOrder ? todayStr : undefined}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  if (!canIssuePastDateSlip && !editingOrder && newDate < todayStr) {
+                    alert('과거일자 전표발행 권한이 없습니다.');
+                    return;
+                  }
+                  if (newDate) {
+                    setOrderData(prev => ({ ...prev, date: newDate }));
+                  }
+                }}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'center',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: '#1e293b',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              />
+              <DateNavButton
+                direction="next"
+                onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
+                size={13}
+                style={{ width: '26px', height: '26px', borderRadius: '4px', background: '#f1f5f9' }}
+              />
             </div>
 
-            {/* 카드 1: 거래처 입력란 (입력/선택 즉시 주문 화면으로 전환) */}
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 14px', border: '2px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 4px 12px rgba(59,130,246,0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
-                  거래처 입력 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <span style={{ fontSize: '0.74rem', color: '#3b82f6', fontWeight: 700 }}>
-                  선택 시 주문창으로 자동 전환 ➔
-                </span>
-              </div>
-              
-              <div style={{ minHeight: '44px' }}>
-                <PartnerSearchInput 
-                  partners={partners} 
-                  currentUser={currentUser}
-                  value={orderData.partner} 
-                  placeholder="거래처명 또는 초성 입력 (예: 링, ㄹㅋ)"
-                  onChange={(val) => setOrderData(prev => ({ ...prev, partner: val }))} 
-                  onSelect={(partner) => {
-                    setOrderData(prev => ({
-                      ...prev,
-                      partner: partner.name,
-                      inWarehouse: staffWH
-                    }));
-                    // 거래처 선택 시 주문창으로 자동 전환!
-                    setStep('order');
-                    setTimeout(() => {
-                      if (itemInputRef.current) itemInputRef.current.focus();
-                    }, 100);
-                  }}
-                  typeFilter="매출처"
-                  autoFocus={true}
-                  nameOnly={true}
-                  hideReceivables={true}
-                />
-              </div>
-
-              {orderData.partner && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('order');
-                    setTimeout(() => {
-                      if (itemInputRef.current) itemInputRef.current.focus();
-                    }, 100);
-                  }}
-                  style={{
-                    marginTop: '8px',
-                    height: '42px',
-                    background: '#3b82f6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  [{orderData.partner}] 주문서 작성으로 이동 <ArrowRight size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* 카드 2: 수주일자 & 담당자 설정 (가리기/펼치기) */}
-            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden', flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={() => setIsOrderSettingsOpen(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+            {/* 담당자 설정 */}
+            <div style={{ flex: 1, minWidth: '130px' }}>
+              <select 
+                value={orderData.manager} 
+                onChange={(e) => {
+                  const nextMgr = e.target.value;
+                  const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
+                  const mStaff = staffList.find(s => s.name === nextMgr);
+                  const mWH = mStaff?.warehouse;
+                  const nextInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || nextOutWH);
+                  setOrderData(prev => ({
+                    ...prev,
+                    manager: nextMgr,
+                    outWarehouse: nextOutWH || prev.outWarehouse,
+                    inWarehouse: nextInWH || prev.inWarehouse
+                  }));
+                }} 
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  padding: '0 8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  outline: 'none'
+                }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#475569', minWidth: 0 }}>
-                  <Calendar size={14} style={{ color: themeColor, flexShrink: 0 }} />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {orderData.date} · 담당 {orderData.manager && orderData.manager !== '알 수 없음' ? orderData.manager : '선택안함'}
-                  </span>
-                </span>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#3b82f6', flexShrink: 0 }}>
-                  {isOrderSettingsOpen ? '▲ 가리기' : '▼ 펼치기'}
-                </span>
-              </button>
-              {isOrderSettingsOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 14px 14px 14px', borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
-              
-              {/* 수주일자 선택 */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  수주일자 선택
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                  <DateNavButton
-                    direction="prev"
-                    disabled={!canIssuePastDateSlip && !editingOrder && orderData.date <= todayStr}
-                    onClick={() => {
-                      const prevDate = addDays(orderData.date, -1);
-                      if (!canIssuePastDateSlip && !editingOrder && prevDate < todayStr) {
-                        alert('과거일자 전표발행 권한이 없습니다.');
-                        return;
-                      }
-                      setOrderData(prev => ({ ...prev, date: prevDate }));
-                    }}
-                    size={14}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fff' }}
-                  />
-                  <input 
-                    type="date"
-                    value={orderData.date}
-                    min={!canIssuePastDateSlip && !editingOrder ? todayStr : undefined}
-                    onChange={(e) => {
-                      const newDate = e.target.value;
-                      if (!canIssuePastDateSlip && !editingOrder && newDate < todayStr) {
-                        alert('과거일자 전표발행 권한이 없습니다.');
-                        return;
-                      }
-                      if (newDate) {
-                        setOrderData(prev => ({ ...prev, date: newDate }));
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      background: 'transparent',
-                      textAlign: 'center',
-                      fontSize: '0.92rem',
-                      fontWeight: 800,
-                      color: '#1e293b',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <DateNavButton
-                    direction="next"
-                    onClick={() => setOrderData(prev => ({ ...prev, date: addDays(prev.date, 1) }))}
-                    size={14}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fff' }}
-                  />
-                </div>
-              </div>
-
-              {/* 담당자 설정 */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  담당자 설정
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select 
-                    value={orderData.manager} 
-                    onChange={(e) => {
-                      const nextMgr = e.target.value;
-                      const nextOutWH = getStaffWarehouse(nextMgr, staffList, warehouses, currentUser);
-                      const mStaff = staffList.find(s => s.name === nextMgr);
-                      const mWH = mStaff?.warehouse;
-                      const nextInWH = isMainWarehouse(mWH, warehouses) ? mainWH : (mWH || nextOutWH);
-                      setOrderData(prev => ({
-                        ...prev,
-                        manager: nextMgr,
-                        outWarehouse: nextOutWH || prev.outWarehouse,
-                        inWarehouse: nextInWH || prev.inWarehouse
-                      }));
-                    }} 
-                    style={{
-                      width: '100%',
-                      height: '40px',
-                      padding: '0 12px',
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="알 수 없음">선택안함</option>
-                    {staffList.map(s => (
-                      <option key={s.id} value={s.name}>{s.name} {s.jobTitle ? `(${s.jobTitle})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              </div>
-              )}
+                <option value="알 수 없음">담당자 선택안함</option>
+                {staffList.map(s => (
+                  <option key={s.id} value={s.name}>{s.name} {s.jobTitle ? `(${s.jobTitle})` : ''}</option>
+                ))}
+              </select>
             </div>
-
-            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem', marginTop: 'auto', padding: '10px 0' }}>
-              거래처를 검색하여 선택하시면 바로 간편주문 입력창으로 이동합니다.
-            </div>
-
           </div>
         )}
 
-        {/* ========================================================
-            STEP 2: 주문창 화면 (간편주문입력창 + 비고(메모)창 + 하단 전송/저장 버튼)
-           ======================================================== */}
-        {step === 'order' && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            
-            {/* 상단 거래처 표시 및 뒤로가기 바 */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 14px',
-              background: '#ffffff',
-              borderBottom: '1px solid #e2e8f0',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {orderData.partner || '(거래처 미선택)'}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <input 
-                      type="date"
-                      value={orderData.date}
-                      min={!canIssuePastDateSlip && !editingOrder ? todayStr : undefined}
-                      onChange={(e) => {
-                        const newDate = e.target.value;
-                        if (!canIssuePastDateSlip && !editingOrder && newDate < todayStr) {
-                          alert('과거일자 전표발행 권한이 없습니다.');
-                          return;
-                        }
-                        if (newDate) {
-                          setOrderData(prev => ({ ...prev, date: newDate }));
-                        }
-                      }}
-                      style={{
-                        padding: '1px 5px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        color: '#1e293b',
-                        background: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                      title="수주일자 변경"
-                    />
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      · 담당: {orderData.manager || '미지정'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#64748b',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px'
-                  }}
-                >
-                  <X size={12} /> 취소
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOrderData(prev => ({
-                      ...prev,
-                      id: Date.now(),
-                      itemsText: '',
-                      memo: ''
-                    }));
-                    if (itemInputRef.current) itemInputRef.current.focus();
-                  }}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#64748b',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <RefreshCw size={11} /> 지우기
-                </button>
-              </div>
+        {/* 메인 입력 영역: 간편주문 입력창 + 비고(메모)창 */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          
+          {/* 간편주문 입력창 카드 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: '170px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }} ref={searchRef}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Package size={15} color={themeColor} /> 간편 주문 입력창
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                예: 사과10 배5
+              </span>
             </div>
 
-            {/* 메인 입력 영역: 간편주문 입력창 + 비고(메모)창 */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
-              {/* 간편주문 입력창 카드 */}
-              <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                flex: 1,
-                minHeight: '160px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-              }} ref={searchRef}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Package size={15} color={themeColor} /> 간편 주문 입력창
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                    예: 사과10 배5
-                  </span>
-                </div>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <textarea
+                ref={itemInputRef}
+                placeholder="품목 약칭과 수량을 연속으로 입력하세요.&#10;예시: 사과10 배5 귤20"
+                value={orderData.itemsText}
+                onChange={(e) => {
+                  setOrderData({ ...orderData, itemsText: e.target.value });
+                  setIsItemSearchOpen(true);
+                  updateCaretPosition(e.target);
+                }}
+                onFocus={(e) => {
+                  if (!skipNextFocusOpen.current) {
+                    setIsItemSearchOpen(true);
+                  }
+                  skipNextFocusOpen.current = false;
+                  updateCaretPosition(e.target);
+                }}
+                onClick={(e) => {
+                  setIsItemSearchOpen(true);
+                  updateCaretPosition(e.target);
+                }}
+                onKeyDown={(e) => {
+                  if (isItemSearchOpen && filteredProducts.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedItemIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : prev));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedItemIndex(prev => (prev > 0 ? prev - 1 : 0));
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSelectProduct(filteredProducts[selectedItemIndex]);
+                    } else if (e.key === 'Escape') {
+                      setIsItemSearchOpen(false);
+                    }
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  flex: 1,
+                  minHeight: '110px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  fontSize: '0.98rem',
+                  lineHeight: '1.5',
+                  resize: 'none',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit'
+                }}
+              />
 
-                <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <textarea
-                    ref={itemInputRef}
-                    placeholder="품목 약칭과 수량을 연속으로 입력하세요.&#10;예시: 사과10 배5 귤20"
-                    value={orderData.itemsText}
-                    onChange={(e) => {
-                      setOrderData({ ...orderData, itemsText: e.target.value });
-                      setIsItemSearchOpen(true);
-                      updateCaretPosition(e.target);
-                    }}
-                    onFocus={(e) => {
-                      if (!skipNextFocusOpen.current) {
-                        setIsItemSearchOpen(true);
-                      }
-                      skipNextFocusOpen.current = false;
-                      updateCaretPosition(e.target);
-                    }}
-                    onKeyUp={(e) => updateCaretPosition(e.target)}
-                    onClick={(e) => updateCaretPosition(e.target)}
-                    style={{
-                      width: '100%',
-                      flex: 1,
-                      minHeight: '130px',
-                      padding: '10px 12px',
-                      fontSize: '0.95rem',
-                      lineHeight: '1.5',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#ffffff',
-                      color: '#0f172a',
-                      resize: 'none',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                    onKeyDown={(e) => {
-                      updateCaretPosition(e.target);
-                      if (isItemSearchOpen && filteredProducts.length > 0) {
-                        if (e.key === 'ArrowDown') {
-                          e.preventDefault();
-                          setSelectedIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : prev));
-                        } else if (e.key === 'ArrowUp') {
-                          e.preventDefault();
-                          setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-                        } else if (e.key === 'Enter') {
-                          if (selectedIndex >= 0) {
-                            e.preventDefault();
-                            handleProductSelect(filteredProducts[selectedIndex]);
-                          }
-                        } else if (e.key === 'Escape') {
-                          setIsItemSearchOpen(false);
-                        }
-                      }
-                    }}
-                  />
-
-                  {/* 자동완성 드롭다운 */}
-                  {isItemSearchOpen && lastWord && filteredProducts.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: `${caretPos.top}px`,
-                      left: `${caretPos.left}px`,
-                      width: '260px',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-                      zIndex: 20
-                    }}>
-                      {filteredProducts.map((p, idx) => (
-                        <div
-                          key={p.id}
-                          onMouseDown={() => handleProductSelect(p)}
-                          onMouseEnter={() => setSelectedIndex(idx)}
-                          style={{
-                            padding: '8px 12px',
-                            cursor: 'pointer',
-                            fontSize: '0.85rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            borderBottom: '1px solid #f1f5f9',
-                            backgroundColor: idx === selectedIndex ? '#eff6ff' : 'transparent',
-                            color: idx === selectedIndex ? '#1d4ed8' : '#1e293b'
-                          }}
-                        >
-                          <span style={{ fontWeight: 600 }}>{p.name}</span>
-                          {p.abbreviation && (
-                            <span style={{ fontSize: '0.72rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#64748b' }}>
-                              {p.abbreviation}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+              {/* 품목 실시간 검색 자동완성 팝업 */}
+              {isItemSearchOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: `${Math.min(caretCoords.top + 24, 120)}px`,
+                  left: `${Math.min(caretCoords.left, 160)}px`,
+                  width: '260px',
+                  maxHeight: '180px',
+                  backgroundColor: 'white',
+                  borderRadius: '10px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                  border: '1px solid #cbd5e1',
+                  overflowY: 'auto',
+                  zIndex: 9999
+                }}>
+                  {filteredProducts.length === 0 ? (
+                    <div style={{ padding: '10px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
+                      검색 결과 없음
                     </div>
-                  )}
-                </div>
-
-                {/* 실시간 인식된 품목 요약 배지 */}
-                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '24px' }}>
-                  {parsedItems.length === 0 ? (
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>인식된 품목이 없습니다.</span>
                   ) : (
-                    parsedItems.map((item, idx) => (
-                      <span key={idx} style={{
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        border: '1px solid #dbeafe'
-                      }}>
-                        {item.name} × {item.qty}
-                      </span>
+                    filteredProducts.map((p, idx) => (
+                      <div
+                        key={p.id}
+                        onClick={() => handleSelectProduct(p)}
+                        style={{
+                          padding: '8px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          backgroundColor: idx === selectedItemIndex ? '#eff6ff' : 'transparent',
+                          borderBottom: '1px solid #f1f5f9'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                          {p.name}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb' }}>
+                          {(getProductDefaultPrice(p) || 0).toLocaleString()}원
+                        </span>
+                      </div>
                     ))
                   )}
                 </div>
-              </div>
-
-              {/* 비고 (메모) 입력창 카드 */}
-              <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-              }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#475569' }}>
-                  비고 (메모)
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="특이사항이나 배송 요청사항을 입력하세요" 
-                  value={orderData.memo} 
-                  onChange={(e) => setOrderData({ ...orderData, memo: e.target.value })} 
-                  style={{
-                    height: '38px',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    padding: '0 12px',
-                    borderRadius: '8px',
-                    fontSize: '0.86rem',
-                    outline: 'none',
-                    color: '#0f172a'
-                  }}
-                />
-              </div>
-
+              )}
             </div>
-
-            {/* 하단 바: 총 수량/금액 요약 + [전표전송] [저장] 버튼 */}
-            <div style={{
-              padding: '10px 14px',
-              background: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
-              boxShadow: '0 -2px 8px rgba(0,0,0,0.04)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              flexShrink: 0
-            }}>
-              {/* 요약 바 */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
-                <span>품목: <strong style={{ color: themeColor }}>{parsedItems.length}건</strong></span>
-                <span>총량: <strong style={{ color: themeColor }}>{parsedTotalQty.toLocaleString()}개</strong></span>
-                <span>합계: <strong style={{ color: themeColor, fontSize: '0.98rem' }}>{parsedTotalPrice.toLocaleString()}원</strong></span>
-              </div>
-
-              {/* 버튼 영역 */}
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button 
-                  type="button"
-                  onClick={onClose}
-                  style={{
-                    flex: '0 0 65px',
-                    height: '44px',
-                    backgroundColor: '#f1f5f9',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <X size={15} /> 취소
-                </button>
-
-                {editingOrder && onDeleteOrder && (
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('이 수주서를 삭제하시겠습니까?')) {
-                        onDeleteOrder(orderData.id);
-                        onClose();
-                      }
-                    }} 
-                    style={{
-                      flex: '0 0 70px',
-                      height: '44px',
-                      backgroundColor: '#fee2e2',
-                      color: '#dc2626',
-                      border: '1px solid #fecaca',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Trash2 size={15} /> 삭제
-                  </button>
-                )}
-                
-                <button 
-                  type="button"
-                  onClick={handleTransferToInvoice}
-                  style={{
-                    flex: 1,
-                    height: '44px',
-                    backgroundColor: '#10b981',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.92rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <FileText size={16} /> 전표전송
-                </button>
-
-                <button 
-                  type="button"
-                  onClick={handleSave}
-                  style={{
-                    flex: 1.2,
-                    height: '44px',
-                    backgroundColor: editingOrder ? '#f59e0b' : themeColor,
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <Save size={16} /> {editingOrder ? '수정 저장' : '저장'}
-                </button>
-              </div>
-            </div>
-
           </div>
-        )}
+
+          {/* 비고 (메모) 입력창 카드 */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <FileText size={14} color="#64748b" /> 비고 (배송 메모 / 특이사항)
+            </span>
+            <input
+              type="text"
+              placeholder="배송 메모나 전달사항을 입력하세요..."
+              value={orderData.memo}
+              onChange={(e) => setOrderData({ ...orderData, memo: e.target.value })}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.88rem',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+        </div>
+
+        {/* 하단 고정 액션 버튼 바 */}
+        <div style={{
+          padding: '10px 14px',
+          background: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          flexShrink: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
+          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))'
+        }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {editingOrder && onDeleteOrder && (
+              <button 
+                type="button"
+                onClick={() => {
+                  if (window.confirm('정말 이 수주를 삭제하시겠습니까?')) {
+                    onDeleteOrder(orderData.id);
+                    onClose();
+                  }
+                }} 
+                style={{
+                  flex: '0 0 65px',
+                  height: '44px',
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Trash2 size={15} /> 삭제
+              </button>
+            )}
+            
+            <button 
+              type="button"
+              onClick={handleTransferToInvoice}
+              style={{
+                flex: 1,
+                height: '44px',
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)'
+              }}
+            >
+              <FileText size={16} /> 전표전송
+            </button>
+
+            <button 
+              type="button"
+              onClick={handleSave}
+              style={{
+                flex: 1.2,
+                height: '44px',
+                backgroundColor: editingOrder ? '#f59e0b' : themeColor,
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)'
+              }}
+            >
+              <Save size={16} /> {editingOrder ? '수정 저장' : '💾 수주 저장'}
+            </button>
+          </div>
+        </div>
 
       </div>
 
@@ -1135,7 +959,7 @@ const SalesOrder = ({
           {toast.message}
         </div>
       )}
-    </WindowModal>
+</WindowModal>
   );
 };
 

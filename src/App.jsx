@@ -7608,8 +7608,8 @@ function App() {
       )}
       <PwaInstallPrompt />
 
-      {/* 모바일 최적화 하단 고정 네비게이션 바 (Bottom Navigation Bar) */}
-      {currentUser && (
+      {/* 모바일 최적화 하단 고정 네비게이션 바 (수주등록/전표작성 등 풀스크린 편집창 열림 시 하단 버튼 겹침 방지를 위해 자동 숨김) */}
+      {currentUser && !isSalesOrderOpen && !isSalesInvoiceOpen && !isPurchaseInvoiceOpen && (
         <MobileBottomNav
           activeTab={
             isSalesOrderOpen ? 'sales_order' :
