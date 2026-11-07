@@ -71,6 +71,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
   const [saveStatus, setSaveStatus] = useState(''); // 'saving', 'saved', ''
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showDateVehicle, setShowDateVehicle] = useState(false); // 날짜와 차량 선택 가리기/펼치기 (기본값: 가리기)
   const [searchType, setSearchType] = useState('name'); // 'name', 'abbr', 'code', 'all'
 
   // ─── 컬럼 너비 (localStorage 복원) ───
@@ -1387,142 +1388,179 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
                 )}
               </div>
 
-              {/* Date Navigation & Picker */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'center' }}>
-                <DateNavButton
-                  direction="prev"
-                  onClick={() => {
-                    const newDate = addDays(invoiceData.date, -1);
-                    if (!canIssuePastDateSlip && newDate < todayStr) {
-                      alert('과거일자 전표발행 권한이 없습니다.');
-                      return;
-                    }
-                    const updatedInvoice = { ...invoiceData, date: newDate };
-                    setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
-                  }}
-                />
-                <input 
-                  type="date"
-                  value={invoiceData.date}
-                  min={!canIssuePastDateSlip ? todayStr : undefined}
+              {/* Row 1: [메뉴] + [📅 2026-11-06 · [3] 통영9183 ▼ 펼치기] */}
+              <button
+                type="button"
+                onClick={() => setShowDateVehicle(prev => !prev)}
+                style={{
+                  flex: 1,
+                  height: '34px',
+                  padding: '0 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: showDateVehicle ? '#eff6ff' : '#ffffff',
+                  color: '#1e293b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 700
+                }}
+                title={showDateVehicle ? "일자/차량설정 가리기" : "일자/차량설정 펼치기"}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <Calendar size={14} color="#3b82f6" />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {invoiceData.date} · [{invoiceData.warehouse || '차량/창고'}]
+                  </span>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 800, flexShrink: 0 }}>
+                  {showDateVehicle ? '▲ 가리기' : '▼ 펼치기'}
+                </span>
+              </button>
+            </div>
+
+            {/* Collapsible Date Navigation & Vehicle Selection (기본값: 가리기) */}
+            {showDateVehicle && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '6px 8px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                  <DateNavButton
+                    direction="prev"
+                    onClick={() => {
+                      const newDate = addDays(invoiceData.date, -1);
+                      if (!canIssuePastDateSlip && newDate < todayStr) {
+                        alert('과거일자 전표발행 권한이 없습니다.');
+                        return;
+                      }
+                      const updatedInvoice = { ...invoiceData, date: newDate };
+                      setInvoiceData(updatedInvoice);
+                      if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+                    }}
+                  />
+                  <input 
+                    type="date"
+                    value={invoiceData.date}
+                    min={!canIssuePastDateSlip ? todayStr : undefined}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      if (!canIssuePastDateSlip && newDate < todayStr) {
+                        alert('과거일자 전표발행 권한이 없습니다.');
+                        return;
+                      }
+                      const updatedInvoice = { ...invoiceData, date: newDate };
+                      setInvoiceData(updatedInvoice);
+                      if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+                    }}
+                    style={{
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 6px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      backgroundColor: '#ffffff',
+                      height: '34px',
+                      textAlign: 'center',
+                      outline: 'none',
+                      flex: 1
+                    }}
+                  />
+                  <DateNavButton
+                    direction="next"
+                    onClick={() => {
+                      const newDate = addDays(invoiceData.date, 1);
+                      const updatedInvoice = { ...invoiceData, date: newDate };
+                      setInvoiceData(updatedInvoice);
+                      if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={invoiceData.warehouse}
                   onChange={(e) => {
-                    const newDate = e.target.value;
-                    if (!canIssuePastDateSlip && newDate < todayStr) {
-                      alert('과거일자 전표발행 권한이 없습니다.');
-                      return;
-                    }
-                    const updatedInvoice = { ...invoiceData, date: newDate };
+                    const updatedInvoice = { ...invoiceData, warehouse: e.target.value };
                     setInvoiceData(updatedInvoice);
                     if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
                   }}
                   style={{
                     border: '1px solid #cbd5e1',
                     borderRadius: '6px',
-                    padding: '4px 6px',
+                    padding: '4px 8px',
                     fontSize: '0.82rem',
                     fontWeight: 700,
                     color: '#0f172a',
                     backgroundColor: '#ffffff',
                     height: '34px',
-                    textAlign: 'center',
+                    maxWidth: '150px',
                     outline: 'none'
                   }}
-                />
-                <DateNavButton
-                  direction="next"
-                  onClick={() => {
-                    const newDate = addDays(invoiceData.date, 1);
-                    const updatedInvoice = { ...invoiceData, date: newDate };
-                    setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
-                  }}
-                />
+                >
+                  {warehouses.map((w, idx) => (
+                    <option key={w.id || idx} value={w.name}>
+                      [{w.code || idx + 1}] {w.name}
+                    </option>
+                  ))}
+                  {invoiceData.warehouse && !warehouses.some(w => w.name === invoiceData.warehouse) && (
+                    <option value={invoiceData.warehouse}>{invoiceData.warehouse}</option>
+                  )}
+                </select>
               </div>
+            )}
 
-              {/* Warehouse Dropdown */}
-              <select
-                value={invoiceData.warehouse}
-                onChange={(e) => {
-                  const updatedInvoice = { ...invoiceData, warehouse: e.target.value };
+            {/* Row 2: 거래처명 검색 (미수금은 아래쪽 합계줄로 이동하여 100% 전체 너비 확보) */}
+            <div style={{ width: '100%' }}>
+              <PartnerSearchInput 
+                partners={partners} 
+                currentUser={currentUser}
+                typeFilter="매출처"
+                value={invoiceData.partner} 
+                nameOnly={true}
+                hideReceivables={true}
+                placeholder="거래처 검색..."
+                onChange={(val) => {
+                  const updatedInvoice = { ...invoiceData, partner: val };
                   setInvoiceData(updatedInvoice);
-                  if (updatedInvoice.items?.length > 0) handleAutoSave(updatedInvoice);
+                  if (updatedInvoice.items && updatedInvoice.items.length > 0) {
+                    handleAutoSave(updatedInvoice);
+                  }
+                }} 
+                onSelect={(partner) => {
+                  const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
+                  if (stack.length > 0 && !editingInvoice) {
+                    const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
+                    setInvoiceData({ ...latestInvoice });
+                    setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
+                    handleAutoSave(latestInvoice);
+                  } else {
+                    const targetMgr = currentUser?.name || invoiceData.manager;
+                    setInvoiceData(prev => ({ 
+                      ...prev, 
+                      id: Date.now(), 
+                      partner: partner.name, 
+                      manager: targetMgr,
+                      warehouse: getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
+                      items: [], 
+                      receivedAmount: 0, 
+                      creator: currentUser?.name || '시스템'
+                    }));
+                    setCurrentIndex(0);
+                  }
+                  productInputRef.current?.focus();
                 }}
-                style={{
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  backgroundColor: '#ffffff',
-                  height: '34px',
-                  maxWidth: '140px',
-                  outline: 'none'
-                }}
-              >
-                {warehouses.map((w, idx) => (
-                  <option key={w.id || idx} value={w.name}>
-                    [{w.code || idx + 1}] {w.name}
-                  </option>
-                ))}
-                {invoiceData.warehouse && !warehouses.some(w => w.name === invoiceData.warehouse) && (
-                  <option value={invoiceData.warehouse}>{invoiceData.warehouse}</option>
-                )}
-              </select>
-            </div>
-
-            {/* Row 2: 거래처명 [ 🔍 ] + 총미수: 40,896,000 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <PartnerSearchInput 
-                  partners={partners} 
-                  currentUser={currentUser}
-                  typeFilter="매출처"
-                  value={invoiceData.partner} 
-                  nameOnly={true}
-                  hideReceivables={true}
-                  placeholder="거래처 검색..."
-                  onChange={(val) => {
-                    const updatedInvoice = { ...invoiceData, partner: val };
-                    setInvoiceData(updatedInvoice);
-                    if (updatedInvoice.items && updatedInvoice.items.length > 0) {
-                      handleAutoSave(updatedInvoice);
-                    }
-                  }} 
-                  onSelect={(partner) => {
-                    const stack = mySalesInvoices.filter(inv => inv.partner === partner.name && inv.date === invoiceData.date);
-                    if (stack.length > 0 && !editingInvoice) {
-                      const latestInvoice = [...stack].sort((a, b) => b.id - a.id)[0];
-                      setInvoiceData({ ...latestInvoice });
-                      setCurrentIndex(stack.findIndex(inv => inv.id === latestInvoice.id));
-                      handleAutoSave(latestInvoice);
-                    } else {
-                      const targetMgr = currentUser?.name || invoiceData.manager;
-                      setInvoiceData(prev => ({ 
-                        ...prev, 
-                        id: Date.now(), 
-                        partner: partner.name, 
-                        manager: targetMgr,
-                        warehouse: getStaffWarehouse(targetMgr, staffList, warehouses, currentUser),
-                        items: [], 
-                        receivedAmount: 0, 
-                        creator: currentUser?.name || '시스템'
-                      }));
-                      setCurrentIndex(0);
-                    }
-                    productInputRef.current?.focus();
-                  }}
-                  autoFocus={!invoiceData.partner}
-                />
-              </div>
-
-              <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '95px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800, lineHeight: 1.2 }}>총미수:</div>
-                <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#f59e0b', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-                  {finalBalance.toLocaleString()}
-                </div>
-              </div>
+                autoFocus={!invoiceData.partner}
+              />
             </div>
 
             {/* Row 3: [ 상품명 ▼ ] [ 상품 입력 (오렌지 테두리) ] [ 🔍 ] */}
@@ -1856,7 +1894,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             padding: '8px 12px',
             flexShrink: 0
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
                 backgroundColor: '#10b981',
                 color: '#ffffff',
@@ -1868,8 +1906,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
               }}>
                 [합계]
               </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fcd34d', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                미수: <strong style={{ color: '#fbbf24', fontSize: '0.88rem' }}>{finalBalance.toLocaleString()}원</strong>
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.86rem', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.86rem', fontWeight: 700 }}>
               <span style={{ color: '#cbd5e1' }}>
                 총수량: <strong style={{ color: '#38bdf8' }}>{totalQty}</strong>
               </span>
