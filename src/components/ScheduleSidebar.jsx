@@ -133,18 +133,18 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
           {onAddOrder && (
             <button 
               type="button"
               onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAddOrder(); }} 
               style={{ 
-                padding: '4px 7px', fontSize: '0.73rem', fontWeight: 800, 
+                padding: '3px 6px', fontSize: '0.72rem', fontWeight: 800, 
                 display: 'flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap',
                 backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
               }}
             >
-              <Plus size={12} /> 수주 추가
+              <Plus size={11} /> 수주
             </button>
           )}
           <button 
@@ -152,12 +152,12 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
             type="button"
             onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAdd(); }} 
             style={{ 
-              padding: '4px 7px', fontSize: '0.73rem', fontWeight: 800, 
+              padding: '3px 6px', fontSize: '0.72rem', fontWeight: 800, 
               display: 'flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap',
               backgroundColor: '#0284c7', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer'
             }}
           >
-            <Plus size={12} /> 일정 추가
+            <Plus size={11} /> 일정
           </button>
         </div>
       </div>

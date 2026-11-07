@@ -203,6 +203,63 @@ export const playUnloadSound = () => {
 };
 
 /**
+ * 가려진 메뉴 / 필터 보이기 및 가리기 토글 전용 차별화된 효과음
+ * 경쾌한 2단 찰칵/스위치 사운드 (일반 메뉴 클릭음과 명확히 구별)
+ */
+export const playToggleSound = (isOpening = true) => {
+  const settings = currentMobileSettings || getMobileSettings();
+  if (settings.enableButtonSound === false) return;
+  if (settings.enableHaptic && typeof navigator !== 'undefined' && navigator.vibrate) {
+    try {
+      navigator.vibrate([6, 15, 8]);
+    } catch {}
+  }
+
+  try {
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const volume = settings.soundVolume || 0.15;
+
+    // Dual-stage tactile switch pulse
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+
+    if (isOpening) {
+      // Opening/Showing: Low -> High snappy switch (650Hz -> 1550Hz)
+      osc1.frequency.setValueAtTime(650, now);
+      osc1.frequency.exponentialRampToValueAtTime(1200, now + 0.02);
+      osc2.frequency.setValueAtTime(1200, now + 0.015);
+      osc2.frequency.exponentialRampToValueAtTime(1850, now + 0.04);
+    } else {
+      // Closing/Hiding: High -> Low snappy latch (1600Hz -> 580Hz)
+      osc1.frequency.setValueAtTime(1600, now);
+      osc1.frequency.exponentialRampToValueAtTime(950, now + 0.02);
+      osc2.frequency.setValueAtTime(950, now + 0.015);
+      osc2.frequency.exponentialRampToValueAtTime(480, now + 0.04);
+    }
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    gain.gain.setValueAtTime(volume * 1.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+    osc1.start(now);
+    osc1.stop(now + 0.025);
+    osc2.start(now + 0.015);
+    osc2.stop(now + 0.045);
+  } catch (e) {
+    console.warn("Toggle audio playback issue:", e);
+  }
+};
+
+/**
  * Preview sound effect for settings modal
  */
 export const testSound = (tone, volume) => {
@@ -235,6 +292,18 @@ export const initGlobalButtonSound = () => {
       // Throttle rapid repeated triggers within 35ms
       if (now - lastClickTime < 35) return;
       lastClickTime = now;
+
+      // Check if this is a toggle button (보이기, 가리기, 접기, 펼치기 등)
+      const text = clickable.innerText || clickable.getAttribute('title') || clickable.getAttribute('aria-label') || '';
+      const isToggle = clickable.matches('[data-toggle], .toggle-btn, .collapse-toggle, [aria-expanded]') ||
+                       text.includes('보이기') || text.includes('가리기') || text.includes('접기') || text.includes('펼치기') ||
+                       clickable.querySelector('svg.lucide-chevron-down, svg.lucide-chevron-up');
+
+      if (isToggle) {
+        const isHiding = text.includes('가리기') || text.includes('접기');
+        playToggleSound(!isHiding);
+        return;
+      }
 
       playButtonClickSound();
     }

@@ -3746,8 +3746,7 @@ function App() {
             <div className="favorites-grid-wrapper" style={{ padding: '4px 0' }}>
               <div className="favorites-grid" style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(5, 1fr)', 
-                gap: '8px',
+                gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px',
                 rowGap: '12px'
               }}>
                 {Array.from({ length: 10 }).map((_, idx) => {
@@ -7681,7 +7680,7 @@ function FavoriteMenuBar({
     <div className="calendar-favorites-section" style={{
       backgroundColor: '#1e293b',
       borderRadius: '12px',
-      padding: '8px 10px',
+      padding: '5px 2px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
       border: '1px solid #334155',
       position: 'relative',
@@ -7711,7 +7710,7 @@ function FavoriteMenuBar({
       </div>
 
       {/* 헤더 행: 자주 찾는 메뉴 타이틀 + 설정 톱니바퀴 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Star size={14} color="#f59e0b" fill="#f59e0b" />
           <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc' }}>자주 찾는 메뉴</h4>
@@ -7726,8 +7725,8 @@ function FavoriteMenuBar({
         </button>
       </div>
 
-      {/* 8칸 메뉴 그리드 (1열당 4개 x 2행 = 총 8개, 컴팩트) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+      {/* 10칸 메뉴 그리드 (1열당 5개 x 2행 = 총 10개, 좌우 여백 없이 꽉 찬 레이아웃) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px' }}>
         {Array.from({ length: 10 }).map((_, idx) => {
           const menuId = (favoriteMenus || [])[idx] || null;
           const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
@@ -7745,17 +7744,17 @@ function FavoriteMenuBar({
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
-                    gap: '4px',
+                    gap: '2px',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '2px 0',
+                    padding: '1px 0',
                     boxSizing: 'border-box'
                   }}
                   title="클릭하여 메뉴 추가"
                 >
                   <div style={{
-                    width: '38px', height: '38px',
+                    width: '100%', height: '48px',
                     border: isSelecting ? '1.5px solid #3b82f6' : '1.5px dashed #cbd5e1', backgroundColor: isSelecting ? '#eff6ff' : '#ffffff',
                     borderRadius: '10px',
                     display: 'flex',
@@ -7765,7 +7764,7 @@ function FavoriteMenuBar({
                   }}>
                     <Plus size={18} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
                   </div>
-                  <span style={{ fontSize: '0.68rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
+                  <span style={{ fontSize: '0.65rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
                 </button>
 
                 {/* 인라인 선택 팝업 */}
@@ -7873,27 +7872,24 @@ function FavoriteMenuBar({
               >
                 {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
                 <div style={{
-                  width: '38px', height: '38px',
-                  border: '1px solid #e2e8f0', backgroundColor: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                  width: '100%', height: '48px',
+                  border: '1px solid #334155', backgroundColor: '#0f172a',
                   borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
                   transition: 'all 0.15s'
                 }}>
-                  <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
+                  <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
                 </div>
                 {/* 이름: 아이콘 박스 밖 아래쪽에 배치 */}
                 <span style={{
-                  fontSize: '0.64rem', fontWeight: 700, color: '#f1f5f9',
+                  fontSize: '0.64rem', fontWeight: 800, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%',
                   textAlign: 'center',
                   wordBreak: 'keep-all',
                   letterSpacing: '-0.3px',
                   lineHeight: 1.15,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
                   maxWidth: '100%'
                 }}>
                   {menuInfo.name}
@@ -7924,11 +7920,11 @@ function FavoriteMenuBar({
   );
 }
 
-// Sub-component for Favorite Settings Modal (8개)
+// Sub-component for Favorite Settings Modal (10개)
 function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   const [tempMenus, setTempMenus] = useState(() => {
-    const base = (currentMenus || []).slice(0, 8);
-    return [...base, ...Array(8 - base.length).fill(null)];
+    const base = (currentMenus || []).slice(0, 10);
+    return [...base, ...Array(10 - base.length).fill(null)];
   });
 
   const updateSlot = (index, value) => {
@@ -7960,9 +7956,9 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
   };
 
   return (
-    <WindowModal title="자주 찾는 메뉴 설정 (총 8개)" onClose={onClose}>
+    <WindowModal title="자주 찾는 메뉴 설정 (총 10개)" onClose={onClose}>
       <div className="favorite-settings-modal" style={{ width: '100%', padding: '16px' }}>
-        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 8개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>각 슬롯(총 10개)에 배치할 메뉴를 선택하세요. 비워두려면 '없음'을 선택하세요.</p>
         
         <div className="settings-grid" style={{ 
           display: 'grid', 

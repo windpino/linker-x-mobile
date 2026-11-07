@@ -29,6 +29,7 @@ const InventoryTransfer = ({
 }) => {
   // ─── 탭 모드: 'register' (재고이동 등록 - 기본 모바일 양식) / 'history' (이동 이력조회) ───
   const [activeTab, setActiveTab] = useState('register');
+  const [showWarehouseInputs, setShowWarehouseInputs] = useState(false);
 
   // ─── 이동 등록 상태 ───
   const getTodayStr = () => {
@@ -339,86 +340,75 @@ const InventoryTransfer = ({
               gap: '8px',
               flexShrink: 0
             }}>
-              {/* 1. 이동일자 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
-                  이동일자:
-                </span>
-                <input 
-                  type="date"
-                  value={transferDate}
-                  onChange={e => setTransferDate(e.target.value)}
+              {/* 상단 요약 바 & 가리기/펼치기 토글 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#10b981', minWidth: 0, overflow: 'hidden' }}>
+                  <span>📅</span>
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {transferDate.slice(5)} · {fromWarehouse} ➔ {toWarehouse}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWarehouseInputs(prev => !prev)}
                   style={{
-                    flex: 1,
-                    padding: '6px 10px',
-                    fontSize: '0.86rem',
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
+                    height: '30px',
+                    padding: '0 8px',
                     borderRadius: '6px',
-                    backgroundColor: '#ffffff',
-                    color: '#1e293b',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              {/* 2. 출고창고 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
-                  출고창고:
-                </span>
-                <select
-                  value={fromWarehouse}
-                  onChange={e => setFromWarehouse(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '7px 10px',
-                    fontSize: '0.86rem',
-                    fontWeight: 700,
                     border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    backgroundColor: '#ffffff',
-                    color: '#1e293b',
-                    outline: 'none',
-                    cursor: 'pointer'
+                    backgroundColor: showWarehouseInputs ? '#eff6ff' : '#ffffff',
+                    color: '#2563eb',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    flexShrink: 0
                   }}
                 >
-                  {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
-                    <option key={w.id || idx} value={w.name}>
-                      [{idx + 1}] {w.name}
-                    </option>
-                  ))}
-                </select>
+                  {showWarehouseInputs ? '▲ 가리기' : '▼ 설정 펼치기'}
+                </button>
               </div>
 
-              {/* 3. 입고창고 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '65px', fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>
-                  입고창고:
-                </span>
-                <select
-                  value={toWarehouse}
-                  onChange={e => setToWarehouse(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '7px 10px',
-                    fontSize: '0.86rem',
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    backgroundColor: '#ffffff',
-                    color: '#1e293b',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
-                    <option key={w.id || idx} value={w.name}>
-                      [{idx + 1}] {w.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* 가리기/펼치기 대상: 이동일자, 출고창고, 입고창고 */}
+              {showWarehouseInputs && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '65px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>이동일자:</span>
+                    <input 
+                      type="date"
+                      value={transferDate}
+                      onChange={e => setTransferDate(e.target.value)}
+                      style={{ flex: 1, padding: '5px 8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '65px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>출고창고:</span>
+                    <select
+                      value={fromWarehouse}
+                      onChange={e => setFromWarehouse(e.target.value)}
+                      style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}
+                    >
+                      {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
+                        <option key={w.id || idx} value={w.name}>[{idx + 1}] {w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '65px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>입고창고:</span>
+                    <select
+                      value={toWarehouse}
+                      onChange={e => setToWarehouse(e.target.value)}
+                      style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}
+                    >
+                      {warehouses.filter(w => w.name !== '전체창고').map((w, idx) => (
+                        <option key={w.id || idx} value={w.name}>[{idx + 1}] {w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* 4. 상품명 검색 입력 영역 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} ref={searchContainerRef}>
@@ -732,108 +722,73 @@ const InventoryTransfer = ({
               </div>
             </div>
 
-            {/* 하단 액션 버튼 바: [새전표] [영수증] [v 박스 수량 인쇄] + [재고이동 저장] */}
+            {/* 하단 액션: 이동 저장 버튼만 유지 */}
             <div style={{
-              padding: '10px 12px',
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
+              padding: '8px 12px',
+              backgroundColor: '#1e293b',
+              borderTop: '1px solid #334155',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
               flexShrink: 0
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {/* 새전표 */}
-                <button
-                  type="button"
-                  onClick={handleNewSlip}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '8px 10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    color: '#334155',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <FileText size={14} /> 새전표
-                </button>
-
-                {/* 영수증 */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const checkedItems = transferItems.filter(i => i.checked);
-                    if (checkedItems.length === 0) {
-                      alert('영수증으로 출력할 선택된 품목이 없습니다.');
-                      return;
-                    }
-                    setIsReceiptModalOpen(true);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '8px 10px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    color: '#334155',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Printer size={14} /> 영수증
-                </button>
-
-                {/* 박스 수량 인쇄 체크박스 */}
-                <label style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  cursor: 'pointer',
-                  userSelect: 'none'
-                }}>
-                  <input 
-                    type="checkbox"
-                    checked={printBoxQty}
-                    onChange={e => setPrintBoxQty(e.target.checked)}
-                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                  />
-                  박스 수량 인쇄
-                </label>
-              </div>
-
-              {/* 이동 저장 버튼 */}
               <button
                 type="button"
                 disabled={isSubmitting || transferItems.length === 0}
                 onClick={handleSaveTransfer}
                 style={{
-                  padding: '8px 14px',
-                  fontSize: '0.84rem',
+                  width: '100%',
+                  padding: '9px 16px',
+                  fontSize: '0.88rem',
                   fontWeight: 800,
-                  backgroundColor: transferItems.length === 0 ? '#94a3b8' : '#2563eb',
+                  backgroundColor: transferItems.length === 0 ? '#64748b' : '#2563eb',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: transferItems.length === 0 ? 'not-allowed' : 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+                  boxShadow: '0 2px 4px rgba(37,99,235,0.25)'
                 }}
               >
-                {isSubmitting ? '처리 중...' : '💾 이동 저장'}
+                {isSubmitting ? '처리 중...' : '💾 재고이동 저장'}
               </button>
+            </div>
+
+            {/* 아래쪽에 실제 창고 이동 완료 내역 목록 통합 표시 */}
+            <div style={{
+              flexShrink: 0,
+              maxHeight: '180px',
+              overflowY: 'auto',
+              borderTop: '2px solid #334155',
+              backgroundColor: '#0f172a',
+              padding: '6px 10px'
+            }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                <span>📋 최근 창고 이동 내역 ({filteredHistory.length}건)</span>
+              </div>
+              {filteredHistory.length === 0 ? (
+                <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '0.74rem' }}>
+                  이동 완료된 내역이 없습니다.
+                </div>
+              ) : (
+                filteredHistory.slice(0, 15).map((h, hIdx) => (
+                  <div key={h.id || hIdx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '4px 6px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    fontSize: '0.74rem',
+                    color: '#e2e8f0'
+                  }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>{h.date ? h.date.slice(5) : ''}</span>
+                    <span style={{ fontWeight: 700, flex: 1, margin: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {h.productName}
+                    </span>
+                    <span style={{ color: '#38bdf8', fontWeight: 800 }}>{h.quantity}개</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', marginLeft: '6px' }}>{h.fromWarehouse}➔{h.toWarehouse}</span>
+                  </div>
+                ))
+              )}
             </div>
           </>
         ) : (
