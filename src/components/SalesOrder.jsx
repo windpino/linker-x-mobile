@@ -747,13 +747,13 @@ const SalesOrder = ({
                   if (isItemSearchOpen && filteredProducts.length > 0) {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
-                      setSelectedItemIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : prev));
+                      setSelectedIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : prev));
                     } else if (e.key === 'ArrowUp') {
                       e.preventDefault();
-                      setSelectedItemIndex(prev => (prev > 0 ? prev - 1 : 0));
+                      setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
                     } else if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleSelectProduct(filteredProducts[selectedItemIndex]);
+                      handleProductSelect(filteredProducts[selectedIndex]);
                     } else if (e.key === 'Escape') {
                       setIsItemSearchOpen(false);
                     }
@@ -779,8 +779,8 @@ const SalesOrder = ({
               {isItemSearchOpen && (
                 <div style={{
                   position: 'absolute',
-                  top: `${Math.min(caretCoords.top + 24, 120)}px`,
-                  left: `${Math.min(caretCoords.left, 160)}px`,
+                  top: `${Math.min(caretPos.top + 24, 120)}px`,
+                  left: `${Math.min(caretPos.left, 160)}px`,
                   width: '260px',
                   maxHeight: '180px',
                   backgroundColor: 'white',
@@ -798,14 +798,14 @@ const SalesOrder = ({
                     filteredProducts.map((p, idx) => (
                       <div
                         key={p.id}
-                        onClick={() => handleSelectProduct(p)}
+                        onClick={() => handleProductSelect(p)}
                         style={{
                           padding: '8px 10px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           cursor: 'pointer',
-                          backgroundColor: idx === selectedItemIndex ? '#eff6ff' : 'transparent',
+                          backgroundColor: idx === selectedIndex ? '#eff6ff' : 'transparent',
                           borderBottom: '1px solid #f1f5f9'
                         }}
                       >
