@@ -3,7 +3,7 @@ import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy,
 import WindowModal from './WindowModal';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { MENU_PERMISSIONS, normalizeMenuPermissions, enrichMenuPermissions } from '../utils/menuPermissions';
+import { MENU_PERMISSIONS, MOBILE_CORE_MENUS, normalizeMenuPermissions, enrichMenuPermissions } from '../utils/menuPermissions';
 
 const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], nextSequence, staffZones = [], setStaffZones, staffJobTitles = [], setStaffJobTitles, currentUser, onDeleteStaff }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '메인창고';
@@ -165,13 +165,77 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     }));
   };
 
+  const syncMobileKeysWithDesktop = (perms, changedItems = null) => {
+    const next = { ...perms };
+    const shouldSync = (desktopKeys) => !changedItems || desktopKeys.some(k => changedItems.includes(k));
+    if (shouldSync(['수주 등록', '수주목록', '수주'])) {
+      next['모바일_수주'] = Boolean(next['수주 등록'] || next['수주목록']);
+    }
+    if (shouldSync(['수주목록', '수주', '재고이동'])) {
+      next['모바일_상차'] = Boolean(next['수주목록'] || next['재고이동']);
+    }
+    if (shouldSync(['재고이동'])) {
+      next['모바일_재고이동'] = Boolean(next['재고이동']);
+    }
+    if (shouldSync(['매출 전표', '매출전표내역', '매출전표'])) {
+      next['모바일_매출전표발행'] = Boolean(next['매출 전표'] || next['매출전표내역']);
+    }
+    if (shouldSync(['품목등록/관리', '품목등록', '품목관리'])) {
+      next['모바일_상품등록'] = Boolean(next['품목등록/관리']);
+    }
+    if (shouldSync(['거래처등록/관리', '거래처등록', '거래처관리'])) {
+      next['모바일_거래처등록'] = Boolean(next['거래처등록/관리']);
+    }
+    return next;
+  };
+
   const handlePermissionChange = (itemName, checked) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: {
+    setFormData(prev => {
+      const updated = {
         ...prev.permissions,
         [itemName]: checked
+      };
+      return {
+        ...prev,
+        permissions: syncMobileKeysWithDesktop(updated, [itemName])
+      };
+    });
+  };
+
+  const handleMobilePermissionChange = (mobileMenu, checked) => {
+    setFormData(prev => {
+      const updated = {
+        ...prev.permissions,
+        [mobileMenu.permKey]: checked
+      };
+      // 모바일 메뉴를 켤 때 데스크탑의 필수 기본 메뉴도 유기적으로 활성화 (원할 경우 개별 해제 가능)
+      if (checked && Array.isArray(mobileMenu.desktopLinkedKeys) && mobileMenu.desktopLinkedKeys[0]) {
+        const primaryDesktopKey = mobileMenu.desktopLinkedKeys[0];
+        if (!updated[primaryDesktopKey]) {
+          updated[primaryDesktopKey] = true;
+        }
       }
+      return {
+        ...prev,
+        permissions: updated
+      };
+    });
+  };
+
+  const handleAllMobileToggle = (checked) => {
+    setFormData(prev => {
+      const updated = { ...prev.permissions };
+      MOBILE_CORE_MENUS.forEach(m => {
+        updated[m.permKey] = checked;
+      });
+      return { ...prev, permissions: updated };
+    });
+  };
+
+  const handleSyncMobileFromDesktop = () => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: syncMobileKeysWithDesktop(prev.permissions, null)
     }));
   };
 
@@ -181,6 +245,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
       group.items.forEach(item => {
         newPermissions[item] = checked;
       });
+    });
+    MOBILE_CORE_MENUS.forEach(m => {
+      newPermissions[m.permKey] = checked;
     });
     setFormData(prev => ({ ...prev, permissions: newPermissions }));
   };
@@ -193,7 +260,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     categoryItems.forEach(item => {
       newPermissions[item] = checked;
     });
-    setFormData(prev => ({ ...prev, permissions: newPermissions }));
+    setFormData(prev => ({ ...prev, permissions: syncMobileKeysWithDesktop(newPermissions, categoryItems) }));
   };
 
   const handleSubmit = (e) => {
@@ -250,6 +317,9 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           g.items.forEach(item => {
             enrichedPermissions[item] = true;
           });
+        });
+        MOBILE_CORE_MENUS.forEach(m => {
+          enrichedPermissions[m.permKey] = true;
         });
         enrichedPermissions['ALL'] = true;
         enrichedPermissions['상품금액노출'] = true;
@@ -583,15 +653,179 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           </div>
         </div>
 
-        {/* Menu Access Permissions (상세 필터 형태 카드 구성) */}
+        {/* 📱 모바일 전용 6대 핵심 메뉴 제어 (데스크탑 권한과 유기적 연동) */}
+        <div className="permission-section mobile-menu-permissions" style={{
+          marginTop: '12px',
+          backgroundColor: '#f0f9ff',
+          border: '1.5px solid #bae6fd',
+          borderRadius: '12px',
+          padding: '12px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '1.05rem' }}>📱</span>
+                <h4 className="permission-title" style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0369a1' }}>
+                  모바일 전용 메뉴 제어 (6대 핵심 기능)
+                </h4>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: '#0284c7',
+                  backgroundColor: '#e0f2fe',
+                  border: '1px solid #7dd3fc',
+                  padding: '2px 7px',
+                  borderRadius: '999px'
+                }}>
+                  데스크탑 연동됨
+                </span>
+              </div>
+              <p className="permission-desc" style={{ margin: '3px 0 0 0', fontSize: '0.75rem', color: '#475569' }}>
+                모바일 접속 시 노출할 6대 필수 현장 기능(수주, 상차, 재고이동, 매출전표발행, 상품등록, 거래처등록)을 개별 제어합니다.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                disabled={isRepAdmin}
+                onClick={handleSyncMobileFromDesktop}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 9px',
+                  fontSize: '0.73rem',
+                  fontWeight: 700,
+                  color: isRepAdmin ? '#94a3b8' : '#0369a1',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #7dd3fc',
+                  borderRadius: '6px',
+                  cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                  opacity: isRepAdmin ? 0.6 : 1
+                }}
+                title="아래 데스크탑 메뉴 체크 상태에 맞춰 모바일 6대 메뉴를 자동 동기화합니다"
+              >
+                🔗 데스크탑 권한 동기화
+              </button>
+              <button
+                type="button"
+                disabled={isRepAdmin}
+                onClick={() => handleAllMobileToggle(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 9px',
+                  fontSize: '0.73rem',
+                  fontWeight: 700,
+                  color: isRepAdmin ? '#94a3b8' : '#ffffff',
+                  backgroundColor: isRepAdmin ? '#cbd5e1' : '#0284c7',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                  opacity: isRepAdmin ? 0.6 : 1
+                }}
+              >
+                ✓ 모바일 전체 허용
+              </button>
+              <button
+                type="button"
+                disabled={isRepAdmin}
+                onClick={() => handleAllMobileToggle(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 9px',
+                  fontSize: '0.73rem',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                  opacity: isRepAdmin ? 0.6 : 1
+                }}
+              >
+                ✕ 전체 해제
+              </button>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))',
+            gap: '8px'
+          }}>
+            {MOBILE_CORE_MENUS.map((m) => {
+              const isChecked = isRepAdmin ? true : Boolean(formData?.permissions?.[m.permKey]);
+              return (
+                <label
+                  key={m.permKey}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 10px',
+                    borderRadius: '10px',
+                    backgroundColor: isChecked ? '#ffffff' : '#f8fafc',
+                    border: isChecked ? `1.5px solid ${m.color}` : '1px solid #cbd5e1',
+                    boxShadow: isChecked ? '0 2px 6px rgba(2, 132, 199, 0.1)' : 'none',
+                    cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={isRepAdmin}
+                    onChange={(e) => handleMobilePermissionChange(m, e.target.checked)}
+                    style={{
+                      width: '15px',
+                      height: '15px',
+                      accentColor: m.color,
+                      margin: 0,
+                      cursor: isRepAdmin ? 'not-allowed' : 'pointer',
+                      flexShrink: 0
+                    }}
+                  />
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{m.emoji}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: isChecked ? '#0f172a' : '#64748b',
+                      lineHeight: 1.2
+                    }}>
+                      {m.label}
+                    </span>
+                    <span style={{
+                      fontSize: '0.67rem',
+                      fontWeight: 600,
+                      color: isChecked ? m.color : '#94a3b8',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {m.subLabel}
+                    </span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Menu Access Permissions (데스크탑 상세 필터 형태 카드 구성) */}
         <div className="permission-section menu-permissions" style={{ marginTop: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h4 className="permission-title" style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                메뉴 접근 권한 설정
+                🖥️ 데스크탑 전체 메뉴 접근 권한 설정
               </h4>
               <p className="permission-desc" style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-                직원이 접근할 수 있는 메뉴를 카테고리별로 선택하세요. (상세 필터 형태)
+                데스크탑 버전에서 직원이 접근할 수 있는 상세 메뉴를 선택하세요. (선택 시 상단 모바일 6대 핵심 메뉴와 자동 연동됩니다)
               </p>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>

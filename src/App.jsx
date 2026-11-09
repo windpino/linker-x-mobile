@@ -20,8 +20,8 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
-import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners, getLocalBundle } from './utils/bundleSyncManager';
-import { getIdbBundle, setIdbBundle } from './utils/idbBundleCache';
+import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners, getLocalBundle, BUNDLE_COLLECTIONS } from './utils/bundleSyncManager';
+import { getIdbBundle, setIdbBundle, clearAllIdbBundles } from './utils/idbBundleCache';
 import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
@@ -84,7 +84,7 @@ import { db } from './firebase';
 import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
 import { safeSetDoc as setDoc, safeUpdateDoc as updateDoc, safeDeleteDoc as deleteDoc } from './utils/firestoreSafety';
 import UserSignup from './components/UserSignup';
-import { hasMenuPermission, MENU_ID_TO_PERM } from './utils/menuPermissions';
+import { hasMenuPermission, hasMobileMenuPermission, MOBILE_CORE_MENUS, MENU_ID_TO_PERM } from './utils/menuPermissions';
 
 const ALL_PERMS = {
   warehouse: true, staff: true, partner: true, product: true, account: true,
@@ -499,9 +499,11 @@ function App() {
   };
   const [orderListSelectedStaff, setOrderListSelectedStaff] = useState(() => 'all');
   const [orderListStatusFilter, setOrderListStatusFilter] = useState('all');
+  const [orderListInitialTab, setOrderListInitialTab] = useState('list');
 
-  const openOrderList = (staffName = null, date = null, initialStatus = 'all') => {
+  const openOrderList = (staffName = null, date = null, initialStatus = 'all', tab = 'list') => {
     setOrderListSelectedStaff(staffName || 'all');
+    setOrderListInitialTab(tab || 'list');
     if (initialStatus) {
       setOrderListStatusFilter(initialStatus);
     }
@@ -509,6 +511,10 @@ function App() {
       setSelectedDate(date instanceof Date ? date : new Date(date));
     }
     setIsOrderListOpen(true);
+  };
+
+  const openLoadingCheck = () => {
+    openOrderList(null, null, 'all', 'summary');
   };
   const [isCashReportOpen, setIsCashReportOpen] = useState(false);
   const [cashReportTab, setCashReportTab] = useState('결산');
@@ -5536,7 +5542,8 @@ function App() {
           onOpenSalesInvoiceList={openSalesInvoiceList}
           onOpenSalesLedger={openSalesLedger}
           onOpenSalesOrder={() => { setEditingOrder(null); setIsSalesOrderOpen(true); }}
-          onOpenOrderList={openOrderList}
+          onOpenOrderList={() => openOrderList(null, null, 'all', 'list')}
+          onOpenLoadingCheck={openLoadingCheck}
           onOpenQuotation={() => { setEditingQuotation(null); setIsQuotationOpen(true); }}
           onOpenQuotationManagement={openQuotationManagement}
           onOpenCashReport={openCashReport}
@@ -5598,6 +5605,7 @@ function App() {
               physical_inventory:         () => setIsPhysicalInventoryOpen(true),
               warehouse_initial_stock:    () => setIsWarehouseInitialStockOpen(true),
               inventory_transfer:         () => openInventoryTransfer(),
+              loading_check:              () => openLoadingCheck(),
               inventory_movement_manager: () => setIsInventoryMovementManagerOpen(true),
               inventory_adjustment:       () => setIsInventoryAdjustmentOpen(true),
               inventory_mismatch:         () => setIsInventoryMismatchOpen(true),
@@ -5611,7 +5619,7 @@ function App() {
               sales_invoice_list:         () => openSalesInvoiceList(),
               sales_ledger:               () => openSalesLedger(),
               sales_order:                () => { setEditingOrder(null); setOrderingPartner(null); setIsSalesOrderOpen(true); },
-              order_list:                 () => openOrderList(),
+              order_list:                 () => openOrderList(null, null, 'all', 'list'),
               quotation:                  () => { setEditingQuotation(null); setIsQuotationOpen(true); },
               quotation_list:             () => openQuotationManagement(),
               account:                    () => setIsAccountManagerOpen(true),
@@ -6409,6 +6417,7 @@ function App() {
         currentUser={currentUser}
         initialSelectedStaff={orderListSelectedStaff}
         initialStatusFilter={orderListStatusFilter}
+        initialTab={orderListInitialTab}
         onEditOrder={(order) => { 
           setEditingOrder(order); 
           setSalesOrderSource('orderList');
@@ -6865,23 +6874,89 @@ function App() {
               if (salesBundleSyncTimerRef.current) clearTimeout(salesBundleSyncTimerRef.current);
               if (purchaseBundleSyncTimerRef.current) clearTimeout(purchaseBundleSyncTimerRef.current);
 
-              if (onProgress) {
-                onProgress({
-                  percent: 15,
-                  currentStep: '삭제 대상 데이터 스캔 및 수집 중...',
-                  currentCount: 0,
-                  totalCount: 0,
-                  detail: '파이어베이스 전체 컬렉션 문서 스캔 시작...'
-                });
-              }
-
               // 보존할 최초 가입 관리자 ID 확정
               const adminUserId = initialAdminId || uid;
               const adminUserIdLower = String(adminUserId || '').toLowerCase();
+              const adminCompositeId = `${companyId}_${adminUserId}`;
+              const preservedAdmin = {
+                id: currentUser?.id || 1,
+                userId: adminUserId,
+                password: compData?.password || enteredPassword,
+                name: compData?.ceo || compData?.name || currentUser?.name || '대표관리자',
+                jobTitle: '대표',
+                role: 'admin',
+                warehouse: '',
+                zone: '',
+                companyId: companyId,
+                permissions: {
+                  ALL: true,
+                  salesOrder: true, salesInvoice: true, quotation: true, depositSlip: true,
+                  purchaseInvoice: true, purchaseOrder: true, withdrawalSlip: true,
+                  salesLedger: true, purchaseLedger: true, cashBook: true, expense: true,
+                  inventoryReport: true, inventoryTransfer: true, inventoryAudit: true,
+                  partnerManagement: true, productManagement: true, warehouseManagement: true,
+                  accountManagement: true, staffManagement: true, salesReport: true,
+                  staffPerformance: true, scheduleManagement: true, dataManager: true,
+                  systemSettings: true
+                },
+                createdAt: compData?.createdAt || new Date().toISOString()
+              };
 
-              // 3. 삭제할 모든 문서 수집 (메모리 상태 우선 수집 + Firestore 전체 스캔)
+              // 3. [최우선 1단계] 로컬 스토리지/IndexedDB 먼저 비운 뒤 파이어베이스 번들 캐시 + 설정 문서를 즉시 초기화 (데이터 부활 원천 차단)
+              if (onProgress) {
+                onProgress({
+                  percent: 25,
+                  currentStep: '파이어베이스 번들 및 로컬 캐시 즉시 초기화 중...',
+                  currentCount: 0,
+                  totalCount: 0,
+                  detail: '모든 컬렉션 번들(청크 포함), 재고 및 로컬 캐시를 빈 상태로 덮어쓰는 중...'
+                });
+              }
+
+              const license = localStorage.getItem('licenseData');
+              localStorage.clear();
+              try { sessionStorage.clear(); } catch (e) {}
+              if (license) localStorage.setItem('licenseData', license);
+              localStorage.setItem('system_cleaned_ver', '20260509_v3');
+              localStorage.setItem('currentUser', JSON.stringify(preservedAdmin));
+
+              // 번들 초기화 + 설정 초기화 + 대표관리자 계정 보존을 병렬로 초고속 실행
+              const resetSettingsTask = (async () => {
+                try {
+                  const settingsBatch = writeBatch(db);
+                  const settingsDocsToDelete = ['systemSettings', 'favoriteMenus', 'dashboardConfig', 'cashBookData', 'recentActivity', 'staffZones', 'staffJobTitles'];
+                  settingsDocsToDelete.forEach(docName => {
+                    settingsBatch.delete(doc(db, 'companies', companyId, 'settings', docName));
+                    settingsBatch.delete(doc(db, 'companies', companyId, 'systemSettings', docName));
+                  });
+                  settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {}, companyId });
+                  settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: {}, companyId });
+                  settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {}, companyId });
+                  settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'physicalInventory'), { value: {}, companyId });
+                  settingsBatch.set(doc(db, 'companies', companyId, 'staffList', adminCompositeId), preservedAdmin);
+                  await settingsBatch.commit();
+                } catch (e) {
+                  console.warn("[Delete All] Settings batch error:", e);
+                }
+              })();
+
+              await Promise.all([
+                clearAllBundles(companyId, [preservedAdmin]).catch(err => console.warn("[Delete All] Clear bundles error:", err)),
+                resetSettingsTask
+              ]);
+
+              // 4. [2단계] 레거시 개별 서브컬렉션 문서 고속 병렬 정리 (메모리 수집 + 병렬 스캔)
+              if (onProgress) {
+                onProgress({
+                  percent: 55,
+                  currentStep: '하위 컬렉션 잔여 문서 고속 정리 중...',
+                  currentCount: 0,
+                  totalCount: 0,
+                  detail: '레거시 개별 문서 스캔 및 일괄 삭제 진행 중...'
+                });
+              }
+
               const docRefsMap = new Map();
-
               const addDocRef = (colName, docId) => {
                 if (docId && typeof docId === 'string' && docId.trim() && docId !== 'undefined' && docId !== 'null') {
                   const ref = doc(db, 'companies', companyId, colName, docId.trim());
@@ -6909,7 +6984,6 @@ function App() {
                 });
               };
 
-              // 3-1. 현재 로드된 메모리 상의 모든 문서(중복 ID 포함) 즉시 수집
               collectPossibleIds('schedules', schedules);
               collectPossibleIds('scheduleTypes', scheduleTypes);
               collectPossibleIds('products', products);
@@ -6942,161 +7016,61 @@ function App() {
                 });
               }
 
-              // 3-2. Firestore 서버 컬렉션 전체 스캔 (안정적인 5개씩 그룹 스캔, 25초 타임아웃)
               const collectionsToScan = [
-                'schedules', 'scheduleTypes', 'products', 'categories', 
-                'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders', 
-                'salesInvoices', 'salesOrders', 'quotations', 'warehouses', 
+                'schedules', 'scheduleTypes', 'products', 'categories',
+                'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders',
+                'salesInvoices', 'salesOrders', 'quotations', 'warehouses',
                 'vehicles', 'vehicleLogs',
-                'inventoryTransferHistory', 'inventoryAdjustments', 'expenses', 'specialPrices', 
+                'inventoryTransferHistory', 'inventoryAdjustments', 'expenses', 'specialPrices',
                 'staffZones', 'staffJobTitles', 'actionLogs', 'deletedLogs', 'activityLogs', 'staffList', 'userSettings'
               ];
 
-              const scanGroupSize = 5;
-              for (let g = 0; g < collectionsToScan.length; g += scanGroupSize) {
-                const group = collectionsToScan.slice(g, g + scanGroupSize);
-                await Promise.all(group.map(async (colName) => {
-                  try {
-                    const snap = await Promise.race([
-                      getDocs(collection(db, 'companies', companyId, colName)),
-                      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 25000))
-                    ]);
-                    if (snap && snap.docs) {
-                      snap.docs.forEach(d => {
-                        if (colName === 'staffList') {
-                          const sData = d.data() || {};
-                          const sUid = String(sData.userId || '').toLowerCase();
-                          const expectedDocId = `${companyId}_${adminUserId}`.toLowerCase();
-                          if (sUid !== adminUserIdLower && String(d.id || '').toLowerCase() !== expectedDocId) {
-                            docRefsMap.set(d.ref.path, d.ref);
-                          }
-                        } else {
+              await Promise.all(collectionsToScan.map(async (colName) => {
+                try {
+                  const snap = await Promise.race([
+                    getDocs(collection(db, 'companies', companyId, colName)),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('scan timeout')), 3500))
+                  ]);
+                  if (snap && snap.docs) {
+                    snap.docs.forEach(d => {
+                      if (colName === 'staffList') {
+                        const sData = d.data() || {};
+                        const sUid = String(sData.userId || '').toLowerCase();
+                        const expectedDocId = `${companyId}_${adminUserId}`.toLowerCase();
+                        if (sUid !== adminUserIdLower && String(d.id || '').toLowerCase() !== expectedDocId) {
                           docRefsMap.set(d.ref.path, d.ref);
                         }
-                      });
-                    }
-                  } catch (e) {
-                    console.warn(`[Delete All] Scan warning for ${colName}:`, e);
+                      } else {
+                        docRefsMap.set(d.ref.path, d.ref);
+                      }
+                    });
                   }
-                }));
-              }
+                } catch (e) {
+                  // Ignore scan timeout
+                }
+              }));
 
               const allRefs = Array.from(docRefsMap.values());
               const totalDocs = allRefs.length;
-              console.log(`[Delete All] Total ${totalDocs} documents to delete.`);
 
-              if (onProgress) {
-                onProgress({
-                  percent: 25,
-                  currentStep: '삭제 대상 문서 확인 완료',
-                  currentCount: 0,
-                  totalCount: totalDocs,
-                  detail: `총 ${totalDocs.toLocaleString()}개의 문서 일괄 삭제 작업 준비...`
-                });
-              }
-
-              // 4. writeBatch 일괄 삭제 실행 (청크 400개, 25초 타임아웃)
-              const chunkSize = 400;
-              let deletedCount = 0;
-              for (let i = 0; i < allRefs.length; i += chunkSize) {
-                const chunk = allRefs.slice(i, i + chunkSize);
-                const batch = writeBatch(db);
-                chunk.forEach(ref => batch.delete(ref));
-                await Promise.race([
-                  batch.commit(),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 25000))
-                ]).catch(err => console.warn(`[Delete All] Batch chunk ${i} commit error:`, err));
-
-                deletedCount += chunk.length;
-                if (onProgress) {
-                  const pct = 25 + Math.round((deletedCount / (totalDocs || 1)) * 55);
-                  onProgress({
-                    percent: Math.min(80, pct),
-                    currentStep: '데이터베이스 문서 일괄 삭제 중...',
-                    currentCount: deletedCount,
-                    totalCount: totalDocs,
-                    detail: `${deletedCount.toLocaleString()} / ${totalDocs.toLocaleString()} 문서 삭제 진행 중...`
-                  });
+              if (totalDocs > 0) {
+                const chunkSize = 450;
+                const batchPromises = [];
+                for (let i = 0; i < allRefs.length; i += chunkSize) {
+                  const chunk = allRefs.slice(i, i + chunkSize);
+                  const batch = writeBatch(db);
+                  chunk.forEach(ref => batch.delete(ref));
+                  batchPromises.push(
+                    Promise.race([
+                      batch.commit(),
+                      new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 5000))
+                    ]).catch(err => console.warn(`[Delete All] Batch chunk ${i} commit warning:`, err))
+                  );
                 }
+                await Promise.all(batchPromises);
               }
 
-              // 5. 단일 설정 문서 초기화 (재고 빈 객체 덮어쓰기 및 기타 설정 삭제)
-              if (onProgress) {
-                onProgress({
-                  percent: 85,
-                  currentStep: '시스템 설정 문서 초기화 중...',
-                  currentCount: totalDocs,
-                  totalCount: totalDocs,
-                  detail: '재고, 시스템 설정, 대시보드 문서 초기화...'
-                });
-              }
-
-              try {
-                const settingsBatch = writeBatch(db);
-                const settingsDocsToDelete = ['systemSettings', 'favoriteMenus', 'dashboardConfig', 'cashBookData', 'recentActivity', 'staffZones', 'staffJobTitles'];
-                settingsDocsToDelete.forEach(docName => {
-                  settingsBatch.delete(doc(db, 'companies', companyId, 'settings', docName));
-                  settingsBatch.delete(doc(db, 'companies', companyId, 'systemSettings', docName));
-                });
-                settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {}, companyId });
-                settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: {}, companyId });
-                settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {}, companyId });
-                settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'physicalInventory'), { value: {}, companyId });
-                await settingsBatch.commit().catch(err => console.warn("[Delete All] Settings batch error:", err));
-              } catch (e) {
-                console.warn("[Delete All] Settings delete error:", e);
-              }
-
-              // 6. 최초 가입 관리자 계정만 초기 상태로 보존
-              const adminCompositeId = `${companyId}_${adminUserId}`;
-              const preservedAdmin = {
-                id: currentUser?.id || 1,
-                userId: adminUserId,
-                password: compData?.password || enteredPassword,
-                name: compData?.ceo || compData?.name || currentUser?.name || '대표관리자',
-                jobTitle: '대표',
-                role: 'admin',
-                warehouse: '',
-                zone: '',
-                companyId: companyId,
-                permissions: {
-                  ALL: true,
-                  salesOrder: true, salesInvoice: true, quotation: true, depositSlip: true,
-                  purchaseInvoice: true, purchaseOrder: true, withdrawalSlip: true,
-                  salesLedger: true, purchaseLedger: true, cashBook: true, expense: true,
-                  inventoryReport: true, inventoryTransfer: true, inventoryAudit: true,
-                  partnerManagement: true, productManagement: true, warehouseManagement: true,
-                  accountManagement: true, staffManagement: true, salesReport: true,
-                  staffPerformance: true, scheduleManagement: true, dataManager: true,
-                  systemSettings: true
-                },
-                createdAt: compData?.createdAt || new Date().toISOString()
-              };
-
-              try {
-                await setDoc(doc(db, 'companies', companyId, 'staffList', adminCompositeId), preservedAdmin);
-              } catch (e) {
-                console.warn("[Delete All] Admin preserve write error:", e);
-              }
-
-              // 6-1. Firestore 번들 캐시(청크 포함) 및 IndexedDB/로컬 번들 캐시 완전 초기화 (데이터 부활 원천 차단)
-              if (onProgress) {
-                onProgress({
-                  percent: 92,
-                  currentStep: '파이어베이스 및 IndexedDB 번들 캐시 완전 소각 중...',
-                  currentCount: totalDocs,
-                  totalCount: totalDocs,
-                  detail: 'Firestore bundles(청크 포함), IndexedDB 및 syncState 초기화...'
-                });
-              }
-
-              try {
-                await clearAllBundles(companyId, [preservedAdmin]);
-              } catch (bundleErr) {
-                console.warn("[Delete All] Clear all bundles error:", bundleErr);
-              }
-
-              // 7. 메모리 React 상태 초기화 (최초 가입 직후 빈 상태)
+              // 5. 메모리 React 상태 및 로컬 버전 재확정
               setProducts([]);
               setCategories([]);
               setPartners([]);
@@ -7120,14 +7094,11 @@ function App() {
               setStaffJobTitles([]);
               setStaffList([preservedAdmin]);
 
-              // 8. 로컬 스토리지 및 세션 스토리지 완전 초기화
-              const license = localStorage.getItem('licenseData');
-              localStorage.clear();
-              try { sessionStorage.clear(); } catch (e) {}
-              if (license) localStorage.setItem('licenseData', license);
-              localStorage.setItem('system_cleaned_ver', '20260509_v2');
-              localStorage.setItem('currentUser', JSON.stringify(preservedAdmin));
+              const finalVer = Math.floor(Date.now() / 1000) + 100;
               BUNDLE_COLLECTIONS.forEach(col => {
+                const resetData = col === 'staffList' ? [preservedAdmin] : [];
+                localStorage.setItem(`bundle_${col}_${companyId}`, JSON.stringify(resetData));
+                localStorage.setItem(`bundle_ver_${col}_${companyId}`, String(finalVer));
                 localStorage.setItem(`bundle_reconciled_${col}_${companyId}`, 'true');
               });
 
@@ -7142,7 +7113,7 @@ function App() {
                 });
               }
 
-              await new Promise(r => setTimeout(r, 800));
+              await new Promise(r => setTimeout(r, 400));
               window.location.reload();
               return { success: true };
             } catch (err) {
@@ -7670,49 +7641,66 @@ function App() {
       {/* 모바일 최적화 하단 고정 네비게이션 바 (수주등록/전표작성 등 풀스크린 편집창 열림 시 하단 버튼 겹침 방지를 위해 자동 숨김) */}
       {currentUser && !isSalesOrderOpen && !isSalesInvoiceOpen && !isPurchaseInvoiceOpen && (
         <MobileBottomNav
+          currentUser={currentUser}
           activeTab={
             isSalesOrderOpen ? 'sales_order' :
             isOrderListOpen ? 'order_list' :
+            isSalesInvoiceOpen ? 'sales_invoice' :
             isInventoryTransferOpen ? 'inventory_transfer' :
             isMobileMenuOpen ? 'menu' : 'home'
           }
           onGoHome={() => {
             setIsOrderListOpen(false);
             setIsSalesOrderOpen(false);
+            setIsSalesInvoiceOpen(false);
             setIsInventoryTransferOpen(false);
             setIsCalendarModalOpen(false);
             setIsWidgetModalOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
           }}
           onOpenOrderList={() => {
-            if (!hasMenuPermission(currentUser, '수주목록')) {
-              alert('[수주목록] 메뉴에 대한 접근 권한이 없습니다.');
+            if (!hasMobileMenuPermission(currentUser, '모바일_상차')) {
+              alert('[상차] 메뉴에 대한 접근 권한이 없습니다.');
               return;
             }
             setIsSalesOrderOpen(false);
+            setIsSalesInvoiceOpen(false);
             setIsInventoryTransferOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
-            openOrderList();
+            openLoadingCheck();
           }}
           onOpenSalesOrder={() => {
-            if (!hasMenuPermission(currentUser, '수주 등록')) {
-              alert('[수주 등록] 메뉴에 대한 접근 권한이 없습니다.');
+            if (!hasMobileMenuPermission(currentUser, '모바일_수주')) {
+              alert('[수주] 메뉴에 대한 접근 권한이 없습니다.');
               return;
             }
             setIsOrderListOpen(false);
+            setIsSalesInvoiceOpen(false);
             setIsInventoryTransferOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
             setEditingOrder(null);
             setOrderingPartner(null);
             setIsSalesOrderOpen(true);
           }}
+          onOpenSalesInvoice={() => {
+            if (!hasMobileMenuPermission(currentUser, '모바일_매출전표발행')) {
+              alert('[매출전표발행] 메뉴에 대한 접근 권한이 없습니다.');
+              return;
+            }
+            setIsOrderListOpen(false);
+            setIsSalesOrderOpen(false);
+            setIsInventoryTransferOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+            openSalesInvoice();
+          }}
           onOpenInventoryTransfer={() => {
-            if (!hasMenuPermission(currentUser, '재고이동')) {
+            if (!hasMobileMenuPermission(currentUser, '모바일_재고이동')) {
               alert('[재고이동] 메뉴에 대한 접근 권한이 없습니다.');
               return;
             }
             setIsOrderListOpen(false);
             setIsSalesOrderOpen(false);
+            setIsSalesInvoiceOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
             openInventoryTransfer();
           }}
@@ -7726,89 +7714,36 @@ function App() {
 }
 
 // ─────────────────────────────────────────────────────────
-// FavoriteMenuBar – 달력 위 자주 찾는 메뉴 바
+// FavoriteMenuBar – 모바일 6대 핵심 메뉴 전용 퀵보드 (수주, 상차, 재고이동, 매출전표발행, 상품등록, 거래처등록)
 // ─────────────────────────────────────────────────────────
 function FavoriteMenuBar({
-  favoriteMenus, currentUser, db, setFavoriteMenus, showToast,
+  currentUser,
   SYSTEM_NOTICES, currentNoticeIdx, noticeFade, setSelectedSystemNotice,
-  setIsFavoriteSettingsOpen, onMenuAction
+  onMenuAction
 }) {
-  const [selectingSlot, setSelectingSlot] = useState(null); // 현재 선택 중인 슬롯 인덱스
-  const [searchTerm, setSearchTerm] = useState('');
-  const popupRef = React.useRef(null);
-
-  // 팝업 바깥 클릭 시 닫기
-  React.useEffect(() => {
-    if (selectingSlot === null) return;
-    const handleClick = (e) => {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        setSelectingSlot(null);
-        setSearchTerm('');
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [selectingSlot]);
-
-  // Firebase + localStorage에 저장하는 함수
-  const saveFavorites = (newMenus) => {
-    setFavoriteMenus(newMenus);
-    const key = currentUser?.userId ? `favoriteMenus_${currentUser.userId}` : 'favoriteMenus';
-    localStorage.setItem(key, JSON.stringify(newMenus));
-    if (currentUser?.companyId) {
-      const docRef = currentUser.userId 
-        ? doc(db, 'companies', currentUser.companyId, 'userSettings', currentUser.userId + '_favoriteMenus')
-        : doc(db, 'companies', currentUser.companyId, 'settings', 'favoriteMenus');
-      setDoc(docRef, { value: newMenus })
-        .catch(err => console.warn('Firebase favorite sync failed:', err));
-    }
-  };
-
-  // 슬롯에 메뉴 배정
-  const assignMenuToSlot = (slotIdx, menuId) => {
-    const next = [...favoriteMenus];
-    // 8칸 보장
-    while (next.length < 8) next.push(null);
-    next[slotIdx] = menuId || null;
-    saveFavorites(next);
-    setSelectingSlot(null);
-    setSearchTerm('');
-    if (menuId) showToast('자주 찾는 메뉴에 추가되었습니다.', 'success');
-  };
-
-  // 슬롯 제거
-  const removeSlot = (slotIdx) => {
-    const next = [...favoriteMenus];
-    while (next.length < 8) next.push(null);
-    next[slotIdx] = null;
-    saveFavorites(next);
-    showToast('메뉴가 제거되었습니다.', 'info');
-  };
-
-  const userAllowedMenus = React.useMemo(() => {
-    return ALL_FAVORITE_MENUS.filter(m => {
-      const perm = MENU_ID_TO_PERM[m.id];
-      return !perm || hasMenuPermission(currentUser, perm);
-    });
+  const coreMenus = React.useMemo(() => {
+    const items = [
+      { id: 'sales_order', permKey: '모바일_수주', name: '수주', sub: '수주 등록 · 접수', emoji: '📝', accent: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+      { id: 'loading_check', permKey: '모바일_상차', name: '상차', sub: '상차 · 품목 합계', emoji: '🚛', accent: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+      { id: 'inventory_transfer', permKey: '모바일_재고이동', name: '재고이동', sub: '창고 · 차량 이동', emoji: '🔄', accent: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+      { id: 'sales_invoice', permKey: '모바일_매출전표발행', name: '매출전표발행', sub: '현장 전표 즉시발행', emoji: '🧾', accent: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
+      { id: 'product', permKey: '모바일_상품등록', name: '상품등록', sub: '품목 조회 · 등록', emoji: '🏷️', accent: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+      { id: 'partner', permKey: '모바일_거래처등록', name: '거래처등록', sub: '거래처 조회 · 등록', emoji: '🏢', accent: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' }
+    ];
+    return items.filter(m => hasMobileMenuPermission(currentUser, m.permKey));
   }, [currentUser]);
-
-  const filteredMenus = searchTerm
-    ? userAllowedMenus.filter(m =>
-        m.name.includes(searchTerm) || m.category.includes(searchTerm)
-      )
-    : userAllowedMenus;
 
   return (
     <div className="calendar-favorites-section" style={{
       backgroundColor: '#1e293b',
-      borderRadius: '12px',
-      padding: '5px 2px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+      borderRadius: '14px',
+      padding: '8px',
+      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.12)',
       border: '1px solid #334155',
       position: 'relative',
       flexShrink: 0
     }}>
-      {/* 롤오버 공지사항 NOTICE (독립된 상단 1줄 표시) */}
+      {/* 롤오버 공지사항 NOTICE (상단 1줄 표시) */}
       <div
         onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
         style={{
@@ -7816,239 +7751,139 @@ function FavoriteMenuBar({
           alignItems: 'center',
           backgroundColor: '#fef2f2',
           border: '1px solid #fee2e2',
-          borderRadius: '6px',
-          padding: '4px 8px',
+          borderRadius: '8px',
+          padding: '5px 8px',
           cursor: 'pointer',
-          marginBottom: '6px',
+          marginBottom: '8px',
           transition: 'all 0.2s',
           opacity: noticeFade ? 1 : 0,
           transform: noticeFade ? 'none' : 'translateY(-2px)'
         }}
       >
         <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', marginRight: '6px', whiteSpace: 'nowrap', backgroundColor: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>NOTICE</span>
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ fontSize: '0.73rem', fontWeight: 700, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {SYSTEM_NOTICES[currentNoticeIdx]?.title}
         </span>
       </div>
 
-      {/* 헤더 행: 자주 찾는 메뉴 타이틀 + 설정 톱니바퀴 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 2px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      {/* 헤더 행: 모바일 핵심 업무 타이틀 + 보조 조회 바로가기 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Star size={14} color="#f59e0b" fill="#f59e0b" />
-          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc' }}>자주 찾는 메뉴</h4>
+          <h4 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>모바일 6대 핵심 메뉴</h4>
         </div>
-
-        <button
-          onClick={e => { e.stopPropagation(); setIsFavoriteSettingsOpen(true); }}
-          style={{ padding: '2px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-          title="전체 설정"
-        >
-          <SettingsIcon size={14} />
-        </button>
-      </div>
-
-      {/* 10칸 메뉴 그리드 (1열당 5개 x 2행 = 총 10개, 좌우 여백 없이 꽉 찬 레이아웃) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px' }}>
-        {Array.from({ length: 10 }).map((_, idx) => {
-          const menuId = (favoriteMenus || [])[idx] || null;
-          const menuInfo = ALL_FAVORITE_MENUS.find(m => m.id === menuId);
-          const isSelecting = selectingSlot === idx;
-
-          if (!menuInfo) {
-            // 빈 슬롯
-            return (
-              <div key={idx} style={{ position: 'relative' }}>
-                <button
-                  onClick={() => { playMenuClickSound(); setSelectingSlot(isSelecting ? null : idx); setSearchTerm(''); }}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    gap: '2px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '1px 0',
-                    boxSizing: 'border-box'
-                  }}
-                  title="클릭하여 메뉴 추가"
-                >
-                  <div style={{
-                    width: '100%', height: '48px',
-                    border: isSelecting ? '1.5px solid #3b82f6' : '1.5px dashed #cbd5e1', backgroundColor: isSelecting ? '#eff6ff' : '#ffffff',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.15s'
-                  }}>
-                    <Plus size={18} color={isSelecting ? '#3b82f6' : '#94a3b8'} />
-                  </div>
-                  <span style={{ fontSize: '0.65rem', color: isSelecting ? '#3b82f6' : '#94a3b8', fontWeight: 600 }}>추가</span>
-                </button>
-
-                {/* 인라인 선택 팝업 */}
-                {isSelecting && (
-                  <div ref={popupRef} style={{
-                    position: 'absolute', top: '56px', left: (idx % 4) >= 2 ? 'auto' : '0',
-                    right: (idx % 4) >= 2 ? '0' : 'auto',
-                    width: '240px', backgroundColor: 'white',
-                    borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                    border: '1px solid #e2e8f0', zIndex: 9999, overflow: 'hidden'
-                  }}>
-                    <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                        슬롯 {idx + 1} 메뉴 선택
-                      </div>
-                      <input
-                        autoFocus
-                        type="text"
-                        placeholder="메뉴 검색..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          width: '100%', padding: '5px 8px', borderRadius: '6px',
-                          border: '1px solid #e2e8f0', fontSize: '0.75rem',
-                          outline: 'none', boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <div style={{ maxHeight: '220px', overflowY: 'auto', padding: '4px 0' }}>
-                      {searchTerm ? (
-                        filteredMenus.length === 0 ? (
-                          <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>검색 결과 없음</div>
-                        ) : filteredMenus.map(opt => (
-                          <button key={opt.id} onClick={() => { playMenuClickSound(); assignMenuToSlot(idx, opt.id); }}
-                            style={{
-                              width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
-                              padding: '6px 10px', border: 'none', background: 'none',
-                              cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.9rem' }}>{opt.emoji}</span>
-                            <div>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</div>
-                              <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{opt.category}</div>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        FAV_CATEGORIES.map(cat => {
-                          const catMenus = userAllowedMenus.filter(m => m.category === cat);
-                          if (catMenus.length === 0) return null;
-                          return (
-                            <div key={cat}>
-                              <div style={{ padding: '4px 10px 2px', fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>
-                                {cat}
-                              </div>
-                              {catMenus.map(opt => (
-                                <button key={opt.id} onClick={() => { playMenuClickSound(); assignMenuToSlot(idx, opt.id); }}
-                                  style={{
-                                    width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
-                                    padding: '5px 10px', border: 'none', background: 'none',
-                                    cursor: 'pointer', textAlign: 'left'
-                                  }}
-                                >
-                                  <span style={{ fontSize: '0.85rem' }}>{opt.emoji}</span>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{opt.name}</span>
-                                  {(favoriteMenus || []).includes(opt.id) && (
-                                    <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#3b82f6', fontWeight: 700, backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '6px' }}>등록됨</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          // 메뉴가 있는 슬롯
-          const isPermitted = !MENU_ID_TO_PERM[menuId] || hasMenuPermission(currentUser, MENU_ID_TO_PERM[menuId]);
-
-          return (
-            <div key={idx} style={{ position: 'relative' }}
-              onMouseEnter={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '1')}
-              onMouseLeave={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '0')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {hasMobileMenuPermission(currentUser, '모바일_수주') && (
+            <button
+              onClick={() => { playMenuClickSound(); onMenuAction('order_list'); }}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: '#334155',
+                border: '1px solid #475569',
+                color: '#e2e8f0',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
             >
-              <button
-                onClick={() => {
-                  if (!isPermitted) {
-                    alert(`[${menuInfo.name}] 메뉴에 대한 접근 권한이 없습니다.`);
-                    return;
-                  }
-                  playMenuClickSound();
-                  onMenuAction(menuId);
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '4px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: isPermitted ? 'pointer' : 'not-allowed',
-                  padding: '2px 0',
-                  boxSizing: 'border-box',
-                  opacity: isPermitted ? 1 : 0.4
-                }}
-                title={isPermitted ? `${menuInfo.name} 열기` : `${menuInfo.name} (접근 권한 없음)`}
-              >
-                {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
-                <div style={{
-                  width: '100%', height: '48px',
-                  border: '1px solid #e2e8f0', backgroundColor: '#ffffff',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
-                  transition: 'all 0.15s'
-                }}>
-                  <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
-                </div>
-                {/* 이름: 아이콘 박스 밖 아래쪽에 배치 */}
-                <span style={{
-                  fontSize: '0.64rem', fontWeight: 800, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%',
-                  textAlign: 'center',
-                  wordBreak: 'keep-all',
-                  letterSpacing: '-0.3px',
-                  lineHeight: 1.15,
-                  maxWidth: '100%'
-                }}>
-                  {menuInfo.name}
-                </span>
-              </button>
-              {/* X 버튼 – 아이콘 박스 우상단에 맞춤 */}
-              <button
-                className="slot-remove-btn"
-                onClick={e => { e.stopPropagation(); removeSlot(idx); }}
-                style={{
-                  position: 'absolute', top: '-3px', right: 'calc(50% - 25px)',
-                  width: '16px', height: '16px', borderRadius: '50%',
-                  backgroundColor: '#ef4444', border: '1.5px solid white',
-                  color: 'white', fontSize: '9px', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
-                  padding: 0, lineHeight: 1, zIndex: 2
-                }}
-                title="제거"
-              >
-                ✕
-              </button>
-            </div>
-          );
-        })}
+              📋 수주목록
+            </button>
+          )}
+          {hasMobileMenuPermission(currentUser, '모바일_매출전표발행') && (
+            <button
+              onClick={() => { playMenuClickSound(); onMenuAction('sales_invoice_list'); }}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: '#334155',
+                border: '1px solid #475569',
+                color: '#e2e8f0',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              📑 전표목록
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 6대 핵심 메뉴 그리드 (3열 x 2행 큼직한 밝은 카드) */}
+      {coreMenus.length === 0 ? (
+        <div style={{
+          padding: '16px 12px',
+          textAlign: 'center',
+          backgroundColor: '#0f172a',
+          borderRadius: '10px',
+          color: '#94a3b8',
+          fontSize: '0.78rem',
+          fontWeight: 600
+        }}>
+          현재 계정에 허용된 모바일 메뉴가 없습니다. 관리자에게 모바일 메뉴 권한을 요청해 주세요.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+          {coreMenus.map((menu) => (
+            <button
+              key={menu.id}
+              onClick={() => {
+                playMenuClickSound();
+                onMenuAction(menu.id);
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                padding: '10px 6px',
+                backgroundColor: '#ffffff',
+                border: `1.5px solid ${menu.border}`,
+                borderRadius: '12px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                transition: 'transform 0.12s ease, box-shadow 0.12s ease'
+              }}
+            >
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: menu.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.35rem',
+                lineHeight: 1
+              }}>
+                {menu.emoji}
+              </div>
+              <span style={{
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.15,
+                whiteSpace: 'nowrap'
+              }}>
+                {menu.name}
+              </span>
+              <span style={{
+                fontSize: '0.64rem',
+                fontWeight: 600,
+                color: menu.accent,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                whiteSpace: 'nowrap'
+              }}>
+                {menu.sub}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

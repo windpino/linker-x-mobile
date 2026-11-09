@@ -1,15 +1,23 @@
 import React from 'react';
-import { Home, FileText, Plus, ArrowLeftRight, Menu } from 'lucide-react';
+import { Home, FileText, ShoppingCart, ArrowLeftRight, FileOutput, Menu } from 'lucide-react';
 import { playButtonClickSound } from '../utils/audio';
+import { hasMobileMenuPermission } from '../utils/menuPermissions';
 
 const MobileBottomNav = ({
   activeTab = 'home',
+  currentUser,
   onGoHome,
   onOpenOrderList,
   onOpenSalesOrder,
+  onOpenSalesInvoice,
   onOpenInventoryTransfer,
   onToggleMenu
 }) => {
+  const canOrder = !currentUser || hasMobileMenuPermission(currentUser, '모바일_수주');
+  const canLoading = !currentUser || hasMobileMenuPermission(currentUser, '모바일_상차');
+  const canTransfer = !currentUser || hasMobileMenuPermission(currentUser, '모바일_재고이동');
+  const canInvoice = !currentUser || hasMobileMenuPermission(currentUser, '모바일_매출전표발행');
+
   return (
     <nav className="mobile-bottom-nav" style={{
       position: 'fixed',
@@ -47,7 +55,7 @@ const MobileBottomNav = ({
           cursor: pointer;
           padding: 4px 0 2px 0;
           transition: all 0.15s ease;
-          gap: 2px;
+          gap: 3px;
           outline: none;
           -webkit-tap-highlight-color: transparent;
         }
@@ -59,23 +67,6 @@ const MobileBottomNav = ({
           font-weight: 700;
           letter-spacing: -0.3px;
           line-height: 1;
-        }
-        .mob-center-plus {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
-          border: 2px solid #0f172a;
-          margin-top: -14px;
-          transition: transform 0.15s ease;
-        }
-        .mob-center-plus:active {
-          transform: scale(0.9);
         }
       `}</style>
 
@@ -89,7 +80,7 @@ const MobileBottomNav = ({
         title="홈 화면"
       >
         <Home 
-          size={20} 
+          size={19} 
           color={activeTab === 'home' ? '#38bdf8' : '#94a3b8'} 
           strokeWidth={activeTab === 'home' ? 2.5 : 2} 
         />
@@ -101,82 +92,113 @@ const MobileBottomNav = ({
         </span>
       </button>
 
-      {/* 2. 수주목록 */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onOpenOrderList) onOpenOrderList();
-        }}
-        title="수주 목록 및 상차 조회"
-      >
-        <FileText 
-          size={20} 
-          color={activeTab === 'order_list' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'order_list' ? 2.5 : 2} 
-        />
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'order_list' ? '#38bdf8' : '#94a3b8' }}
+      {/* 2. 수주 */}
+      {canOrder && (
+        <button 
+          className="mob-nav-item"
+          onClick={() => {
+            playButtonClickSound();
+            if (onOpenSalesOrder) onOpenSalesOrder();
+          }}
+          title="수주 등록"
         >
-          수주목록
-        </span>
-      </button>
+          <ShoppingCart 
+            size={19} 
+            color={activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8'} 
+            strokeWidth={activeTab === 'sales_order' ? 2.5 : 2} 
+          />
+          <span 
+            className="mob-nav-label" 
+            style={{ color: activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8' }}
+          >
+            수주
+          </span>
+        </button>
+      )}
 
-      {/* 3. 중앙 수주등록 원터치 버튼 */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onOpenSalesOrder) onOpenSalesOrder();
-        }}
-        title="새 수주 등록"
-        style={{ position: 'relative' }}
-      >
-        <div className="mob-center-plus">
-          <Plus size={24} strokeWidth={2.8} />
-        </div>
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'sales_order' ? '#38bdf8' : '#cbd5e1', marginTop: '2px' }}
+      {/* 3. 상차 */}
+      {canLoading && (
+        <button 
+          className="mob-nav-item"
+          onClick={() => {
+            playButtonClickSound();
+            if (onOpenOrderList) onOpenOrderList();
+          }}
+          title="상차 체크 및 수주목록"
         >
-          수주등록
-        </span>
-      </button>
+          <FileText 
+            size={19} 
+            color={activeTab === 'order_list' ? '#34d399' : '#94a3b8'} 
+            strokeWidth={activeTab === 'order_list' ? 2.5 : 2} 
+          />
+          <span 
+            className="mob-nav-label" 
+            style={{ color: activeTab === 'order_list' ? '#34d399' : '#94a3b8' }}
+          >
+            상차
+          </span>
+        </button>
+      )}
 
-      {/* 4. 재고이동 */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onOpenInventoryTransfer) onOpenInventoryTransfer();
-        }}
-        title="재고 이동 및 이력"
-      >
-        <ArrowLeftRight 
-          size={20} 
-          color={activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'inventory_transfer' ? 2.5 : 2} 
-        />
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8' }}
+      {/* 4. 매출전표발행 */}
+      {canInvoice && (
+        <button 
+          className="mob-nav-item"
+          onClick={() => {
+            playButtonClickSound();
+            if (onOpenSalesInvoice) onOpenSalesInvoice();
+          }}
+          title="매출전표발행"
         >
-          재고이동
-        </span>
-      </button>
+          <FileOutput 
+            size={19} 
+            color={activeTab === 'sales_invoice' ? '#fb923c' : '#94a3b8'} 
+            strokeWidth={activeTab === 'sales_invoice' ? 2.5 : 2} 
+          />
+          <span 
+            className="mob-nav-label" 
+            style={{ color: activeTab === 'sales_invoice' ? '#fb923c' : '#94a3b8' }}
+          >
+            전표발행
+          </span>
+        </button>
+      )}
 
-      {/* 5. 전체메뉴 */}
+      {/* 5. 재고이동 */}
+      {canTransfer && (
+        <button 
+          className="mob-nav-item"
+          onClick={() => {
+            playButtonClickSound();
+            if (onOpenInventoryTransfer) onOpenInventoryTransfer();
+          }}
+          title="재고이동"
+        >
+          <ArrowLeftRight 
+            size={19} 
+            color={activeTab === 'inventory_transfer' ? '#a78bfa' : '#94a3b8'} 
+            strokeWidth={activeTab === 'inventory_transfer' ? 2.5 : 2} 
+          />
+          <span 
+            className="mob-nav-label" 
+            style={{ color: activeTab === 'inventory_transfer' ? '#a78bfa' : '#94a3b8' }}
+          >
+            재고이동
+          </span>
+        </button>
+      )}
+
+      {/* 6. 전체메뉴 (상품등록/거래처등록 포함) */}
       <button 
         className="mob-nav-item"
         onClick={() => {
           playButtonClickSound();
           if (onToggleMenu) onToggleMenu();
         }}
-        title="전체 메뉴 열기"
+        title="메뉴 열기"
       >
         <Menu 
-          size={20} 
+          size={19} 
           color={activeTab === 'menu' ? '#38bdf8' : '#94a3b8'} 
           strokeWidth={activeTab === 'menu' ? 2.5 : 2} 
         />
@@ -184,7 +206,7 @@ const MobileBottomNav = ({
           className="mob-nav-label" 
           style={{ color: activeTab === 'menu' ? '#38bdf8' : '#94a3b8' }}
         >
-          전체메뉴
+          메뉴
         </span>
       </button>
     </nav>

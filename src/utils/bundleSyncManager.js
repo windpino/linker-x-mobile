@@ -275,6 +275,11 @@ export const fetchBundle = async (companyId, colName) => {
       // has documents (e.g. imported via Excel or batch-inserted without updating bundle),
       // automatically reconcile and recover from the collection (only once per empty state)!
       const reconciledFlagKey = `bundle_reconciled_${colName}_${companyId}`;
+      if (data.isReset) {
+        try {
+          localStorage.setItem(reconciledFlagKey, 'true');
+        } catch (e) {}
+      }
       if (
         !data.isReset &&
         list.length === 0 &&
@@ -377,7 +382,7 @@ export const saveBundle = async (companyId, colName, list) => {
       return clean;
     });
 
-    const nextVer = getLocalVersion(companyId, colName) + 1;
+    const nextVer = Math.max(getLocalVersion(companyId, colName) + 1, Math.floor(Date.now() / 1000));
     const nowIso = new Date().toISOString();
     const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
     const jsonStr = JSON.stringify(cleanList);
@@ -583,34 +588,28 @@ export const listenBundleSyncState = (companyId, onBundleChange) => {
 
 /**
  * Completely clear all bundle documents, chunk documents, IndexedDB, and syncState from Firestore and localStorage
+ * Zero-read fast batch execution (under 0.5s)
  */
 export const clearAllBundles = async (companyId, preservedStaffList = []) => {
   if (!companyId || !db) return;
   try {
     await clearAllIdbBundles();
 
-    // 1. Delete all chunk documents and any extra docs in companies/{companyId}/bundles
-    try {
-      const bundlesSnap = await getDocs(collection(db, 'companies', companyId, 'bundles'));
-      if (!bundlesSnap.empty) {
-        const chunkDocs = bundlesSnap.docs.filter(d => d.id.includes('_chunk_'));
-        for (let i = 0; i < chunkDocs.length; i += 400) {
-          const chunkBatch = writeBatch(db);
-          chunkDocs.slice(i, i + 400).forEach(d => chunkBatch.delete(d.ref));
-          await chunkBatch.commit();
-        }
-      }
-    } catch (scanErr) {
-      console.warn('[BundleSync] Error scanning bundle chunks:', scanErr);
-    }
-
-    // 2. Overwrite all bundle documents with explicit empty reset bundles (prevents legacy fallback resurrection!)
-    const allCols = Array.from(new Set([...BUNDLE_COLLECTIONS, 'quotations']));
+    const allCols = Array.from(new Set([...BUNDLE_COLLECTIONS, 'quotations', 'categories', 'scheduleTypes', 'staffZones', 'staffJobTitles']));
     const batch = writeBatch(db);
     const nowIso = new Date().toISOString();
     const resetVer = Math.floor(Date.now() / 1000);
-    const syncStatePayload = {};
+    const syncStatePayload = { lastResetAt: nowIso };
 
+    // 1. Delete chunk documents directly without downloading them via getDocs (fast 0-read delete)
+    const chunkableCols = ['salesInvoices', 'purchaseInvoices', 'products', 'partners', 'salesOrders', 'purchaseOrders', 'inventoryTransferHistory', 'actionLogs'];
+    chunkableCols.forEach(cName => {
+      for (let i = 0; i < 25; i++) {
+        batch.delete(doc(db, 'companies', companyId, 'bundles', `${cName}_chunk_${i}`));
+      }
+    });
+
+    // 2. Overwrite all bundle documents with explicit empty reset bundles (prevents legacy fallback resurrection!)
     allCols.forEach(colName => {
       const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
       const resetList = colName === 'staffList' ? preservedStaffList : [];
@@ -623,7 +622,7 @@ export const clearAllBundles = async (companyId, preservedStaffList = []) => {
         version: resetVer,
         updatedAt: nowIso
       });
-      syncStatePayload[colName] = { version: resetVer, updatedAt: nowIso };
+      syncStatePayload[colName] = { version: resetVer, updatedAt: nowIso, isReset: true };
       try {
         removeIdbBundle(companyId, colName);
         localStorage.setItem(`bundle_${colName}_${companyId}`, JSON.stringify(resetList));

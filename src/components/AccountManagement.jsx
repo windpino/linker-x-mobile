@@ -28,7 +28,10 @@ const AccountManagement = ({ onClose, accounts = [], setAccounts, currentUser, l
     const syncFirestoreAccounts = async () => {
       try {
         const companyId = currentUser?.companyId || 'default';
-        if (!companyId || !db) return;
+        if (!companyId || !db || window.__isResettingData) return;
+        if (localStorage.getItem(`bundle_reconciled_accounts_${companyId}`) === 'true' && (!accounts || accounts.length === 0)) {
+          return;
+        }
         const colRef = collection(db, 'companies', companyId, 'accounts');
         const snap = await getDocs(colRef);
         if (!snap.empty && isMounted) {

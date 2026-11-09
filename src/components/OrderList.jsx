@@ -23,6 +23,7 @@ const OrderList = ({
   onRevertAutoMoveStock,
   initialSelectedStaff,
   initialStatusFilter = 'all',
+  initialTab = 'list',
   onOpenInventoryMismatch
 }) => {
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
@@ -45,9 +46,15 @@ const OrderList = ({
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const stockOverrides = React.useRef({}); // 창고별 품목 재고 연속 클릭 오차 방지용 세션 캐시
-  const [activeTab, setActiveTab] = useState('list'); // default to 'list' (수주 목록) on mobile
+  const [activeTab, setActiveTab] = useState(initialTab || 'list');
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all'); // 'all', 'waiting', 'completed'
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   React.useEffect(() => {
     if (initialStatusFilter) {
@@ -736,7 +743,7 @@ const OrderList = ({
               }}
             >
               <List size={14} />
-              품목 합계
+              🚛 상차 · 품목 합계
             </button>
             <button 
               onClick={() => setActiveTab('list')}
@@ -758,7 +765,7 @@ const OrderList = ({
               }}
             >
               <ShoppingCart size={14} />
-              수주 목록 ({filteredOrders.length})
+              📋 수주 · 상차 목록 ({filteredOrders.length})
             </button>
           </div>
         )}

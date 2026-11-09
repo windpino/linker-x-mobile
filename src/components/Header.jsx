@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
-import { hasMenuPermission } from '../utils/menuPermissions';
+import { hasMenuPermission, hasMobileMenuPermission } from '../utils/menuPermissions';
 
 const Header = ({ 
   currentUser, companyLogo, onLogout, onOpenWarehouseManager, onOpenStaffManager, 
   onOpenInventoryTransfer, onOpenInventoryMovementManager, onOpenPartnerManager, onOpenProductManager, 
   onOpenAccountManager, onOpenScheduleList,
   onOpenPurchaseInvoice, onOpenPurchaseLedger, onOpenPurchaseOrder,
-  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenQuotation, onOpenQuotationManagement,
+  onOpenSalesInvoice, onOpenSalesInvoiceList, onOpenSalesLedger, onOpenSalesOrder, onOpenOrderList, onOpenLoadingCheck, onOpenQuotation, onOpenQuotationManagement,
   onOpenCashReport, onOpenSalesReport, onOpenOrderReport, onOpenInventoryReport, onOpenEditDeleteReport, onOpenCashBook,
   onOpenDepositSlipManagement,
   onOpenWithdrawalSlipManagement,
@@ -681,68 +681,134 @@ const Header = ({
             )}
           </div>
 
-          {/* 전체 카테고리 메뉴 목록 (블루 아코디언 스타일) */}
+          {/* 📱 모바일 6대 핵심 메뉴 (직원별 모바일 메뉴 제어와 100% 연동) */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{
+              fontSize: '0.76rem',
+              fontWeight: 800,
+              color: '#93c5fd',
+              marginBottom: '8px',
+              paddingLeft: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>📱 모바일 핵심 업무 메뉴</span>
+              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>터치하여 즉시 실행</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              {[
+                {
+                  id: 'sales_order',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_수주'),
+                  label: '수주',
+                  sub: '수주 등록 · 목록',
+                  emoji: '🛒',
+                  color: '#3b82f6',
+                  action: onOpenSalesOrder
+                },
+                {
+                  id: 'loading_check',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_상차'),
+                  label: '상차',
+                  sub: '품목·거래처 상차체크',
+                  emoji: '🚛',
+                  color: '#10b981',
+                  action: onOpenLoadingCheck || onOpenOrderList
+                },
+                {
+                  id: 'inventory_transfer',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_재고이동'),
+                  label: '재고이동',
+                  sub: '창고 · 차량 이동',
+                  emoji: '🔄',
+                  color: '#8b5cf6',
+                  action: onOpenInventoryTransfer
+                },
+                {
+                  id: 'sales_invoice',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_매출전표발행'),
+                  label: '매출전표발행',
+                  sub: '현장 전표 즉시 발행',
+                  emoji: '🧾',
+                  color: '#f97316',
+                  action: onOpenSalesInvoice
+                },
+                {
+                  id: 'product',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_상품등록'),
+                  label: '상품등록',
+                  sub: '품목 등록 · 관리',
+                  emoji: '📦',
+                  color: '#0ea5e9',
+                  action: onOpenProductManager
+                },
+                {
+                  id: 'partner',
+                  perm: hasMobileMenuPermission(currentUser, '모바일_거래처등록'),
+                  label: '거래처등록',
+                  sub: '거래처 등록 · 관리',
+                  emoji: '🤝',
+                  color: '#ec4899',
+                  action: onOpenPartnerManager
+                }
+              ].filter(item => item.perm).map(item => (
+                <button
+                  key={item.id}
+                  data-menu-item={item.label}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    playMenuClickSound();
+                    if (typeof item.action === 'function') item.action();
+                  }}
+                  style={{
+                    padding: '12px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(30, 41, 59, 0.9)',
+                    border: '1px solid rgba(148, 163, 184, 0.22)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: '#ffffff'
+                  }}
+                >
+                  <span style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '9px',
+                    background: `${item.color}22`,
+                    border: `1px solid ${item.color}55`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.15rem',
+                    flexShrink: 0
+                  }}>
+                    {item.emoji}
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2 }}>
+                      {item.label}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.sub}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ⚙️ 관리자 및 환경설정 메뉴 (접기/펼치기 가능) */}
           {[
-            { id: 'basic', label: '기초자료등록', items: [
-              { perm: hasPerm('직원관리'), label: '직원관리', action: onOpenStaffManager },
-              { perm: hasPerm('창고관리'), label: '창고관리', action: onOpenWarehouseManager },
-              { perm: (hasPerm('거래처등록') || hasPerm('거래처관리')), label: '거래처등록/관리', action: onOpenPartnerManager },
-              { perm: (hasPerm('품목등록') || hasPerm('품목관리')), label: '품목등록/관리', action: onOpenProductManager },
-              { perm: hasPerm('창고별 기초재고 일괄설정'), label: '창고별 기초재고 일괄설정', action: onOpenWarehouseInitialStockBatch },
-            ]},
-            { id: 'sales', label: '매출/주문관리', items: [
-              { perm: hasPerm('수주 등록'), label: '수주 등록', action: onOpenSalesOrder },
-              { perm: hasPerm('수주목록'), label: '수주목록', action: onOpenOrderList },
-              { perm: hasPerm('매출 전표'), label: '매출 전표', action: onOpenSalesInvoice },
-              { perm: hasPerm('매출전표내역'), label: '매출전표내역', action: onOpenSalesInvoiceList },
-              { perm: hasPerm('매출원장'), label: '매출원장', action: onOpenSalesLedger },
-              { perm: (hasPerm('미수금 보고서') || hasPerm('매출처 미수금현황')), label: '매출처 미수금현황', action: onOpenReceivablesReport },
-              { perm: hasPerm('견적서'), label: '견적서', action: onOpenQuotation },
-              { perm: hasPerm('견적서'), label: '견적서 관리', action: onOpenQuotationManagement },
-            ]},
-            { id: 'purchase', label: '매입/발주관리', items: [
-              { perm: hasPerm('발주 등록'), label: '발주 등록', action: onOpenPurchaseOrder },
-              { perm: hasPerm('매입전표 등록'), label: '매입전표 등록', action: onOpenPurchaseInvoice },
-              { perm: hasPerm('매입전표 관리'), label: '매입전표 관리', action: onOpenPurchaseLedger },
-            ]},
-            { id: 'inventory', label: '재고관리', items: [
-              { perm: hasPerm('실재고 입력'), label: '실재고 입력', action: onOpenPhysicalInventory },
-              { perm: hasPerm('재고이동'), label: '재고이동', action: onOpenInventoryTransfer },
-              { perm: hasPerm('재고조정 (손실처리)'), label: '재고조정 (손실처리)', action: onOpenInventoryAdjustment },
-              { perm: hasPerm('재고 불일치 현황'), label: '재고 불일치 현황', action: onOpenInventoryMismatch },
-              { perm: hasPerm('일자별 재고현황'), label: '일자별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('daily') },
-              { perm: hasPerm('최종 재고'), label: '최종 재고', action: () => onOpenInventoryReport && onOpenInventoryReport('final') },
-              { perm: hasPerm('매입처별 재고현황'), label: '매입처별 재고현황', action: () => onOpenInventoryReport && onOpenInventoryReport('partner') },
-            ]},
-            { id: 'cash_mgmt', label: '입출금관리', items: [
-              { perm: hasPerm('입금전표발행'), label: '입금전표발행', action: onOpenDepositSlipManagement },
-              { perm: hasPerm('출금전표발행'), label: '출금전표발행', action: onOpenWithdrawalSlipManagement },
-              { perm: hasPerm('계좌관리'), label: '계좌관리', action: onOpenAccountManager },
-              { perm: hasPerm('금전출납부'), label: '금전출납부', action: onOpenCashBook },
-              { perm: hasPerm('경비출금'), label: '경비출금', action: onOpenExpenseRegistration },
-              { perm: hasPerm('결산보고서'), label: '결산보고서', action: () => onOpenCashReport && onOpenCashReport('결산') },
-              { perm: hasPerm('일자별 입출금 현황'), label: '일자별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('일자별') },
-              { perm: hasPerm('계좌별 입출금 현황'), label: '계좌별 입출금 현황', action: () => onOpenCashReport && onOpenCashReport('계좌별') },
-            ]},
-            { id: 'report_management', label: '스마트지원', items: [
-              { perm: hasPerm('종합매출보고서'), label: '종합매출보고서', action: onOpenSalesReport },
-              { perm: hasPerm('수주보고서'), label: '수주보고서', action: onOpenOrderReport },
-              { perm: hasPerm('전표수정/삭제 보고서'), label: '전표수정/삭제 보고서', action: onOpenEditDeleteReport },
-              { perm: hasPerm('직원 실적 보고서'), label: '직원 실적 보고서', action: onOpenStaffPerformanceReport },
-              { perm: hasPerm('미수금관리'), label: '미수금관리', action: onOpenReceivablesReport },
-              { perm: hasPerm('최근 처리 현황 보고서'), label: '최근 처리 현황 보고서', action: onOpenRecentActivityReport },
-              { perm: hasPerm('거래처별 특별단가 관리'), label: '거래처별 특별단가 관리', action: onOpenPartnerSpecialPriceManager },
-              { perm: hasPerm('세금신고 지원 보고서'), label: '세금신고 지원 보고서', action: onOpenTaxReport },
-              { perm: hasPerm('일정추가'), label: '일정추가', action: onOpenScheduleList },
-            ]},
-            { id: 'data', label: '데이터관리', items: [
-              { perm: hasPerm('데이터 전체 저장/불러오기/삭제'), label: '데이터 전체 저장/불러오기/삭제', action: onOpenDataManager },
-            ]},
-            { id: 'settings_license', label: '환경설정', items: [
+            { id: 'settings_license', label: '⚙️ 환경설정 및 관리자 도구', items: [
               { perm: true, label: '📱 모바일 전용 환경설정', action: onOpenMobileSettings || onOpenSettings },
-              { perm: hasPerm('회사/시스템 환경설정'), label: '🏢 회사/시스템 환경설정', action: onOpenSettings },
-              { perm: hasPerm('정품등록'), label: '정품등록', action: onOpenLicense },
-              { perm: hasPerm('거래처몰'), label: '거래처몰', action: onOpenPartnerMall },
+              { perm: hasPerm('직원관리'), label: '👤 직원관리 (모바일 메뉴 제어)', action: onOpenStaffManager },
+              { perm: hasPerm('창고관리'), label: '🏠 창고관리', action: onOpenWarehouseManager },
+              { perm: hasPerm('데이터 전체 저장/불러오기/삭제'), label: '🗄️ 데이터 전체 저장/불러오기/삭제', action: onOpenDataManager },
+              { perm: hasPerm('회사/시스템 환경설정'), label: '🏢 회사/시스템 환경설정', action: onOpenSettings }
             ]}
           ].map(group => {
             const visibleItems = group.items.filter(item => item.perm);
@@ -758,28 +824,22 @@ const Header = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '9px 12px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
-                    background: isOpen
-                      ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(96, 165, 250, 0.22) 100%)'
-                      : 'rgba(59, 130, 246, 0.08)',
-                    border: isOpen
-                      ? '1px solid rgba(96, 165, 250, 0.45)'
-                      : '1px solid rgba(96, 165, 250, 0.18)',
-                    boxShadow: isOpen ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-                    color: isOpen ? '#ffffff' : '#93c5fd',
-                    fontWeight: isOpen ? 800 : 700,
-                    fontSize: '0.98rem',
+                    background: 'rgba(51, 65, 85, 0.45)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    color: '#cbd5e1',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
                     cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.18s ease'
+                    textAlign: 'left'
                   }}
                 >
                   <span>{group.label}</span>
                   <ChevronDown
-                    size={17}
+                    size={16}
                     style={{
-                      color: isOpen ? '#93c5fd' : '#60a5fa',
+                      color: '#94a3b8',
                       transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       transition: 'transform 0.22s ease'
                     }}
@@ -789,9 +849,7 @@ const Header = ({
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    padding: '4px 0 4px 12px',
-                    marginLeft: '10px',
-                    borderLeft: '1px solid rgba(96, 165, 250, 0.22)',
+                    padding: '4px 0 4px 8px',
                     gap: '4px'
                   }}>
                     {visibleItems.map((item, idx) => (
@@ -806,9 +864,9 @@ const Header = ({
                           }
                         }}
                         style={{
-                          padding: '9px 10px',
-                          fontSize: '0.96rem',
-                          color: '#e2e8f0',
+                          padding: '8px 10px',
+                          fontSize: '0.86rem',
+                          color: '#cbd5e1',
                           background: 'transparent',
                           border: 'none',
                           cursor: 'pointer',
@@ -818,10 +876,10 @@ const Header = ({
                           gap: '8px',
                           textAlign: 'left',
                           width: '100%',
-                          fontWeight: 600
-                        , whiteSpace: 'nowrap'}}
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap'
+                        }}
                       >
-                        {showMenuIcons && <span>{MENU_EMOJIS[item.label] || '📄'}</span>}
                         <span>{item.label}</span>
                       </button>
                     ))}

@@ -38,7 +38,10 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
     const syncFirestoreWarehouses = async () => {
       try {
         const companyId = currentUser?.companyId || 'default';
-        if (!companyId || !db) return;
+        if (!companyId || !db || window.__isResettingData) return;
+        if (localStorage.getItem(`bundle_reconciled_warehouses_${companyId}`) === 'true' && (!warehouses || warehouses.length === 0)) {
+          return;
+        }
         const colRef = collection(db, 'companies', companyId, 'warehouses');
         const snap = await getDocs(colRef);
         if (!snap.empty && isMounted) {
