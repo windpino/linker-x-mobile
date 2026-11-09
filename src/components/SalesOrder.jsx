@@ -392,14 +392,18 @@ const SalesOrder = ({
       return;
     }
 
-    // 특별단가 자동 저장
+    // 특별단가 자동 저장 (백그라운드 지연 비동기 처리로 저장 응답속도 0초 유지)
     if (orderData.partner) {
-      parsedItems.forEach(item => {
-        const prod = products.find(p => p.id === item.productId || p.name === item.name);
-        if (prod && item.price !== undefined && item.price !== null) {
-          autoSaveSpecialPrice(orderData.partner, prod, item.price, '간편수주');
-        }
-      });
+      const partnerSnap = orderData.partner;
+      const itemsSnap = [...parsedItems];
+      setTimeout(() => {
+        itemsSnap.forEach(item => {
+          const prod = products.find(p => p.id === item.productId || p.name === item.name);
+          if (prod && item.price !== undefined && item.price !== null) {
+            autoSaveSpecialPrice(partnerSnap, prod, item.price, '간편수주');
+          }
+        });
+      }, 50);
     }
 
     const finalDate = orderData.date || todayStr;

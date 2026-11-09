@@ -483,13 +483,14 @@ export const saveBundleItem = async (companyId, colName, item, action = 'upsert'
  * Reads syncState metadata document once, checks version difference, and fetches only updated bundles.
  * Zero background snapshot listeners!
  */
-export const syncBundlesOnce = async (companyId, onBundleChange, targetCollections = BUNDLE_COLLECTIONS) => {
+export const syncBundlesOnce = async (companyId, onBundleChange, targetCollections = BUNDLE_COLLECTIONS, onlyIfOutdated = false) => {
   if (!companyId || !db) return;
   try {
     const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
     const snapshot = await getDoc(syncStateRef);
 
     if (!snapshot.exists()) {
+      if (onlyIfOutdated) return;
       // Initial fetch if metadata doesn't exist yet
       for (const colName of targetCollections) {
         const list = await fetchBundle(companyId, colName);
@@ -506,12 +507,18 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       const localVer = getLocalVersion(companyId, colName);
 
       if (!serverColState) {
+        if (onlyIfOutdated && localVer > 0) continue;
         const list = await fetchBundle(companyId, colName);
         if (onBundleChange) onBundleChange(colName, list);
         continue;
       }
 
       const serverVer = Number(serverColState.version || 0);
+
+      // If memory state is already hydrated and server version hasn't changed, skip re-parsing local storage / IDB
+      if (onlyIfOutdated && localVer >= serverVer && localVer > 0) {
+        continue;
+      }
 
       // Special handling for large collections (e.g. salesInvoices) stored in IndexedDB:
       if (colName === 'salesInvoices') {

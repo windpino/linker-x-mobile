@@ -1258,32 +1258,35 @@ function App() {
     hydratedCompanyRef.current = companyId;
   }, [currentUser?.companyId, currentView]);
 
+  const lastSyncTimeRef = React.useRef(0);
+
   // 1회 데이터 동기화 헬퍼 (자동 실시간 리스너 대신 새로고침/창 열림 시 1회 호출)
-  const syncCompanyDataOnce = React.useCallback(async (companyId) => {
+  const syncCompanyDataOnce = React.useCallback(async (companyId, onlyIfOutdated = false) => {
     if (!companyId || window.__isResettingData) return;
+    const nowTs = Date.now();
+    if (onlyIfOutdated && nowTs - lastSyncTimeRef.current < 15000) return;
+    lastSyncTimeRef.current = nowTs;
     try {
-      // 1. Sync Company Settings (Logo, Theme, License - 1 Read)
-      const companySnap = await getDoc(doc(db, 'companies', companyId));
-      if (companySnap.exists()) {
-        setCompanySettings(companySnap.data());
-      }
-      
-      // 1-1. Recent Activity settings (fetch immediately so recent activity widget is filtered instantly)
-      try {
-        const raSnap = await getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'));
-        if (raSnap.exists()) {
-          const raData = raSnap.data();
-          if (raData.retentionPeriod !== undefined) {
-            setActivityRetentionPeriod(raData.retentionPeriod);
-            localStorage.setItem(`activityRetentionPeriod_${companyId}`, raData.retentionPeriod);
-          }
-          if (Array.isArray(raData.deletedActivityIds)) {
-            setDeletedActivityIds(raData.deletedActivityIds);
-            localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(raData.deletedActivityIds));
-          }
-        }
-      } catch (e) {
-        console.warn('Error fetching recentActivity settings in mobile:', e);
+      if (!onlyIfOutdated) {
+        // 1. Sync Company Settings & Recent Activity Settings in parallel
+        await Promise.all([
+          getDoc(doc(db, 'companies', companyId)).then(companySnap => {
+            if (companySnap.exists()) setCompanySettings(companySnap.data());
+          }).catch(() => {}),
+          getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity')).then(raSnap => {
+            if (raSnap.exists()) {
+              const raData = raSnap.data();
+              if (raData.retentionPeriod !== undefined) {
+                setActivityRetentionPeriod(raData.retentionPeriod);
+                localStorage.setItem(`activityRetentionPeriod_${companyId}`, raData.retentionPeriod);
+              }
+              if (Array.isArray(raData.deletedActivityIds)) {
+                setDeletedActivityIds(raData.deletedActivityIds);
+                localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(raData.deletedActivityIds));
+              }
+            }
+          }).catch(e => console.warn('Error fetching recentActivity settings in mobile:', e))
+        ]);
       }
 
       // 2. Ultra-lightweight Bundle Sync (metadata/syncState 1 Read -> download only modified bundles)
@@ -1361,21 +1364,23 @@ function App() {
           }
           setSyncedCollections(prev => ({ ...prev, [colName]: true }));
         }
-      });
+      }, undefined, onlyIfOutdated);
 
-      // 3. Single docs within company sub-collection (1 Read each)
-      const singleDocs = [
-        { name: 'systemSettings', setter: setSystemSettings },
-        { name: 'inventory', setter: setInventory, defaultVal: {} },
-        { name: 'physicalInventory', setter: setPhysicalInventory, defaultVal: {} },
-        { name: 'licenseData', setter: setLicenseData },
-        { name: 'dashboardConfig', setter: setDashboardConfig },
-        { name: 'favoriteMenus', setter: setFavoriteMenus },
-        { name: 'staffZones', setter: setStaffZones },
-        { name: 'staffJobTitles', setter: setStaffJobTitles }
-      ];
+      // 3. Single docs within company sub-collection (parallel fetch)
+      const singleDocs = onlyIfOutdated
+        ? [{ name: 'inventory', setter: setInventory, defaultVal: {} }]
+        : [
+            { name: 'systemSettings', setter: setSystemSettings },
+            { name: 'inventory', setter: setInventory, defaultVal: {} },
+            { name: 'physicalInventory', setter: setPhysicalInventory, defaultVal: {} },
+            { name: 'licenseData', setter: setLicenseData },
+            { name: 'dashboardConfig', setter: setDashboardConfig },
+            { name: 'favoriteMenus', setter: setFavoriteMenus },
+            { name: 'staffZones', setter: setStaffZones },
+            { name: 'staffJobTitles', setter: setStaffJobTitles }
+          ];
 
-      for (const sd of singleDocs) {
+      await Promise.all(singleDocs.map(async (sd) => {
         try {
           let docRef;
           if ((sd.name === 'favoriteMenus' || sd.name === 'dashboardConfig') && currentUser?.userId) {
@@ -1401,25 +1406,7 @@ function App() {
         } catch (e) {
           console.warn(`Error fetching single doc ${sd.name}:`, e);
         }
-      }
-
-      // Recent Activity settings (retentionPeriod, deletedActivityIds)
-      try {
-        const raSnap = await getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity'));
-        if (raSnap.exists()) {
-          const raData = raSnap.data();
-          if (raData.retentionPeriod !== undefined) {
-            setActivityRetentionPeriod(raData.retentionPeriod);
-            localStorage.setItem(`activityRetentionPeriod_${companyId}`, raData.retentionPeriod);
-          }
-          if (Array.isArray(raData.deletedActivityIds)) {
-            setDeletedActivityIds(raData.deletedActivityIds);
-            localStorage.setItem(`deletedActivityIds_${companyId}`, JSON.stringify(raData.deletedActivityIds));
-          }
-        }
-      } catch (e) {
-        console.warn('Error fetching recentActivity settings in mobile:', e);
-      }
+      }));
     } catch (err) {
       console.warn("One-time mobile data sync warning:", err?.message || err);
     }
@@ -1429,7 +1416,7 @@ function App() {
   React.useEffect(() => {
     if (!currentUser || currentView === 'login' || currentView === 'super_admin') return;
     const companyId = currentUser.companyId || 'default';
-    syncCompanyDataOnce(companyId);
+    syncCompanyDataOnce(companyId, false);
   }, [currentUser?.companyId, currentView, syncCompanyDataOnce]);
 
   // 창(모달)을 새롭게 열 때 최신 수정된 데이터 1회 읽어오기
@@ -1451,7 +1438,7 @@ function App() {
 
   React.useEffect(() => {
     if (isAnyWindowOpen && currentUser?.companyId) {
-      syncCompanyDataOnce(currentUser.companyId);
+      syncCompanyDataOnce(currentUser.companyId, true);
     }
   }, [isAnyWindowOpen, currentUser?.companyId, syncCompanyDataOnce]);
 
@@ -2300,6 +2287,9 @@ function App() {
     }
   };
 
+  const purchaseBundleSyncTimerRef = React.useRef(null);
+  const salesBundleSyncTimerRef = React.useRef(null);
+
   const handleSavePurchaseInvoice = async (invData, isSilent = false) => {
     if (invData.id) {
       const targetInv = purchaseInvoices.find(pi => String(pi.id) === String(invData.id));
@@ -2310,6 +2300,7 @@ function App() {
     }
     try {
       const companyId = currentUser?.companyId || 'default';
+      const batch = writeBatch(db);
       const id = invData.id || Date.now();
       const now = new Date();
       const nextInv = { ...inventory };
@@ -2328,7 +2319,7 @@ function App() {
         // Clean up previous history entries for this purchaseInvoice to avoid duplicates on update
         const idMatches = inventoryTransferHistory.filter(h => String(h.purchaseInvoiceId) === String(id));
         for (const match of idMatches) {
-          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+          batch.delete(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
         }
       }
 
@@ -2355,18 +2346,11 @@ function App() {
           purchaseInvoiceId: String(id),
           companyId
         };
-        await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), purchaseEntry);
+        batch.set(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), purchaseEntry);
         newHistoryEntries.push(purchaseEntry);
       }
       nextInv[targetWH] = whInv;
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-      setInventory(nextInv);
-
-      // Update state for history entries
-      setInventoryTransferHistory(prev => {
-        const filtered = prev.filter(h => String(h.purchaseInvoiceId) !== String(id));
-        return [...filtered, ...newHistoryEntries];
-      });
+      batch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
 
       const finalData = { 
         ...invData, 
@@ -2376,37 +2360,52 @@ function App() {
         createdAt: invData.createdAt || now.toISOString(),
         creator: invData.creator || currentUser?.name || '시스템'
       };
-      await setDoc(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)), finalData);
+      batch.set(doc(db, 'companies', companyId, 'purchaseInvoices', String(id)), finalData);
+
+      const isEditPurch = Boolean(invData.id && purchaseInvoices.some(pi => String(pi.id) === String(invData.id)));
       const nextPurchaseInvoices = (() => {
         const idx = purchaseInvoices.findIndex(pi => String(pi.id) === String(id));
         if (idx >= 0) { const next = [...purchaseInvoices]; next[idx] = finalData; return next; }
         return [finalData, ...purchaseInvoices];
       })();
-      setPurchaseInvoices(nextPurchaseInvoices);
-      await saveBundle(companyId, 'purchaseInvoices', nextPurchaseInvoices);
-
       const nextTransfers = [...inventoryTransferHistory.filter(h => String(h.purchaseInvoiceId) !== String(id)), ...newHistoryEntries];
-      setInventoryTransferHistory(nextTransfers);
-      await saveBundle(companyId, 'inventoryTransferHistory', nextTransfers);
 
-      const isEditPurch = Boolean(invData.id && purchaseInvoices.some(pi => String(pi.id) === String(invData.id)));
-      await logOperation({
-        category: isEditPurch ? '변경' : '전표등록',
-        subCategory: '매입전표',
-        type: isEditPurch ? '수정' : '등록',
-        title: `매입전표 ${isEditPurch ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
-        detail: `전표일자: ${finalData.date} | 입고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
-        user: currentUser?.name || finalData.creator || '시스템',
-        targetId: String(id)
-      });
-      
+      // 1. UI 상태 및 모달 즉시 반영 (대기 시간 0초)
+      setInventory(nextInv);
+      setPurchaseInvoices(nextPurchaseInvoices);
+      setInventoryTransferHistory(nextTransfers);
+
       if (isSilent) {
         setEditingPurchaseInvoice(finalData);
       } else {
         setIsPurchaseInvoiceOpen(false);
         setEditingPurchaseInvoice(null);
-        alert('매입전표가 발행되었습니다.');
+        showToast('매입전표가 발행되었습니다.', 'success');
       }
+
+      // 2. 백그라운드 비동기 커밋 및 번들 동기화 (디바운스로 중복 직렬화 방지)
+      setTimeout(() => {
+        batch.commit().catch(err => console.warn('[handleSavePurchaseInvoice] Batch commit error:', err));
+        if (purchaseBundleSyncTimerRef.current) {
+          clearTimeout(purchaseBundleSyncTimerRef.current);
+        }
+        purchaseBundleSyncTimerRef.current = setTimeout(() => {
+          Promise.all([
+            saveBundle(companyId, 'purchaseInvoices', nextPurchaseInvoices),
+            saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
+            !isSilent ? logOperation({
+              category: isEditPurch ? '변경' : '전표등록',
+              subCategory: '매입전표',
+              type: isEditPurch ? '수정' : '등록',
+              title: `매입전표 ${isEditPurch ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
+              detail: `전표일자: ${finalData.date} | 입고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
+              user: currentUser?.name || finalData.creator || '시스템',
+              targetId: String(id)
+            }) : Promise.resolve()
+          ]).catch(err => console.warn('[handleSavePurchaseInvoice] Bundle sync error:', err));
+        }, isSilent ? 600 : 50);
+      }, 0);
+
       return finalData;
     } catch (err) { 
       console.error(err); 
@@ -2672,79 +2671,15 @@ function App() {
         }
       }
 
-      // 1. UI 및 로컬 메모리 상태 즉각 반영 (완전한 낙관적 제로 레이턴시 업데이트)
-      setInventory(nextInv);
-
-      setInventoryTransferHistory(prev => {
-        const filtered = prev.filter(h => !deletedHistoryIds.has(String(h.id)) && String(h.salesInvoiceId) !== String(id));
-        return [...filtered, ...newHistoryEntries];
-      });
-
+      const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
       const nextSalesInvoices = (() => {
         const idx = salesInvoices.findIndex(si => String(si.id) === String(id));
         if (idx >= 0) { const next = [...salesInvoices]; next[idx] = finalData; return next; }
         return [finalData, ...salesInvoices];
       })();
-      setSalesInvoices(nextSalesInvoices);
-
       const nextTransfers = [...inventoryTransferHistory.filter(h => !deletedHistoryIds.has(String(h.id)) && String(h.salesInvoiceId) !== String(id)), ...newHistoryEntries];
 
-      if (orderToUpdate) {
-        setSalesOrders(nextSalesOrders);
-        const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
-        const updatedCache = curCache.map(so => String(so.id) === String(orderToUpdate.id) ? {
-          ...so,
-          ...(isPartialDelivery ? {
-            items: remainingOrderItems,
-            itemsText: remainingOrderItems.map(i => i.raw || (i.name + (i.qty ? String(i.qty) : ''))).join(' '),
-            totalPrice: remainingOrderItems.reduce((acc, i) => acc + (Number(i.qty || 0) * Number(i.price || 0)), 0),
-            status: '대기',
-            isCompleted: false,
-            deliveryReverted: false,
-            salesInvoiceId: null
-          } : {
-            status: '완료',
-            isCompleted: true,
-            deliveryReverted: false,
-            salesInvoiceId: String(id)
-          }),
-          updatedAt: now.toISOString()
-        } : so);
-        localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
-      }
-
-      // 로컬 스토리지 캐시 즉시 동기화
-      try {
-        localStorage.setItem(`salesInvoices_${companyId}`, JSON.stringify(nextSalesInvoices));
-        localStorage.setItem(`bundle_salesInvoices_${companyId}`, JSON.stringify(nextSalesInvoices));
-        localStorage.setItem('salesInvoices', JSON.stringify(nextSalesInvoices));
-      } catch (cacheErr) {}
-
-      // 2. 백그라운드 비동기 네트워크 커밋 및 번들 저장 (사용자 UI 대기 시간 0초화)
-      const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
-      (async () => {
-        try {
-          await batch.commit();
-          await Promise.all([
-            saveBundle(companyId, 'salesInvoices', nextSalesInvoices),
-            saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
-            orderToUpdate ? saveBundle(companyId, 'salesOrders', nextSalesOrders) : Promise.resolve(),
-            logOperation({
-              category: isEditSale ? '변경' : '전표등록',
-              subCategory: '매출전표',
-              type: isEditSale ? '수정' : '등록',
-              title: `매출전표 ${isEditSale ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
-              detail: `전표일자: ${finalData.date} | 출고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
-              user: currentUser?.name || finalData.creator || '시스템',
-              targetId: String(id)
-            })
-          ]);
-        } catch (bgErr) {
-          console.warn('[handleSaveSalesInvoice] Background commit error:', bgErr);
-        }
-      })();
-
-      // 3. 화면 즉각 전환 및 모달 닫기
+      // 1. 화면 즉각 전환, 모달 닫기 및 UI 메모리 상태 즉각 반영 (메인 스레드 직렬화 0ms)
       if (isSilent) {
         setEditingInvoice(finalData);
       } else {
@@ -2762,6 +2697,39 @@ function App() {
           setIsOrderListOpen(true);
         }
       }
+
+      setInventory(nextInv);
+      setSalesInvoices(nextSalesInvoices);
+      setInventoryTransferHistory(nextTransfers);
+      if (orderToUpdate) {
+        setSalesOrders(nextSalesOrders);
+      }
+
+      // 2. 백그라운드 비동기 네트워크 커밋 및 번들 저장 (디바운스 적용으로 연속 자동저장 시 병목 차단)
+      setTimeout(() => {
+        batch.commit().catch(bgErr => console.warn('[handleSaveSalesInvoice] Batch commit error:', bgErr));
+
+        if (salesBundleSyncTimerRef.current) {
+          clearTimeout(salesBundleSyncTimerRef.current);
+        }
+        salesBundleSyncTimerRef.current = setTimeout(() => {
+          Promise.all([
+            saveBundle(companyId, 'salesInvoices', nextSalesInvoices),
+            saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
+            orderToUpdate ? saveBundle(companyId, 'salesOrders', nextSalesOrders) : Promise.resolve(),
+            !isSilent ? logOperation({
+              category: isEditSale ? '변경' : '전표등록',
+              subCategory: '매출전표',
+              type: isEditSale ? '수정' : '등록',
+              title: `매출전표 ${isEditSale ? '수정' : '등록'} (${finalData.partner || '미지정'})`,
+              detail: `전표일자: ${finalData.date} | 출고창고: ${finalData.warehouse} | 품목: ${(finalData.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-'} | 합계: ${(finalData.totalAmount || 0).toLocaleString()}원`,
+              user: currentUser?.name || finalData.creator || '시스템',
+              targetId: String(id)
+            }) : Promise.resolve()
+          ]).catch(bgErr => console.warn('[handleSaveSalesInvoice] Bundle sync error:', bgErr));
+        }, isSilent ? 600 : 50);
+      }, 0);
+
       return finalData;
     } catch (err) { 
       console.error(err); 
@@ -3148,69 +3116,99 @@ function App() {
     console.log('Categories State Updated:', categories);
   }, [categories]);
 
+  const prevStorageStateRef = React.useRef({});
+  const pendingStorageQueueRef = React.useRef({});
+  const storageSyncTimerRef = React.useRef(null);
+
   React.useEffect(() => {
     try {
-      if (currentUser) {
+      if (currentUser && prevStorageStateRef.current.currentUser !== currentUser) {
+        prevStorageStateRef.current.currentUser = currentUser;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
       }
       if (!currentUser?.companyId || hydratedCompanyRef.current !== currentUser.companyId) {
         return;
       }
       const companyId = currentUser.companyId;
-      
-      const safeSetItem = (key, stateValue, colName) => {
-        const storageKey = `${key}_${companyId}`;
-        if (Array.isArray(stateValue)) {
-          const filtered = filterBundleListForCompany(companyId, colName, stateValue);
-          if (filtered.length === 0 && !syncedCollections[colName]) {
-            const existing = localStorage.getItem(storageKey);
-            if (existing && existing !== '[]') return;
-          }
-          if (colName === 'salesInvoices' || filtered.length >= 1000) {
-            setIdbBundle(companyId, colName, filtered);
+
+      const entries = [
+        ['staffList', staffList],
+        ['schedules', schedules],
+        ['products', products],
+        ['categories', categories],
+        ['partners', partners],
+        ['accounts', accounts],
+        ['purchaseInvoices', purchaseInvoices],
+        ['purchaseOrders', purchaseOrders],
+        ['warehouses', warehouses],
+        ['systemSettings', systemSettings],
+        ['expenses', expenses],
+        ['licenseData', licenseData],
+        ['dashboardConfig', dashboardConfig],
+        ['scheduleTypes', scheduleTypes],
+        ['inventory', inventory],
+        ['physicalInventory', physicalInventory],
+        ['inventoryAdjustments', inventoryAdjustments],
+        ['inventoryTransferHistory', inventoryTransferHistory],
+        ['salesInvoices', salesInvoices],
+        ['salesOrders', salesOrders],
+        ['staffZones', staffZones],
+        ['staffJobTitles', staffJobTitles],
+        ['actionLogs', actionLogs]
+      ];
+
+      let hasChanged = false;
+      for (const [key, stateValue] of entries) {
+        if (prevStorageStateRef.current[key] !== stateValue) {
+          prevStorageStateRef.current[key] = stateValue;
+          pendingStorageQueueRef.current[key] = stateValue;
+          hasChanged = true;
+        }
+      }
+
+      if (!hasChanged) return;
+
+      if (storageSyncTimerRef.current) {
+        clearTimeout(storageSyncTimerRef.current);
+      }
+
+      storageSyncTimerRef.current = setTimeout(() => {
+        const queue = { ...pendingStorageQueueRef.current };
+        pendingStorageQueueRef.current = {};
+
+        const safeSetItem = (key, stateValue, colName) => {
+          const storageKey = `${key}_${companyId}`;
+          if (Array.isArray(stateValue)) {
+            const filtered = filterBundleListForCompany(companyId, colName, stateValue);
+            if (filtered.length === 0 && !syncedCollections[colName]) {
+              const existing = localStorage.getItem(storageKey);
+              if (existing && existing !== '[]') return;
+            }
+            if (colName === 'salesInvoices' || filtered.length >= 1000) {
+              setIdbBundle(companyId, colName, filtered);
+              return;
+            }
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(filtered));
+            } catch (e) {
+              setIdbBundle(companyId, colName, filtered);
+            }
             return;
+          } else if (stateValue && typeof stateValue === 'object') {
+            if (Object.keys(stateValue).length === 0 && !syncedCollections[colName]) {
+              const existing = localStorage.getItem(storageKey);
+              if (existing && existing !== '{}') return;
+            }
           }
           try {
-            localStorage.setItem(storageKey, JSON.stringify(filtered));
-          } catch (e) {
-            setIdbBundle(companyId, colName, filtered);
-          }
-          return;
-        } else if (stateValue && typeof stateValue === 'object') {
-          if (Object.keys(stateValue).length === 0 && !syncedCollections[colName]) {
-            const existing = localStorage.getItem(storageKey);
-            if (existing && existing !== '{}') return;
-          }
-        }
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(stateValue));
-        } catch (e) {}
-      };
+            localStorage.setItem(storageKey, JSON.stringify(stateValue));
+          } catch (e) {}
+        };
 
-      // We still keep localStorage as a fallback/cache
-      safeSetItem('staffList', staffList, 'staffList');
-      safeSetItem('schedules', schedules, 'schedules');
-      safeSetItem('products', products, 'products');
-      safeSetItem('categories', categories, 'categories');
-      safeSetItem('partners', partners, 'partners');
-      safeSetItem('accounts', accounts, 'accounts');
-      safeSetItem('purchaseInvoices', purchaseInvoices, 'purchaseInvoices');
-      safeSetItem('purchaseOrders', purchaseOrders, 'purchaseOrders');
-      safeSetItem('warehouses', warehouses, 'warehouses');
-      safeSetItem('systemSettings', systemSettings, 'systemSettings');
-      safeSetItem('expenses', expenses, 'expenses');
-      safeSetItem('licenseData', licenseData, 'licenseData');
-      safeSetItem('dashboardConfig', dashboardConfig, 'dashboardConfig');
-      safeSetItem('scheduleTypes', scheduleTypes, 'scheduleTypes');
-      safeSetItem('inventory', inventory, 'inventory');
-      safeSetItem('physicalInventory', physicalInventory, 'physicalInventory');
-      safeSetItem('inventoryAdjustments', inventoryAdjustments, 'inventoryAdjustments');
-      safeSetItem('inventoryTransferHistory', inventoryTransferHistory, 'inventoryTransferHistory');
-      safeSetItem('salesInvoices', salesInvoices, 'salesInvoices');
-      safeSetItem('salesOrders', salesOrders, 'salesOrders');
-      safeSetItem('staffZones', staffZones, 'staffZones');
-      safeSetItem('staffJobTitles', staffJobTitles, 'staffJobTitles');
-      safeSetItem('actionLogs', actionLogs, 'actionLogs');
+        Object.entries(queue).forEach(([key, val]) => {
+          safeSetItem(key, val, key);
+        });
+      }, 300);
     } catch (e) {
       console.warn('Storage sync failed:', e);
     }
@@ -6085,7 +6083,18 @@ function App() {
           try {
             const companyId = currentUser?.companyId || 'default';
             const id = od.id || Date.now();
-            await setDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)), { ...od, id: Number(id), companyId });
+            const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
+            const nextPurchaseOrders = (() => {
+              const prevList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+              const idx = prevList.findIndex(o => String(o.id) === String(id));
+              if (idx >= 0) { const next = [...prevList]; next[idx] = fullOrder; return next; }
+              return [fullOrder, ...prevList];
+            })();
+            setPurchaseOrders(nextPurchaseOrders);
+            setTimeout(() => {
+              setDoc(doc(db, 'companies', companyId, 'purchaseOrders', String(id)), fullOrder).catch(console.error);
+              saveBundle(companyId, 'purchaseOrders', nextPurchaseOrders).catch(console.warn);
+            }, 0);
           } catch (err) { console.error(err); }
         }} 
       />}
@@ -6183,45 +6192,15 @@ function App() {
             const id = od.id || Date.now();
             const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
             const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
-            await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-            let nextSalesOrders = [];
-            setSalesOrders(prev => {
-              const prevList = Array.isArray(prev) ? prev : [];
-              const idx = prevList.findIndex(o => String(o.id) === String(id));
-              if (idx >= 0) {
-                const next = [...prevList];
-                next[idx] = fullOrder;
-                nextSalesOrders = next;
-                return next;
-              }
-              nextSalesOrders = [fullOrder, ...prevList];
-              return nextSalesOrders;
-            });
+            const prevList = Array.isArray(salesOrders) ? salesOrders : [];
+            const idx = prevList.findIndex(o => String(o.id) === String(id));
+            const nextSalesOrders = idx >= 0
+              ? prevList.map((item, i) => i === idx ? fullOrder : item)
+              : [fullOrder, ...prevList];
 
-            try {
-              const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
-              const idx = curCache.findIndex(o => String(o.id) === String(id));
-              const updatedCache = idx >= 0 
-                ? curCache.map((item, i) => i === idx ? fullOrder : item)
-                : [fullOrder, ...curCache];
-              localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
-              localStorage.setItem(`salesOrders_${companyId}`, JSON.stringify(updatedCache));
-              localStorage.setItem(`bundle_salesOrders_${companyId}`, JSON.stringify(updatedCache));
-            } catch (cacheErr) {}
-
-            await saveBundle(companyId, 'salesOrders', nextSalesOrders.length > 0 ? nextSalesOrders : [fullOrder, ...salesOrders]);
+            // 1. UI 즉시 반영 및 창 전환 (대기 시간 0초)
+            setSalesOrders(nextSalesOrders);
             setEditingOrder(null);
-
-            const itemsSummary = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
-            await logOperation({
-              category: isEdit ? '변경' : '전표등록',
-              subCategory: '수주',
-              type: isEdit ? '수정' : '등록',
-              title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
-              detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
-              user: currentUser?.name || fullOrder.manager || '시스템',
-              targetId: String(id)
-            });
 
             if (salesOrderSource === 'orderList') {
               setIsSalesOrderOpen(false);
@@ -6232,6 +6211,24 @@ function App() {
               setIsOrderReportOpen(true);
               setSalesOrderSource(null);
             }
+
+            // 2. 백그라운드 비동기 저장
+            setTimeout(() => {
+              const itemsSummary = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
+              Promise.all([
+                setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder),
+                saveBundle(companyId, 'salesOrders', nextSalesOrders),
+                logOperation({
+                  category: isEdit ? '변경' : '전표등록',
+                  subCategory: '수주',
+                  type: isEdit ? '수정' : '등록',
+                  title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
+                  detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
+                  user: currentUser?.name || fullOrder.manager || '시스템',
+                  targetId: String(id)
+                })
+              ]).catch(console.error);
+            }, 0);
           } catch (err) { console.error(err); }
         }} 
         onTransferToInvoice={(invData) => { setIsSalesOrderOpen(false); setSalesOrderSource(null); openSalesInvoice(invData); }}
@@ -6280,7 +6277,6 @@ function App() {
               companyId, 
               updatedAt: new Date().toISOString() 
             };
-            await setDoc(doc(db, 'companies', companyId, 'quotations', String(id)), fullQuotation);
             const nextQuotations = (() => {
               const idx = quotations.findIndex(q => String(q.id) === String(id));
               if (idx >= 0) {
@@ -6291,22 +6287,25 @@ function App() {
               return [...quotations, fullQuotation];
             })();
             setQuotations(nextQuotations);
-            await saveBundle(companyId, 'quotations', nextQuotations);
 
-            // Log operation for recent activities (최근 처리 현황)
-            await logOperation({
-              category: '전표등록',
-              subCategory: '견적서',
-              type: isEdit ? '수정' : '등록',
-              title: `견적서 ${isEdit ? '수정' : '등록'} (${fullQuotation.partner || '미지정'})`,
-              detail: `${fullQuotation.itemsText || (fullQuotation.items && fullQuotation.items.map(it => it.name).join(', ')) || ''} / 합계: ${(fullQuotation.totalPrice || fullQuotation.totalAmount || 0).toLocaleString()}원`,
-              targetId: String(fullQuotation.id),
-              user: currentUser?.name || '시스템',
-              date: fullQuotation.date
-            });
+            setTimeout(() => {
+              Promise.all([
+                setDoc(doc(db, 'companies', companyId, 'quotations', String(id)), fullQuotation),
+                saveBundle(companyId, 'quotations', nextQuotations),
+                logOperation({
+                  category: '전표등록',
+                  subCategory: '견적서',
+                  type: isEdit ? '수정' : '등록',
+                  title: `견적서 ${isEdit ? '수정' : '등록'} (${fullQuotation.partner || '미지정'})`,
+                  detail: `${fullQuotation.itemsText || (fullQuotation.items && fullQuotation.items.map(it => it.name).join(', ')) || ''} / 합계: ${(fullQuotation.totalPrice || fullQuotation.totalAmount || 0).toLocaleString()}원`,
+                  targetId: String(fullQuotation.id),
+                  user: currentUser?.name || '시스템',
+                  date: fullQuotation.date
+                })
+              ]).catch(err => console.error('Error saving quotation:', err));
+            }, 0);
           } catch (err) {
             console.error('Error saving quotation:', err);
-            alert('견적서 저장 중 오류가 발생했습니다: ' + (err?.message || '알 수 없는 오류'));
           }
         }}
         onConvertToOrder={(orderData) => {
@@ -6359,46 +6358,32 @@ function App() {
               const id = od.id || Date.now();
               const isEdit = Boolean(od.id && salesOrders.some(o => String(o.id) === String(od.id)));
               const fullOrder = { ...od, id: Number(id), companyId, updatedAt: new Date().toISOString() };
-              await setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder);
-              let nextSalesOrders = [];
-              setSalesOrders(prev => {
-                const prevList = Array.isArray(prev) ? prev : [];
-                const idx = prevList.findIndex(o => String(o.id) === String(id));
-                if (idx >= 0) {
-                  const next = [...prevList];
-                  next[idx] = fullOrder;
-                  nextSalesOrders = next;
-                  return next;
-                }
-                nextSalesOrders = [fullOrder, ...prevList];
-                return nextSalesOrders;
-              });
+              const prevList = Array.isArray(salesOrders) ? salesOrders : [];
+              const idx = prevList.findIndex(o => String(o.id) === String(id));
+              const nextSalesOrders = idx >= 0
+                ? prevList.map((item, i) => i === idx ? fullOrder : item)
+                : [fullOrder, ...prevList];
 
-              try {
-                const curCache = JSON.parse(localStorage.getItem('salesOrders')) || [];
-                const idx = curCache.findIndex(o => String(o.id) === String(id));
-                const updatedCache = idx >= 0 
-                  ? curCache.map((item, i) => i === idx ? fullOrder : item)
-                  : [fullOrder, ...curCache];
-                localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
-                localStorage.setItem(`salesOrders_${companyId}`, JSON.stringify(updatedCache));
-                localStorage.setItem(`bundle_salesOrders_${companyId}`, JSON.stringify(updatedCache));
-              } catch (cacheErr) {}
-
-              await saveBundle(companyId, 'salesOrders', nextSalesOrders.length > 0 ? nextSalesOrders : [fullOrder, ...salesOrders]);
+              setSalesOrders(nextSalesOrders);
               setEditingOrder(null);
               setOrderingPartner(null);
 
-              const itemsSummary2 = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
-              await logOperation({
-                category: isEdit ? '변경' : '전표등록',
-                subCategory: '수주',
-                type: isEdit ? '수정' : '등록',
-                title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
-                detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary2} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
-                user: currentUser?.name || fullOrder.manager || '시스템',
-                targetId: String(id)
-              });
+              setTimeout(() => {
+                const itemsSummary2 = (fullOrder.items || []).map(i => `${i.name}(${i.qty}개)`).join(', ') || '-';
+                Promise.all([
+                  setDoc(doc(db, 'companies', companyId, 'salesOrders', String(id)), fullOrder),
+                  saveBundle(companyId, 'salesOrders', nextSalesOrders),
+                  logOperation({
+                    category: isEdit ? '변경' : '전표등록',
+                    subCategory: '수주',
+                    type: isEdit ? '수정' : '등록',
+                    title: `수주서 ${isEdit ? '수정' : '등록'} (${fullOrder.partner || '미지정'})`,
+                    detail: `수주일자: ${fullOrder.date || '-'} | 품목: ${itemsSummary2} | 합계: ${(fullOrder.totalPrice || 0).toLocaleString()}원 (출고: ${fullOrder.outWarehouse || '본사창고'} ➔ 배송: ${fullOrder.inWarehouse || '차량'})`,
+                    user: currentUser?.name || fullOrder.manager || '시스템',
+                    targetId: String(id)
+                  })
+                ]).catch(console.error);
+              }, 0);
             } catch (err) { console.error(err); }
           }}
           onTransferToInvoice={(invData) => { setOrderingPartner(null); openSalesInvoice(invData); }}
