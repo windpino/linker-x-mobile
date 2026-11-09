@@ -7958,12 +7958,12 @@ function FavoriteMenuBar({
                 {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
                 <div style={{
                   width: '100%', height: '48px',
-                  border: '1px solid #334155', backgroundColor: '#0f172a',
+                  border: '1px solid #e2e8f0', backgroundColor: '#ffffff',
                   borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
                   transition: 'all 0.15s'
                 }}>
                   <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{menuInfo.emoji}</span>
