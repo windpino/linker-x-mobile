@@ -133,8 +133,13 @@ a {
   color: inherit;
 }
 
-input {
+input, textarea, select {
   font-family: inherit;
+  color: #0f172a;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8;
 }
 
 /* ERP Table Headers: Prevent vertical character breaking regardless of viewport resize */

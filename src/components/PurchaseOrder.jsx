@@ -452,6 +452,7 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                     ref={itemInputRef}
                     placeholder="품목 약칭과 수량을 입력하세요."
                     className="so-items-textarea"
+                    style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
                     value={orderData.itemsText}
                     onChange={(e) => {
                       setOrderData({ ...orderData, itemsText: e.target.value });
@@ -513,7 +514,7 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
                     placeholder="특이사항이나 요청사항을 입력하세요" 
                     value={orderData.memo} 
                     onChange={(e) => setOrderData({...orderData, memo: e.target.value})} 
-                    style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem' }}
+                    style={{ backgroundColor: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem' }}
                   />
                 </div>
               </div>

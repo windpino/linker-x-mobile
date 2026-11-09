@@ -1889,7 +1889,7 @@ const OrderList = ({
                                   <input type="checkbox" checked={!!isProcessed} onChange={() => handleItemMove(order, item, iIdx)} style={{ cursor: 'pointer' }} />
                                 </div>
                                 <span style={{ color: getCategoryColor(item.category || '기타'), fontWeight: 600 }}>{item.category || '기타'}</span>
-                                <span style={{ fontWeight: 700, color: (item.category || '기타') === '미등록상품' ? '#ef4444' : 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 700, color: (item.category || '기타') === '미등록상품' ? '#ef4444' : '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {item.name}
                                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
                                     (출고창고 재고: {(() => {

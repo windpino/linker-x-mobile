@@ -97,6 +97,19 @@
   overflow-x: auto;
   padding: 12px;
   position: relative;
+  color: #0f172a; /* Default modal content to dark text so white-on-white text bug never occurs */
+}
+
+/* Modal form controls: ensure readable dark text color across all modals */
+.window-content-area input:not([type="checkbox"]):not([type="radio"]),
+.window-content-area textarea,
+.window-content-area select {
+  color: #0f172a !important;
+}
+
+.window-content-area input::placeholder,
+.window-content-area textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 .resize-handle-indicator {

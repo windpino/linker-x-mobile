@@ -645,7 +645,7 @@ const Quotation = ({
                       setIsItemSearchOpen(true);
                       updateCaretPosition(e.target);
                     }}
-                    style={{ width: '100%', minHeight: '120px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', resize: 'vertical' }}
+                    style={{ width: '100%', minHeight: '120px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', resize: 'vertical', backgroundColor: '#ffffff', color: '#0f172a' }}
                   />
                   {isItemSearchOpen && lastWord && (
                     <div style={{ position: 'absolute', top: `${caretPos.top}px`, left: '10px', right: '10px', backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '180px', overflowY: 'auto' }}>

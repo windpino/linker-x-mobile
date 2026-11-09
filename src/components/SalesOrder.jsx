@@ -477,6 +477,7 @@ const SalesOrder = ({
         height: '100%',
         maxHeight: '100%',
         backgroundColor: '#f8fafc',
+        color: '#0f172a',
         overflow: 'hidden',
         position: 'relative'
       }}>
@@ -766,6 +767,8 @@ const SalesOrder = ({
                   padding: '10px 12px',
                   borderRadius: '8px',
                   border: '1.5px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
                   fontSize: '0.98rem',
                   lineHeight: '1.5',
                   resize: 'none',
@@ -848,6 +851,8 @@ const SalesOrder = ({
                 padding: '0 10px',
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
                 fontSize: '0.88rem',
                 outline: 'none',
                 boxSizing: 'border-box'

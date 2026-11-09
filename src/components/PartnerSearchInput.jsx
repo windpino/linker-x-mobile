@@ -171,7 +171,7 @@ const PartnerSearchInput = ({
             }
           }}
           className="partner-input"
-          style={{ width: '100%', padding: '6px 28px 6px 32px', fontSize: '0.82rem', height: '34px', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '6px 28px 6px 32px', fontSize: '0.82rem', height: '34px', boxSizing: 'border-box', backgroundColor: '#ffffff', color: '#0f172a' }}
         />
         <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
         {searchTerm && (
