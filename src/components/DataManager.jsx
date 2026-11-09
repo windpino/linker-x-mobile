@@ -453,6 +453,8 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
       const collections = colMap[catKey] || [catKey];
       let totalDeletedCount = 0;
 
+      window.__isResettingData = true;
+
       for (let cIdx = 0; cIdx < collections.length; cIdx++) {
         const col = collections[cIdx];
         const snap = await getDocs(collection(db, 'companies', companyId, col));
@@ -467,25 +469,25 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
           });
         }
 
-        if (docsToDelete.length === 0) continue;
+        if (docsToDelete.length > 0) {
+          totalDeletedCount += docsToDelete.length;
+          const CHUNK_SIZE = 400;
+          for (let i = 0; i < docsToDelete.length; i += CHUNK_SIZE) {
+            const chunk = docsToDelete.slice(i, i + CHUNK_SIZE);
+            const batch = writeBatch(db);
+            chunk.forEach(d => batch.delete(d.ref));
+            await batch.commit();
 
-        totalDeletedCount += docsToDelete.length;
-        const CHUNK_SIZE = 400;
-        for (let i = 0; i < docsToDelete.length; i += CHUNK_SIZE) {
-          const chunk = docsToDelete.slice(i, i + CHUNK_SIZE);
-          const batch = writeBatch(db);
-          chunk.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-
-          const pct = 15 + Math.round(((i + chunk.length) / docsToDelete.length) * 70);
-          setProgressState(prev => ({
-            ...prev,
-            percent: Math.min(85, pct),
-            currentStep: `[${col}] 문서 일괄 삭제 중`,
-            currentCount: i + chunk.length,
-            totalCount: docsToDelete.length,
-            detail: `${col} 컬렉션 ${i + chunk.length} / ${docsToDelete.length}건 삭제 반영...`
-          }));
+            const pct = 15 + Math.round(((i + chunk.length) / docsToDelete.length) * 70);
+            setProgressState(prev => ({
+              ...prev,
+              percent: Math.min(85, pct),
+              currentStep: `[${col}] 문서 일괄 삭제 중`,
+              currentCount: i + chunk.length,
+              totalCount: docsToDelete.length,
+              detail: `${col} 컬렉션 ${i + chunk.length} / ${docsToDelete.length}건 삭제 반영...`
+            }));
+          }
         }
 
         try {
@@ -498,14 +500,16 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
 
           if (effectivePeriod) {
             const deletedIds = new Set(docsToDelete.map(d => d.id));
-            const remainingDocs = allDocs
-              .filter(d => !deletedIds.has(d.id))
-              .map(d => ({ ...d.data(), id: d.id }));
+            const memList = Array.isArray(fullData?.[col]) ? fullData[col] : allDocs.map(d => ({ ...d.data(), id: d.id }));
+            const remainingDocs = memList.filter(it => {
+              const idStr = String(it.id || it._docId || '');
+              if (deletedIds.has(idStr)) return false;
+              const dateVal = it.date || it.orderDate || (it.start ? it.start.slice(0, 10) : '') || (it.createdAt ? it.createdAt.slice(0, 10) : '');
+              return !(dateVal && dateVal >= deleteStartDate && dateVal <= deleteEndDate);
+            });
             await saveBundle(companyId, col, remainingDocs);
-            localStorage.setItem(`${col}_${companyId}`, JSON.stringify(remainingDocs));
           } else {
             await saveBundle(companyId, col, []);
-            localStorage.removeItem(`${col}_${companyId}`);
           }
         } catch (e) {
           console.warn('Bundle update error during category delete:', e);
@@ -525,6 +529,7 @@ const DataManager = ({ onClose, onSaveAll, onRestoreAll, onDeleteAll, currentUse
       await new Promise(r => setTimeout(r, 800));
       window.location.reload();
     } catch (err) {
+      window.__isResettingData = false;
       console.error(`Delete ${catLabel} error:`, err);
       setProgressState(prev => ({ ...prev, isOpen: false }));
       alert(`${catLabel} 삭제 중 오류가 발생했습니다: ` + err.message);

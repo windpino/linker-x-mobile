@@ -65,3 +65,17 @@ export const removeIdbBundle = async (companyId, colName) => {
     });
   } catch (e) {}
 };
+
+export const clearAllIdbBundles = async () => {
+  try {
+    const db = await openDB();
+    if (!db) return;
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    });
+  } catch (e) {}
+};

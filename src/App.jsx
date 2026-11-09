@@ -3122,6 +3122,7 @@ function App() {
 
   React.useEffect(() => {
     try {
+      if (window.__isResettingData) return;
       if (currentUser && prevStorageStateRef.current.currentUser !== currentUser) {
         prevStorageStateRef.current.currentUser = currentUser;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -3173,6 +3174,7 @@ function App() {
       }
 
       storageSyncTimerRef.current = setTimeout(() => {
+        if (window.__isResettingData) return;
         const queue = { ...pendingStorageQueueRef.current };
         pendingStorageQueueRef.current = {};
 
@@ -6859,6 +6861,9 @@ function App() {
 
             try {
               window.__isResettingData = true;
+              if (storageSyncTimerRef.current) clearTimeout(storageSyncTimerRef.current);
+              if (salesBundleSyncTimerRef.current) clearTimeout(salesBundleSyncTimerRef.current);
+              if (purchaseBundleSyncTimerRef.current) clearTimeout(purchaseBundleSyncTimerRef.current);
 
               if (onProgress) {
                 onProgress({
@@ -6870,67 +6875,99 @@ function App() {
                 });
               }
 
-              // 3. 삭제할 모든 문서 수집 (메모리 상태 우선 수집 + Firestore 빠른 스캔)
+              // 보존할 최초 가입 관리자 ID 확정
+              const adminUserId = initialAdminId || uid;
+              const adminUserIdLower = String(adminUserId || '').toLowerCase();
+
+              // 3. 삭제할 모든 문서 수집 (메모리 상태 우선 수집 + Firestore 전체 스캔)
               const docRefsMap = new Map();
 
               const addDocRef = (colName, docId) => {
-                if (docId && typeof docId === 'string' && docId.trim()) {
+                if (docId && typeof docId === 'string' && docId.trim() && docId !== 'undefined' && docId !== 'null') {
                   const ref = doc(db, 'companies', companyId, colName, docId.trim());
                   docRefsMap.set(ref.path, ref);
                 }
               };
 
-              // 3-1. 현재 로드된 메모리 상의 모든 문서 즉시 수집
-              if (Array.isArray(schedules)) schedules.forEach(it => addDocRef('schedules', String(it.id || it._docId || '')));
-              if (Array.isArray(scheduleTypes)) scheduleTypes.forEach(it => addDocRef('scheduleTypes', String(it.name || it.id || it._docId || '')));
-              if (Array.isArray(products)) products.forEach(it => addDocRef('products', String(it.id || it._docId || '')));
-              if (Array.isArray(categories)) categories.forEach(it => addDocRef('categories', String(it.id || it._docId || it.name || '')));
-              if (Array.isArray(partners)) partners.forEach(it => addDocRef('partners', it.loginId ? `${companyId}_${it.loginId}` : String(it.id || it._docId || '')));
-              if (Array.isArray(accounts)) accounts.forEach(it => addDocRef('accounts', String(it.id || it._docId || '')));
-              if (Array.isArray(purchaseInvoices)) purchaseInvoices.forEach(it => addDocRef('purchaseInvoices', String(it.id || it._docId || '')));
-              if (Array.isArray(purchaseOrders)) purchaseOrders.forEach(it => addDocRef('purchaseOrders', String(it.id || it._docId || '')));
-              if (Array.isArray(salesInvoices)) salesInvoices.forEach(it => addDocRef('salesInvoices', String(it.id || it._docId || '')));
-              if (Array.isArray(salesOrders)) salesOrders.forEach(it => addDocRef('salesOrders', String(it.id || it._docId || '')));
-              if (Array.isArray(quotations)) quotations.forEach(it => addDocRef('quotations', String(it.id || it._docId || '')));
-              if (Array.isArray(warehouses)) warehouses.forEach(it => addDocRef('warehouses', String(it.id || it._docId || '')));
-              if (Array.isArray(inventoryTransferHistory)) inventoryTransferHistory.forEach(it => addDocRef('inventoryTransferHistory', String(it.id || it._docId || '')));
-              if (Array.isArray(inventoryAdjustments)) inventoryAdjustments.forEach(it => addDocRef('inventoryAdjustments', String(it.id || it._docId || '')));
-              if (Array.isArray(expenses)) expenses.forEach(it => addDocRef('expenses', String(it.id || it._docId || '')));
-              if (Array.isArray(specialPrices)) specialPrices.forEach(it => addDocRef('specialPrices', String(it.id || it._docId || '')));
-              if (Array.isArray(staffZones)) staffZones.forEach(it => addDocRef('staffZones', String(it.id || it._docId || it.name || '')));
-              if (Array.isArray(staffJobTitles)) staffJobTitles.forEach(it => addDocRef('staffJobTitles', String(it.id || it._docId || it.name || '')));
-              if (Array.isArray(actionLogs)) actionLogs.forEach(it => addDocRef('actionLogs', String(it.id || it._docId || '')));
+              const collectPossibleIds = (colName, list) => {
+                if (!Array.isArray(list)) return;
+                list.forEach(it => {
+                  if (!it) return;
+                  if (it.id !== undefined && it.id !== null) addDocRef(colName, String(it.id));
+                  if (it._docId) addDocRef(colName, String(it._docId));
+                  if (it.name && ['scheduleTypes', 'categories', 'staffZones', 'staffJobTitles', 'warehouses'].includes(colName)) {
+                    addDocRef(colName, String(it.name));
+                  }
+                  if (colName === 'partners') {
+                    if (it.loginId) addDocRef('partners', `${companyId}_${it.loginId}`);
+                    if (it.email) addDocRef('partners', `${companyId}_${it.email}`);
+                    if (it.name) addDocRef('partners', `${companyId}_${it.name}`);
+                  }
+                  if (colName === 'warehouses' && it.vehicleId) {
+                    addDocRef('warehouses', `wh_veh_${it.vehicleId}`);
+                  }
+                });
+              };
+
+              // 3-1. 현재 로드된 메모리 상의 모든 문서(중복 ID 포함) 즉시 수집
+              collectPossibleIds('schedules', schedules);
+              collectPossibleIds('scheduleTypes', scheduleTypes);
+              collectPossibleIds('products', products);
+              collectPossibleIds('categories', categories);
+              collectPossibleIds('partners', partners);
+              collectPossibleIds('accounts', accounts);
+              collectPossibleIds('purchaseInvoices', purchaseInvoices);
+              collectPossibleIds('purchaseOrders', purchaseOrders);
+              collectPossibleIds('salesInvoices', salesInvoices);
+              collectPossibleIds('salesOrders', salesOrders);
+              collectPossibleIds('quotations', quotations);
+              collectPossibleIds('warehouses', warehouses);
+              collectPossibleIds('inventoryTransferHistory', inventoryTransferHistory);
+              collectPossibleIds('inventoryAdjustments', inventoryAdjustments);
+              collectPossibleIds('expenses', expenses);
+              collectPossibleIds('specialPrices', specialPrices);
+              collectPossibleIds('staffZones', staffZones);
+              collectPossibleIds('staffJobTitles', staffJobTitles);
+              collectPossibleIds('actionLogs', actionLogs);
 
               if (Array.isArray(staffList)) {
                 staffList.forEach(s => {
-                  if (s.userId !== uid && s.userId !== initialAdminId) {
-                    const docId = s.userId ? `${companyId}_${s.userId}` : String(s.id || s._docId || '');
-                    addDocRef('staffList', docId);
+                  if (!s) return;
+                  const sUid = String(s.userId || '').toLowerCase();
+                  if (sUid !== adminUserIdLower) {
+                    if (s.userId) addDocRef('staffList', `${companyId}_${s.userId}`);
+                    if (s.id) addDocRef('staffList', String(s.id));
+                    if (s._docId) addDocRef('staffList', String(s._docId));
                   }
                 });
               }
 
-              // 3-2. Firestore 서버 컬렉션 빠른 병렬 스캔 (타임아웃 5초)
+              // 3-2. Firestore 서버 컬렉션 전체 스캔 (안정적인 5개씩 그룹 스캔, 25초 타임아웃)
               const collectionsToScan = [
                 'schedules', 'scheduleTypes', 'products', 'categories', 
                 'partners', 'accounts', 'purchaseInvoices', 'purchaseOrders', 
                 'salesInvoices', 'salesOrders', 'quotations', 'warehouses', 
+                'vehicles', 'vehicleLogs',
                 'inventoryTransferHistory', 'inventoryAdjustments', 'expenses', 'specialPrices', 
-                'staffZones', 'staffJobTitles', 'actionLogs', 'deletedLogs', 'activityLogs', 'staffList'
+                'staffZones', 'staffJobTitles', 'actionLogs', 'deletedLogs', 'activityLogs', 'staffList', 'userSettings'
               ];
 
-              try {
-                const scanPromises = collectionsToScan.map(async (colName) => {
+              const scanGroupSize = 5;
+              for (let g = 0; g < collectionsToScan.length; g += scanGroupSize) {
+                const group = collectionsToScan.slice(g, g + scanGroupSize);
+                await Promise.all(group.map(async (colName) => {
                   try {
                     const snap = await Promise.race([
                       getDocs(collection(db, 'companies', companyId, colName)),
-                      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 25000))
                     ]);
                     if (snap && snap.docs) {
                       snap.docs.forEach(d => {
                         if (colName === 'staffList') {
-                          const sData = d.data();
-                          if (sData.userId !== uid && sData.userId !== initialAdminId && d.id !== `${companyId}_${uid}` && d.id !== `${companyId}_${initialAdminId}`) {
+                          const sData = d.data() || {};
+                          const sUid = String(sData.userId || '').toLowerCase();
+                          const expectedDocId = `${companyId}_${adminUserId}`.toLowerCase();
+                          if (sUid !== adminUserIdLower && String(d.id || '').toLowerCase() !== expectedDocId) {
                             docRefsMap.set(d.ref.path, d.ref);
                           }
                         } else {
@@ -6939,12 +6976,9 @@ function App() {
                       });
                     }
                   } catch (e) {
-                    // 개별 컬렉션 스캔 실패 시 계속 진행
+                    console.warn(`[Delete All] Scan warning for ${colName}:`, e);
                   }
-                });
-                await Promise.all(scanPromises);
-              } catch (e) {
-                console.warn("[Delete All] Scan warning:", e);
+                }));
               }
 
               const allRefs = Array.from(docRefsMap.values());
@@ -6961,8 +6995,8 @@ function App() {
                 });
               }
 
-              // 4. writeBatch 일괄 삭제 실행 (청크 250개)
-              const chunkSize = 250;
+              // 4. writeBatch 일괄 삭제 실행 (청크 400개, 25초 타임아웃)
+              const chunkSize = 400;
               let deletedCount = 0;
               for (let i = 0; i < allRefs.length; i += chunkSize) {
                 const chunk = allRefs.slice(i, i + chunkSize);
@@ -6970,7 +7004,7 @@ function App() {
                 chunk.forEach(ref => batch.delete(ref));
                 await Promise.race([
                   batch.commit(),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 5000))
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('batch timeout')), 25000))
                 ]).catch(err => console.warn(`[Delete All] Batch chunk ${i} commit error:`, err));
 
                 deletedCount += chunk.length;
@@ -6986,58 +7020,56 @@ function App() {
                 }
               }
 
-              // 5. 단일 설정 문서 삭제
+              // 5. 단일 설정 문서 초기화 (재고 빈 객체 덮어쓰기 및 기타 설정 삭제)
               if (onProgress) {
                 onProgress({
                   percent: 85,
                   currentStep: '시스템 설정 문서 초기화 중...',
                   currentCount: totalDocs,
                   totalCount: totalDocs,
-                  detail: '재고, 시스템 설정, 대시보드 문서 삭제...'
+                  detail: '재고, 시스템 설정, 대시보드 문서 초기화...'
                 });
               }
 
               try {
                 const settingsBatch = writeBatch(db);
-                const settingsDocs = ['inventory', 'systemSettings', 'favoriteMenus', 'dashboardConfig'];
-                settingsDocs.forEach(docName => {
+                const settingsDocsToDelete = ['systemSettings', 'favoriteMenus', 'dashboardConfig', 'cashBookData', 'recentActivity', 'staffZones', 'staffJobTitles'];
+                settingsDocsToDelete.forEach(docName => {
                   settingsBatch.delete(doc(db, 'companies', companyId, 'settings', docName));
                   settingsBatch.delete(doc(db, 'companies', companyId, 'systemSettings', docName));
                 });
+                settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {}, companyId });
+                settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: {}, companyId });
+                settingsBatch.set(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {}, companyId });
+                settingsBatch.set(doc(db, 'companies', companyId, 'systemSettings', 'physicalInventory'), { value: {}, companyId });
                 await settingsBatch.commit().catch(err => console.warn("[Delete All] Settings batch error:", err));
               } catch (e) {
                 console.warn("[Delete All] Settings delete error:", e);
               }
 
-              // 5-1. Firestore 번들 캐시 및 로컬 번들 캐시 완전 초기화 (데이터 부활 원천 차단)
-              if (onProgress) {
-                onProgress({
-                  percent: 92,
-                  currentStep: '파이어베이스 번들 캐시 완전 소각 중...',
-                  currentCount: totalDocs,
-                  totalCount: totalDocs,
-                  detail: 'Firestore bundles 및 syncState 메타데이터 삭제...'
-                });
-              }
-
-              try {
-                await clearAllBundles(companyId);
-              } catch (bundleErr) {
-                console.warn("[Delete All] Clear all bundles error:", bundleErr);
-              }
-
-              // 6. 관리자 계정 Firestore 보존 및 동기화
-              const adminUserId = uid || initialAdminId;
+              // 6. 최초 가입 관리자 계정만 초기 상태로 보존
               const adminCompositeId = `${companyId}_${adminUserId}`;
               const preservedAdmin = {
-                id: currentUser?.id || Date.now(),
+                id: currentUser?.id || 1,
                 userId: adminUserId,
-                password: enteredPassword,
-                name: currentUser?.name || compData?.ceo || compData?.name || '대표관리자',
+                password: compData?.password || enteredPassword,
+                name: compData?.ceo || compData?.name || currentUser?.name || '대표관리자',
                 jobTitle: '대표',
                 role: 'admin',
+                warehouse: '',
+                zone: '',
                 companyId: companyId,
-                permissions: { ALL: true },
+                permissions: {
+                  ALL: true,
+                  salesOrder: true, salesInvoice: true, quotation: true, depositSlip: true,
+                  purchaseInvoice: true, purchaseOrder: true, withdrawalSlip: true,
+                  salesLedger: true, purchaseLedger: true, cashBook: true, expense: true,
+                  inventoryReport: true, inventoryTransfer: true, inventoryAudit: true,
+                  partnerManagement: true, productManagement: true, warehouseManagement: true,
+                  accountManagement: true, staffManagement: true, salesReport: true,
+                  staffPerformance: true, scheduleManagement: true, dataManager: true,
+                  systemSettings: true
+                },
                 createdAt: compData?.createdAt || new Date().toISOString()
               };
 
@@ -7047,8 +7079,26 @@ function App() {
                 console.warn("[Delete All] Admin preserve write error:", e);
               }
 
-              // 7. 메모리 React 상태 초기화
+              // 6-1. Firestore 번들 캐시(청크 포함) 및 IndexedDB/로컬 번들 캐시 완전 초기화 (데이터 부활 원천 차단)
+              if (onProgress) {
+                onProgress({
+                  percent: 92,
+                  currentStep: '파이어베이스 및 IndexedDB 번들 캐시 완전 소각 중...',
+                  currentCount: totalDocs,
+                  totalCount: totalDocs,
+                  detail: 'Firestore bundles(청크 포함), IndexedDB 및 syncState 초기화...'
+                });
+              }
+
+              try {
+                await clearAllBundles(companyId, [preservedAdmin]);
+              } catch (bundleErr) {
+                console.warn("[Delete All] Clear all bundles error:", bundleErr);
+              }
+
+              // 7. 메모리 React 상태 초기화 (최초 가입 직후 빈 상태)
               setProducts([]);
+              setCategories([]);
               setPartners([]);
               setSalesOrders([]);
               setPurchaseOrders([]);
@@ -7056,6 +7106,8 @@ function App() {
               setSalesInvoices([]);
               setPurchaseInvoices([]);
               setAccounts([]);
+              setInventory({});
+              setPhysicalInventory({});
               setInventoryAdjustments([]);
               setInventoryTransferHistory([]);
               setActionLogs([]);
@@ -7066,12 +7118,18 @@ function App() {
               setSpecialPrices([]);
               setStaffZones([]);
               setStaffJobTitles([]);
+              setStaffList([preservedAdmin]);
 
-              // 8. 로컬 스토리지 정리
+              // 8. 로컬 스토리지 및 세션 스토리지 완전 초기화
               const license = localStorage.getItem('licenseData');
               localStorage.clear();
+              try { sessionStorage.clear(); } catch (e) {}
               if (license) localStorage.setItem('licenseData', license);
+              localStorage.setItem('system_cleaned_ver', '20260509_v2');
               localStorage.setItem('currentUser', JSON.stringify(preservedAdmin));
+              BUNDLE_COLLECTIONS.forEach(col => {
+                localStorage.setItem(`bundle_reconciled_${col}_${companyId}`, 'true');
+              });
 
               if (onProgress) {
                 onProgress({
@@ -7079,7 +7137,7 @@ function App() {
                   currentStep: '전체 데이터 영구 삭제 완료!',
                   currentCount: totalDocs,
                   totalCount: totalDocs,
-                  detail: '모든 데이터가 완전히 삭제되었습니다. 시스템을 초기 상태로 재부팅합니다.',
+                  detail: '최초 가입 아이디를 제외한 모든 데이터가 완전히 초기화되었습니다. 재부팅합니다.',
                   isComplete: true
                 });
               }

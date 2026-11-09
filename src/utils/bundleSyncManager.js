@@ -1,6 +1,6 @@
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
-import { getIdbBundle, setIdbBundle } from './idbBundleCache';
+import { getIdbBundle, setIdbBundle, removeIdbBundle, clearAllIdbBundles } from './idbBundleCache';
 
 // Supported bundle collections
 export const BUNDLE_COLLECTIONS = [
@@ -193,25 +193,29 @@ export const getLocalBundle = (companyId, colName) => {
  */
 export const setLocalBundle = (companyId, colName, list, version = null) => {
   try {
-    const serialized = JSON.stringify(list || []);
-    // Don't attempt to write to localStorage if payload exceeds 3MB to prevent QuotaExceededError
-    if (serialized.length < 3000000) {
-      localStorage.setItem(`bundle_${colName}_${companyId}`, serialized);
-      localStorage.setItem(`${colName}_${companyId}`, serialized);
-    } else {
-      // Store large bundles safely in IndexedDB
-      setIdbBundle(companyId, colName, list);
+    const safeList = Array.isArray(list) ? list : [];
+    const serialized = JSON.stringify(safeList);
+    if (safeList.length === 0) {
+      removeIdbBundle(companyId, colName);
+      localStorage.setItem(`bundle_${colName}_${companyId}`, '[]');
+      localStorage.setItem(`${colName}_${companyId}`, '[]');
+    } else if (colName === 'salesInvoices' || serialized.length >= 3000000) {
+      // Store large bundles or salesInvoices safely in IndexedDB
+      setIdbBundle(companyId, colName, safeList);
       try {
         localStorage.removeItem(`bundle_${colName}_${companyId}`);
         localStorage.removeItem(`${colName}_${companyId}`);
       } catch (e) {}
+    } else {
+      localStorage.setItem(`bundle_${colName}_${companyId}`, serialized);
+      localStorage.setItem(`${colName}_${companyId}`, serialized);
     }
     if (version !== null) {
       localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(version));
     }
   } catch (e) {
     console.warn(`[BundleSync] Error caching bundle for ${colName}:`, e);
-    setIdbBundle(companyId, colName, list);
+    setIdbBundle(companyId, colName, list || []);
     try {
       if (version !== null) {
         localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(version));
@@ -272,6 +276,7 @@ export const fetchBundle = async (companyId, colName) => {
       // automatically reconcile and recover from the collection (only once per empty state)!
       const reconciledFlagKey = `bundle_reconciled_${colName}_${companyId}`;
       if (
+        !data.isReset &&
         list.length === 0 &&
         localStorage.getItem(reconciledFlagKey) !== 'true' &&
         (colName === 'partners' || colName === 'products' || colName === 'warehouses' || colName === 'staffList')
@@ -412,6 +417,7 @@ export const saveBundle = async (companyId, colName, list) => {
       // Write master index document
       await setDoc(bundleDocRef, {
         isChunked: true,
+        isReset: false,
         chunkCount: chunks.length,
         chunkSize: CHUNK_SIZE,
         totalItems: cleanList.length,
@@ -423,6 +429,8 @@ export const saveBundle = async (companyId, colName, list) => {
       await setDoc(bundleDocRef, {
         list: cleanList,
         isChunked: false,
+        chunkCount: 0,
+        isReset: cleanList.length === 0,
         version: nextVer,
         updatedAt: nowIso
       });
@@ -574,26 +582,61 @@ export const listenBundleSyncState = (companyId, onBundleChange) => {
 };
 
 /**
- * Completely clear all bundle documents and syncState from Firestore and localStorage
+ * Completely clear all bundle documents, chunk documents, IndexedDB, and syncState from Firestore and localStorage
  */
-export const clearAllBundles = async (companyId) => {
+export const clearAllBundles = async (companyId, preservedStaffList = []) => {
   if (!companyId || !db) return;
   try {
-    const allCols = [...BUNDLE_COLLECTIONS, 'quotations'];
+    await clearAllIdbBundles();
+
+    // 1. Delete all chunk documents and any extra docs in companies/{companyId}/bundles
+    try {
+      const bundlesSnap = await getDocs(collection(db, 'companies', companyId, 'bundles'));
+      if (!bundlesSnap.empty) {
+        const chunkDocs = bundlesSnap.docs.filter(d => d.id.includes('_chunk_'));
+        for (let i = 0; i < chunkDocs.length; i += 400) {
+          const chunkBatch = writeBatch(db);
+          chunkDocs.slice(i, i + 400).forEach(d => chunkBatch.delete(d.ref));
+          await chunkBatch.commit();
+        }
+      }
+    } catch (scanErr) {
+      console.warn('[BundleSync] Error scanning bundle chunks:', scanErr);
+    }
+
+    // 2. Overwrite all bundle documents with explicit empty reset bundles (prevents legacy fallback resurrection!)
+    const allCols = Array.from(new Set([...BUNDLE_COLLECTIONS, 'quotations']));
     const batch = writeBatch(db);
+    const nowIso = new Date().toISOString();
+    const resetVer = Math.floor(Date.now() / 1000);
+    const syncStatePayload = {};
+
     allCols.forEach(colName => {
       const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
-      batch.delete(bundleDocRef);
+      const resetList = colName === 'staffList' ? preservedStaffList : [];
+      batch.set(bundleDocRef, {
+        list: resetList,
+        isChunked: false,
+        chunkCount: 0,
+        totalItems: resetList.length,
+        isReset: true,
+        version: resetVer,
+        updatedAt: nowIso
+      });
+      syncStatePayload[colName] = { version: resetVer, updatedAt: nowIso };
       try {
-        localStorage.removeItem(`bundle_${colName}_${companyId}`);
-        localStorage.removeItem(`${colName}_${companyId}`);
-        localStorage.removeItem(`bundle_ver_${colName}_${companyId}`);
+        removeIdbBundle(companyId, colName);
+        localStorage.setItem(`bundle_${colName}_${companyId}`, JSON.stringify(resetList));
+        localStorage.setItem(`${colName}_${companyId}`, JSON.stringify(resetList));
+        localStorage.setItem(`bundle_ver_${colName}_${companyId}`, String(resetVer));
+        localStorage.setItem(`bundle_reconciled_${colName}_${companyId}`, 'true');
       } catch (e) {}
     });
+
     const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
-    batch.delete(syncStateRef);
+    batch.set(syncStateRef, syncStatePayload);
     await batch.commit();
-    console.log(`[BundleSync] 🧹 All bundles and syncState completely cleared on Firestore for ${companyId}`);
+    console.log(`[BundleSync] 🧹 All bundles, chunks, IndexedDB, and syncState completely reset for ${companyId}`);
   } catch (err) {
     console.warn('[BundleSync] Error clearing all bundles:', err);
   }
