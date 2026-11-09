@@ -169,19 +169,71 @@ const OrderList = ({
     });
   }, [products]);
 
-  // [성능 최적화 및 렌더링 폭탄 방지] staffOrders 및 필터링 결과 메모이제이션
-  const staffOrders = React.useMemo(() => {
-    return (salesOrders || []).filter(o => {
-      const oDate = o.date || o.orderDate;
-      const isToday = !dateStr || oDate === dateStr || (typeof oDate === 'string' && oDate.startsWith(dateStr));
-      const isStaffUnassigned = !o.manager || o.manager === '알 수 없음' || o.manager === '-' || o.manager === '미지정';
-      const matchesStaff = selectedStaff === 'all' || 
-        o.manager === selectedStaff || 
-        o.creator === selectedStaff || 
-        isStaffUnassigned;
-      return isToday && matchesStaff;
+  // 거래처 순번(sortOrder / sequence) 기준 정렬 맵 생성
+  const partnerSortRankMap = React.useMemo(() => {
+    const sorted = [...(partners || [])].sort((a, b) => {
+      if (a.hideOrderInfo && !b.hideOrderInfo) return 1;
+      if (!a.hideOrderInfo && b.hideOrderInfo) return -1;
+
+      const hasSortA = a.sortOrder !== undefined && a.sortOrder !== null && !isNaN(Number(a.sortOrder));
+      const hasSortB = b.sortOrder !== undefined && b.sortOrder !== null && !isNaN(Number(b.sortOrder));
+      if (hasSortA && hasSortB && Number(a.sortOrder) !== Number(b.sortOrder)) {
+        return Number(a.sortOrder) - Number(b.sortOrder);
+      }
+
+      const seqA = String(a.sequence || '');
+      const seqB = String(b.sequence || '');
+      if (seqA === '-' && seqB !== '-') return 1;
+      if (seqA !== '-' && seqB === '-') return -1;
+      if (!seqA && seqB) return 1;
+      if (seqA && !seqB) return -1;
+
+      return seqA.localeCompare(seqB, undefined, { numeric: true, sensitivity: 'base' });
     });
-  }, [salesOrders, dateStr, selectedStaff]);
+
+    const byName = new Map();
+    const byId = new Map();
+    sorted.forEach((p, idx) => {
+      const rank = idx + 1;
+      if (p.id !== undefined && p.id !== null) byId.set(String(p.id), rank);
+      if (p.name) byName.set(String(p.name).trim(), rank);
+    });
+    return { byName, byId };
+  }, [partners]);
+
+  const getOrderPartnerRank = React.useCallback((order) => {
+    if (!order) return 999999;
+    if (order.partnerId !== undefined && order.partnerId !== null) {
+      const r = partnerSortRankMap.byId.get(String(order.partnerId));
+      if (r !== undefined) return r;
+    }
+    if (order.partner) {
+      const r = partnerSortRankMap.byName.get(String(order.partner).trim());
+      if (r !== undefined) return r;
+    }
+    return 999999;
+  }, [partnerSortRankMap]);
+
+  // [성능 최적화 및 렌더링 폭탄 방지] staffOrders 및 필터링 결과 메모이제이션 (거래처 순번대로 정렬)
+  const staffOrders = React.useMemo(() => {
+    return (salesOrders || [])
+      .filter(o => {
+        const oDate = o.date || o.orderDate;
+        const isToday = !dateStr || oDate === dateStr || (typeof oDate === 'string' && oDate.startsWith(dateStr));
+        const isStaffUnassigned = !o.manager || o.manager === '알 수 없음' || o.manager === '-' || o.manager === '미지정';
+        const matchesStaff = selectedStaff === 'all' || 
+          o.manager === selectedStaff || 
+          o.creator === selectedStaff || 
+          isStaffUnassigned;
+        return isToday && matchesStaff;
+      })
+      .sort((a, b) => {
+        const rankA = getOrderPartnerRank(a);
+        const rankB = getOrderPartnerRank(b);
+        if (rankA !== rankB) return rankA - rankB;
+        return Number(a.id || 0) - Number(b.id || 0);
+      });
+  }, [salesOrders, dateStr, selectedStaff, getOrderPartnerRank]);
 
   const handleToggleAllOrders = (shouldCollapse) => {
     const next = {};
@@ -1181,6 +1233,23 @@ const OrderList = ({
                             >
                               {isCollapsed ? '+' : '−'}
                             </button>
+
+                            <span style={{
+                              minWidth: '22px',
+                              height: '20px',
+                              padding: '0 5px',
+                              borderRadius: '6px',
+                              backgroundColor: '#059669',
+                              color: '#ffffff',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {oIdx + 1}
+                            </span>
 
                             <span style={{ fontWeight: 800, fontSize: '0.94rem', color: '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {order.partner}

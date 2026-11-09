@@ -86,19 +86,25 @@ const PartnerSearchInput = ({
       return false;
     })
     .sort((a, b) => {
-      // 1. 거래처명이 검색어로 시작하는 경우 최우선
+      // 1. 거래처 순번(sortOrder / sequence)이 있는 경우 순번 우선 정렬
+      const hasSortA = a.sortOrder !== undefined && a.sortOrder !== null && !isNaN(Number(a.sortOrder));
+      const hasSortB = b.sortOrder !== undefined && b.sortOrder !== null && !isNaN(Number(b.sortOrder));
+      if (hasSortA && hasSortB && Number(a.sortOrder) !== Number(b.sortOrder)) {
+        return Number(a.sortOrder) - Number(b.sortOrder);
+      }
+
+      const seqA = String(a.sequence || '');
+      const seqB = String(b.sequence || '');
+      if (seqA && seqB && seqA !== '-' && seqB !== '-') {
+        const seqComp = seqA.localeCompare(seqB, undefined, { numeric: true, sensitivity: 'base' });
+        if (seqComp !== 0) return seqComp;
+      }
+
+      // 2. 거래처명이 검색어로 시작하는 경우 우선
       const aStarts = (a.name || '').toLowerCase().startsWith(cleanSearch.toLowerCase());
       const bStarts = (b.name || '').toLowerCase().startsWith(cleanSearch.toLowerCase());
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
-
-      // 2. 거래처명 초성이 검색어(초성)로 시작하는 경우 우선
-      const aInit = getInitialSound(a.name || '');
-      const bInit = getInitialSound(b.name || '');
-      const aInitStarts = aInit.startsWith(cleanSearch);
-      const bInitStarts = bInit.startsWith(cleanSearch);
-      if (aInitStarts && !bInitStarts) return -1;
-      if (!aInitStarts && bInitStarts) return 1;
 
       // 3. 가나다순 정렬
       return (a.name || '').localeCompare(b.name || '');
