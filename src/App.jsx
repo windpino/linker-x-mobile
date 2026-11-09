@@ -3,7 +3,7 @@ import {
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
   CreditCard, FileInput, FileText, Send, FileOutput, List, BarChart2, Box, DollarSign, Database, UserPlus, Calendar as CalendarIcon, LayoutDashboard,
   CheckCircle2, Info, FileSearch, Percent, History, FileSpreadsheet,
-  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut, Warehouse, Trash2
+  Key, Search, MoreVertical, ChevronLeft, ChevronRight, Plus, Menu, LogOut, Warehouse, Trash2, Clock
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -84,6 +84,7 @@ import { db } from './firebase';
 import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
 import { safeSetDoc as setDoc, safeUpdateDoc as updateDoc, safeDeleteDoc as deleteDoc } from './utils/firestoreSafety';
 import UserSignup from './components/UserSignup';
+import { hasMenuPermission, MENU_ID_TO_PERM } from './utils/menuPermissions';
 
 const ALL_PERMS = {
   warehouse: true, staff: true, partner: true, product: true, account: true,
@@ -99,45 +100,50 @@ const ALL_FAVORITE_MENUS = [
   { id: 'warehouse',           name: '창고관리',        category: '기초자료등록',   emoji: '🏠' },
   { id: 'partner',             name: '거래처등록/관리',  category: '기초자료등록',   emoji: '🤝' },
   { id: 'product',             name: '품목등록/관리',    category: '기초자료등록',   emoji: '📦' },
-  { id: 'physical_inventory',  name: '실재고 입력',      category: '기초자료등록',   emoji: '📝' },
+  { id: 'physical_inventory',  name: '실재고 입력',      category: '재고관리',       emoji: '📝' },
   { id: 'warehouse_initial_stock', name: '창고별 기초재고 일괄설정', category: '기초자료등록', emoji: '🏢' },
-  { id: 'inventory_transfer',  name: '재고이동',        category: '기초자료등록',   emoji: '🚚' },
-  { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '기초자료등록', emoji: '🔧' },
-  { id: 'inventory_mismatch',  name: '재고 불일치 현황', category: '기초자료등록',   emoji: '⚠️' },
-  { id: 'inventory_report_1',  name: '일자별 재고현황',  category: '기초자료등록',   emoji: '🗃️' },
-  { id: 'inventory_report_2',  name: '최종 재고',       category: '기초자료등록',   emoji: '📦' },
-  { id: 'inventory_report_3',  name: '매입처별 재고현황', category: '기초자료등록',   emoji: '📋' },
+  { id: 'inventory_transfer',  name: '재고이동',        category: '재고관리',       emoji: '🚚' },
+  { id: 'inventory_adjustment', name: '재고조정 (손실처리)', category: '재고관리', emoji: '🔧' },
+  { id: 'inventory_mismatch',  name: '재고 불일치 현황', category: '재고관리',       emoji: '⚠️' },
+  { id: 'inventory_report_1',  name: '일자별 재고현황',  category: '재고관리',       emoji: '🗃️' },
+  { id: 'inventory_report_2',  name: '최종 재고',       category: '재고관리',       emoji: '📦' },
+  { id: 'inventory_report_3',  name: '매입처별 재고현황', category: '재고관리',       emoji: '📋' },
 
+  { id: 'sales_order',         name: '수주 등록',       category: '매출/주문관리',   emoji: '🛒' },
+  { id: 'order_list',          name: '수주목록',        category: '매출/주문관리',   emoji: '📝' },
+  { id: 'sales_invoice',       name: '매출 전표',       category: '매출/주문관리',   emoji: '🧾' },
+  { id: 'sales_invoice_list',  name: '매출전표내역',    category: '매출/주문관리',   emoji: '📄' },
+  { id: 'sales_ledger',        name: '매출원장',        category: '매출/주문관리',   emoji: '📊' },
+  { id: 'receivables',         name: '미수금관리',      category: '스마트지원',     emoji: '💵' },
+  { id: 'quotation',           name: '견적서',          category: '매출/주문관리',   emoji: '📑' },
+  { id: 'quotation_list',      name: '견적서 관리',      category: '매출/주문관리',   emoji: '📋' },
+
+  { id: 'purchase_order',      name: '발주 등록',      category: '매입/발주관리',   emoji: '📤' },
   { id: 'purchase_invoice',    name: '매입전표 등록',  category: '매입/발주관리',   emoji: '📥' },
   { id: 'purchase_ledger',     name: '매입전표 관리',  category: '매입/발주관리',   emoji: '📋' },
-  { id: 'purchase_order',      name: '발주 등록',      category: '매입/발주관리',   emoji: '📤' },
-
-  { id: 'sales_invoice',       name: '매출 전표',       category: '매출/수주관리',   emoji: '🧾' },
-  { id: 'sales_invoice_list',  name: '매출전표내역',    category: '매출/수주관리',   emoji: '📄' },
-  { id: 'sales_ledger',        name: '매출원장',        category: '매출/수주관리',   emoji: '📊' },
-  { id: 'sales_order',         name: '수주 등록',       category: '매출/수주관리',   emoji: '🛒' },
-  { id: 'order_list',          name: '수주목록',        category: '매출/수주관리',   emoji: '📝' },
-  { id: 'quotation',           name: '견적서',          category: '매출/수주관리',   emoji: '📑' },
-  { id: 'quotation_list',      name: '견적서 관리',      category: '매출/수주관리',   emoji: '📋' },
 
   { id: 'deposit_slip',        name: '입금전표발행',    category: '입출금관리',     emoji: '💰' },
+  { id: 'withdrawal_slip',     name: '출금전표발행',    category: '입출금관리',     emoji: '💸' },
   { id: 'account',             name: '계좌관리',        category: '입출금관리',     emoji: '💳' },
+  { id: 'cash_book',           name: '금전출납부',      category: '입출금관리',     emoji: '📓' },
+  { id: 'expense',             name: '경비출금',        category: '입출금관리',     emoji: '💸' },
   { id: 'cash_report_1',       name: '결산보고서',      category: '입출금관리',     emoji: '💰' },
   { id: 'cash_report_2',       name: '일자별 입출금 현황', category: '입출금관리',   emoji: '📈' },
   { id: 'cash_report_3',       name: '계좌별 입출금 현황', category: '입출금관리',   emoji: '📊' },
-  { id: 'cash_book',           name: '금전출납부',      category: '입출금관리',     emoji: '📓' },
-  { id: 'expense',             name: '경비출금',        category: '입출금관리',     emoji: '💸' },
 
-  { id: 'sales_report',        name: '매출보고서',      category: '스마트지원',     emoji: '📉' },
+  { id: 'sales_report',        name: '종합매출보고서',  category: '스마트지원',     emoji: '📉' },
   { id: 'order_report',        name: '수주보고서',      category: '스마트지원',     emoji: '📊' },
   { id: 'edit_delete',         name: '전표수정/삭제 보고서', category: '스마트지원', emoji: '🔍' },
   { id: 'staff_perf',          name: '직원 실적 보고서', category: '스마트지원',     emoji: '🏆' },
-  { id: 'receivables',         name: '미수금관리',      category: '스마트지원',     emoji: '💵' },
+  { id: 'recent_activity',     name: '최근 처리 현황 보고서', category: '스마트지원', emoji: '⏱️' },
   { id: 'partner_special_price', name: '거래처별 특별단가 관리', category: '스마트지원', emoji: '🏷️' },
   { id: 'tax_report',          name: '세금신고 지원 보고서', category: '스마트지원', emoji: '🧮' },
   { id: 'schedule',            name: '일정추가',        category: '스마트지원',     emoji: '📅' },
 
-  { id: 'settings',            name: '환경설정',        category: '환경설정', emoji: '⚙️' },
+  { id: 'data_manager',        name: '데이터 전체 저장/불러오기/삭제', category: '데이터관리', emoji: '💾' },
+  { id: 'settings',            name: '회사/시스템 환경설정', category: '환경설정', emoji: '⚙️' },
+  { id: 'license',             name: '정품등록',        category: '환경설정', emoji: '🔑' },
+  { id: 'partner_mall',        name: '거래처몰',        category: '환경설정', emoji: '🛍️' },
 ];
 const getFavMenuIcon = (menuId, size = 18) => {
   const icons = {
@@ -165,6 +171,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
     quotation:                  <FileSpreadsheet size={size} />,
     quotation_list:             <List size={size} />,
     deposit_slip:               <DollarSign size={size} />,
+    withdrawal_slip:            <DollarSign size={size} />,
     account:                    <CreditCard size={size} />,
     cash_report_1:              <BarChart2 size={size} />,
     cash_report_2:              <TrendingUp size={size} />,
@@ -176,6 +183,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
     edit_delete:                <FileSearch size={size} />,
     staff_perf:                 <TrendingUp size={size} />,
     receivables:                <DollarSign size={size} />,
+    recent_activity:            <Clock size={size} />,
     partner_special_price:      <Percent size={size} />,
     tax_report:                 <Percent size={size} />,
     schedule:                   <CalendarIcon size={size} />,
@@ -186,11 +194,12 @@ const getFavMenuIcon = (menuId, size = 18) => {
     purchase_ledger_excel:      <FileText size={size} />,
     settings:                   <SettingsIcon size={size} />,
     license:                    <Key size={size} />,
+    partner_mall:               <Package size={size} />,
   };
   return icons[menuId] || <Package size={size} />;
 };
 
-const FAV_CATEGORIES = ['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '환경설정'];
+const FAV_CATEGORIES = ['기초자료등록', '매출/주문관리', '매입/발주관리', '재고관리', '입출금관리', '스마트지원', '데이터관리', '환경설정'];
 
 function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -5613,6 +5622,7 @@ function App() {
               edit_delete:                () => setIsEditDeleteReportOpen(true),
               staff_perf:                 () => setIsStaffPerformanceReportOpen(true),
               receivables:                () => setIsReceivablesReportOpen(true),
+              recent_activity:            () => setIsRecentActivityModalOpen(true),
               partner_special_price:      () => setIsPartnerSpecialPriceManagerOpen(true),
               tax_report:                 () => setIsTaxReportOpen(true),
               schedule:                   () => setIsScheduleRegistrationOpen(true),
@@ -5625,6 +5635,7 @@ function App() {
               settings:                   () => setIsMobileSettingsOpen(true),
               company_settings:           () => setIsSettingsOpen(true),
               license:                    () => setIsLicenseOpen(true),
+              partner_mall:               () => setCurrentView('shopping'),
             };
             if (actions[menuId]) actions[menuId]();
           }}
@@ -7626,12 +7637,20 @@ function App() {
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
           }}
           onOpenOrderList={() => {
+            if (!hasMenuPermission(currentUser, '수주목록')) {
+              alert('[수주목록] 메뉴에 대한 접근 권한이 없습니다.');
+              return;
+            }
             setIsSalesOrderOpen(false);
             setIsInventoryTransferOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
             openOrderList();
           }}
           onOpenSalesOrder={() => {
+            if (!hasMenuPermission(currentUser, '수주 등록')) {
+              alert('[수주 등록] 메뉴에 대한 접근 권한이 없습니다.');
+              return;
+            }
             setIsOrderListOpen(false);
             setIsInventoryTransferOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
@@ -7640,6 +7659,10 @@ function App() {
             setIsSalesOrderOpen(true);
           }}
           onOpenInventoryTransfer={() => {
+            if (!hasMenuPermission(currentUser, '재고이동')) {
+              alert('[재고이동] 메뉴에 대한 접근 권한이 없습니다.');
+              return;
+            }
             setIsOrderListOpen(false);
             setIsSalesOrderOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
@@ -7714,11 +7737,18 @@ function FavoriteMenuBar({
     showToast('메뉴가 제거되었습니다.', 'info');
   };
 
+  const userAllowedMenus = React.useMemo(() => {
+    return ALL_FAVORITE_MENUS.filter(m => {
+      const perm = MENU_ID_TO_PERM[m.id];
+      return !perm || hasMenuPermission(currentUser, perm);
+    });
+  }, [currentUser]);
+
   const filteredMenus = searchTerm
-    ? ALL_FAVORITE_MENUS.filter(m =>
+    ? userAllowedMenus.filter(m =>
         m.name.includes(searchTerm) || m.category.includes(searchTerm)
       )
-    : ALL_FAVORITE_MENUS;
+    : userAllowedMenus;
 
   return (
     <div className="calendar-favorites-section" style={{
@@ -7859,7 +7889,8 @@ function FavoriteMenuBar({
                         ))
                       ) : (
                         FAV_CATEGORIES.map(cat => {
-                          const catMenus = ALL_FAVORITE_MENUS.filter(m => m.category === cat);
+                          const catMenus = userAllowedMenus.filter(m => m.category === cat);
+                          if (catMenus.length === 0) return null;
                           return (
                             <div key={cat}>
                               <div style={{ padding: '4px 10px 2px', fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>
@@ -7892,13 +7923,22 @@ function FavoriteMenuBar({
           }
 
           // 메뉴가 있는 슬롯
+          const isPermitted = !MENU_ID_TO_PERM[menuId] || hasMenuPermission(currentUser, MENU_ID_TO_PERM[menuId]);
+
           return (
             <div key={idx} style={{ position: 'relative' }}
               onMouseEnter={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '1')}
               onMouseLeave={e => e.currentTarget.querySelector('.slot-remove-btn')?.style && (e.currentTarget.querySelector('.slot-remove-btn').style.opacity = '0')}
             >
               <button
-                onClick={() => { playMenuClickSound(); onMenuAction(menuId); }}
+                onClick={() => {
+                  if (!isPermitted) {
+                    alert(`[${menuInfo.name}] 메뉴에 대한 접근 권한이 없습니다.`);
+                    return;
+                  }
+                  playMenuClickSound();
+                  onMenuAction(menuId);
+                }}
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -7908,11 +7948,12 @@ function FavoriteMenuBar({
                   gap: '4px',
                   background: 'none',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: isPermitted ? 'pointer' : 'not-allowed',
                   padding: '2px 0',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  opacity: isPermitted ? 1 : 0.4
                 }}
-                title={`${menuInfo.name} 열기`}
+                title={isPermitted ? `${menuInfo.name} 열기` : `${menuInfo.name} (접근 권한 없음)`}
               >
                 {/* 아이콘 박스 (아이콘만 박스 안에 배치) */}
                 <div style={{
@@ -8026,7 +8067,7 @@ function FavoriteSettingsModal({ currentMenus, onClose, onSave }) {
                 }}
               >
                 <option value="">없음</option>
-                {['기초자료등록', '매입/발주관리', '매출/수주관리', '입출금관리', '스마트지원', '환경설정'].map(cat => (
+                {FAV_CATEGORIES.map(cat => (
                   <optgroup key={cat} label={cat}>
                     {ALL_FAVORITE_MENUS.filter(o => o.category === cat).map(opt => (
                       <option key={opt.id} value={opt.id}>{opt.name}</option>

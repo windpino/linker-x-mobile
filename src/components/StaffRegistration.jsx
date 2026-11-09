@@ -3,41 +3,7 @@ import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy,
 import WindowModal from './WindowModal';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
-
-const MENU_PERMISSIONS = [
-  {
-    category: '기초자료등록',
-    items: ['직원관리', '창고관리', '차량관리', '거래처등록', '거래처관리', '품목등록', '품목관리', '특별단가관리']
-  },
-  {
-    category: '재고관리',
-    items: ['실재고 입력', '재고이동', '재고조정 (손실처리)', '재고 불일치 현황', '재고보고서']
-  },
-  {
-    category: '매출/수주관리',
-    items: ['매출전표', '매출전표내역', '매출원장', '매출처 미수금현황', '수주', '견적서']
-  },
-  {
-    category: '매입/발주관리',
-    items: ['매입전표', '매입원장', '매입처미지급현황', '발주']
-  },
-  {
-    category: '입출금관리',
-    items: ['입금전표발행', '계좌관리', '입출금보고서', '금전출납부', '경비출금']
-  },
-  {
-    category: '스마트지원',
-    items: ['일정', '매출보고서', '수주보고서', '전표수정/삭제 보고서', '직원 실적 보고서', '미수금 보고서', '세금신고 지원 보고서', '최근 처리 현황 보고서']
-  },
-  {
-    category: '데이터관리',
-    items: ['데이터 전체 저장/불러오기/삭제', '거래처 엑셀파일로 저장/불러오기/삭제', '품목 엑셀파일로 저장/불러오기/삭제', '매출처원장 저장/불러오기/삭제', '매입처원장 저장/불러오기/삭제', '구글스프레드시트 연동']
-  },
-  {
-    category: '환경설정&정품등록',
-    items: ['거래처몰', '환경설정', '정품등록']
-  }
-];
+import { MENU_PERMISSIONS, normalizeMenuPermissions, enrichMenuPermissions } from '../utils/menuPermissions';
 
 const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], nextSequence, staffZones = [], setStaffZones, staffJobTitles = [], setStaffJobTitles, currentUser, onDeleteStaff }) => {
   const mainWH = warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '메인창고';
@@ -65,17 +31,6 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
            uid === 'madmin' ||
            (cid && uid && uid === cid) ||
            isRepTitle(user.jobTitle);
-  };
-
-  const normalizePermissions = (perm) => {
-    if (!perm) return {};
-    if (Array.isArray(perm)) {
-      const obj = {};
-      perm.forEach(k => { if (typeof k === 'string') obj[k] = true; });
-      return obj;
-    }
-    if (typeof perm === 'object') return { ...perm };
-    return {};
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -109,7 +64,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                 ? Boolean(initialData.permissions['발주_상품금액노출']) 
                 : isRepUser(initialData)))
     ) : false,
-    permissions: normalizePermissions(initialData?.permissions)
+    permissions: normalizeMenuPermissions(initialData?.permissions)
   });
 
   // 대표 관리자 아이디 여부 판별 (최초 가입 계정 또는 최고 관리자)
@@ -160,7 +115,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         allowPastDateSlip: Boolean(initialData.allowPastDateSlip || initialData.permissions?.allowPastDateSlip || initialData.permissions?.['과거일자 전표발행']),
         allowPastDateDeposit: Boolean(initialData.allowPastDateDeposit || initialData.permissions?.allowPastDateDeposit || initialData.permissions?.['과거일자 입금전표발행']),
         showPurchasePrice: initialShowPrice,
-        permissions: normalizePermissions(initialData?.permissions)
+        permissions: normalizeMenuPermissions(initialData?.permissions)
       });
     } else {
       setFormData({
@@ -273,7 +228,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         formData.permissions?.['과거일자 입금전표발행']
       );
 
-      const enrichedPermissions = {
+      const enrichedPermissions = enrichMenuPermissions({
         ...(formData.permissions || {}),
         deleteRecentActivity: isRepAdmin ? true : isDeleteActivity,
         '최근 처리 이력 삭제 권한': isRepAdmin ? true : isDeleteActivity,
@@ -288,7 +243,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
         '과거일자 전표발행': isRepAdmin ? true : isAllowPastDateSlip,
         allowPastDateDeposit: isRepAdmin ? true : isAllowPastDateDeposit,
         '과거일자 입금전표발행': isRepAdmin ? true : isAllowPastDateDeposit
-      };
+      });
 
       if (isRepAdmin) {
         MENU_PERMISSIONS.forEach(g => {
@@ -755,7 +710,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                   }}>
                     {group.items.map(item => {
                       const isChecked = isRepAdmin ? true : Boolean(formData?.permissions?.[item]);
-                      if (item === '발주') {
+                      if (item === '발주' || item === '발주 등록') {
                         return (
                           <div key={item} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.8rem', color: isChecked ? '#1e293b' : '#475569', fontWeight: isChecked ? 600 : 500, cursor: isRepAdmin ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
@@ -835,7 +790,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
                         </label>
                       );
                     })}
-                    {group.category === '매출/수주관리' && (
+                    {(group.category === '매출/주문관리' || group.category === '매출/수주관리') && (
                       <label 
                         style={{ 
                           display: 'flex', 
