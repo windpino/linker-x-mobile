@@ -701,15 +701,17 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
 
     setIsSaving(true);
     try {
-      // 특별단가 자동 저장: 백그라운드 비동기 처리
+      // 특별단가 자동 저장: 백그라운드 지연 비동기 처리 (UI 스레드 차단 방지)
       if (invoiceData.partner && Array.isArray(invoiceData.items)) {
-        Promise.all(invoiceData.items.map(item => {
-          const prod = products?.find(p => String(p.id) === String(item.productId) || p.name === item.name);
-          if (prod && item.price !== undefined && item.price !== null) {
-            return autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
-          }
-          return Promise.resolve();
-        })).catch(console.warn);
+        setTimeout(() => {
+          Promise.all(invoiceData.items.map(item => {
+            const prod = products?.find(p => String(p.id) === String(item.productId) || p.name === item.name);
+            if (prod && item.price !== undefined && item.price !== null) {
+              return autoSaveSpecialPrice(invoiceData.partner, prod, item.price, '매출전표');
+            }
+            return Promise.resolve();
+          })).catch(console.warn);
+        }, 50);
       }
 
       const saveInv = { ...invoiceData };

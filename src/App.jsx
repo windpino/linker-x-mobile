@@ -2672,10 +2672,7 @@ function App() {
         }
       }
 
-      // 1회 단일 네트워크 커밋 (모바일 초고속 저장)
-      await batch.commit();
-
-      // UI 및 메모리 상태 즉각 반영 (옵티미스틱 업데이트)
+      // 1. UI 및 로컬 메모리 상태 즉각 반영 (완전한 낙관적 제로 레이턴시 업데이트)
       setInventory(nextInv);
 
       setInventoryTransferHistory(prev => {
@@ -2716,10 +2713,18 @@ function App() {
         localStorage.setItem('salesOrders', JSON.stringify(updatedCache));
       }
 
-      // 백그라운드 비동기 번들 저장 및 감사 로그 (사용자 대기 시간 제로화)
+      // 로컬 스토리지 캐시 즉시 동기화
+      try {
+        localStorage.setItem(`salesInvoices_${companyId}`, JSON.stringify(nextSalesInvoices));
+        localStorage.setItem(`bundle_salesInvoices_${companyId}`, JSON.stringify(nextSalesInvoices));
+        localStorage.setItem('salesInvoices', JSON.stringify(nextSalesInvoices));
+      } catch (cacheErr) {}
+
+      // 2. 백그라운드 비동기 네트워크 커밋 및 번들 저장 (사용자 UI 대기 시간 0초화)
       const isEditSale = Boolean(invData.id && salesInvoices.some(si => String(si.id) === String(invData.id)));
       (async () => {
         try {
+          await batch.commit();
           await Promise.all([
             saveBundle(companyId, 'salesInvoices', nextSalesInvoices),
             saveBundle(companyId, 'inventoryTransferHistory', nextTransfers),
@@ -2735,10 +2740,11 @@ function App() {
             })
           ]);
         } catch (bgErr) {
-          console.warn('[handleSaveSalesInvoice] Background bundle/log sync error:', bgErr);
+          console.warn('[handleSaveSalesInvoice] Background commit error:', bgErr);
         }
       })();
 
+      // 3. 화면 즉각 전환 및 모달 닫기
       if (isSilent) {
         setEditingInvoice(finalData);
       } else {
@@ -2746,9 +2752,8 @@ function App() {
         setSalesInvoiceSource(null);
         setIsSalesInvoiceOpen(false);
         setEditingInvoice(null);
-        alert('매출전표가 발행되었으며 실시간 재고에 출고 반영되었습니다.');
 
-        // 납품완료 후 매출전표가 저장된 후에는 다시 수주목록의 '대기' 창으로 복귀
+        // 납품완료 후 매출전표가 저장된 후에는 다시 수주목록의 '대기' 창으로 즉시 복귀
         if (returnToOrderList) {
           setOrderListStatusFilter('waiting');
           if (finalData.date) {
