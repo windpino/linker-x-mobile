@@ -7638,36 +7638,25 @@ function App() {
       )}
       <PwaInstallPrompt />
 
-      {/* 모바일 최적화 하단 고정 네비게이션 바 (수주등록/전표작성 등 풀스크린 편집창 열림 시 하단 버튼 겹침 방지를 위해 자동 숨김) */}
+      {/* 모바일 최적화 하단 고정 네비게이션 바 (세 가지 핵심 버튼: 수주 / + 수주등록 / 재고이동) */}
       {currentUser && !isSalesOrderOpen && !isSalesInvoiceOpen && !isPurchaseInvoiceOpen && (
         <MobileBottomNav
           currentUser={currentUser}
           activeTab={
             isSalesOrderOpen ? 'sales_order' :
             isOrderListOpen ? 'order_list' :
-            isSalesInvoiceOpen ? 'sales_invoice' :
-            isInventoryTransferOpen ? 'inventory_transfer' :
-            isMobileMenuOpen ? 'menu' : 'home'
+            isInventoryTransferOpen ? 'inventory_transfer' : 'home'
           }
-          onGoHome={() => {
-            setIsOrderListOpen(false);
-            setIsSalesOrderOpen(false);
-            setIsSalesInvoiceOpen(false);
-            setIsInventoryTransferOpen(false);
-            setIsCalendarModalOpen(false);
-            setIsWidgetModalOpen(false);
-            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
-          }}
           onOpenOrderList={() => {
-            if (!hasMobileMenuPermission(currentUser, '모바일_상차')) {
-              alert('[상차] 메뉴에 대한 접근 권한이 없습니다.');
+            if (!hasMobileMenuPermission(currentUser, '모바일_수주') && !hasMobileMenuPermission(currentUser, '모바일_상차')) {
+              alert('[수주] 메뉴에 대한 접근 권한이 없습니다.');
               return;
             }
             setIsSalesOrderOpen(false);
             setIsSalesInvoiceOpen(false);
             setIsInventoryTransferOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
-            openLoadingCheck();
+            openOrderList();
           }}
           onOpenSalesOrder={() => {
             if (!hasMobileMenuPermission(currentUser, '모바일_수주')) {
@@ -7682,17 +7671,6 @@ function App() {
             setOrderingPartner(null);
             setIsSalesOrderOpen(true);
           }}
-          onOpenSalesInvoice={() => {
-            if (!hasMobileMenuPermission(currentUser, '모바일_매출전표발행')) {
-              alert('[매출전표발행] 메뉴에 대한 접근 권한이 없습니다.');
-              return;
-            }
-            setIsOrderListOpen(false);
-            setIsSalesOrderOpen(false);
-            setIsInventoryTransferOpen(false);
-            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
-            openSalesInvoice();
-          }}
           onOpenInventoryTransfer={() => {
             if (!hasMobileMenuPermission(currentUser, '모바일_재고이동')) {
               alert('[재고이동] 메뉴에 대한 접근 권한이 없습니다.');
@@ -7703,9 +7681,6 @@ function App() {
             setIsSalesInvoiceOpen(false);
             window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
             openInventoryTransfer();
-          }}
-          onToggleMenu={() => {
-            window.dispatchEvent(new CustomEvent('linkerx_toggle_mobile_menu'));
           }}
         />
       )}

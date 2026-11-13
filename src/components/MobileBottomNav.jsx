@@ -1,14 +1,12 @@
 import React from 'react';
-import { Home, FileText, Plus, ArrowLeftRight, Menu } from 'lucide-react';
+import { ShoppingCart, Plus, ArrowLeftRight } from 'lucide-react';
 import { playButtonClickSound } from '../utils/audio';
 
 const MobileBottomNav = ({
   activeTab = 'home',
-  onGoHome,
-  onOpenOrderList,
   onOpenSalesOrder,
-  onOpenInventoryTransfer,
-  onToggleMenu
+  onOpenOrderList,
+  onOpenInventoryTransfer
 }) => {
   return (
     <nav className="mobile-bottom-nav" style={{
@@ -16,17 +14,17 @@ const MobileBottomNav = ({
       bottom: 0,
       left: 0,
       right: 0,
-      height: '56px',
+      height: '60px',
       backgroundColor: '#0f172a',
-      borderTop: '1px solid #1e293b',
-      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.4)',
+      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+      boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-around',
       zIndex: 9990,
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       userSelect: 'none',
-      backdropFilter: 'blur(10px)',
+      backdropFilter: 'blur(12px)',
       boxSizing: 'content-box'
     }}>
       <style>{`
@@ -55,22 +53,22 @@ const MobileBottomNav = ({
           transform: scale(0.92);
         }
         .mob-nav-label {
-          font-size: 0.70rem;
-          font-weight: 700;
+          font-size: 0.76rem;
+          font-weight: 800;
           letter-spacing: -0.3px;
           line-height: 1;
         }
         .mob-nav-center-fab {
-          width: 44px;
-          height: 44px;
+          width: 54px;
+          height: 54px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.55), 0 0 0 3px #0f172a;
-          margin-top: -16px;
-          border: 1.5px solid #60a5fa;
+          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.65), 0 0 0 4px #0f172a;
+          margin-top: -24px;
+          border: 2px solid #93c5fd;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .mob-nav-item:active .mob-nav-center-fab {
@@ -78,39 +76,17 @@ const MobileBottomNav = ({
         }
       `}</style>
 
-      {/* 1. 홈 */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onGoHome) onGoHome();
-        }}
-        title="홈 화면"
-      >
-        <Home 
-          size={20} 
-          color={activeTab === 'home' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'home' ? 2.5 : 2} 
-        />
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'home' ? '#38bdf8' : '#94a3b8' }}
-        >
-          홈
-        </span>
-      </button>
-
-      {/* 2. 수주·상차 목록 */}
+      {/* 1. 맨 앞: 수주(수주 목록 및 현황) */}
       <button 
         className="mob-nav-item"
         onClick={() => {
           playButtonClickSound();
           if (onOpenOrderList) onOpenOrderList();
         }}
-        title="수주목록 및 상차 체크"
+        title="수주 목록"
       >
-        <FileText 
-          size={20} 
+        <ShoppingCart 
+          size={22} 
           color={activeTab === 'order_list' ? '#38bdf8' : '#94a3b8'} 
           strokeWidth={activeTab === 'order_list' ? 2.5 : 2} 
         />
@@ -118,31 +94,31 @@ const MobileBottomNav = ({
           className="mob-nav-label" 
           style={{ color: activeTab === 'order_list' ? '#38bdf8' : '#94a3b8' }}
         >
-          수주·상차
+          수주
         </span>
       </button>
 
-      {/* 3. 빠른 수주등록 (중앙 강조 FAB) */}
+      {/* 2. 가운데: + 모양 원형 수주등록 버튼 (가장 눈에 띄는 특별한 FAB 디자인) */}
       <button 
         className="mob-nav-item"
         onClick={() => {
           playButtonClickSound();
           if (onOpenSalesOrder) onOpenSalesOrder();
         }}
-        title="빠른 수주 등록"
+        title="수주 등록 (+)"
       >
         <div className="mob-nav-center-fab">
-          <Plus size={24} color="#ffffff" strokeWidth={2.8} />
+          <Plus size={30} color="#ffffff" strokeWidth={3} />
         </div>
         <span 
           className="mob-nav-label" 
-          style={{ color: activeTab === 'sales_order' ? '#60a5fa' : '#e2e8f0', marginTop: '1px' }}
+          style={{ color: activeTab === 'sales_order' ? '#60a5fa' : '#ffffff', marginTop: '2px', fontWeight: 900 }}
         >
           수주등록
         </span>
       </button>
 
-      {/* 4. 재고이동 */}
+      {/* 3. 맨 끝: 재고이동 */}
       <button 
         className="mob-nav-item"
         onClick={() => {
@@ -152,7 +128,7 @@ const MobileBottomNav = ({
         title="재고이동"
       >
         <ArrowLeftRight 
-          size={20} 
+          size={22} 
           color={activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8'} 
           strokeWidth={activeTab === 'inventory_transfer' ? 2.5 : 2} 
         />
@@ -161,28 +137,6 @@ const MobileBottomNav = ({
           style={{ color: activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8' }}
         >
           재고이동
-        </span>
-      </button>
-
-      {/* 5. 전체메뉴 */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onToggleMenu) onToggleMenu();
-        }}
-        title="전체 메뉴 열기"
-      >
-        <Menu 
-          size={20} 
-          color={activeTab === 'menu' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'menu' ? 2.5 : 2} 
-        />
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'menu' ? '#38bdf8' : '#94a3b8' }}
-        >
-          전체메뉴
         </span>
       </button>
     </nav>
