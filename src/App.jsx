@@ -7690,7 +7690,7 @@ function App() {
 }
 
 // ─────────────────────────────────────────────────────────
-// FavoriteMenuBar – 모바일 4대 핵심 메뉴 퀵보드 (매출원장, 최종재고, 일자별 재고현황, 재고실사)
+// FavoriteMenuBar – 모바일 4대 핵심 메뉴 퀵보드 (매출원장, 최종재고, 일자별재고, 재고실사)
 // ─────────────────────────────────────────────────────────
 function FavoriteMenuBar({
   currentUser,
@@ -7702,52 +7702,48 @@ function FavoriteMenuBar({
       {
         id: 'sales_ledger',
         name: '매출원장',
-        sub: '원장 · 거래내역',
         emoji: '📊',
-        accent: '#60a5fa',
-        iconBg: 'rgba(59, 130, 246, 0.22)',
-        border: 'rgba(96, 165, 250, 0.35)',
-        glow: 'rgba(59, 130, 246, 0.15)'
+        bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+        border: '#60a5fa',
+        textColor: '#ffffff',
+        shadow: '0 4px 14px rgba(37, 99, 235, 0.4)'
       },
       {
         id: 'inventory_report_2',
         name: '최종재고',
-        sub: '현재고 · 창고별',
         emoji: '📦',
-        accent: '#34d399',
-        iconBg: 'rgba(16, 185, 129, 0.22)',
-        border: 'rgba(52, 211, 153, 0.35)',
-        glow: 'rgba(16, 185, 129, 0.15)'
+        bg: 'linear-gradient(135deg, #065f46 0%, #059669 100%)',
+        border: '#34d399',
+        textColor: '#ffffff',
+        shadow: '0 4px 14px rgba(5, 150, 105, 0.4)'
       },
       {
         id: 'inventory_report_1',
-        name: '일자별 재고현황',
-        sub: '일자별 수불부',
+        name: '일자별재고',
         emoji: '📅',
-        accent: '#38bdf8',
-        iconBg: 'rgba(14, 165, 233, 0.22)',
-        border: 'rgba(56, 189, 248, 0.35)',
-        glow: 'rgba(14, 165, 233, 0.15)'
+        bg: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)',
+        border: '#38bdf8',
+        textColor: '#ffffff',
+        shadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
       },
       {
         id: 'physical_inventory',
         name: '재고실사',
-        sub: '실사 · 차이조정',
         emoji: '📋',
-        accent: '#fbbf24',
-        iconBg: 'rgba(245, 158, 11, 0.22)',
-        border: 'rgba(251, 191, 36, 0.35)',
-        glow: 'rgba(245, 158, 11, 0.15)'
+        bg: 'linear-gradient(135deg, #854d0e 0%, #d97706 100%)',
+        border: '#fbbf24',
+        textColor: '#ffffff',
+        shadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
       }
     ];
   }, []);
 
   return (
     <div className="calendar-favorites-section" style={{
-      backgroundColor: '#111827',
+      backgroundColor: '#0f172a',
       borderRadius: '16px',
-      padding: '8px 9px',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+      padding: '8px 8px',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       position: 'relative',
       flexShrink: 0
@@ -7775,7 +7771,7 @@ function FavoriteMenuBar({
         </span>
       </div>
 
-      {/* 4칸 퀵 메뉴 그리드 (가로 4칸 슬림 컴팩트 카드) */}
+      {/* 4칸 퀵 메뉴 그리드 (설명글 제거, 이름만 굵고 또렷하게 표시, 배경과 확실히 구분되는 다채로운 버튼 컬러) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
         {fourMenus.map((menu) => (
           <button
@@ -7790,66 +7786,43 @@ function FavoriteMenuBar({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '4px',
-              padding: '8px 2px',
-              background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-              border: `1px solid ${menu.border}`,
+              padding: '9px 2px',
+              background: menu.bg,
+              border: `1.5px solid ${menu.border}`,
               borderRadius: '12px',
               cursor: 'pointer',
-              boxShadow: `0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 8px ${menu.glow}`,
+              boxShadow: menu.shadow,
               transition: 'all 0.15s ease',
               position: 'relative',
               overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = menu.accent;
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.borderColor = menu.border;
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
             }}
           >
-            {/* 아이콘 컨테이너 */}
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
-              backgroundColor: menu.iconBg,
-              border: `1px solid ${menu.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.15rem',
+            {/* 이모지 아이콘 */}
+            <span style={{
+              fontSize: '1.35rem',
               lineHeight: 1,
-              boxShadow: `0 2px 6px ${menu.glow}`
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
             }}>
               {menu.emoji}
-            </div>
+            </span>
 
-            {/* 메뉴명 */}
+            {/* 메뉴명 (설명글 없이 이름만 뚜렷하게 표시) */}
             <span style={{
-              fontSize: '0.74rem',
+              fontSize: '0.78rem',
               fontWeight: 900,
-              color: '#ffffff',
+              color: menu.textColor,
               letterSpacing: '-0.4px',
               lineHeight: 1.15,
               whiteSpace: 'nowrap',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)'
+              textShadow: '0 1px 3px rgba(0, 0, 0, 0.7)'
             }}>
               {menu.name}
-            </span>
-
-            {/* 보조 설명 */}
-            <span style={{
-              fontSize: '0.58rem',
-              fontWeight: 700,
-              color: menu.accent,
-              letterSpacing: '-0.3px',
-              lineHeight: 1.1,
-              whiteSpace: 'nowrap',
-              opacity: 0.95
-            }}>
-              {menu.sub}
             </span>
           </button>
         ))}
