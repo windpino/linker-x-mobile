@@ -7638,26 +7638,16 @@ function App() {
       )}
       <PwaInstallPrompt />
 
-      {/* 모바일 최적화 하단 고정 네비게이션 바 (세 가지 핵심 버튼: 수주 / + 수주등록 / 재고이동) */}
+      {/* 모바일 최적화 하단 고정 네비게이션 바 (세 가지 핵심 버튼: 수주 / 가운데 원형 상차 / 재고이동) */}
       {currentUser && !isSalesOrderOpen && !isSalesInvoiceOpen && !isPurchaseInvoiceOpen && (
         <MobileBottomNav
           currentUser={currentUser}
           activeTab={
             isSalesOrderOpen ? 'sales_order' :
+            (isOrderListOpen && orderListInitialTab === 'summary') ? 'loading_check' :
             isOrderListOpen ? 'order_list' :
             isInventoryTransferOpen ? 'inventory_transfer' : 'home'
           }
-          onOpenOrderList={() => {
-            if (!hasMobileMenuPermission(currentUser, '모바일_수주') && !hasMobileMenuPermission(currentUser, '모바일_상차')) {
-              alert('[수주] 메뉴에 대한 접근 권한이 없습니다.');
-              return;
-            }
-            setIsSalesOrderOpen(false);
-            setIsSalesInvoiceOpen(false);
-            setIsInventoryTransferOpen(false);
-            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
-            openOrderList();
-          }}
           onOpenSalesOrder={() => {
             if (!hasMobileMenuPermission(currentUser, '모바일_수주')) {
               alert('[수주] 메뉴에 대한 접근 권한이 없습니다.');
@@ -7670,6 +7660,17 @@ function App() {
             setEditingOrder(null);
             setOrderingPartner(null);
             setIsSalesOrderOpen(true);
+          }}
+          onOpenLoadingCheck={() => {
+            if (!hasMobileMenuPermission(currentUser, '모바일_상차')) {
+              alert('[상차] 메뉴에 대한 접근 권한이 없습니다.');
+              return;
+            }
+            setIsSalesOrderOpen(false);
+            setIsSalesInvoiceOpen(false);
+            setIsInventoryTransferOpen(false);
+            window.dispatchEvent(new CustomEvent('linkerx_close_mobile_menu'));
+            openLoadingCheck();
           }}
           onOpenInventoryTransfer={() => {
             if (!hasMobileMenuPermission(currentUser, '모바일_재고이동')) {

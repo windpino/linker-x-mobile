@@ -1,11 +1,11 @@
 import React from 'react';
-import { ShoppingCart, Plus, ArrowLeftRight } from 'lucide-react';
+import { ShoppingCart, Truck, ArrowLeftRight } from 'lucide-react';
 import { playButtonClickSound } from '../utils/audio';
 
 const MobileBottomNav = ({
   activeTab = 'home',
   onOpenSalesOrder,
-  onOpenOrderList,
+  onOpenLoadingCheck,
   onOpenInventoryTransfer
 }) => {
   return (
@@ -62,13 +62,13 @@ const MobileBottomNav = ({
           width: 54px;
           height: 54px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.65), 0 0 0 4px #0f172a;
+          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.65), 0 0 0 4px #0f172a;
           margin-top: -24px;
-          border: 2px solid #93c5fd;
+          border: 2px solid #7dd3fc;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .mob-nav-item:active .mob-nav-center-fab {
@@ -76,45 +76,45 @@ const MobileBottomNav = ({
         }
       `}</style>
 
-      {/* 1. 맨 앞: 수주(수주 목록 및 현황) */}
-      <button 
-        className="mob-nav-item"
-        onClick={() => {
-          playButtonClickSound();
-          if (onOpenOrderList) onOpenOrderList();
-        }}
-        title="수주 목록"
-      >
-        <ShoppingCart 
-          size={22} 
-          color={activeTab === 'order_list' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'order_list' ? 2.5 : 2} 
-        />
-        <span 
-          className="mob-nav-label" 
-          style={{ color: activeTab === 'order_list' ? '#38bdf8' : '#94a3b8' }}
-        >
-          수주
-        </span>
-      </button>
-
-      {/* 2. 가운데: + 모양 원형 수주등록 버튼 (가장 눈에 띄는 특별한 FAB 디자인) */}
+      {/* 1. 맨 앞: 수주(수주 등록 창) */}
       <button 
         className="mob-nav-item"
         onClick={() => {
           playButtonClickSound();
           if (onOpenSalesOrder) onOpenSalesOrder();
         }}
-        title="수주 등록 (+)"
+        title="수주 등록"
+      >
+        <ShoppingCart 
+          size={22} 
+          color={activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8'} 
+          strokeWidth={activeTab === 'sales_order' ? 2.5 : 2} 
+        />
+        <span 
+          className="mob-nav-label" 
+          style={{ color: activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8' }}
+        >
+          수주
+        </span>
+      </button>
+
+      {/* 2. 가운데: 돋보이는 원형 상차 버튼 (상차·품목합계) */}
+      <button 
+        className="mob-nav-item"
+        onClick={() => {
+          playButtonClickSound();
+          if (onOpenLoadingCheck) onOpenLoadingCheck();
+        }}
+        title="상차 체크"
       >
         <div className="mob-nav-center-fab">
-          <Plus size={30} color="#ffffff" strokeWidth={3} />
+          <Truck size={28} color="#ffffff" strokeWidth={2.4} />
         </div>
         <span 
           className="mob-nav-label" 
-          style={{ color: activeTab === 'sales_order' ? '#60a5fa' : '#ffffff', marginTop: '2px', fontWeight: 900 }}
+          style={{ color: activeTab === 'loading_check' || activeTab === 'order_list' ? '#38bdf8' : '#ffffff', marginTop: '2px', fontWeight: 900 }}
         >
-          수주등록
+          상차
         </span>
       </button>
 
