@@ -7690,36 +7690,69 @@ function App() {
 }
 
 // ─────────────────────────────────────────────────────────
-// FavoriteMenuBar – 모바일 6대 핵심 메뉴 전용 퀵보드 (수주, 상차, 재고이동, 매출전표발행, 상품등록, 거래처등록)
+// FavoriteMenuBar – 모바일 4대 핵심 메뉴 퀵보드 (매출원장, 최종재고, 일자별 재고현황, 재고실사)
 // ─────────────────────────────────────────────────────────
 function FavoriteMenuBar({
   currentUser,
   SYSTEM_NOTICES, currentNoticeIdx, noticeFade, setSelectedSystemNotice,
   onMenuAction
 }) {
-  const coreMenus = React.useMemo(() => {
-    const items = [
-      { id: 'sales_order', permKey: '모바일_수주', name: '수주', sub: '수주 등록 · 접수', emoji: '📝', accent: '#60a5fa', iconBg: 'rgba(59, 130, 246, 0.22)', border: 'rgba(96, 165, 250, 0.35)', glow: 'rgba(59, 130, 246, 0.15)' },
-      { id: 'loading_check', permKey: '모바일_상차', name: '상차', sub: '상차 · 품목 합계', emoji: '🚛', accent: '#38bdf8', iconBg: 'rgba(14, 165, 233, 0.22)', border: 'rgba(56, 189, 248, 0.35)', glow: 'rgba(14, 165, 233, 0.15)' },
-      { id: 'inventory_transfer', permKey: '모바일_재고이동', name: '재고이동', sub: '창고 · 차량 이동', emoji: '🔄', accent: '#34d399', iconBg: 'rgba(16, 185, 129, 0.22)', border: 'rgba(52, 211, 153, 0.35)', glow: 'rgba(16, 185, 129, 0.15)' },
-      { id: 'sales_invoice', permKey: '모바일_매출전표발행', name: '매출전표발행', sub: '현장 전표 즉시발행', emoji: '🧾', accent: '#a78bfa', iconBg: 'rgba(139, 92, 246, 0.22)', border: 'rgba(167, 139, 250, 0.35)', glow: 'rgba(139, 92, 246, 0.15)' },
-      { id: 'product', permKey: '모바일_상품등록', name: '상품등록', sub: '품목 조회 · 등록', emoji: '🏷️', accent: '#fbbf24', iconBg: 'rgba(245, 158, 11, 0.22)', border: 'rgba(251, 191, 36, 0.35)', glow: 'rgba(245, 158, 11, 0.15)' },
-      { id: 'partner', permKey: '모바일_거래처등록', name: '거래처등록', sub: '거래처 조회 · 등록', emoji: '🏢', accent: '#c084fc', iconBg: 'rgba(168, 85, 247, 0.22)', border: 'rgba(192, 132, 252, 0.35)', glow: 'rgba(168, 85, 247, 0.15)' }
+  const fourMenus = React.useMemo(() => {
+    return [
+      {
+        id: 'sales_ledger',
+        name: '매출원장',
+        sub: '원장 · 거래내역',
+        emoji: '📊',
+        accent: '#60a5fa',
+        iconBg: 'rgba(59, 130, 246, 0.22)',
+        border: 'rgba(96, 165, 250, 0.35)',
+        glow: 'rgba(59, 130, 246, 0.15)'
+      },
+      {
+        id: 'inventory_report_2',
+        name: '최종재고',
+        sub: '현재고 · 창고별',
+        emoji: '📦',
+        accent: '#34d399',
+        iconBg: 'rgba(16, 185, 129, 0.22)',
+        border: 'rgba(52, 211, 153, 0.35)',
+        glow: 'rgba(16, 185, 129, 0.15)'
+      },
+      {
+        id: 'inventory_report_1',
+        name: '일자별 재고현황',
+        sub: '일자별 수불부',
+        emoji: '📅',
+        accent: '#38bdf8',
+        iconBg: 'rgba(14, 165, 233, 0.22)',
+        border: 'rgba(56, 189, 248, 0.35)',
+        glow: 'rgba(14, 165, 233, 0.15)'
+      },
+      {
+        id: 'physical_inventory',
+        name: '재고실사',
+        sub: '실사 · 차이조정',
+        emoji: '📋',
+        accent: '#fbbf24',
+        iconBg: 'rgba(245, 158, 11, 0.22)',
+        border: 'rgba(251, 191, 36, 0.35)',
+        glow: 'rgba(245, 158, 11, 0.15)'
+      }
     ];
-    return items.filter(m => hasMobileMenuPermission(currentUser, m.permKey));
-  }, [currentUser]);
+  }, []);
 
   return (
     <div className="calendar-favorites-section" style={{
       backgroundColor: '#111827',
       borderRadius: '16px',
-      padding: '10px 9px',
+      padding: '8px 9px',
       boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       position: 'relative',
       flexShrink: 0
     }}>
-      {/* 롤오버 공지사항 NOTICE (어두운 배경과 매칭되는 세련된 엠버/다크 톤) */}
+      {/* 롤오버 공지사항 NOTICE */}
       <div
         onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
         style={{
@@ -7727,164 +7760,100 @@ function FavoriteMenuBar({
           alignItems: 'center',
           backgroundColor: 'rgba(30, 41, 59, 0.85)',
           border: '1px solid rgba(248, 113, 113, 0.35)',
-          borderRadius: '9px',
-          padding: '5px 9px',
+          borderRadius: '8px',
+          padding: '4px 8px',
           cursor: 'pointer',
-          marginBottom: '8px',
+          marginBottom: '7px',
           transition: 'all 0.2s',
           opacity: noticeFade ? 1 : 0,
           transform: noticeFade ? 'none' : 'translateY(-2px)'
         }}
       >
-        <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#fca5a5', marginRight: '7px', whiteSpace: 'nowrap', backgroundColor: 'rgba(239, 68, 68, 0.25)', padding: '1px 6px', borderRadius: '5px', letterSpacing: '0.5px' }}>NOTICE</span>
-        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#fca5a5', marginRight: '6px', whiteSpace: 'nowrap', backgroundColor: 'rgba(239, 68, 68, 0.25)', padding: '1px 5px', borderRadius: '4px', letterSpacing: '0.5px' }}>NOTICE</span>
+        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {SYSTEM_NOTICES[currentNoticeIdx]?.title}
         </span>
       </div>
 
-      {/* 헤더 행: 모바일 핵심 업무 타이틀 + 보조 조회 바로가기 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 2px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <Star size={14} color="#fbbf24" fill="#fbbf24" />
-          <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>모바일 6대 핵심 메뉴</h4>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          {hasMobileMenuPermission(currentUser, '모바일_수주') && (
-            <button
-              onClick={() => { playMenuClickSound(); onMenuAction('order_list'); }}
-              style={{
-                padding: '3px 8px',
-                borderRadius: '7px',
-                backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                border: '1px solid rgba(148, 163, 184, 0.35)',
-                color: '#93c5fd',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px'
-              }}
-            >
-              📋 수주목록
-            </button>
-          )}
-          {hasMobileMenuPermission(currentUser, '모바일_매출전표발행') && (
-            <button
-              onClick={() => { playMenuClickSound(); onMenuAction('sales_invoice_list'); }}
-              style={{
-                padding: '3px 8px',
-                borderRadius: '7px',
-                backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                border: '1px solid rgba(148, 163, 184, 0.35)',
-                color: '#c4b5fd',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px'
-              }}
-            >
-              📑 전표목록
-            </button>
-          )}
-        </div>
+      {/* 4칸 퀵 메뉴 그리드 (가로 4칸 슬림 컴팩트 카드) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+        {fourMenus.map((menu) => (
+          <button
+            key={menu.id}
+            onClick={() => {
+              playMenuClickSound();
+              onMenuAction(menu.id);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              padding: '8px 2px',
+              background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+              border: `1px solid ${menu.border}`,
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: `0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 8px ${menu.glow}`,
+              transition: 'all 0.15s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.borderColor = menu.accent;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.borderColor = menu.border;
+            }}
+          >
+            {/* 아이콘 컨테이너 */}
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              backgroundColor: menu.iconBg,
+              border: `1px solid ${menu.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.15rem',
+              lineHeight: 1,
+              boxShadow: `0 2px 6px ${menu.glow}`
+            }}>
+              {menu.emoji}
+            </div>
+
+            {/* 메뉴명 */}
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '-0.4px',
+              lineHeight: 1.15,
+              whiteSpace: 'nowrap',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)'
+            }}>
+              {menu.name}
+            </span>
+
+            {/* 보조 설명 */}
+            <span style={{
+              fontSize: '0.58rem',
+              fontWeight: 700,
+              color: menu.accent,
+              letterSpacing: '-0.3px',
+              lineHeight: 1.1,
+              whiteSpace: 'nowrap',
+              opacity: 0.95
+            }}>
+              {menu.sub}
+            </span>
+          </button>
+        ))}
       </div>
-
-      {/* 6대 핵심 메뉴 그리드 (어두운 배경에 세련되게 녹아드는 슬레이트/글래스모피즘 카드) */}
-      {coreMenus.length === 0 ? (
-        <div style={{
-          padding: '16px 12px',
-          textAlign: 'center',
-          backgroundColor: '#0f172a',
-          borderRadius: '10px',
-          color: '#94a3b8',
-          fontSize: '0.78rem',
-          fontWeight: 600
-        }}>
-          현재 계정에 허용된 모바일 메뉴가 없습니다. 관리자에게 모바일 메뉴 권한을 요청해 주세요.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-          {coreMenus.map((menu) => (
-            <button
-              key={menu.id}
-              onClick={() => {
-                playMenuClickSound();
-                onMenuAction(menu.id);
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                padding: '10px 4px',
-                background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-                border: `1px solid ${menu.border}`,
-                borderRadius: '14px',
-                cursor: 'pointer',
-                boxShadow: `0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 10px ${menu.glow}`,
-                transition: 'all 0.15s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.borderColor = menu.accent;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = menu.border;
-              }}
-            >
-              {/* 아이콘 원형/사각 컨테이너 */}
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '11px',
-                backgroundColor: menu.iconBg,
-                border: `1px solid ${menu.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.35rem',
-                lineHeight: 1,
-                boxShadow: `0 2px 8px ${menu.glow}`
-              }}>
-                {menu.emoji}
-              </div>
-
-              {/* 메뉴명 (어두운 배경에서 가장 또렷하게 시인성을 높인 화이트 볼드 텍스트) */}
-              <span style={{
-                fontSize: '0.84rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.15,
-                whiteSpace: 'nowrap',
-                textShadow: '0 1px 3px rgba(0, 0, 0, 0.7)'
-              }}>
-                {menu.name}
-              </span>
-
-              {/* 보조 설명 (메뉴 테마 포인트 컬러로 가독성 및 세련미 부여) */}
-              <span style={{
-                fontSize: '0.62rem',
-                fontWeight: 700,
-                color: menu.accent,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-                whiteSpace: 'nowrap',
-                opacity: 0.95
-              }}>
-                {menu.sub}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
