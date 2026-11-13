@@ -514,7 +514,7 @@ function App() {
   };
 
   const openLoadingCheck = () => {
-    openOrderList(null, null, 'all', 'summary');
+    openOrderList(currentUser?.name || null, null, 'all', 'summary');
   };
   const [isCashReportOpen, setIsCashReportOpen] = useState(false);
   const [cashReportTab, setCashReportTab] = useState('결산');
@@ -6414,6 +6414,7 @@ function App() {
         partners={partners}
         selectedDate={selectedDate} 
         staffList={staffList} 
+        warehouses={warehouses}
         currentUser={currentUser}
         initialSelectedStaff={orderListSelectedStaff}
         initialStatusFilter={orderListStatusFilter}

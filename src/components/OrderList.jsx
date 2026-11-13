@@ -10,6 +10,7 @@ const OrderList = ({
   salesInvoices = [],
   selectedDate, 
   staffList = [], 
+  warehouses = [],
   products = [], 
   partners = [],
   onEditOrder, 
@@ -29,10 +30,25 @@ const OrderList = ({
   const isSim = new URLSearchParams(window.location.search).get('mode') === 'sim';
   const isMobileView = true;
 
+  // 로그인한 사용자의 배정 창고
+  const loggedInWarehouse = React.useMemo(() => {
+    if (currentUser?.warehouse && currentUser.warehouse !== '-' && currentUser.warehouse !== '전체 창고') {
+      return currentUser.warehouse;
+    }
+    const staffMatch = staffList.find(s => s.name === currentUser?.name || s.id === currentUser?.id);
+    if (staffMatch?.warehouse && staffMatch.warehouse !== '-' && staffMatch.warehouse !== '전체 창고') {
+      return staffMatch.warehouse;
+    }
+    return '';
+  }, [currentUser, staffList]);
+
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.userId === 'admin';
   const canSelectOtherStaff = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
   const [selectedStaff, setSelectedStaff] = useState(() => {
-    if (initialSelectedStaff) return initialSelectedStaff;
+    if (initialSelectedStaff && initialSelectedStaff !== 'all') return initialSelectedStaff;
+    if (initialTab === 'summary' && currentUser?.name) return currentUser.name;
+    if (!canSelectOtherStaff && currentUser?.name) return currentUser.name;
+    if (canSelectOtherStaff && initialTab === 'summary' && currentUser?.name) return currentUser.name;
     if (canSelectOtherStaff) return 'all';
     if (currentUser?.name) return currentUser.name;
     return 'all';
@@ -43,6 +59,12 @@ const OrderList = ({
       setSelectedStaff(initialSelectedStaff);
     }
   }, [initialSelectedStaff]);
+
+  React.useEffect(() => {
+    if (activeTab === 'summary' && currentUser?.name && selectedStaff === 'all' && (!initialSelectedStaff || initialSelectedStaff === 'all')) {
+      setSelectedStaff(currentUser.name);
+    }
+  }, [activeTab, currentUser]);
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const stockOverrides = React.useRef({}); // 창고별 품목 재고 연속 클릭 오차 방지용 세션 캐시
@@ -216,6 +238,9 @@ const OrderList = ({
 
   // [성능 최적화 및 렌더링 폭탄 방지] staffOrders 및 필터링 결과 메모이제이션 (거래처 순번대로 정렬)
   const staffOrders = React.useMemo(() => {
+    const staffObj = staffList.find(s => s.name === selectedStaff);
+    const targetWarehouse = (selectedStaff === currentUser?.name ? loggedInWarehouse : null) || staffObj?.warehouse;
+
     return (salesOrders || [])
       .filter(o => {
         const oDate = o.date || o.orderDate;
@@ -224,6 +249,7 @@ const OrderList = ({
         const matchesStaff = selectedStaff === 'all' || 
           o.manager === selectedStaff || 
           o.creator === selectedStaff || 
+          (targetWarehouse && (o.inWarehouse === targetWarehouse || o.warehouse === targetWarehouse)) ||
           isStaffUnassigned;
         return isToday && matchesStaff;
       })
@@ -233,7 +259,7 @@ const OrderList = ({
         if (rankA !== rankB) return rankA - rankB;
         return Number(a.id || 0) - Number(b.id || 0);
       });
-  }, [salesOrders, dateStr, selectedStaff, getOrderPartnerRank]);
+  }, [salesOrders, dateStr, selectedStaff, loggedInWarehouse, staffList, currentUser, getOrderPartnerRank]);
 
   const handleToggleAllOrders = (shouldCollapse) => {
     const next = {};
@@ -332,7 +358,11 @@ const OrderList = ({
       currentItems[itemIdx] = { ...currentItems[itemIdx], loaded: targetLoadState };
 
       const outWarehouse = order.outWarehouse || item.outWarehouse || '본사창고';
-      const inWarehouse = order.inWarehouse || item.inWarehouse || '차량';
+      const inWarehouse = (order.inWarehouse && order.inWarehouse !== '차량' && order.inWarehouse !== '-')
+        ? order.inWarehouse
+        : (item.inWarehouse && item.inWarehouse !== '차량' && item.inWarehouse !== '-')
+          ? item.inWarehouse
+          : (loggedInWarehouse || '차량');
       const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
       const initialStock = prod?.initialStock || 0;
       const stockCacheKey = `${outWarehouse}_${item.name}`;
@@ -391,7 +421,11 @@ const OrderList = ({
 
     // 창고 명칭 안전 확보
     const outWarehouse = order.outWarehouse || item.outWarehouse || '본사창고';
-    const inWarehouse = order.inWarehouse || item.inWarehouse || '차량';
+    const inWarehouse = (order.inWarehouse && order.inWarehouse !== '차량' && order.inWarehouse !== '-')
+      ? order.inWarehouse
+      : (item.inWarehouse && item.inWarehouse !== '차량' && item.inWarehouse !== '-')
+        ? item.inWarehouse
+        : (loggedInWarehouse || '차량');
     const prod = products.find(p => p.name === item.name || p.abbreviation === item.name);
     const initialStock = prod?.initialStock || 0;
 
@@ -492,7 +526,9 @@ const OrderList = ({
     const itemsToTransfer = checkedItems;
 
     const outWH = order.outWarehouse || '본사창고';
-    const inWH = order.inWarehouse || '차량';
+    const inWH = (order.inWarehouse && order.inWarehouse !== '차량' && order.inWarehouse !== '-')
+      ? order.inWarehouse
+      : (loggedInWarehouse || '차량');
 
     const invoiceItems = itemsToTransfer.map((item, idx) => {
       const product = products.find(p => p.name === item.name || p.abbreviation === item.name);
@@ -673,7 +709,9 @@ const OrderList = ({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Users size={14} color="#3b82f6" />
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>담당:</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                  {activeTab === 'summary' ? '상차:' : '담당:'}
+                </span>
               </div>
               <select 
                 value={selectedStaff} 
@@ -687,15 +725,20 @@ const OrderList = ({
                   color: '#1e293b', 
                   outline: 'none', 
                   cursor: !canSelectOtherStaff ? 'default' : 'pointer',
-                  opacity: !canSelectOtherStaff ? 0.8 : 1
+                  opacity: !canSelectOtherStaff ? 0.8 : 1,
+                  maxWidth: '150px'
                 }}
               >
-                {canSelectOtherStaff && <option value="all">전체 직원</option>}
+                {canSelectOtherStaff && <option value="all">전체 {activeTab === 'summary' ? '창고/직원' : '직원'}</option>}
                 {currentUser?.name && !staffList.some(s => s.name === currentUser.name) && (
-                  <option value={currentUser.name}>{currentUser.name}</option>
+                  <option value={currentUser.name}>
+                    {currentUser.name}{loggedInWarehouse ? ` (${loggedInWarehouse})` : ''}
+                  </option>
                 )}
                 {staffList.filter(s => canSelectOtherStaff || s.name === currentUser?.name).map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
+                  <option key={s.id} value={s.name}>
+                    {s.name}{s.warehouse && s.warehouse !== '-' ? ` (${s.warehouse})` : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -746,7 +789,9 @@ const OrderList = ({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Users size={14} color="#94a3b8" />
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>담당자:</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>
+                  {activeTab === 'summary' ? '상차창고/담당:' : '담당자:'}
+                </span>
               </div>
               <select 
                 value={selectedStaff} 
@@ -763,12 +808,16 @@ const OrderList = ({
                   opacity: !canSelectOtherStaff ? 0.8 : 1
                 }}
               >
-                {canSelectOtherStaff && <option value="all">전체 직원</option>}
+                {canSelectOtherStaff && <option value="all">전체 {activeTab === 'summary' ? '창고/직원' : '직원'}</option>}
                 {currentUser?.name && !staffList.some(s => s.name === currentUser.name) && (
-                  <option value={currentUser.name}>{currentUser.name}</option>
+                  <option value={currentUser.name}>
+                    {currentUser.name}{loggedInWarehouse ? ` (${loggedInWarehouse})` : ''}
+                  </option>
                 )}
                 {staffList.filter(s => canSelectOtherStaff || s.name === currentUser?.name).map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
+                  <option key={s.id} value={s.name}>
+                    {s.name}{s.warehouse && s.warehouse !== '-' ? ` (${s.warehouse})` : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -869,7 +918,21 @@ const OrderList = ({
               overflow: isMobileView ? 'hidden' : undefined
             }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: isMobileView ? '8px' : '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                <span style={{ color: isMobileView ? '#1e293b' : '#fff' }}>카테고리별 품목 합계</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: isMobileView ? '#1e293b' : '#fff' }}>카테고리별 품목 합계</span>
+                  {loggedInWarehouse && (
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: isMobileView ? '#eff6ff' : 'rgba(255,255,255,0.2)',
+                      color: isMobileView ? '#2563eb' : '#fff'
+                    }}>
+                      🚛 {loggedInWarehouse}
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontWeight: 600, fontSize: '0.75rem', color: isMobileView ? '#64748b' : 'rgba(255,255,255,0.8)' }}>{dateStr}</span>
               </div>
               {hasTotals ? (
