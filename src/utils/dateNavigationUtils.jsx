@@ -33,6 +33,16 @@ export const shiftDateRange = (startDate, endDate, days = 1) => {
   };
 };
 
+export const formatMonthDay = (dateStr) => {
+  if (!dateStr) return '';
+  const clean = String(dateStr).trim().slice(0, 10).replace(/[./]/g, '-');
+  const parts = clean.split('-');
+  if (parts.length === 3) {
+    return `${parts[1]}.${parts[2]}`;
+  }
+  return dateStr;
+};
+
 /**
  * Reusable Day Navigation Button (ChevronLeft or ChevronRight)
  */
@@ -119,26 +129,47 @@ export const DateInputWithArrows = ({
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', minWidth: 0, ...style }}>
       <DateNavButton direction="prev" onClick={handlePrev} disabled={disabled} size={buttonSize} />
-      <input
-        type="date"
-        value={value || ''}
-        min={min}
-        max={max}
-        disabled={disabled}
-        onChange={(e) => onChange && onChange(e.target.value)}
-        className={className}
-        style={{
-          border: '1px solid #cbd5e1',
-          borderRadius: '6px',
-          padding: '4px 6px',
-          fontSize: '0.8rem',
-          color: '#334155',
-          outline: 'none',
-          backgroundColor: '#ffffff',
-          minWidth: 0,
-          ...inputStyle
-        }}
-      />
+      <div style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        padding: '4px 8px',
+        backgroundColor: '#ffffff',
+        minWidth: '54px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        ...inputStyle
+      }}>
+        <span style={{
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          color: '#1e293b',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          {formatMonthDay(value) || '선택'}
+        </span>
+        <input
+          type="date"
+          value={value || ''}
+          min={min}
+          max={max}
+          disabled={disabled}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          className={className}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: disabled ? 'not-allowed' : 'pointer'
+          }}
+        />
+      </div>
       <DateNavButton direction="next" onClick={handleNext} disabled={disabled} size={buttonSize} />
     </div>
   );

@@ -3,7 +3,7 @@ import { ArrowLeftRight, Search, Plus, X, Printer, FileText, Check, Trash2, Rota
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
-import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import { addDays, DateNavButton, formatMonthDay } from '../utils/dateNavigationUtils';
 import './InventoryTransfer.css';
 
 const InventoryTransfer = ({ 
@@ -376,12 +376,17 @@ const InventoryTransfer = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ width: '65px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>이동일자:</span>
-                    <input 
-                      type="date"
-                      value={transferDate}
-                      onChange={e => setTransferDate(e.target.value)}
-                      style={{ flex: 1, padding: '5px 8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}
-                    />
+                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none' }}>
+                        {formatMonthDay(transferDate)}
+                      </span>
+                      <input 
+                        type="date"
+                        value={transferDate}
+                        onChange={e => e.target.value && setTransferDate(e.target.value)}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                      />
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ width: '65px', fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>출고창고:</span>
@@ -798,19 +803,25 @@ const InventoryTransfer = ({
             <div style={{ padding: '10px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>조회기간:</span>
-                <input 
-                  type="date"
-                  value={historyStartDate}
-                  onChange={e => setHistoryStartDate(e.target.value)}
-                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                />
+                <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none' }}>{formatMonthDay(historyStartDate)}</span>
+                  <input 
+                    type="date"
+                    value={historyStartDate}
+                    onChange={e => e.target.value && setHistoryStartDate(e.target.value)}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                  />
+                </div>
                 <span>~</span>
-                <input 
-                  type="date"
-                  value={historyEndDate}
-                  onChange={e => setHistoryEndDate(e.target.value)}
-                  style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                />
+                <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none' }}>{formatMonthDay(historyEndDate)}</span>
+                  <input 
+                    type="date"
+                    value={historyEndDate}
+                    onChange={e => e.target.value && setHistoryEndDate(e.target.value)}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '6px' }}>

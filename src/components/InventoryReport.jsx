@@ -9,6 +9,7 @@ import { doc, writeBatch, setDoc } from 'firebase/firestore';
 import { saveBundle } from '../utils/bundleSyncManager';
 import { getProductWarehouseInitialStock, getProductTotalInitialStock } from '../utils/productStockUtils';
 import { BatchWarehouseInitialStockModal } from './WarehouseInitialStockModal';
+import { formatMonthDay } from '../utils/dateNavigationUtils';
 import './InventoryReport.css';
 
 const InventoryReport = ({ 
@@ -45,13 +46,34 @@ const InventoryReport = ({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   })();
+
+  // 메인 창고 & 기본 입고창고 (로그인한 사용자 창고)
+  const mainWarehouseName = useMemo(() => {
+    const mainWh = warehouses.find(w => w.isMain) || 
+      warehouses.find(w => (w.name || '').includes('메인') || (w.name || '').includes('본사')) || 
+      warehouses[0];
+    return mainWh?.name || '본사창고';
+  }, [warehouses]);
+
+  const defaultToWarehouse = useMemo(() => {
+    if (currentUser?.warehouse && currentUser.warehouse !== '-' && currentUser.warehouse !== '전체 창고' && currentUser.warehouse !== '전체창고') {
+      return currentUser.warehouse;
+    }
+    const staffMatch = staffList.find(s => s.name === currentUser?.name || s.id === currentUser?.id);
+    if (staffMatch?.warehouse && staffMatch.warehouse !== '-' && staffMatch.warehouse !== '전체 창고' && staffMatch.warehouse !== '전체창고') {
+      return staffMatch.warehouse;
+    }
+    const otherWh = warehouses.find(w => w.name !== mainWarehouseName && w.name !== '전체 창고' && w.name !== '전체창고');
+    return otherWh ? otherWh.name : (warehouses[1]?.name || '통영창고');
+  }, [warehouses, currentUser, staffList, mainWarehouseName]);
+
   const [filters, setFilters] = useState(() => {
     const savedHideZero = localStorage.getItem('linkerx_inventory_report_hide_zero');
     return {
       startDate: today,
       endDate: today,
-      fromWarehouse: '전체 창고',
-      toWarehouse: '전체 창고',
+      fromWarehouse: mainWarehouseName || '전체 창고',
+      toWarehouse: defaultToWarehouse || '전체 창고',
       selectedWarehouse: '전체 창고',
       selectedSupplier: '전체 매입처',
       categoryLarge: '전체',
@@ -61,6 +83,22 @@ const InventoryReport = ({
       hideZeroStock: savedHideZero !== null ? savedHideZero === 'true' : false
     };
   });
+
+  // 비동기로 창고 및 사용자 정보 로드 시 1회 기본값 동기화
+  const hasInitializedWarehousesRef = useRef(false);
+  useEffect(() => {
+    if (!hasInitializedWarehousesRef.current && (mainWarehouseName || defaultToWarehouse)) {
+      setFilters(prev => ({
+        ...prev,
+        fromWarehouse: (prev.fromWarehouse === '전체 창고' || !prev.fromWarehouse) ? (mainWarehouseName || '본사창고') : prev.fromWarehouse,
+        toWarehouse: (prev.toWarehouse === '전체 창고' || !prev.toWarehouse) ? (defaultToWarehouse || '전체 창고') : prev.toWarehouse
+      }));
+      hasInitializedWarehousesRef.current = true;
+    }
+  }, [mainWarehouseName, defaultToWarehouse]);
+
+  // 일자별 재고현황 필터 기본값 가리기(접기) 상태
+  const [isDailyFilterCollapsed, setIsDailyFilterCollapsed] = useState(true);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(0);
@@ -620,101 +658,205 @@ const InventoryReport = ({
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {activeTab === 'daily' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleShiftDay(-1)}
-                  title="하루 전 (-1일)"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    backgroundColor: '#fff',
-                    color: '#334155',
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <input 
-                  type="date" 
-                  value={filters.startDate} 
-                  onChange={e => setFilters({...filters, startDate: e.target.value})} 
-                  style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0, fontWeight: 600 }} 
-                />
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 800 }}>~</span>
-                <input 
-                  type="date" 
-                  value={filters.endDate} 
-                  onChange={e => setFilters({...filters, endDate: e.target.value})} 
-                  style={{ flex: 1, padding: '6px 8px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', backgroundColor: '#fff', minWidth: 0, fontWeight: 600 }} 
-                />
-                <button
-                  type="button"
-                  onClick={() => handleShiftDay(1)}
-                  title="하루 후 (+1일)"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    backgroundColor: '#fff',
-                    color: '#334155',
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
-                {['당일', '1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
-                  <button
-                    key={btn}
-                    type="button"
-                    onClick={() => handleQuickDate(btn)}
-                    style={{
-                      padding: '3px 8px', fontSize: '0.72rem', fontWeight: 700,
-                      border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
-                      color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                  >{btn}</button>
-                ))}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                <select 
-                  value={filters.fromWarehouse} 
-                  onChange={e => setFilters({...filters, fromWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
-                >
-                  <option value="전체 창고">출고: 전체 창고</option>
-                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                </select>
-
-                <select 
-                  value={filters.toWarehouse} 
-                  onChange={e => setFilters({...filters, toWarehouse: e.target.value})}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
-                >
-                  <option value="전체 창고">입고: 전체 창고</option>
-                  {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                </select>
-              </div>
+        {/* 일자별 재고현황 필터 요약 및 토글 바 (기본값: 접힘) */}
+        {activeTab === 'daily' && (
+          <div
+            onClick={() => setIsDailyFilterCollapsed(!isDailyFilterCollapsed)}
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '10px',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <Search size={13} /> 필터
+              </span>
+              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', flexShrink: 0 }}>
+                {formatMonthDay(filters.startDate)} ~ {formatMonthDay(filters.endDate)}
+              </span>
+              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {filters.fromWarehouse} ➔ {filters.toWarehouse}
+              </span>
+              {(filters.categoryLarge !== '전체' || filters.searchTerm) && (
+                <span style={{ backgroundColor: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 800, flexShrink: 0 }}>
+                  필터적용
+                </span>
+              )}
             </div>
-          )}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '6px',
+              backgroundColor: isDailyFilterCollapsed ? '#eff6ff' : '#f1f5f9',
+              color: isDailyFilterCollapsed ? '#2563eb' : '#475569',
+              border: isDailyFilterCollapsed ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+              flexShrink: 0,
+              marginLeft: '6px'
+            }}>
+              {isDailyFilterCollapsed ? <>조건 펼치기 <ChevronDown size={13} /></> : <>필터 접기 <ChevronUp size={13} /></>}
+            </div>
+          </div>
+        )}
+
+        {/* 필터 상세 박스 (일자별 탭에서는 isDailyFilterCollapsed 상태에 따라 숨김) */}
+        {(activeTab !== 'daily' || !isDailyFilterCollapsed) && (
+          <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {activeTab === 'daily' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftDay(-1)}
+                    title="하루 전 (-1일)"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#fff',
+                      color: '#334155',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <div style={{
+                    position: 'relative',
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '6px 8px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#fff'
+                  }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                      {formatMonthDay(filters.startDate)}
+                    </span>
+                    <input 
+                      type="date" 
+                      value={filters.startDate} 
+                      onChange={e => e.target.value && setFilters(prev => ({ ...prev, startDate: e.target.value }))} 
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer'
+                      }} 
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 800 }}>~</span>
+                  <div style={{
+                    position: 'relative',
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '6px 8px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: '#fff'
+                  }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                      {formatMonthDay(filters.endDate)}
+                    </span>
+                    <input 
+                      type="date" 
+                      value={filters.endDate} 
+                      onChange={e => e.target.value && setFilters(prev => ({ ...prev, endDate: e.target.value }))} 
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer'
+                      }} 
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftDay(1)}
+                    title="하루 후 (+1일)"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#fff',
+                      color: '#334155',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                  {['당일', '1주일', '한달', '상반기', '하반기', '1년'].map(btn => (
+                    <button
+                      key={btn}
+                      type="button"
+                      onClick={() => handleQuickDate(btn)}
+                      style={{
+                        padding: '3px 8px', fontSize: '0.72rem', fontWeight: 700,
+                        border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
+                        color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap'
+                      }}
+                    >{btn}</button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <select 
+                    value={filters.fromWarehouse} 
+                    onChange={e => setFilters({...filters, fromWarehouse: e.target.value})}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
+                  >
+                    <option value="전체 창고">출고: 전체 창고</option>
+                    {warehouses.map(w => <option key={w.id || w.name} value={w.name}>출고: {w.name}</option>)}
+                  </select>
+
+                  <select 
+                    value={filters.toWarehouse} 
+                    onChange={e => setFilters({...filters, toWarehouse: e.target.value})}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
+                  >
+                    <option value="전체 창고">입고: 전체 창고</option>
+                    {warehouses.map(w => <option key={w.id || w.name} value={w.name}>입고: {w.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
 
           {activeTab === 'final' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1007,6 +1149,7 @@ const InventoryReport = ({
             </div>
           )}
         </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {activeTab === 'daily' && (
@@ -1040,7 +1183,7 @@ const InventoryReport = ({
                     title="터치/더블클릭하여 재고이동 수정 창 열기"
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{row.date} {row.processedAt && `(${row.processedAt})`}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{formatMonthDay(row.date)} {row.processedAt && `(${row.processedAt})`}</span>
                       <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#2563eb' }}>{row.qty?.toLocaleString()}개</span>
                     </div>
 

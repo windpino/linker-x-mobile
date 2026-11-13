@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { List, ShoppingCart, Users, Search, Trash2, Edit3, CheckCircle2, FileText, Calendar, Phone, Check } from 'lucide-react';
 import WindowModal from './WindowModal';
-import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import { addDays, DateNavButton, formatMonthDay } from '../utils/dateNavigationUtils';
 import { playMenuClickSound, playLoadSound, playUnloadSound } from '../utils/audio';
 
 const OrderList = ({ 
@@ -639,20 +639,25 @@ const OrderList = ({
               border: '1px solid #cbd5e1'
             }}>
               <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={11} style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b' }} />
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => e.target.value && setDateStr(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  outline: 'none',
-                  width: '115px', minWidth: '115px'
-                }}
-              />
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '45px', padding: '0 4px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                  {formatMonthDay(dateStr)}
+                </span>
+                <input
+                  type="date"
+                  value={dateStr}
+                  onChange={(e) => e.target.value && setDateStr(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
               <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={11} style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b' }} />
             </div>
             <div style={{ 
@@ -708,20 +713,25 @@ const OrderList = ({
             }}>
               <Calendar size={14} color="#3b82f6" />
               <DateNavButton direction="prev" onClick={() => setDateStr(addDays(dateStr, -1))} size={12} style={{ width: '20px', height: '20px' }} />
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => e.target.value && setDateStr(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '45px', padding: '0 4px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                  {formatMonthDay(dateStr)}
+                </span>
+                <input
+                  type="date"
+                  value={dateStr}
+                  onChange={(e) => e.target.value && setDateStr(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
               <DateNavButton direction="next" onClick={() => setDateStr(addDays(dateStr, 1))} size={12} style={{ width: '20px', height: '20px' }} />
             </div>
             <div style={{ 
