@@ -67,9 +67,9 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
 
   return (
     <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', padding: '0 0 8px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '8px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
+      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', padding: '0 0 8px 0', borderBottom: '1px solid rgba(0, 0, 0, 0.08)', marginBottom: '8px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minWidth: 0 }}>
-          <Clock size={16} color="#60a5fa" style={{ flexShrink: 0 }} />
+          <Clock size={16} color="#2563eb" style={{ flexShrink: 0 }} />
           {onDateSelect && (
             <button
               type="button"
@@ -86,9 +86,9 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
                 height: '22px',
                 padding: 0,
                 borderRadius: '50%',
-                border: '1px solid rgba(148, 163, 184, 0.3)',
-                backgroundColor: 'rgba(30, 41, 59, 0.8)',
-                color: '#e2e8f0',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#f1f5f9',
+                color: '#1e293b',
                 cursor: 'pointer',
                 flexShrink: 0
               }}
@@ -97,7 +97,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
               <ChevronLeft size={13} />
             </button>
           )}
-          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', letterSpacing: '-0.3px' }}>
+          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#000000', whiteSpace: 'nowrap', letterSpacing: '-0.3px' }}>
             {formattedDate} 일정
           </span>
           {onDateSelect && (
@@ -116,9 +116,9 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
                 height: '22px',
                 padding: 0,
                 borderRadius: '50%',
-                border: '1px solid rgba(148, 163, 184, 0.3)',
-                backgroundColor: 'rgba(30, 41, 59, 0.8)',
-                color: '#e2e8f0',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#f1f5f9',
+                color: '#1e293b',
                 cursor: 'pointer',
                 flexShrink: 0
               }}
