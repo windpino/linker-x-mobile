@@ -236,6 +236,29 @@
   border-color: #334155 !important;
 }
 
+/* 매출원장 등 특정 검색창은 흰색 배경 + 검정 글자 유지 */
+.window-content-area input.sales-ledger-search-input,
+input.sales-ledger-search-input {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+.window-content-area input.sales-ledger-search-input::placeholder,
+input.sales-ledger-search-input::placeholder {
+  color: #64748b !important;
+}
+.window-content-area .sales-ledger-suggestions,
+.sales-ledger-suggestions {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+.window-content-area .sales-ledger-suggestions div,
+.sales-ledger-suggestions div {
+  color: #000000 !important;
+}
+
 .resize-handle-indicator {
   position: absolute;
   bottom: 2px;

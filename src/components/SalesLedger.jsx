@@ -3,7 +3,7 @@ import { Printer, Download, Search, RotateCw, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { matchesInitialSound } from '../utils/koreanUtils';
 import { exportToExcel } from '../utils/excelUtils';
-import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import { addDays, DateNavButton, formatMonthDay } from '../utils/dateNavigationUtils';
 
 const SalesLedger = ({ 
   onClose, 
@@ -255,11 +255,10 @@ const SalesLedger = ({
 
   const balance = carriedForward + totalSales - totalReceived;
 
-  // 일자 표시: YYYY-MM-DD -> MM-DD
+  // 일자 표시: YYYY-MM-DD -> MM.DD (월.일만 표기)
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '';
-    const parts = String(dateStr).split('-');
-    return parts.length === 3 ? `${parts[1]}-${parts[2]}` : dateStr;
+    return formatMonthDay(dateStr);
   };
 
   const handleExcelExport = () => {
@@ -321,24 +320,37 @@ const SalesLedger = ({
                 size={11}
                 style={{ width: '18px', height: '28px', padding: 0 }}
               />
-              <input 
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: '4px 2px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '5px',
-                  background: '#ffffff',
-                  color: '#1e293b',
-                  outline: 'none',
-                  textAlign: 'center'
-                }}
-              />
+              <div style={{
+                position: 'relative',
+                flex: 1,
+                minWidth: 0,
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 4px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '5px',
+                backgroundColor: '#ffffff'
+              }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                  {formatMonthDay(startDate)}
+                </span>
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={e => e.target.value && setStartDate(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
               <DateNavButton
                 direction="next"
                 onClick={() => setStartDate(prev => addDays(prev, 1))}
@@ -357,24 +369,37 @@ const SalesLedger = ({
                 size={11}
                 style={{ width: '18px', height: '28px', padding: 0 }}
               />
-              <input 
-                type="date"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: '4px 2px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '5px',
-                  background: '#ffffff',
-                  color: '#1e293b',
-                  outline: 'none',
-                  textAlign: 'center'
-                }}
-              />
+              <div style={{
+                position: 'relative',
+                flex: 1,
+                minWidth: 0,
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 4px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '5px',
+                backgroundColor: '#ffffff'
+              }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                  {formatMonthDay(endDate)}
+                </span>
+                <input 
+                  type="date"
+                  value={endDate}
+                  onChange={e => e.target.value && setEndDate(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
               <DateNavButton
                 direction="next"
                 onClick={() => setEndDate(prev => addDays(prev, 1))}
@@ -460,6 +485,7 @@ const SalesLedger = ({
             <div style={{ position: 'relative', flex: 1, minWidth: 0 }} ref={searchRef}>
               <input
                 type="text"
+                className="sales-ledger-search-input"
                 value={searchText}
                 placeholder="거래처 검색..."
                 onChange={e => {
@@ -476,9 +502,9 @@ const SalesLedger = ({
                   border: '1px solid #cbd5e1',
                   outline: 'none',
                   boxSizing: 'border-box',
-                  fontWeight: selectedPartner ? 700 : 500,
-                  color: selectedPartner ? '#1d4ed8' : '#1e293b',
-                  background: '#ffffff'
+                  fontWeight: selectedPartner ? 800 : 600,
+                  color: '#000000',
+                  backgroundColor: '#ffffff'
                 }}
               />
               {searchText ? (
@@ -497,7 +523,7 @@ const SalesLedger = ({
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#94a3b8',
+                    color: '#64748b',
                     padding: '2px',
                     display: 'flex',
                     alignItems: 'center'
@@ -513,27 +539,30 @@ const SalesLedger = ({
                     right: '8px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#94a3b8',
+                    color: '#64748b',
                     pointerEvents: 'none'
                   }}
                 />
               )}
 
               {showSuggestions && suggestions.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  zIndex: 9999,
-                  background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  marginTop: '4px'
-                }}>
+                <div 
+                  className="sales-ledger-suggestions"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 9999,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.18)',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    marginTop: '4px'
+                  }}
+                >
                   <div
                     onMouseDown={() => {
                       setSelectedPartner('');
@@ -545,7 +574,8 @@ const SalesLedger = ({
                       cursor: 'pointer',
                       fontSize: '0.82rem',
                       fontWeight: 700,
-                      color: '#3b82f6',
+                      color: '#2563eb',
+                      backgroundColor: '#ffffff',
                       borderBottom: '1px solid #f1f5f9'
                     }}
                   >
@@ -563,12 +593,13 @@ const SalesLedger = ({
                         padding: '8px 10px',
                         cursor: 'pointer',
                         fontSize: '0.82rem',
-                        fontWeight: 500,
+                        fontWeight: 600,
                         borderBottom: '1px solid #f1f5f9',
-                        color: '#1e293b'
+                        color: '#000000',
+                        backgroundColor: '#ffffff'
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
                     >
                       {pName}
                     </div>
@@ -811,6 +842,30 @@ const SalesLedger = ({
       </div>
 
       <style>{`
+        /* 검색창 흰색 배경 & 검정 글자 강제 지정 */
+        .sales-ledger-search-input,
+        .window-content-area input.sales-ledger-search-input {
+          background-color: #ffffff !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+        .sales-ledger-search-input::placeholder,
+        .window-content-area input.sales-ledger-search-input::placeholder {
+          color: #64748b !important;
+        }
+        .sales-ledger-suggestions,
+        .window-content-area .sales-ledger-suggestions {
+          background-color: #ffffff !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+        .sales-ledger-suggestions div,
+        .window-content-area .sales-ledger-suggestions div {
+          color: #000000 !important;
+        }
+
         @media print {
           .sales-ledger-controls,
           .window-header,
