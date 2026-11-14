@@ -236,7 +236,27 @@
   border-color: #334155 !important;
 }
 
-/* 매출원장 등 특정 검색창은 흰색 배경 + 검정 글자 유지 */
+/* ========================================================
+   모바일 모든 메뉴 검색란: 배경색 흰색, 글자색 검정
+   ======================================================== */
+.window-content-area input[placeholder*="검색"],
+.window-content-area input[type="search"],
+.window-content-area input[class*="search"],
+.window-content-area input[id*="search"],
+.window-content-area input[name*="search"],
+.window-content-area .search-input input,
+.window-content-area .search-input-v3 input,
+.window-content-area .search-box input,
+.window-content-area .filter-search-row input,
+input[placeholder*="검색"],
+input[type="search"],
+input[class*="search"],
+input[id*="search"],
+input[name*="search"],
+.search-input input,
+.search-input-v3 input,
+.search-box input,
+.filter-search-row input,
 .window-content-area input.sales-ledger-search-input,
 input.sales-ledger-search-input {
   background-color: #ffffff !important;
@@ -244,10 +264,31 @@ input.sales-ledger-search-input {
   color: #000000 !important;
   border: 1px solid #cbd5e1 !important;
 }
+
+.window-content-area input[placeholder*="검색"]::placeholder,
+.window-content-area input[type="search"]::placeholder,
+.window-content-area input[class*="search"]::placeholder,
+.window-content-area input[id*="search"]::placeholder,
+.window-content-area input[name*="search"]::placeholder,
+.window-content-area .search-input input::placeholder,
+.window-content-area .search-input-v3 input::placeholder,
+.window-content-area .search-box input::placeholder,
+.window-content-area .filter-search-row input::placeholder,
+input[placeholder*="검색"]::placeholder,
+input[type="search"]::placeholder,
+input[class*="search"]::placeholder,
+input[id*="search"]::placeholder,
+input[name*="search"]::placeholder,
+.search-input input::placeholder,
+.search-input-v3 input::placeholder,
+.search-box input::placeholder,
+.filter-search-row input::placeholder,
 .window-content-area input.sales-ledger-search-input::placeholder,
 input.sales-ledger-search-input::placeholder {
   color: #64748b !important;
+  opacity: 1 !important;
 }
+
 .window-content-area .sales-ledger-suggestions,
 .sales-ledger-suggestions {
   background-color: #ffffff !important;

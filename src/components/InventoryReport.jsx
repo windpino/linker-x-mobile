@@ -1144,7 +1144,7 @@ const InventoryReport = ({
                   placeholder="품목명 검색..." 
                   value={filters.searchTerm} 
                   onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-                  style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #334155', borderRadius: '6px', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', color: '#000000', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
