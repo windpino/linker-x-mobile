@@ -839,8 +839,8 @@ const OrderList = ({
               onClick={() => setActiveTab('summary')}
               style={{
                 flex: 1,
-                padding: '8px 0',
-                fontSize: '0.8rem',
+                padding: '9px 0',
+                fontSize: '0.88rem',
                 fontWeight: 700,
                 color: activeTab === 'summary' ? '#ffffff' : '#64748b',
                 backgroundColor: activeTab === 'summary' ? '#2563eb' : 'transparent',
@@ -854,15 +854,15 @@ const OrderList = ({
                 gap: '6px'
               }}
             >
-              <List size={14} />
+              <List size={15} />
               🚛 상차 · 품목 합계
             </button>
             <button 
               onClick={() => setActiveTab('list')}
               style={{
                 flex: 1,
-                padding: '8px 0',
-                fontSize: '0.8rem',
+                padding: '9px 0',
+                fontSize: '0.88rem',
                 fontWeight: 700,
                 color: activeTab === 'list' ? '#ffffff' : '#64748b',
                 backgroundColor: activeTab === 'list' ? '#2563eb' : 'transparent',
@@ -876,7 +876,7 @@ const OrderList = ({
                 gap: '6px'
               }}
             >
-              <ShoppingCart size={14} />
+              <ShoppingCart size={15} />
               📋 수주 · 상차 목록 ({filteredOrders.length})
             </button>
           </div>
@@ -1020,28 +1020,28 @@ const OrderList = ({
                                 title={`${name} 클릭 시 해당 품목 전체 ${isAllLoaded ? '상차 취소' : '상차'}`}
                               >
                                 {/* 1) 번호 */}
-                                <span style={{ width: '18px', fontSize: '0.76rem', fontWeight: 800, color: isAllLoaded ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
+                                <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isAllLoaded ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
                                   {idx + 1}
                                 </span>
 
                                 {/* 2) 상차 체크 원 */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', flexShrink: 0 }}>
                                   {isAllLoaded ? (
                                     <div style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '18px',
+                                      height: '18px',
                                       borderRadius: '50%',
                                       backgroundColor: '#10b981',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}>
-                                      <Check size={11} color="#ffffff" strokeWidth={3.5} />
+                                      <Check size={12} color="#ffffff" strokeWidth={3.5} />
                                     </div>
                                   ) : isPartiallyLoaded ? (
                                     <div style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '18px',
+                                      height: '18px',
                                       borderRadius: '50%',
                                       border: '2px solid #f59e0b',
                                       backgroundColor: '#fffbeb',
@@ -1049,12 +1049,12 @@ const OrderList = ({
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}>
-                                      <span style={{ fontSize: '9px', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>-</span>
+                                      <span style={{ fontSize: '10px', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>-</span>
                                     </div>
                                   ) : (
                                     <div style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '18px',
+                                      height: '18px',
                                       borderRadius: '50%',
                                       border: '2px solid #cbd5e1',
                                       backgroundColor: '#ffffff'
@@ -1066,8 +1066,8 @@ const OrderList = ({
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <span style={{
-                                      fontSize: '0.58rem',
-                                      padding: '1px 4px',
+                                      fontSize: '0.68rem',
+                                      padding: '1px 5px',
                                       borderRadius: '4px',
                                       backgroundColor: catStyle.bg,
                                       border: `1px solid ${catStyle.border}`,
@@ -1081,9 +1081,9 @@ const OrderList = ({
                                     </span>
                                   </div>
                                   <span style={{
-                                    fontWeight: 700,
+                                    fontWeight: 800,
                                     color: isAllLoaded ? '#ffffff' : '#1e293b',
-                                    fontSize: '0.84rem',
+                                    fontSize: '1.02rem',
                                     lineHeight: 1.3,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -1095,9 +1095,9 @@ const OrderList = ({
 
                                 {/* 5) 수량 박스 */}
                                 <div style={{
-                                  minWidth: '36px',
-                                  height: '26px',
-                                  padding: '0 6px',
+                                  minWidth: '40px',
+                                  height: '28px',
+                                  padding: '0 8px',
                                   borderRadius: '7px',
                                   backgroundColor: isAllLoaded ? '#1e293b' : '#f1f5f9',
                                   border: isAllLoaded ? '1px solid #334155' : '1px solid #e2e8f0',
@@ -1107,7 +1107,7 @@ const OrderList = ({
                                   flexShrink: 0
                                 }}>
                                   <span style={{
-                                    fontSize: '0.82rem',
+                                    fontSize: '0.96rem',
                                     fontWeight: 800,
                                     color: isAllLoaded ? '#ffffff' : '#0f172a'
                                   }}>
@@ -1156,8 +1156,8 @@ const OrderList = ({
                   onClick={() => setStatusFilter('all')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 8px',
-                    fontSize: '0.74rem',
+                    padding: '7px 8px',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -1173,8 +1173,8 @@ const OrderList = ({
                   onClick={() => setStatusFilter('waiting')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 8px',
-                    fontSize: '0.74rem',
+                    padding: '7px 8px',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -1190,8 +1190,8 @@ const OrderList = ({
                   onClick={() => setStatusFilter('completed')}
                   style={{
                     flex: isMobileView ? 1 : 'none',
-                    padding: '6px 8px',
-                    fontSize: '0.74rem',
+                    padding: '7px 8px',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -1210,8 +1210,8 @@ const OrderList = ({
                     handleToggleAllOrders(!allCollapsed);
                   }}
                   style={{
-                    padding: '6px 8px',
-                    fontSize: '0.72rem',
+                    padding: '7px 10px',
+                    fontSize: '0.8rem',
                     fontWeight: 800,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -1309,13 +1309,13 @@ const OrderList = ({
                             </button>
 
                             <span style={{
-                              minWidth: '22px',
-                              height: '20px',
-                              padding: '0 5px',
+                              minWidth: '24px',
+                              height: '22px',
+                              padding: '0 6px',
                               borderRadius: '6px',
                               backgroundColor: '#059669',
                               color: '#ffffff',
-                              fontSize: '0.72rem',
+                              fontSize: '0.8rem',
                               fontWeight: 800,
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1325,18 +1325,18 @@ const OrderList = ({
                               {oIdx + 1}
                             </span>
 
-                            <span style={{ fontWeight: 800, fontSize: '0.94rem', color: '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {order.partner}
                             </span>
 
                             {isCollapsed && (
                               <span style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.76rem',
                                 fontWeight: 700,
                                 color: '#059669',
                                 backgroundColor: '#ffffff',
                                 border: '1px solid #bbf7d0',
-                                padding: '1px 6px',
+                                padding: '2px 7px',
                                 borderRadius: '8px',
                                 flexShrink: 0
                               }}>
@@ -1428,28 +1428,28 @@ const OrderList = ({
                                 }}
                               >
                                 {/* 1) Item Index */}
-                                <span style={{ width: '18px', fontSize: '0.76rem', fontWeight: 800, color: isProcessed ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
+                                <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isProcessed ? '#94a3b8' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
                                   {iIdx + 1}
                                 </span>
 
                                 {/* 2) Checkmark Circle */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', flexShrink: 0 }}>
                                   {isProcessed ? (
                                     <div style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '18px',
+                                      height: '18px',
                                       borderRadius: '50%',
                                       backgroundColor: '#10b981',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}>
-                                      <Check size={11} color="#ffffff" strokeWidth={3.5} />
+                                      <Check size={12} color="#ffffff" strokeWidth={3.5} />
                                     </div>
                                   ) : (
                                     <div style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '18px',
+                                      height: '18px',
                                       borderRadius: '50%',
                                       border: '2px solid #cbd5e1',
                                       backgroundColor: '#ffffff'
@@ -1461,8 +1461,8 @@ const OrderList = ({
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <span style={{
-                                      fontSize: '0.58rem',
-                                      padding: '1px 4px',
+                                      fontSize: '0.68rem',
+                                      padding: '1px 5px',
                                       borderRadius: '4px',
                                       backgroundColor: catStyle.bg,
                                       border: `1px solid ${catStyle.border}`,
@@ -1477,9 +1477,9 @@ const OrderList = ({
                                   </div>
                                   <span 
                                     style={{
-                                      fontWeight: 700,
+                                      fontWeight: 800,
                                       color: isProcessed ? '#ffffff' : '#1e293b',
-                                      fontSize: '0.84rem',
+                                      fontSize: '1.02rem',
                                       lineHeight: 1.3,
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
@@ -1493,9 +1493,9 @@ const OrderList = ({
 
                                 {/* 5) Quantity Box */}
                                 <div style={{
-                                  minWidth: '32px',
-                                  height: '26px',
-                                  padding: '0 6px',
+                                  minWidth: '36px',
+                                  height: '28px',
+                                  padding: '0 8px',
                                   borderRadius: '7px',
                                   backgroundColor: isProcessed ? '#1e293b' : '#f1f5f9',
                                   border: isProcessed ? '1px solid #334155' : '1px solid #e2e8f0',
@@ -1504,7 +1504,7 @@ const OrderList = ({
                                   justifyContent: 'center',
                                   color: isProcessed ? '#ffffff' : '#1e293b',
                                   fontWeight: 800,
-                                  fontSize: '0.82rem',
+                                  fontSize: '0.96rem',
                                   flexShrink: 0
                                 }}>
                                   {item.qty}
@@ -1520,9 +1520,9 @@ const OrderList = ({
                                     border: '1px solid rgba(245, 158, 11, 0.5)',
                                     backgroundColor: 'rgba(245, 158, 11, 0.15)',
                                     color: '#d97706',
-                                    padding: '3px 6px',
+                                    padding: '3px 7px',
                                     borderRadius: '5px',
-                                    fontSize: '0.66rem',
+                                    fontSize: '0.74rem',
                                     fontWeight: 800,
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
@@ -1939,12 +1939,12 @@ const OrderList = ({
                                       style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }} 
                                     />
                                     <span style={{ 
-                                      fontSize: '0.62rem', 
-                                      padding: '1px 5px', 
+                                      fontSize: '0.72rem', 
+                                      padding: '2px 6px', 
                                       borderRadius: '4px', 
                                       backgroundColor: isProcessed ? 'rgba(255, 255, 255, 0.12)' : ((item.category || '기타') === '미등록상품' ? '#fee2e2' : '#e2e8f0'), 
                                       color: isProcessed ? '#93c5fd' : getCategoryColor(item.category || '기타'), 
-                                      fontWeight: 700,
+                                      fontWeight: 800,
                                       flexShrink: 0,
                                       whiteSpace: 'nowrap'
                                     }}>
@@ -1954,9 +1954,9 @@ const OrderList = ({
                                       onClick={(e) => handleShowStock(e, order, item, iIdx)}
                                       title="클릭 시 재고 확인"
                                       style={{ 
-                                        fontWeight: 700, 
+                                        fontWeight: 800, 
                                         color: isProcessed ? '#f8fafc' : '#1e293b', 
-                                        fontSize: '0.84rem',
+                                        fontSize: '1.02rem',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap',
@@ -1971,13 +1971,13 @@ const OrderList = ({
 
                                   {/* Right part: Quantity + Status Badge + Stock Button */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                                    <span style={{ fontWeight: 800, color: isProcessed ? '#fbbf24' : '#2563eb', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontWeight: 800, color: isProcessed ? '#fbbf24' : '#2563eb', fontSize: '1.02rem', whiteSpace: 'nowrap' }}>
                                       {item.qty.toLocaleString()}개
                                     </span>
                                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                                       {isProcessed ? (
                                         <span 
-                                          style={{ fontSize: '0.7rem', backgroundColor: '#10b981', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.78rem', backgroundColor: '#10b981', color: '#ffffff', padding: '3px 7px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                           title="상차 취소"
                                         >
@@ -1985,21 +1985,21 @@ const OrderList = ({
                                         </span>
                                       ) : (
                                         <span 
-                                          style={{ fontSize: '0.7rem', border: '1px solid #3b82f6', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                          style={{ fontSize: '0.78rem', border: '1px solid #3b82f6', backgroundColor: '#eff6ff', color: '#2563eb', padding: '3px 6px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                           onClick={(e) => { e.stopPropagation(); handleItemMove(order, item, iIdx); }}
                                         >
                                           상차
                                         </span>
                                       )}
                                       <span 
-                                        style={{ fontSize: '0.7rem', border: isProcessed ? '1px solid #475569' : '1px solid #cbd5e1', backgroundColor: isProcessed ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isProcessed ? '#cbd5e1' : '#64748b', padding: '2px 5px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                        style={{ fontSize: '0.78rem', border: isProcessed ? '1px solid #475569' : '1px solid #cbd5e1', backgroundColor: isProcessed ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isProcessed ? '#cbd5e1' : '#64748b', padding: '3px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                         onClick={(e) => handleShowStock(e, order, item, iIdx)}
                                         title="재고 상태 확인"
                                       >
                                         재고
                                       </span>
                                       <span 
-                                        style={{ fontSize: '0.7rem', border: '1px solid #f59e0b', backgroundColor: isProcessed ? 'rgba(245,158,11,0.1)' : '#fffbeb', color: '#d97706', padding: '2px 5px', borderRadius: '4px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                        style={{ fontSize: '0.78rem', border: '1px solid #f59e0b', backgroundColor: isProcessed ? 'rgba(245,158,11,0.1)' : '#fffbeb', color: '#d97706', padding: '3px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}
                                         onClick={(e) => { e.stopPropagation(); onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name); }}
                                       >
                                         불일치

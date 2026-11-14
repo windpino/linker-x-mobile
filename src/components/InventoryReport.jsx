@@ -85,15 +85,19 @@ const InventoryReport = ({
   });
 
   // 비동기로 창고 및 사용자 정보 로드 시 1회 기본값 동기화
-  const hasInitializedWarehousesRef = useRef(false);
+  // 비동기로 창고 및 사용자 정보 로드 시 기본값 동기화 (메인창고 / 로그인 사용자 창고)
   useEffect(() => {
-    if (!hasInitializedWarehousesRef.current && (mainWarehouseName || defaultToWarehouse)) {
-      setFilters(prev => ({
-        ...prev,
-        fromWarehouse: (prev.fromWarehouse === '전체 창고' || !prev.fromWarehouse) ? (mainWarehouseName || '본사창고') : prev.fromWarehouse,
-        toWarehouse: (prev.toWarehouse === '전체 창고' || !prev.toWarehouse) ? (defaultToWarehouse || '전체 창고') : prev.toWarehouse
-      }));
-      hasInitializedWarehousesRef.current = true;
+    if (mainWarehouseName || defaultToWarehouse) {
+      setFilters(prev => {
+        const needsFrom = !prev.fromWarehouse || prev.fromWarehouse === '전체 창고' || prev.fromWarehouse === '전체창고';
+        const needsTo = !prev.toWarehouse || prev.toWarehouse === '전체 창고' || prev.toWarehouse === '전체창고';
+        if (!needsFrom && !needsTo) return prev;
+        return {
+          ...prev,
+          fromWarehouse: needsFrom ? (mainWarehouseName || '본사창고') : prev.fromWarehouse,
+          toWarehouse: needsTo ? (defaultToWarehouse || '통영창고') : prev.toWarehouse
+        };
+      });
     }
   }, [mainWarehouseName, defaultToWarehouse]);
 
@@ -609,18 +613,18 @@ const InventoryReport = ({
         contentPadding="0"
         noScroll
       >
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#0f172a', color: '#f8fafc' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BarChart3 size={18} color="#3b82f6" strokeWidth={2.5} />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BarChart3 size={18} color="#60a5fa" strokeWidth={2.5} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: 0, lineHeight: 1.2 }}>
                 {currentTitle}
               </h2>
-              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
+              <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: 0 }}>
                 {activeTab === 'daily' ? `총 ${filteredDailyData.length}건 이동` : activeTab === 'final' ? `총 ${filteredFinalData.length}개 품목` : `총 ${filteredPartnerData.length}개 품목`}
               </p>
             </div>
@@ -632,7 +636,7 @@ const InventoryReport = ({
                 <button 
                   type="button" 
                   onClick={() => setIsBatchWarehouseModalOpen(true)}
-                  style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #86efac', backgroundColor: '#f0fdf4', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                  style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
                   title="창고별 기초재고 일괄 설정"
                 >
                   <Warehouse size={12} /> 창고별설정
@@ -649,10 +653,10 @@ const InventoryReport = ({
                 )}
               </>
             )}
-            <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+            <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               <Printer size={12} /> 인쇄
             </button>
-            <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+            <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               <Download size={12} /> 엑셀
             </button>
           </div>
@@ -663,32 +667,32 @@ const InventoryReport = ({
           <div
             onClick={() => setIsDailyFilterCollapsed(!isDailyFilterCollapsed)}
             style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
+              backgroundColor: '#1e293b',
+              border: '1px solid #334155',
               borderRadius: '10px',
               padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
               userSelect: 'none'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                 <Search size={13} /> 필터
               </span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', flexShrink: 0 }}>
+              <span style={{ color: '#475569', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc', flexShrink: 0 }}>
                 {formatMonthDay(filters.startDate)} ~ {formatMonthDay(filters.endDate)}
               </span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#475569', fontSize: '0.75rem', flexShrink: 0 }}>|</span>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {filters.fromWarehouse} ➔ {filters.toWarehouse}
               </span>
               {(filters.categoryLarge !== '전체' || filters.searchTerm) && (
-                <span style={{ backgroundColor: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 800, flexShrink: 0 }}>
+                <span style={{ backgroundColor: 'rgba(37, 99, 235, 0.25)', color: '#60a5fa', padding: '1px 5px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 800, flexShrink: 0 }}>
                   필터적용
                 </span>
               )}
@@ -701,9 +705,9 @@ const InventoryReport = ({
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: '6px',
-              backgroundColor: isDailyFilterCollapsed ? '#eff6ff' : '#f1f5f9',
-              color: isDailyFilterCollapsed ? '#2563eb' : '#475569',
-              border: isDailyFilterCollapsed ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+              backgroundColor: isDailyFilterCollapsed ? 'rgba(37, 99, 235, 0.25)' : '#334155',
+              color: isDailyFilterCollapsed ? '#60a5fa' : '#cbd5e1',
+              border: isDailyFilterCollapsed ? '1px solid #3b82f6' : '1px solid #475569',
               flexShrink: 0,
               marginLeft: '6px'
             }}>
@@ -714,7 +718,7 @@ const InventoryReport = ({
 
         {/* 필터 상세 박스 (일자별 탭에서는 isDailyFilterCollapsed 상태에 따라 숨김) */}
         {(activeTab !== 'daily' || !isDailyFilterCollapsed) && (
-          <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {activeTab === 'daily' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -729,9 +733,9 @@ const InventoryReport = ({
                       width: '32px',
                       height: '32px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#fff',
-                      color: '#334155',
+                      border: '1px solid #334155',
+                      backgroundColor: '#0f172a',
+                      color: '#cbd5e1',
                       cursor: 'pointer',
                       flexShrink: 0
                     }}
@@ -746,11 +750,11 @@ const InventoryReport = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '6px 8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid #334155',
                     borderRadius: '6px',
-                    backgroundColor: '#fff'
+                    backgroundColor: '#0f172a'
                   }}>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#ffffff', pointerEvents: 'none', userSelect: 'none' }}>
                       {formatMonthDay(filters.startDate)}
                     </span>
                     <input 
@@ -768,7 +772,7 @@ const InventoryReport = ({
                       }} 
                     />
                   </div>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 800 }}>~</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 800 }}>~</span>
                   <div style={{
                     position: 'relative',
                     flex: 1,
@@ -777,11 +781,11 @@ const InventoryReport = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '6px 8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid #334155',
                     borderRadius: '6px',
-                    backgroundColor: '#fff'
+                    backgroundColor: '#0f172a'
                   }}>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', pointerEvents: 'none', userSelect: 'none' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#ffffff', pointerEvents: 'none', userSelect: 'none' }}>
                       {formatMonthDay(filters.endDate)}
                     </span>
                     <input 
@@ -810,9 +814,9 @@ const InventoryReport = ({
                       width: '32px',
                       height: '32px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#fff',
-                      color: '#334155',
+                      border: '1px solid #334155',
+                      backgroundColor: '#0f172a',
+                      color: '#cbd5e1',
                       cursor: 'pointer',
                       flexShrink: 0
                     }}
@@ -828,9 +832,9 @@ const InventoryReport = ({
                       type="button"
                       onClick={() => handleQuickDate(btn)}
                       style={{
-                        padding: '3px 8px', fontSize: '0.72rem', fontWeight: 700,
-                        border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff',
-                        color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap'
+                        padding: '4px 9px', fontSize: '0.74rem', fontWeight: 700,
+                        border: '1px solid #334155', borderRadius: '4px', background: '#0f172a',
+                        color: '#cbd5e1', cursor: 'pointer', whiteSpace: 'nowrap'
                       }}
                     >{btn}</button>
                   ))}
@@ -840,7 +844,7 @@ const InventoryReport = ({
                   <select 
                     value={filters.fromWarehouse} 
                     onChange={e => setFilters({...filters, fromWarehouse: e.target.value})}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
                   >
                     <option value="전체 창고">출고: 전체 창고</option>
                     {warehouses.map(w => <option key={w.id || w.name} value={w.name}>출고: {w.name}</option>)}
@@ -849,7 +853,7 @@ const InventoryReport = ({
                   <select 
                     value={filters.toWarehouse} 
                     onChange={e => setFilters({...filters, toWarehouse: e.target.value})}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none' }}
                   >
                     <option value="전체 창고">입고: 전체 창고</option>
                     {warehouses.map(w => <option key={w.id || w.name} value={w.name}>입고: {w.name}</option>)}
@@ -1118,9 +1122,9 @@ const InventoryReport = ({
                   gap: '3px',
                   padding: '6px 8px',
                   borderRadius: '6px',
-                  border: showCategoryFilter ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                  backgroundColor: showCategoryFilter ? '#eff6ff' : '#f8fafc',
-                  color: showCategoryFilter ? '#2563eb' : '#475569',
+                  border: showCategoryFilter ? '1px solid #3b82f6' : '1px solid #334155',
+                  backgroundColor: showCategoryFilter ? 'rgba(37, 99, 235, 0.25)' : '#0f172a',
+                  color: showCategoryFilter ? '#60a5fa' : '#cbd5e1',
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -1137,13 +1141,13 @@ const InventoryReport = ({
               </button>
 
               <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <Search size={14} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input 
                   type="text" 
                   placeholder="품목명 검색..." 
                   value={filters.searchTerm} 
                   onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-                  style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #334155', borderRadius: '6px', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -1159,18 +1163,18 @@ const InventoryReport = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '6px 10px',
-                backgroundColor: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
                 borderRadius: '8px',
                 fontSize: '0.73rem',
-                color: '#1d4ed8',
+                color: '#93c5fd',
                 gap: '6px'
               }}>
                 <span>💡 <b>내역 카드를 터치/더블클릭</b>하면 <b>재고이동 수정 창</b>이 바로 열립니다.</span>
-                <span style={{ fontSize: '0.7rem', color: '#64748b', flexShrink: 0, fontWeight: 700 }}>총 {filteredDailyData.length}건</span>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', flexShrink: 0, fontWeight: 700 }}>총 {filteredDailyData.length}건</span>
               </div>
               {filteredDailyData.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#1e293b', borderRadius: '10px', border: '1px dashed #334155' }}>
                   해당 조건의 재고 이동 내역이 없습니다.
                 </div>
               ) : (
@@ -1179,19 +1183,19 @@ const InventoryReport = ({
                     key={row.id || idx}
                     onClick={() => handleDailyRowDoubleClick(row)}
                     onDoubleClick={() => handleDailyRowDoubleClick(row)}
-                    style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer' }}
+                    style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px', cursor: 'pointer' }}
                     title="터치/더블클릭하여 재고이동 수정 창 열기"
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{formatMonthDay(row.date)} {row.processedAt && `(${row.processedAt})`}</span>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#2563eb' }}>{row.qty?.toLocaleString()}개</span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>{formatMonthDay(row.date)} {row.processedAt && `(${row.processedAt})`}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#60a5fa' }}>{row.qty?.toLocaleString()}개</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
-                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}18`, color: getWarehouseColor(row.from), fontSize: '0.75rem' }}>{row.from}</span>
-                        <span style={{ color: '#94a3b8' }}>➔</span>
-                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}18`, color: getWarehouseColor(row.to), fontSize: '0.75rem' }}>{row.to}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.from)}28`, color: getWarehouseColor(row.from), fontSize: '0.75rem' }}>{row.from}</span>
+                        <span style={{ color: '#64748b' }}>➔</span>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', background: `${getWarehouseColor(row.to)}28`, color: getWarehouseColor(row.to), fontSize: '0.75rem' }}>{row.to}</span>
                       </div>
                       {row.memo && (
                         <span
@@ -1200,14 +1204,14 @@ const InventoryReport = ({
                             handleMemoClick(row);
                           }}
                           className="clickable-memo"
-                          style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}
+                          style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 700, textDecoration: 'underline' }}
                         >
                           {row.memo}
                         </span>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#cbd5e1' }}>
                       <div>
                         <span style={{ fontWeight: 700, color: '#1e293b' }}>{row.item}</span>
                         {row.spec && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: '4px' }}>({row.spec})</span>}
@@ -1222,7 +1226,7 @@ const InventoryReport = ({
 
           {activeTab === 'final' && (
             filteredFinalData.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#1e293b', borderRadius: '10px', border: '1px dashed #334155' }}>
                 해당 조건의 재고 현황 데이터가 없습니다.
               </div>
             ) : (
@@ -1237,23 +1241,23 @@ const InventoryReport = ({
                 const isCellEdited = !isAllWarehouses && editedStocks[p.id]?.[filters.selectedWarehouse] !== undefined;
 
                 return (
-                  <div key={p.id} style={{ backgroundColor: isCellEdited ? '#f0fdf4' : '#fff', border: isCellEdited ? '1.5px solid #10b981' : '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div key={p.id} style={{ backgroundColor: isCellEdited ? 'rgba(16, 185, 129, 0.15)' : '#1e293b', border: isCellEdited ? '1.5px solid #10b981' : '1px solid #334155', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{p.name}</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff' }}>{p.name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>{p.categoryLarge || '-'} {p.categoryMedium && `> ${p.categoryMedium}`} {p.spec && `| ${p.spec}`}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: finalStock <= 0 ? '#ef4444' : '#2563eb' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: finalStock <= 0 ? '#ef4444' : '#60a5fa' }}>
                           {finalStock.toLocaleString()}개
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>현재 재고</div>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>현재 재고</div>
                       </div>
                     </div>
 
                     {/* 창고별 재고 현황 보기 버튼 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px dashed #334155' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#cbd5e1' }}>
                         창고별 재고 현황
                       </span>
                       <button
@@ -1271,8 +1275,8 @@ const InventoryReport = ({
                           fontWeight: 700,
                           borderRadius: '6px',
                           border: '1px solid #3b82f6',
-                          backgroundColor: '#eff6ff',
-                          color: '#1d4ed8',
+                          backgroundColor: 'rgba(37, 99, 235, 0.25)',
+                          color: '#93c5fd',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -1292,26 +1296,26 @@ const InventoryReport = ({
 
           {activeTab === 'partner' && (
             filteredPartnerData.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#fff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8', fontSize: '0.82rem', backgroundColor: '#1e293b', borderRadius: '10px', border: '1px dashed #334155' }}>
                 해당 조건의 매입처별 재고 데이터가 없습니다.
               </div>
             ) : (
               filteredPartnerData.map(p => (
-                <div key={p.id} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div key={p.id} style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#0f172a', color: '#cbd5e1', fontWeight: 700 }}>
                         {p.displaySupplier}
                       </span>
-                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b', marginTop: '4px' }}>{p.name}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', marginTop: '4px' }}>{p.name}</div>
                       {p.spec && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{p.spec}</div>}
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: p.status === 'shortage' ? '#ef4444' : '#2563eb' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: p.status === 'shortage' ? '#ef4444' : '#60a5fa' }}>
                         {p.totalStock.toLocaleString()}개
                       </div>
-                      <span style={{ fontSize: '0.68rem', padding: '2px 4px', borderRadius: '4px', fontWeight: 700, backgroundColor: p.status === 'shortage' ? '#fee2e2' : '#ecfdf5', color: p.status === 'shortage' ? '#ef4444' : '#10b981' }}>
+                      <span style={{ fontSize: '0.68rem', padding: '2px 4px', borderRadius: '4px', fontWeight: 700, backgroundColor: p.status === 'shortage' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)', color: p.status === 'shortage' ? '#f87171' : '#34d399' }}>
                         {p.status === 'shortage' ? '부족' : '정상'} (적정:{p.optimal})
                       </span>
                     </div>
