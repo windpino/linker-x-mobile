@@ -60,17 +60,18 @@ const OrderList = ({
     }
   }, [initialSelectedStaff]);
 
-  React.useEffect(() => {
-    if (activeTab === 'summary' && currentUser?.name && selectedStaff === 'all' && (!initialSelectedStaff || initialSelectedStaff === 'all')) {
-      setSelectedStaff(currentUser.name);
-    }
-  }, [activeTab, currentUser]);
   const [processedItems, setProcessedItems] = useState({}); // { "orderId-itemIdx": true }
   const [stockFeedback, setStockFeedback] = useState({}); // { "orderId-itemIdx": "재고: 123" }
   const stockOverrides = React.useRef({}); // 창고별 품목 재고 연속 클릭 오차 방지용 세션 캐시
   const [activeTab, setActiveTab] = useState(initialTab || 'list');
   const [printConfig, setPrintConfig] = useState(null); // { order, copies: 1 }
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all'); // 'all', 'waiting', 'completed'
+
+  React.useEffect(() => {
+    if (activeTab === 'summary' && currentUser?.name && selectedStaff === 'all' && (!initialSelectedStaff || initialSelectedStaff === 'all')) {
+      setSelectedStaff(currentUser.name);
+    }
+  }, [activeTab, currentUser, selectedStaff, initialSelectedStaff]);
 
   React.useEffect(() => {
     if (initialTab) {
