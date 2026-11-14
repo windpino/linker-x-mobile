@@ -186,8 +186,8 @@
   border-color: #334155 !important;
 }
 
-/* 6. 인풋, 셀렉트, 텍스트에리어 폼 컨트롤 다크 모드 */
-.window-content-area input:not([type="checkbox"]):not([type="radio"]),
+/* 6. 인풋, 셀렉트, 텍스트에리어 폼 컨트롤 다크 모드 (단, 검색란은 제외) */
+.window-content-area input:not([type="checkbox"]):not([type="radio"]):not([placeholder*="검색"]):not([type="search"]):not([class*="search"]):not([id*="search"]):not([name*="search"]),
 .window-content-area textarea,
 .window-content-area select {
   background-color: #1e293b !important;
@@ -239,6 +239,11 @@
 /* ========================================================
    모바일 모든 메뉴 검색란: 배경색 흰색, 글자색 검정
    ======================================================== */
+.window-content-area input:not([type="checkbox"]):not([type="radio"])[placeholder*="검색"],
+.window-content-area input:not([type="checkbox"]):not([type="radio"])[type="search"],
+.window-content-area input:not([type="checkbox"]):not([type="radio"])[class*="search"],
+.window-content-area input:not([type="checkbox"]):not([type="radio"])[id*="search"],
+.window-content-area input:not([type="checkbox"]):not([type="radio"])[name*="search"],
 .window-content-area input[placeholder*="검색"],
 .window-content-area input[type="search"],
 .window-content-area input[class*="search"],

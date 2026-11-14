@@ -631,27 +631,15 @@ const InventoryReport = ({
           </div>
 
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {activeTab === 'final' && (
-              <>
-                <button 
-                  type="button" 
-                  onClick={() => setIsBatchWarehouseModalOpen(true)}
-                  style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
-                  title="창고별 기초재고 일괄 설정"
-                >
-                  <Warehouse size={12} /> 창고별설정
-                </button>
-                {Object.keys(editedStocks).length > 0 && (
-                  <button 
-                    type="button" 
-                    onClick={() => handleSaveInitialStocks()}
-                    disabled={isSavingStocks}
-                    style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #10b981', backgroundColor: '#10b981', color: '#fff', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
-                  >
-                    <Save size={12} /> 저장 ({Object.keys(editedStocks).length})
-                  </button>
-                )}
-              </>
+            {activeTab === 'final' && Object.keys(editedStocks).length > 0 && (
+              <button 
+                type="button" 
+                onClick={() => handleSaveInitialStocks()}
+                disabled={isSavingStocks}
+                style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #10b981', backgroundColor: '#10b981', color: '#fff', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+              >
+                <Save size={12} /> 저장 ({Object.keys(editedStocks).length})
+              </button>
             )}
             <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               <Printer size={12} /> 인쇄
@@ -862,8 +850,8 @@ const InventoryReport = ({
           {activeTab === 'final' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>조회 창고</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#334155', fontWeight: 700, margin: 0, userSelect: 'none' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>조회 창고</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#cbd5e1', fontWeight: 700, margin: 0, userSelect: 'none' }}>
                   <input 
                     type="checkbox" 
                     checked={filters.hideZeroStock} 
@@ -887,13 +875,13 @@ const InventoryReport = ({
               </select>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Search size={14} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
                     type="text" 
                     placeholder="품목명 또는 초성 검색..." 
                     value={filters.searchTerm} 
                     onChange={e => setFilters({...filters, searchTerm: e.target.value})}
-                    style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 10px 6px 30px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#ffffff', color: '#000000' }}
                   />
                 </div>
                 <button 
@@ -970,7 +958,9 @@ const InventoryReport = ({
                       fontSize: '0.82rem',
                       fontWeight: 700,
                       outline: 'none',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      backgroundColor: '#ffffff',
+                      color: '#000000'
                     }}
                   />
                   {filters.selectedSupplier && filters.selectedSupplier !== '전체 매입처' && (
