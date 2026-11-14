@@ -3412,54 +3412,30 @@ function App() {
     checkedScheduleUserRef.current = currentUserId;
   }, [currentUser, schedules]);
 
-  const handleConfirmScheduleNotice = async (sch) => {
-    if (!sch) return;
+  const markSchedulesAsConfirmed = async (schedulesToConfirm) => {
+    if (!schedulesToConfirm || schedulesToConfirm.length === 0) return;
     const companyId = currentUser?.companyId || 'default';
-    const storageKey = `confirmed_schedules_${companyId}_${currentUser?.name}`;
+    const userIdentifier = currentUser?.name || currentUser?.userId || currentUser?.id || 'default_user';
+    const storageKey = `confirmed_schedules_${companyId}_${userIdentifier}`;
+    const fallbackKey = currentUser?.userId ? `confirmed_schedules_${companyId}_${currentUser.userId}` : null;
+    const nameKey = currentUser?.name ? `confirmed_schedules_${companyId}_${currentUser.name}` : null;
+
     try {
-      const currentConfirmed = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      if (!currentConfirmed.includes(String(sch.id))) {
-        currentConfirmed.push(String(sch.id));
-        localStorage.setItem(storageKey, JSON.stringify(currentConfirmed));
+      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const newIds = schedulesToConfirm.map(s => String(s.id));
+      const merged = Array.from(new Set([...existing, ...newIds]));
+      localStorage.setItem(storageKey, JSON.stringify(merged));
+      if (fallbackKey && fallbackKey !== storageKey) {
+        localStorage.setItem(fallbackKey, JSON.stringify(merged));
+      }
+      if (nameKey && nameKey !== storageKey) {
+        localStorage.setItem(nameKey, JSON.stringify(merged));
       }
     } catch (e) {
       console.error(e);
     }
 
-    const viewers = sch.viewers || [];
-    if (currentUser?.name && !viewers.includes(currentUser.name)) {
-      const updatedViewers = [...viewers, currentUser.name];
-      const updatedSch = { ...sch, viewers: updatedViewers };
-      setSchedules(prev => prev.map(s => String(s.id) === String(sch.id) ? updatedSch : s));
-      try {
-        const docRef = doc(db, 'companies', companyId, 'schedules', String(sch.id));
-        await setDoc(docRef, { viewers: updatedViewers }, { merge: true });
-      } catch (err) {
-        console.error("Schedule notice confirm sync error:", err);
-      }
-    }
-
-    // 미확인 목록에서 제거
-    setUnconfirmedSchedules(prev => prev.filter(s => String(s.id) !== String(sch.id)));
-  };
-
-  const handleConfirmAllScheduleNotices = async (listToConfirm) => {
-    if (!listToConfirm || listToConfirm.length === 0) return;
-    const companyId = currentUser?.companyId || 'default';
-    const storageKey = `confirmed_schedules_${companyId}_${currentUser?.name}`;
-    try {
-      const currentConfirmed = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      listToConfirm.forEach(sch => {
-        if (!currentConfirmed.includes(String(sch.id))) {
-          currentConfirmed.push(String(sch.id));
-        }
-      });
-      localStorage.setItem(storageKey, JSON.stringify(currentConfirmed));
-    } catch (e) {
-      console.error(e);
-    }
-
-    for (const sch of listToConfirm) {
+    for (const sch of schedulesToConfirm) {
       const viewers = sch.viewers || [];
       if (currentUser?.name && !viewers.includes(currentUser.name)) {
         const updatedViewers = [...viewers, currentUser.name];
@@ -3473,13 +3449,32 @@ function App() {
     }
 
     setSchedules(prev => prev.map(s => {
-      const match = listToConfirm.find(sc => String(sc.id) === String(s.id));
+      const match = schedulesToConfirm.find(sc => String(sc.id) === String(s.id));
       if (match && currentUser?.name && !(s.viewers || []).includes(currentUser.name)) {
         return { ...s, viewers: [...(s.viewers || []), currentUser.name] };
       }
       return s;
     }));
+  };
 
+  const handleConfirmScheduleNotice = async (sch) => {
+    if (!sch) return;
+    await markSchedulesAsConfirmed([sch]);
+    // 미확인 목록에서 제거
+    setUnconfirmedSchedules(prev => prev.filter(s => String(s.id) !== String(sch.id)));
+  };
+
+  const handleCloseScheduleNotice = async () => {
+    // 닫을 때도 확인된 것으로 영구 저장하여 재로그인 시 다시 나타나지 않음
+    if (unconfirmedSchedules && unconfirmedSchedules.length > 0) {
+      await markSchedulesAsConfirmed(unconfirmedSchedules);
+    }
+    setUnconfirmedSchedules([]);
+  };
+
+  const handleConfirmAllScheduleNotices = async (listToConfirm) => {
+    if (!listToConfirm || listToConfirm.length === 0) return;
+    await markSchedulesAsConfirmed(listToConfirm);
     setUnconfirmedSchedules([]);
   };
 
@@ -6034,7 +6029,7 @@ function App() {
         <NewScheduleNoticeModal
           noticeSchedules={unconfirmedSchedules}
           currentUser={currentUser}
-          onClose={() => setUnconfirmedSchedules([])}
+          onClose={handleCloseScheduleNotice}
           onConfirm={handleConfirmScheduleNotice}
           onConfirmAll={handleConfirmAllScheduleNotices}
           scheduleTypes={scheduleTypes}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Calendar, Clock, User, Check, ChevronLeft, ChevronRight, X, CheckCheck } from 'lucide-react';
+import { Bell, Calendar, Clock, User, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import WindowModal from './WindowModal';
 
 const NewScheduleNoticeModal = ({ 
@@ -244,27 +244,6 @@ const NewScheduleNoticeModal = ({
                   title="다음 일정"
                 >
                   <ChevronRight size={14} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleConfirmAll}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    backgroundColor: '#10b981',
-                    color: '#ffffff',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                  title="모든 일정을 일괄 확인합니다"
-                >
-                  <CheckCheck size={13} /> 모두 확인
                 </button>
               </>
             )}
