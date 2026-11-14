@@ -75,9 +75,9 @@ export const DateNavButton = ({
         minWidth: '22px',
         padding: 0,
         borderRadius: '4px',
-        border: '1px solid #cbd5e1',
-        backgroundColor: '#ffffff',
-        color: '#475569',
+        border: '1px solid #334155',
+        backgroundColor: '#1e293b',
+        color: '#f8fafc',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
         transition: 'all 0.15s ease',
@@ -134,10 +134,10 @@ export const DateInputWithArrows = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '1px solid #cbd5e1',
+        border: '1px solid #334155',
         borderRadius: '6px',
         padding: '4px 8px',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#1e293b',
         minWidth: '54px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         ...inputStyle
@@ -145,7 +145,7 @@ export const DateInputWithArrows = ({
         <span style={{
           fontSize: '0.82rem',
           fontWeight: 700,
-          color: '#1e293b',
+          color: '#ffffff',
           pointerEvents: 'none',
           userSelect: 'none'
         }}>

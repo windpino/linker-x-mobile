@@ -97,19 +97,143 @@
   overflow-x: auto;
   padding: 12px;
   position: relative;
-  color: #0f172a; /* Default modal content to dark text so white-on-white text bug never occurs */
+  background-color: #0f172a !important;
+  color: #ffffff !important;
 }
 
-/* Modal form controls: ensure readable dark text color across all modals */
+/* ========================================================
+   모바일 모든 메뉴 창 전역 다크 테마 (어두운 배경 + 흰색 글자)
+   ======================================================== */
+
+/* 1. 컨테이너, 모달 바디, 카드 박스 어두운 배경 전환 */
+.window-content-area,
+.window-content-area .purchase-modal-body,
+.window-content-area .modal-body,
+.window-content-area .sales-ledger-container,
+.window-content-area .sales-ledger-controls,
+.window-content-area .sales-ledger-filter,
+.window-content-area .mobile-phys-inv-container,
+.window-content-area .mobile-phys-inv-controls,
+.window-content-area .mobile-phys-inv-list,
+.window-content-area .mobile-card,
+.window-content-area .account-header,
+.window-content-area [class*="container"]:not(.window-container),
+.window-content-area [class*="card"],
+.window-content-area [class*="table-wrap"],
+.window-content-area [class*="box"] {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+/* 2. 흰색 및 연회색 인라인 배경을 다크 모드 카드 색상(#1e293b)으로 일괄 변환 */
+.window-content-area [style*="background-color: #fff"],
+.window-content-area [style*="background-color: #ffffff"],
+.window-content-area [style*="background-color: rgb(255, 255, 255)"],
+.window-content-area [style*="background-color: rgb(248, 250, 252)"],
+.window-content-area [style*="background-color: #f8fafc"],
+.window-content-area [style*="background-color: rgb(241, 245, 249)"],
+.window-content-area [style*="background-color: #f1f5f9"],
+.window-content-area [style*="background-color: rgb(243, 244, 246)"],
+.window-content-area [style*="background-color: #f3f4f6"],
+.window-content-area [style*="background: #fff"],
+.window-content-area [style*="background: #ffffff"],
+.window-content-area [style*="background: rgb(255, 255, 255)"],
+.window-content-area [style*="background: rgb(248, 250, 252)"],
+.window-content-area [style*="background: #f8fafc"],
+.window-content-area [style*="background: rgb(241, 245, 249)"],
+.window-content-area [style*="background: #f1f5f9"],
+.window-content-area [style*="background: rgb(243, 244, 246)"],
+.window-content-area [style*="background: #f3f4f6"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* 3. 어두운 텍스트를 흰색(#ffffff)으로 일괄 변환 */
+.window-content-area [style*="color: #0f172a"],
+.window-content-area [style*="color: rgb(15, 23, 42)"],
+.window-content-area [style*="color: #1e293b"],
+.window-content-area [style*="color: rgb(30, 41, 59)"],
+.window-content-area [style*="color: #334155"],
+.window-content-area [style*="color: rgb(51, 65, 85)"],
+.window-content-area [style*="color: #475569"],
+.window-content-area [style*="color: rgb(71, 85, 105)"],
+.window-content-area [style*="color: #000"],
+.window-content-area [style*="color: black"],
+.window-content-area [style*="color: rgb(0, 0, 0)"] {
+  color: #ffffff !important;
+}
+
+/* 4. 중간 톤의 회색 텍스트는 가독성 좋은 밝은 슬레이트(#cbd5e1)로 변환 */
+.window-content-area [style*="color: #64748b"],
+.window-content-area [style*="color: rgb(100, 116, 139)"],
+.window-content-area [style*="color: #94a3b8"],
+.window-content-area [style*="color: rgb(148, 163, 184)"] {
+  color: #cbd5e1 !important;
+}
+
+/* 5. 밝은 회색 보더를 다크 모드 보더(#334155)로 변환 */
+.window-content-area [style*="border: 1px solid #e2e8f0"],
+.window-content-area [style*="border: 1px solid #cbd5e1"],
+.window-content-area [style*="border: 1px dashed #cbd5e1"],
+.window-content-area [style*="border-bottom: 1px solid #e2e8f0"],
+.window-content-area [style*="border-bottom: 1px solid #cbd5e1"],
+.window-content-area [style*="border-top: 1px solid #e2e8f0"],
+.window-content-area [style*="border-top: 1px solid #cbd5e1"],
+.window-content-area [style*="border-left: 1px solid #e2e8f0"],
+.window-content-area [style*="border-right: 1px solid #e2e8f0"] {
+  border-color: #334155 !important;
+}
+
+/* 6. 인풋, 셀렉트, 텍스트에리어 폼 컨트롤 다크 모드 */
 .window-content-area input:not([type="checkbox"]):not([type="radio"]),
 .window-content-area textarea,
 .window-content-area select {
-  color: #0f172a !important;
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.window-content-area select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
 }
 
 .window-content-area input::placeholder,
 .window-content-area textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #64748b !important;
+}
+
+/* 7. 테이블 및 헤더 다크 모드 */
+.window-content-area table {
+  color: #ffffff !important;
+}
+
+.window-content-area th {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.window-content-area td {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+/* 8. 흰색/연회색 기본 버튼 다크 모드 */
+.window-content-area button[style*="background-color: #fff"],
+.window-content-area button[style*="background-color: #ffffff"],
+.window-content-area button[style*="background: #fff"],
+.window-content-area button[style*="background: #ffffff"],
+.window-content-area button[style*="background-color: #f8fafc"],
+.window-content-area button[style*="background: #f8fafc"],
+.window-content-area button[style*="background-color: #f1f5f9"],
+.window-content-area button[style*="background: #f1f5f9"] {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
 }
 
 .resize-handle-indicator {
