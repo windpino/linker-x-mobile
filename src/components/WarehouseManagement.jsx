@@ -402,12 +402,6 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
             
             <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
               <button 
-                onClick={handleExcelExport} 
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 8px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
-                <Download size={13} /> 엑셀
-              </button>
-              <button 
                 onClick={handleOpenRegistration}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
               >

@@ -701,9 +701,6 @@ const CashBook = ({
             <button className="btn-v2-action" onClick={() => window.print()} title="출력">
               <Printer size={14} /> 인쇄
             </button>
-            <button className="btn-v2-action" onClick={handleExcelExport} title="엑셀 다운로드">
-              <Download size={14} /> 엑셀
-            </button>
             <button 
               className="btn-v2-action primary-action" 
               onClick={handleOpenNewManual}

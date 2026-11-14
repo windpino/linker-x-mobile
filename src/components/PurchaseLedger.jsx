@@ -485,7 +485,6 @@ const PurchaseLedger = ({ onClose, purchaseInvoices = [], partners = [], onOpenI
         </div>
         <div className="acc-actions">
           <button className="btn-outline"><Printer size={16} /> 인쇄</button>
-          <button className="btn-outline" onClick={handleExcelExport}><Download size={16} /> 엑셀</button>
         </div>
       </div>
 

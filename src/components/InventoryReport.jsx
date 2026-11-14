@@ -432,8 +432,8 @@ const InventoryReport = ({
   };
 
   const tabs = [
-    { id: 'daily', label: '일자별 재고현황(창고별이동현황)' },
-    { id: 'final', label: '최종 재고 현황(창고별 최종재고현황)' },
+    { id: 'daily', label: '일자별 재고현황' },
+    { id: 'final', label: '최종 재고 현황' },
     { id: 'partner', label: '매입처별 재고현황' }
   ];
 
@@ -602,7 +602,7 @@ const InventoryReport = ({
     if (data.length > 0) exportToExcel(data, fileName);
   };
 
-  const currentTitle = activeTab === 'final' ? '최종 재고 현황' : activeTab === 'partner' ? '매입처별 재고현황' : '일자별 재고현황(이동현황)';
+  const currentTitle = activeTab === 'final' ? '최종 재고 현황' : activeTab === 'partner' ? '매입처별 재고현황' : '일자별 재고현황';
 
   return (
     <>
@@ -655,9 +655,6 @@ const InventoryReport = ({
             )}
             <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               <Printer size={12} /> 인쇄
-            </button>
-            <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
-              <Download size={12} /> 엑셀
             </button>
           </div>
         </div>

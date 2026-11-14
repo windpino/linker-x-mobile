@@ -481,9 +481,6 @@ const PartnerSpecialPriceManager = ({
               <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }} title="인쇄">
                 <Printer size={13} />
               </button>
-              <button onClick={handleExcelExport} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }} title="엑셀">
-                <Download size={13} />
-              </button>
             </div>
           </div>
 

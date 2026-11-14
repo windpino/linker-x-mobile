@@ -275,12 +275,6 @@ const AccountManagement = ({ onClose, accounts = [], setAccounts, currentUser, l
               >
                 <Printer size={12} /> 인쇄
               </button>
-              <button 
-                onClick={handleExcelExport} 
-                style={{ padding: '4px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
-              >
-                <Download size={12} /> 엑셀
-              </button>
             </div>
           </div>
 

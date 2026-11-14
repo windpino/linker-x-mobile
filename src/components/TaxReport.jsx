@@ -144,9 +144,6 @@ const TaxReport = ({ onClose, salesInvoices = [], purchaseInvoices = [], expense
             <button onClick={() => window.print()} style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
               인쇄
             </button>
-            <button style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
-              <FileSpreadsheet size={12} /> 엑셀
-            </button>
           </div>
         </div>
 

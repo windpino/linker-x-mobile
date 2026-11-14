@@ -259,6 +259,14 @@ input.sales-ledger-search-input::placeholder {
   color: #000000 !important;
 }
 
+/* 모바일 전체 엑셀 다운로드 버튼 숨김 */
+.window-content-area button[title*="엑셀"],
+.window-content-area button[title*="Excel"],
+.csr-excel-download-btn,
+.excel-download-btn {
+  display: none !important;
+}
+
 .resize-handle-indicator {
   position: absolute;
   bottom: 2px;

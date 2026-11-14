@@ -1379,10 +1379,6 @@ const SalesReport = ({
                         onChange={(e) => setProductSearchInput(e.target.value)}
                       />
                     </div>
-                    <button className="csr-excel-download-btn" onClick={handleExcelExport} style={{ padding: '6px 10px' }}>
-                      <Download size={14} />
-                      엑셀 다운로드
-                    </button>
                   </div>
                 </div>
 
@@ -2324,11 +2320,6 @@ const SalesReport = ({
             <span className="csr-live-dot" />
             <span>데이터를 실시간으로 반영합니다.</span>
           </div>
-
-          <button className="csr-excel-download-btn" onClick={handleExcelExport}>
-            <Download size={15} />
-            엑셀 다운로드
-          </button>
         </div>
 
       </div>

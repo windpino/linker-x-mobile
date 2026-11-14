@@ -609,9 +609,6 @@ const RecentActivityModal = ({
           <button className="btn-v2-action" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Printer size={13} /> 인쇄
           </button>
-          <button className="btn-v2-action" onClick={handleExcelExport} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <Download size={13} /> 엑셀 다운로드
-          </button>
 
           {canDelete && selectedActIds.length > 0 && (
             <button

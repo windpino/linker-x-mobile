@@ -335,7 +335,6 @@ const PurchaseOrder = ({ onClose, partners, products, onSave, onTransferToInvoic
             }}>
               <RefreshCw size={14} /> 새발주
             </button>
-            <button className="so-btn-outline" onClick={handleExcelExport}><Download size={14} /> 엑셀</button>
           </div>
         </div>
 
