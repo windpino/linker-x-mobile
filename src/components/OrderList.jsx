@@ -1514,51 +1514,66 @@ const OrderList = ({
                                   {item.qty}
                                 </div>
 
-                                {/* 6) Mismatch Button (맨 끝에 재고불일치 버튼만) */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name);
-                                  }}
-                                  style={{
-                                    border: '1px solid rgba(245, 158, 11, 0.5)',
-                                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                                    color: '#d97706',
-                                    padding: '3px 7px',
-                                    borderRadius: '5px',
-                                    fontSize: '0.74rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0
-                                  }}
-                                  title="재고불일치"
-                                >
-                                  재고불일치
-                                </button>
+                                {/* 6) Mismatch Button (맨 끝에 재고불일치 버튼) + 상단 재고 수량 말풍선 */}
+                                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name);
+                                    }}
+                                    style={{
+                                      border: '1px solid rgba(245, 158, 11, 0.5)',
+                                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                                      color: '#d97706',
+                                      padding: '3px 7px',
+                                      borderRadius: '5px',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0
+                                    }}
+                                    title="재고불일치"
+                                  >
+                                    재고불일치
+                                  </button>
 
-                                {/* Temporary Stock Feedback Toast (품목 위쪽에 표시하여 품목 가림 방지) */}
-                                {feedback && (
-                                  <div style={{ 
-                                    position: 'absolute', 
-                                    bottom: 'calc(100% + 3px)', 
-                                    left: '50%', 
-                                    transform: 'translateX(-50%)', 
-                                    backgroundColor: '#020617', 
-                                    color: '#38bdf8', 
-                                    padding: '4px 10px', 
-                                    borderRadius: '6px', 
-                                    fontSize: '0.74rem', 
-                                    fontWeight: 800,
-                                    whiteSpace: 'nowrap', 
-                                    zIndex: 60, 
-                                    border: '1px solid #38bdf8', 
-                                    boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
-                                    pointerEvents: 'none'
-                                  }}>
-                                    {feedback}
-                                  </div>
-                                )}
+                                  {/* Temporary Stock Feedback Toast (재고불일치 버튼 바로 위 말풍선) */}
+                                  {feedback && (
+                                    <div style={{ 
+                                      position: 'absolute', 
+                                      bottom: 'calc(100% + 7px)', 
+                                      right: 0, 
+                                      backgroundColor: '#090d16', 
+                                      color: '#38bdf8', 
+                                      padding: '5px 12px', 
+                                      borderRadius: '8px', 
+                                      fontSize: '0.94rem', 
+                                      fontWeight: 900, 
+                                      whiteSpace: 'nowrap', 
+                                      zIndex: 100, 
+                                      border: '2px solid #38bdf8', 
+                                      boxShadow: '0 6px 18px rgba(0,0,0,0.65), 0 0 12px rgba(56, 189, 248, 0.45)', 
+                                      pointerEvents: 'none',
+                                      letterSpacing: '-0.3px'
+                                    }}>
+                                      {feedback}
+                                      {/* 말풍선 아래 꼬리침 */}
+                                      <div style={{
+                                        position: 'absolute',
+                                        bottom: '-6px',
+                                        right: '20px',
+                                        width: 0,
+                                        height: 0,
+                                        borderLeft: '6px solid transparent',
+                                        borderRight: '6px solid transparent',
+                                        borderTop: '6px solid #38bdf8'
+                                      }} />
+                                    </div>
+                                  )}
+                                </div>
+
+
                               </div>
                             );
                           })}
@@ -2014,22 +2029,32 @@ const OrderList = ({
                                   {feedback && (
                                     <div style={{ 
                                       position: 'absolute', 
-                                      bottom: 'calc(100% + 3px)', 
-                                      left: '50%', 
-                                      transform: 'translateX(-50%)', 
-                                      backgroundColor: '#0f172a', 
+                                      bottom: 'calc(100% + 7px)', 
+                                      right: 0, 
+                                      backgroundColor: '#090d16', 
                                       color: '#38bdf8', 
-                                      padding: '4px 10px', 
-                                      borderRadius: '6px', 
-                                      fontSize: '0.74rem', 
-                                      fontWeight: 800,
+                                      padding: '5px 12px', 
+                                      borderRadius: '8px', 
+                                      fontSize: '0.94rem', 
+                                      fontWeight: 900, 
                                       whiteSpace: 'nowrap', 
-                                      zIndex: 60, 
-                                      border: '1px solid #38bdf8', 
-                                      boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-                                      pointerEvents: 'none'
+                                      zIndex: 100, 
+                                      border: '2px solid #38bdf8', 
+                                      boxShadow: '0 6px 18px rgba(0,0,0,0.65), 0 0 12px rgba(56, 189, 248, 0.45)', 
+                                      pointerEvents: 'none',
+                                      letterSpacing: '-0.3px'
                                     }}>
                                       {feedback}
+                                      <div style={{
+                                        position: 'absolute',
+                                        bottom: '-6px',
+                                        right: '18px',
+                                        width: 0,
+                                        height: 0,
+                                        borderLeft: '6px solid transparent',
+                                        borderRight: '6px solid transparent',
+                                        borderTop: '6px solid #38bdf8'
+                                      }} />
                                     </div>
                                   )}
                                 </div>
