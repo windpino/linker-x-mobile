@@ -417,7 +417,7 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="창고명, 담당자, 주소 검색"
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#f8fafc' }}
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', outline: 'none', backgroundColor: '#ffffff', color: '#000000', boxSizing: 'border-box' }}
             />
           </div>
 
@@ -425,58 +425,73 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
           <div className="warehouse-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
             {filteredWarehouses.length === 0 ? (
               <div style={{
-                padding: '36px 16px', textAlign: 'center', backgroundColor: '#f8fafc',
-                borderRadius: '10px', border: '1px dashed #cbd5e1', color: '#94a3b8',
+                padding: '36px 16px', textAlign: 'center', backgroundColor: '#1e293b',
+                borderRadius: '10px', border: '1px dashed #334155', color: '#94a3b8',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
               }}>
                 <Box size={28} color="#94a3b8" />
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#475569' }}>등록된 창고가 없습니다.</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>등록된 창고가 없습니다.</div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>우측 상단의 '+ 창고 등록' 버튼을 눌러 등록하세요.</div>
               </div>
             ) : filteredWarehouses.map((wh, index) => (
               <div key={wh.id || wh._docId || index} style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 14px',
+                backgroundColor: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '12px',
+                padding: '12px 12px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                     {/* 순번 & 이동 버튼 */}
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', minWidth: '18px', textAlign: 'center' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#60a5fa', background: 'rgba(37, 99, 235, 0.18)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '2px 6px', borderRadius: '4px', minWidth: '18px', textAlign: 'center' }}>
                         {index + 1}
                       </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #475569', borderRadius: '5px', overflow: 'hidden', flexShrink: 0 }}>
                         <button
                           type="button"
                           onClick={() => handleMoveUp(index)}
                           disabled={index === 0}
                           style={{
-                            border: '1px solid #cbd5e1', borderRadius: '2px', background: '#fff',
-                            width: '16px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: index === 0 ? 'not-allowed' : 'pointer', opacity: index === 0 ? 0.3 : 1
+                            border: 'none',
+                            borderRight: '1px solid #475569',
+                            background: '#334155',
+                            width: '20px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: index === 0 ? 'not-allowed' : 'pointer',
+                            opacity: index === 0 ? 0.3 : 1,
+                            color: '#cbd5e1'
                           }}
                           title="위로 이동"
                         >
-                          <ChevronUp size={10} color="#475569" />
+                          <ChevronUp size={12} />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleMoveDown(index)}
                           disabled={index === filteredWarehouses.length - 1}
                           style={{
-                            border: '1px solid #cbd5e1', borderRadius: '2px', background: '#fff',
-                            width: '16px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: index === filteredWarehouses.length - 1 ? 'not-allowed' : 'pointer', opacity: index === filteredWarehouses.length - 1 ? 0.3 : 1
+                            border: 'none',
+                            background: '#334155',
+                            width: '20px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: index === filteredWarehouses.length - 1 ? 'not-allowed' : 'pointer',
+                            opacity: index === filteredWarehouses.length - 1 ? 0.3 : 1,
+                            color: '#cbd5e1'
                           }}
                           title="아래로 이동"
                         >
-                          <ChevronDown size={10} color="#475569" />
+                          <ChevronDown size={12} />
                         </button>
                       </div>
                     </div>
@@ -485,55 +500,59 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
                       type="checkbox"
                       checked={!!wh.isMain}
                       onChange={() => handleToggleMainWarehouse(wh)}
-                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
+                      style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#2563eb', flexShrink: 0 }}
                       title={wh.isMain ? '현재 메인창고입니다 (클릭 시 해제)' : '클릭하여 메인창고로 지정'}
                     />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: wh.color || '#3b82f6', flexShrink: 0 }}></div>
-                    <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1e293b' }}>
+                    <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: wh.color || '#3b82f6', flexShrink: 0 }}></div>
+                    <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wh.name}
                     </span>
                     {wh.isMain && (
-                      <span style={{ fontSize: '0.7rem', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                      <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(37, 99, 235, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, border: '1px solid #3b82f6', flexShrink: 0, whiteSpace: 'nowrap' }}>
                         메인
                       </span>
                     )}
                     {wh.isVehicle && (
-                      <span style={{ fontSize: '0.7rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(245, 158, 11, 0.25)', color: '#fbbf24', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, border: '1px solid #f59e0b', flexShrink: 0, whiteSpace: 'nowrap' }}>
                         차량
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexShrink: 0 }}>
                     <button 
+                      type="button"
                       onClick={() => handleEditWarehouse(wh)} 
-                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #475569', background: '#334155', color: '#f1f5f9', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
                       <Edit2 size={12} /> 수정
                     </button>
                     <button 
+                      type="button"
                       onClick={() => handleDeleteWarehouse(wh)} 
-                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
                       <Trash2 size={12} /> 삭제
                     </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem' }}>
-                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.78rem' }}>
+                  <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                     <span style={{ color: '#94a3b8', fontWeight: 600 }}>기본지정:</span>
-                    <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 700, color: '#f1f5f9' }}>
                       {staffList.filter(s => s.warehouse === wh.name).map(s => s.name).join(', ') || wh.manager || '미지정'}
                     </span>
                   </div>
-                  <div style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>주소:</span>
-                    <span style={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.address || '-'}</span>
-                  </div>
+                  {wh.address && (
+                    <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flex: 1 }}>
+                      <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>주소:</span>
+                      <span style={{ color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wh.address}</span>
+                    </div>
+                  )}
                 </div>
 
                 {wh.memo && (
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.55)', border: '1px solid rgba(255, 255, 255, 0.06)', padding: '5px 8px', borderRadius: '6px', lineHeight: 1.4 }}>
                     {wh.memo}
                   </div>
                 )}
