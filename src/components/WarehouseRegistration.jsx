@@ -11,6 +11,7 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
     address: '',
     memo: '',
     isMain: false,
+    isUnmanaged: false,
     color: '#3b82f6' // Default blue
   });
 
@@ -32,6 +33,7 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
         address: initialData.address || '',
         memo: initialData.memo || '',
         isMain: initialData.isMain || false,
+        isUnmanaged: initialData.isUnmanaged === true || initialData.status === '관리안함' || initialData.isActive === false,
         color: initialData.color || '#3b82f6'
       });
     }
@@ -135,7 +137,7 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
           </div>
         </div>
 
-        <div className="wh-checkbox-container">
+        <div className="wh-checkbox-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label className="wh-checkbox-label">
             <input 
               type="checkbox" 
@@ -145,6 +147,16 @@ const WarehouseRegistration = ({ onClose, initialData, onSave, staffList = [] })
               className="wh-checkbox-input" 
             />
             <span className="wh-checkbox-text">이 창고를 메인 창고로 설정합니다.</span>
+          </label>
+          <label className="wh-checkbox-label">
+            <input 
+              type="checkbox" 
+              name="isUnmanaged"
+              checked={formData.isUnmanaged}
+              onChange={handleChange}
+              className="wh-checkbox-input" 
+            />
+            <span className="wh-checkbox-text" style={{ color: '#ef4444' }}>관리안함 (사용 중단 및 목록 숨김)</span>
           </label>
         </div>
 

@@ -405,6 +405,11 @@ input.sales-ledger-search-input::placeholder {
     overflow: hidden !important;
   }
 
+  .window-content-area:has(.warehouse-card-list) {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   .resize-handle-indicator {
     display: none !important;
   }
