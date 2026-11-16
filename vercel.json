@@ -36,7 +36,9 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "feature/firebase-auth": false
+      "feature/firebase-auth": false,
+      "main": false,
+      "test/mobile-auth-ci": false
     }
   }
 }
