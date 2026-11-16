@@ -1,0 +1,1308 @@
+{
+  "metadata": {
+    "executedAt": "2026-11-16T06:59:34.107Z",
+    "emulatorHost": "127.0.0.1:8080",
+    "projectId": "emulator-test-isolated",
+    "totalRuns": 160
+  },
+  "unpatched": {
+    "concurrent": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 80,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (LOST_UPDATE)",
+        "details": "본사창고: 90 (10 차감 유실)"
+      }
+    ],
+    "batch": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 50,
+        "actual": 90,
+        "status": "BUG_REPRODUCED (BATCH_OVERWRITE)",
+        "details": "본사창고: 90 (40 차감 유실)"
+      }
+    ],
+    "duplicate": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 90,
+        "actual": 80,
+        "status": "BUG_REPRODUCED (DUPLICATE_DEDUCTION)",
+        "details": "본사창고: 80 (중복 요청이 2회 모두 차감됨)"
+      }
+    ],
+    "cancel": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 100,
+        "actual": 120,
+        "status": "BUG_REPRODUCED (GHOST_STOCK_INFLATION)",
+        "details": "본사창고: 120 (이력 부재에도 20개 유령 재고 가산)"
+      }
+    ]
+  },
+  "patched": {
+    "concurrent": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 80,
+        "actual": 80,
+        "status": "PASS",
+        "details": "본사: 80, 차량1: 10, 차량2: 10"
+      }
+    ],
+    "batch": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 50,
+        "actual": 50,
+        "status": "PASS",
+        "details": "본사: 50, 차량: 50, 처리건수: 5"
+      }
+    ],
+    "duplicate": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 90,
+        "actual": 90,
+        "status": "PASS (IDEMPOTENT_PROTECTED)",
+        "details": "본사: 90, 2회차 감지결과: alreadyProcessed=true"
+      }
+    ],
+    "cancel": [
+      {
+        "run": 1,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 2,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 3,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 4,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 5,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 6,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 7,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 8,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 9,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 10,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 11,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 12,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 13,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 14,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 15,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 16,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 17,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 18,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 19,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      },
+      {
+        "run": 20,
+        "initial": 100,
+        "expected": 100,
+        "actual": 100,
+        "status": "PASS (GHOST_STOCK_PREVENTED)",
+        "details": "최종재고: 100, 중복취소차단: true, 허위취소차단: true"
+      }
+    ]
+  }
+}

@@ -21,6 +21,7 @@ const OrderList = ({
   currentUser, 
   inventory = {}, 
   onMoveStock,
+  onBatchMoveStock,
   onRevertAutoMoveStock,
   initialSelectedStaff,
   initialStatusFilter = 'all',
@@ -373,6 +374,7 @@ const OrderList = ({
 
     const newProcessed = { ...processedItems };
     const orderUpdates = new Map();
+    const batchMoves = [];
 
     matchingItems.forEach(({ order, item, itemIdx, key, isLoaded }) => {
       if (isLoaded === targetLoadState) return;
@@ -406,17 +408,37 @@ const OrderList = ({
       if (targetLoadState) {
         const nextStock = initialStock + currentWhStock - qtyNum;
         stockOverrides.current[stockCacheKey] = nextStock;
-        onMoveStock(outWarehouse, inWarehouse, item.name, item.qty, true, order.date, order.id);
+        batchMoves.push({
+          from: outWarehouse,
+          to: inWarehouse,
+          productName: item.name,
+          qty: item.qty,
+          isAuto: true,
+          customDate: order.date,
+          relatedOrderId: order.id,
+          operationId: `op_load_${order.id}_${item.name}`
+        });
       } else {
         const nextStock = initialStock + currentWhStock + qtyNum;
         stockOverrides.current[stockCacheKey] = nextStock;
+        const cancelOpId = `cancel_${order.id}_${item.name}`;
         if (onRevertAutoMoveStock) {
-          onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id);
+          onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id, cancelOpId).catch(console.error);
         } else {
-          onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id);
+          onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id, null, cancelOpId).catch(console.error);
         }
       }
     });
+
+    if (targetLoadState && batchMoves.length > 0) {
+      if (onBatchMoveStock) {
+        onBatchMoveStock(batchMoves).catch(console.error);
+      } else {
+        batchMoves.forEach(m => {
+          onMoveStock(m.from, m.to, m.productName, m.qty, true, m.customDate, m.relatedOrderId, null, m.operationId).catch(console.error);
+        });
+      }
+    }
 
     setProcessedItems(newProcessed);
 
@@ -469,21 +491,23 @@ const OrderList = ({
 
     const qtyNum = Number(item.qty || 0);
 
-    // 2. 재고 이동 백그라운드 처리
+    // 2. 재고 이동 백그라운드 처리 (원자적 트랜잭션 및 Operation ID 적용)
     if (isNowLoaded) {
       // 상차 시: 재고 차감 (0일 때 3개 실으면 -3)
       const nextStock = initialStock + currentWhStock - qtyNum;
       stockOverrides.current[stockCacheKey] = nextStock;
-      onMoveStock(outWarehouse, inWarehouse, item.name, item.qty, true, order.date, order.id);
+      const opId = `op_load_${order.id}_${item.name}`;
+      onMoveStock(outWarehouse, inWarehouse, item.name, item.qty, true, order.date, order.id, null, opId).catch(console.error);
       setStockFeedback(prev => ({ ...prev, [key]: `상차완료(재고): ${nextStock}` }));
     } else {
       // 상차 풀기(취소) 시: 재고 복구 (-3에서 3개 풀면 정확히 0)
       const nextStock = initialStock + currentWhStock + qtyNum;
       stockOverrides.current[stockCacheKey] = nextStock;
+      const cancelOpId = `cancel_${order.id}_${item.name}`;
       if (onRevertAutoMoveStock) {
-        onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id);
+        onRevertAutoMoveStock(outWarehouse, inWarehouse, item.name, item.qty, order.id, cancelOpId).catch(console.error);
       } else {
-        onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id);
+        onMoveStock(inWarehouse, outWarehouse, item.name, item.qty, true, order.date, order.id, null, cancelOpId).catch(console.error);
       }
       setStockFeedback(prev => ({ ...prev, [key]: `상차취소(재고): ${nextStock}` }));
     }

@@ -23,6 +23,7 @@ import SuperAdmin from './components/SuperAdmin';
 import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners, getLocalBundle, BUNDLE_COLLECTIONS } from './utils/bundleSyncManager';
 import { getIdbBundle, setIdbBundle, clearAllIdbBundles } from './utils/idbBundleCache';
 import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
+import { moveStockAtomic, batchMoveStockAtomic, revertAutoMoveStockAtomic } from './utils/stockTransactionService';
 import WarehouseManagement from './components/WarehouseManagement';
 import StaffManagement from './components/StaffManagement';
 import InventoryTransfer from './components/InventoryTransfer';
@@ -1629,62 +1630,80 @@ function App() {
     }
   };
 
-  const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null, operator = null) => {
+  const onMoveStock = async (from, to, productName, qty, isAuto = false, customDate = null, relatedOrderId = null, operator = null, operationId = null) => {
     try {
       const companyId = currentUser?.companyId || 'default';
-      const getLocalDateStr = () => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      };
-      
-      // 1. Update Inventory State (즉시 UI 반영)
-      const nextInv = { ...inventory };
-      if (!nextInv[from]) nextInv[from] = { ...inventory[from] || {} };
-      if (!nextInv[to]) nextInv[to] = { ...inventory[to] || {} };
-      
-      nextInv[from] = { ...nextInv[from], [productName]: (nextInv[from][productName] || 0) - Number(qty) };
-      nextInv[to] = { ...nextInv[to], [productName]: (nextInv[to][productName] || 0) + Number(qty) };
-      
-      setInventory(nextInv);
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-
-      // 2. Add to Transfer History (즉시 반영)
       const product = products.find(p => p.name === productName);
-      const historyId = Date.now() + Math.random();
-      const moveDate = customDate || getLocalDateStr();
-      const moveTime = new Date().toLocaleTimeString('ko-KR', { hour12: false });
-      const newEntry = {
-        id: historyId,
-        date: moveDate,
+      const opId = operationId || (relatedOrderId ? `op_load_${relatedOrderId}_${productName}` : null);
+
+      const res = await moveStockAtomic({
+        db,
+        companyId,
         from,
         to,
-        item: productName,
-        spec: product?.spec || '',
-        qty: Number(qty),
-        processedAt: moveTime,
+        productName,
+        qty,
+        isAuto,
+        customDate,
+        relatedOrderId,
         operator: operator || currentUser?.name || '시스템',
-        memo: isAuto ? '상차(자동이동)' : '수동이동',
-        salesOrderId: relatedOrderId ? String(relatedOrderId) : null,
-        companyId
-      };
-      const nextHistory = [newEntry, ...inventoryTransferHistory];
-      setInventoryTransferHistory(nextHistory);
-      await setDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(historyId)), newEntry);
-      await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
-
-      // 3. 최근 처리 이력 로그 기록
-      await logOperation({
-        category: '이동',
-        subCategory: '재고이동',
-        type: '이동',
-        title: `재고이동 (${from} ➔ ${to})`,
-        detail: `품목: ${productName} (${qty}개${product?.spec ? `, 규격: ${product.spec}` : ''}) | 구분: ${isAuto ? '상차(자동이동)' : '수동이동'}`,
-        user: operator || currentUser?.name || '시스템',
-        targetId: String(historyId),
-        date: moveDate,
-        time: moveTime
+        operationId: opId,
+        spec: product?.spec || ''
       });
-    } catch (err) { console.error(err); }
+
+      if (res.alreadyProcessed) {
+        console.warn(`[onMoveStock] 중복 요청 감지(무시): ${res.operationId}`);
+        return res;
+      }
+
+      if (res.success && res.nextInv) {
+        setInventory(res.nextInv);
+        if (res.historyEntry) {
+          const nextHistory = [res.historyEntry, ...inventoryTransferHistory];
+          setInventoryTransferHistory(nextHistory);
+          await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
+        }
+        await logOperation({
+          category: '이동',
+          subCategory: '재고이동',
+          type: '이동',
+          title: `재고이동 (${from} ➔ ${to})`,
+          detail: `품목: ${productName} (${qty}개${product?.spec ? `, 규격: ${product.spec}` : ''}) | 구분: ${isAuto ? '상차(자동이동)' : '수동이동'}`,
+          user: operator || currentUser?.name || '시스템',
+          targetId: String(res.historyEntry?.id || ''),
+          date: res.historyEntry?.date,
+          time: res.historyEntry?.processedAt
+        });
+      }
+      return res;
+    } catch (err) {
+      console.error('Error in onMoveStock:', err);
+      throw err;
+    }
+  };
+
+  const onBatchMoveStock = async (moves, operator = null) => {
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const res = await batchMoveStockAtomic({
+        db,
+        companyId,
+        moves,
+        operator: operator || currentUser?.name || '시스템'
+      });
+      if (res.success && res.nextInv) {
+        setInventory(res.nextInv);
+        if (res.newEntries && res.newEntries.length > 0) {
+          const nextHistory = [...res.newEntries, ...inventoryTransferHistory];
+          setInventoryTransferHistory(nextHistory);
+          await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
+        }
+      }
+      return res;
+    } catch (err) {
+      console.error('Error in onBatchMoveStock:', err);
+      throw err;
+    }
   };
 
   const onDeleteMoveStock = async (historyIdOrIds) => {
@@ -1850,36 +1869,49 @@ function App() {
     }
   };
 
-  const onRevertAutoMoveStock = async (from, to, productName, qty, relatedOrderId = null) => {
+  const onRevertAutoMoveStock = async (from, to, productName, qty, relatedOrderId = null, operationId = null) => {
     try {
       const companyId = currentUser?.companyId || 'default';
-      const nextInv = { ...inventory };
-      if (!nextInv[from]) nextInv[from] = {};
-      if (!nextInv[to]) nextInv[to] = {};
+      const targetOpId = relatedOrderId ? `op_load_${relatedOrderId}_${productName}` : null;
+      const res = await revertAutoMoveStockAtomic({
+        db,
+        companyId,
+        from,
+        to,
+        productName,
+        qty,
+        relatedOrderId: targetOpId || relatedOrderId,
+        operationId,
+        operator: currentUser?.name || '시스템'
+      });
 
-      nextInv[from][productName] = (nextInv[from][productName] || 0) + Number(qty);
-      nextInv[to][productName] = (nextInv[to][productName] || 0) - Number(qty);
-
-      setInventory(nextInv);
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: nextInv });
-
-      const match = [...inventoryTransferHistory]
-        .reverse()
-        .find(h => 
-          (relatedOrderId ? String(h.salesOrderId) === String(relatedOrderId) : (h.from === from && h.to === to)) &&
-          h.item === productName && 
-          Number(h.qty) === Number(qty) && 
-          h.memo === '상차(자동이동)'
-        );
-
-      if (match) {
-        const nextHistory = inventoryTransferHistory.filter(h => String(h.id) !== String(match.id));
-        setInventoryTransferHistory(nextHistory);
-        await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
-        await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
+      if (res.alreadyProcessed) {
+        console.warn(`[onRevertAutoMoveStock] 이미 취소된 요청 감지: ${res.operationId}`);
+        return res;
       }
+
+      if (res.success && res.nextInv) {
+        setInventory(res.nextInv);
+        const match = [...inventoryTransferHistory]
+          .reverse()
+          .find(h => 
+            (relatedOrderId ? String(h.salesOrderId) === String(relatedOrderId) : (h.from === from && h.to === to)) &&
+            h.item === productName && 
+            Number(h.qty) === Number(qty) && 
+            h.memo === '상차(자동이동)'
+          );
+
+        if (match) {
+          const nextHistory = inventoryTransferHistory.filter(h => String(h.id) !== String(match.id));
+          setInventoryTransferHistory(nextHistory);
+          await deleteDoc(doc(db, 'companies', companyId, 'inventoryTransferHistory', String(match.id)));
+          await saveBundle(companyId, 'inventoryTransferHistory', nextHistory);
+        }
+      }
+      return res;
     } catch (err) {
       console.error('Error in onRevertAutoMoveStock:', err);
+      throw err;
     }
   };
 
@@ -6441,6 +6473,7 @@ function App() {
         }}
         inventory={inventory}
         onMoveStock={onMoveStock}
+        onBatchMoveStock={onBatchMoveStock}
         onRevertAutoMoveStock={onRevertAutoMoveStock}
       />}
       
