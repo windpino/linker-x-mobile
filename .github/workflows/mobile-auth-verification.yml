@@ -1,0 +1,62 @@
+name: Mobile authentication verification
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  verify:
+    if: >-
+      github.repository == 'windpino/linker-x-mobile' &&
+      github.event.issue.number == 1 &&
+      github.event.comment.user.login == 'windpino' &&
+      startsWith(github.event.comment.body, '/linker-security ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: mobile-auth-verification
+      cancel-in-progress: false
+    env:
+      VITE_AUTH_PRODUCTION_APPROVED: 'false'
+    steps:
+      - uses: actions/github-script@v7
+        id: source
+        with:
+          script: |
+            const match = context.payload.comment.body.match(/^\/linker-security ([a-f0-9]{40})\s*$/);
+            if (!match) throw new Error('Invalid source ref');
+            core.setOutput('sha', match[1]);
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Validate development source ancestry
+        run: git merge-base --is-ancestor df4492c31d31a11cf64145238be70d753512fbdb HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --ignore-scripts
+      - name: Emulator role and company isolation regression
+        run: SKIP_BROWSER_FLOW=1 npm run test:auth
+      - name: Actual mobile staff and platform browser entry
+        shell: bash
+        run: |
+          export CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          SKIP_BROWSER_FLOW=0 ./node_modules/.bin/firebase emulators:exec --project demo-linker-auth --config firebase.emulator.json --only auth,firestore "node --test security/tests/browser-flow.test.mjs"
+      - run: npm run build
+      - name: Record verification outcome
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          TEST_STATUS: ${{ job.status }}
+          TEST_SHA: ${{ steps.source.outputs.sha }}
+        with:
+          script: |
+            await github.rest.issues.createComment({...context.repo, issue_number:1, body:`[Codex] MOBILE_TEST_RESULT · ${process.env.TEST_SHA}\n상태 ${process.env.TEST_STATUS}.\nhttps://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n모바일 저장소 내부 소스의 demo 권한·브라우저·빌드 검증입니다. 운영 Google 로그인·메일 수신은 별도 검증 대상입니다.`});
