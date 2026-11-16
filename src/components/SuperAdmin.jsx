@@ -479,7 +479,6 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         const baseAdminStaff = {
           id: Date.now(),
           userId: adminUserId,
-          password: agencyForm.password || '123456',
           name: agencyForm.ceo || agencyForm.name || '관리자',
           phone: staffPhone,
           jobTitle: '대표',

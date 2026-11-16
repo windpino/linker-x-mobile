@@ -42,3 +42,31 @@ test('server write cannot alter company approval or promote legacy role',async()
 test('revoked membership is rejected by actual callable transport',async()=>{await as('worker');await db.doc(`authz/${accounts.worker.uid}/companies/BRIDGE`).update({status:'revoked'});await denied(()=>call('tenantRead',{companyId:'BRIDGE',path:'companies/BRIDGE'}));await denied(()=>call('tenantWrite',{companyId:'BRIDGE',path:'companies/BRIDGE/bundles/salesOrders',operation:'set',data:{list:[]}}));});
 
 test('approved admin preserves company state and cannot replace existing staff identity',async()=>{await as('admin');await call('tenantWrite',{companyId:'BRIDGE',path:'companies/BRIDGE',operation:'set',data:{name:'Renamed Fixture'}});assert.equal((await db.doc('companies/BRIDGE').get()).data().status,'active');await denied(()=>call('tenantWrite',{companyId:'BRIDGE',path:'companies/BRIDGE/staffList/worker',operation:'update',data:{userId:'admin'}}));});
+
+test('platform overview rejects company admins and ordinary staff', async () => {
+  await as('admin');
+  await denied(() => call('platformOverview', {}));
+  await as('catalog');
+  await denied(() => call('platformOverview', {}));
+});
+
+test('verified platform admin sees allowlisted companies and partial telemetry only', async () => {
+  await as('admin');
+  await db.doc(`platformAccess/${accounts.admin.uid}`).set({status:'active'});
+  await db.doc('companies/PLATFORM_FIXTURE').set({name:'Fixture Platform Company',status:'active',password:'PLATFORM_FIXTURE_SECRET',credentials:{secret:'PRIVATE_FIXTURE'}});
+  const date = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
+  await db.doc(`telemetry_traffic/PLATFORM_FIXTURE_${date}`).set({companyId:'PLATFORM_FIXTURE',date,reads:0,writes:2,bytes:0});
+  const result = await call('platformOverview', {});
+  const company = result.companies.find(item => item.id === 'PLATFORM_FIXTURE');
+  assert.equal(company.reads,0);
+  assert.equal(company.bytes,0);
+  assert.equal(company.collectionStatus,'partial');
+  assert.equal(result.coverage,'partial');
+  assert.equal(JSON.stringify(result).includes('PLATFORM_FIXTURE_SECRET'),false);
+  assert.equal(JSON.stringify(result).includes('PRIVATE_FIXTURE'),false);
+  const missing = result.companies.find(item => item.id === 'BRIDGE');
+  assert.equal(missing.reads,null);
+  assert.equal(missing.collectionStatus,'uncollected');
+  await db.doc(`platformAccess/${accounts.admin.uid}`).update({status:'revoked'});
+  await denied(() => call('platformOverview', {}));
+});

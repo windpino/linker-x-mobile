@@ -2,7 +2,7 @@ import { collectionPolicy, hasCapability, canReadCollection, canWriteCollection,
 import { createHash } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, FieldPath } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 initializeApp();
 const db = getFirestore();
@@ -193,4 +193,49 @@ export const tenantWrite = onCall(opts,async req=>{
   if(req.data.operation==='update'||parts.length===2)tx.update(ref,safe);else tx.set(ref,safe,{merge:req.data.merge===true});
  });
  return {ok:true};
+});
+
+// Platform-wide reads use a verified platform identity and an explicit response allowlist.
+export const platformOverview = onCall(opts, async req => {
+  const account = await identity(req);
+  const access = await platformRef(account.uid).get();
+  if (!active(access.data())) {
+    throw new HttpsError('permission-denied', '플랫폼 관리자 권한이 필요합니다.');
+  }
+  const after = req.data?.after ?? null;
+  if (after !== null && (typeof after !== 'string' || !after || after.includes('/') || Buffer.byteLength(after, 'utf8') > 1500)) {
+    throw new HttpsError('invalid-argument', '조회 위치를 확인해 주세요.');
+  }
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+  let companiesQuery = db.collection('companies').orderBy(FieldPath.documentId()).limit(51);
+  if (after) companiesQuery = companiesQuery.startAfter(after);
+  const snapshot = await companiesQuery.get();
+  const page = snapshot.docs.slice(0, 50);
+  const traffic = await db.collection('telemetry_traffic').where('date', '==', date).limit(201).get();
+  const trafficByCompany = new Map();
+  for (const document of traffic.docs) {
+    const value = document.data();
+    if (typeof value.companyId === 'string') trafficByCompany.set(value.companyId, value);
+  }
+  const counter = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+  return {
+    date,
+    source: 'application_telemetry',
+    coverage: 'partial',
+    telemetryLimited: traffic.size > 200,
+    nextAfter: snapshot.size > 50 ? page.at(-1).id : null,
+    companies: page.map(document => {
+      const company = document.data();
+      const observed = trafficByCompany.get(document.id);
+      return {
+        id: document.id,
+        name: String(company.name || company.companyName || document.id).slice(0, 200),
+        status: ['active', 'suspended', 'pending', 'inactive'].includes(company.status) ? company.status : 'unknown',
+        reads: counter(observed?.reads),
+        writes: counter(observed?.writes),
+        bytes: counter(observed?.bytes),
+        collectionStatus: observed ? 'partial' : 'uncollected'
+      };
+    })
+  };
 });

@@ -6,6 +6,7 @@ import { login, register, googleLogin, verifyEmail, resetPassword, refreshIdenti
 import { clearLegacyCredentials, withoutSecrets } from './sanitize';
 import './auth.css';
 import MembershipAdmin from './MembershipAdmin';
+import PlatformConsole from './PlatformConsole';
 import { prepareSessionScope, clearSessionScope } from './sessionScope';
 
 function PartnerOrders({session}) {
@@ -45,7 +46,8 @@ export default function AuthGate({children}) {
   },[sessionCompanyId,sessionUid]);
   const act=async fn=>{setBusy(true);setMessage('');try{await fn();}catch{setMessage('요청을 처리하지 못했습니다. 입력 정보와 인증 상태를 확인해 주세요.');}finally{setBusy(false);setForm(f=>({...f,password:''}));}};
   if(session?.role==='partner') return <PartnerOrders session={session}/>;
-  if(session?.authRole==='platform_admin' || (session && manage)) return <MembershipAdmin session={session} onBack={session.authRole==='tenant_admin'?()=>setManage(false):undefined}/>;
+  if(session?.authRole==='platform_admin') return <PlatformConsole session={session}/>;
+  if(session && manage) return <MembershipAdmin session={session} onBack={session.authRole==='tenant_admin'?()=>setManage(false):undefined}/>;
   if(session) return <>{session.authRole==='tenant_admin'&&<button className='auth-admin-toggle' onClick={()=>setManage(true)}>소속 승인 관리</button>}{children(session)}</>;
   return <main className="auth-shell"><section className="auth-card"><h1>링커엑스</h1><p>내 계정으로 인증하고, 승인받은 회사에서 업무를 시작하세요.</p>
     {import.meta.env.VITE_AUTH_PRODUCTION_APPROVED!=='true' && <p className="auth-badge">격리된 개발 환경</p>}
