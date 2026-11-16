@@ -171,6 +171,34 @@ const OrderList = ({
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const getCategoryBarStyle = (category) => {
+    const cat = String(category || '기타');
+    if (cat.includes('생물미끼')) {
+      return { barBg: '#ecfdf5', border: '#a7f3d0', text: '#065f46', badgeBg: '#10b981', badgeColor: '#ffffff' };
+    }
+    if (cat.includes('크릴')) {
+      return { barBg: '#fef2f2', border: '#fecaca', text: '#991b1b', badgeBg: '#ef4444', badgeColor: '#ffffff' };
+    }
+    if (cat.includes('파우다') || cat.includes('파우더')) {
+      return { barBg: '#fffbeb', border: '#fde68a', text: '#92400e', badgeBg: '#f59e0b', badgeColor: '#ffffff' };
+    }
+    if (cat.includes('미끼')) {
+      return { barBg: '#ecfeff', border: '#a5f3fc', text: '#0e7490', badgeBg: '#06b6d4', badgeColor: '#ffffff' };
+    }
+    if (cat.includes('미등록상품')) {
+      return { barBg: '#fff1f2', border: '#fecdd3', text: '#9f1239', badgeBg: '#f43f5e', badgeColor: '#ffffff' };
+    }
+    const palettes = [
+      { barBg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', badgeBg: '#3b82f6', badgeColor: '#ffffff' },
+      { barBg: '#faf5ff', border: '#ddd6fe', text: '#6d28d9', badgeBg: '#8b5cf6', badgeColor: '#ffffff' },
+      { barBg: '#fdf2f8', border: '#fbcfe8', text: '#be185d', badgeBg: '#ec4899', badgeColor: '#ffffff' },
+      { barBg: '#f0fdfa', border: '#99f6e4', text: '#0f766e', badgeBg: '#14b8a6', badgeColor: '#ffffff' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+    return palettes[Math.abs(hash) % palettes.length];
+  };
+
   const parseOrderItems = React.useCallback((text) => {
     if (!text) return [];
     const tokens = text.trim().split(/[\s\n]+/);
@@ -1246,18 +1274,19 @@ const OrderList = ({
                     return (
                       <div key={order.id} style={{ 
                         borderRadius: '16px', 
-                        backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff', 
-                        border: isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0', 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e2e8f0', 
                         position: 'relative',
-                        boxShadow: isOrderFullyLoaded ? '0 2px 8px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                        marginBottom: '8px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        marginBottom: '10px',
+                        overflow: 'hidden',
                         flexShrink: 0
                       }}>
-                        {/* 1. Header (상차시 어두운 톤, 미상차시 밝은색/민트) */}
+                        {/* 1. Header (메뉴bar: 밝은 배경 및 선명한 글자색) */}
                         <div style={{ 
                           padding: '8px 12px', 
-                          backgroundColor: isOrderFullyLoaded ? '#0f172a' : '#dcfce7', 
-                          borderBottom: isCollapsed ? 'none' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #bbf7d0'),
+                          backgroundColor: '#f8fafc', 
+                          borderBottom: isCollapsed ? 'none' : '1px solid #e2e8f0',
                           borderTopLeftRadius: '15px',
                           borderTopRightRadius: '15px',
                           borderBottomLeftRadius: isCollapsed ? '15px' : 0,
@@ -1279,9 +1308,9 @@ const OrderList = ({
                                 width: '22px',
                                 height: '22px',
                                 borderRadius: '6px',
-                                backgroundColor: isOrderFullyLoaded ? '#1e293b' : (isCollapsed ? '#ffffff' : '#bbf7d0'),
-                                border: isOrderFullyLoaded ? '1px solid #334155' : '1px solid #86efac',
-                                color: isOrderFullyLoaded ? '#94a3b8' : '#059669',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                color: '#475569',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1302,7 +1331,7 @@ const OrderList = ({
                               height: '22px',
                               padding: '0 6px',
                               borderRadius: '6px',
-                              backgroundColor: isOrderFullyLoaded ? '#2563eb' : '#059669',
+                              backgroundColor: '#2563eb',
                               color: '#ffffff',
                               fontSize: '0.8rem',
                               fontWeight: 800,
@@ -1314,7 +1343,7 @@ const OrderList = ({
                               {oIdx + 1}
                             </span>
 
-                            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: isOrderFullyLoaded ? '#f8fafc' : '#064e3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {order.partner}
                             </span>
 
@@ -1322,9 +1351,9 @@ const OrderList = ({
                               <span style={{
                                 fontSize: '0.76rem',
                                 fontWeight: 700,
-                                color: isOrderFullyLoaded ? '#93c5fd' : '#059669',
-                                backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff',
-                                border: isOrderFullyLoaded ? '1px solid #334155' : '1px solid #bbf7d0',
+                                color: '#2563eb',
+                                backgroundColor: '#eff6ff',
+                                border: '1px solid #bfdbfe',
                                 padding: '2px 7px',
                                 borderRadius: '8px',
                                 flexShrink: 0
@@ -1337,7 +1366,7 @@ const OrderList = ({
                               <a 
                                 href={`tel:${phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ color: isOrderFullyLoaded ? '#60a5fa' : '#059669', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', marginLeft: '2px' }}
+                                style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', marginLeft: '2px' }}
                                 title={`전화: ${phone}`}
                               >
                                 <Phone size={13} />
@@ -1361,7 +1390,7 @@ const OrderList = ({
                                 fontWeight: 800, 
                                 backgroundColor: isCompleted ? '#059669' : '#ffffff',
                                 color: isCompleted ? '#ffffff' : '#059669', 
-                                border: isCompleted ? '1px solid #059669' : '1px solid #cbd5e1', 
+                                border: isCompleted ? '1px solid #059669' : '1px solid #10b981', 
                                 cursor: 'pointer',
                                 boxShadow: isCompleted ? '0 2px 6px rgba(5,150,105,0.35)' : 'none',
                                 transition: 'all 0.15s ease'
@@ -1371,14 +1400,14 @@ const OrderList = ({
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); onEditOrder(order); }}
-                              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '3px', display: 'flex', alignItems: 'center' }}
+                              style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '3px', display: 'flex', alignItems: 'center' }}
                               title="수정"
                             >
                               <Edit3 size={14} />
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); if (window.confirm('삭제하시겠습니까?')) onDeleteOrder(order.id); }}
-                              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '3px', display: 'flex', alignItems: 'center' }}
+                              style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '3px', display: 'flex', alignItems: 'center' }}
                               title="삭제"
                             >
                               <Trash2 size={14} />
@@ -1402,7 +1431,7 @@ const OrderList = ({
                           });
 
                           return (
-                            <div style={{ backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff', padding: '0' }}>
+                            <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
                               {displayItems.length === 0 ? (
                                 <div style={{ padding: '12px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
                                   등록된 수주 품목이 없습니다.
@@ -1410,34 +1439,38 @@ const OrderList = ({
                               ) : null}
 
                               {categoryGroups.map((group, gIdx) => {
-                                const catStyle = getCategoryBadgeStyle(group.category);
+                                const catStyle = getCategoryBarStyle(group.category);
 
                                 return (
                                   <div key={group.category || gIdx}>
-                                    {/* 카테고리 묶음 헤더 (맨 앞에 묶음으로 하나만 표시) */}
+                                    {/* 카테고리 묶음 헤더 (카테고리 bar 색상: bar 배경색과 카테고리 색상 적용) */}
                                     <div style={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '6px',
-                                      padding: '5px 12px 4px 12px',
-                                      backgroundColor: isOrderFullyLoaded ? '#0f172a' : '#f8fafc',
-                                      borderBottom: isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0',
-                                      borderTop: gIdx > 0 ? (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0') : 'none'
+                                      justifyContent: 'space-between',
+                                      padding: '6px 12px',
+                                      backgroundColor: catStyle.barBg,
+                                      borderBottom: `1px solid ${catStyle.border}`,
+                                      borderTop: gIdx > 0 ? `1px solid ${catStyle.border}` : 'none'
                                     }}>
-                                      <span style={{
-                                        fontSize: '0.72rem',
-                                        padding: '2px 8px',
-                                        borderRadius: '4px',
-                                        backgroundColor: isOrderFullyLoaded ? 'rgba(255, 255, 255, 0.12)' : catStyle.bg,
-                                        border: isOrderFullyLoaded ? '1px solid rgba(255, 255, 255, 0.25)' : `1px solid ${catStyle.border}`,
-                                        color: isOrderFullyLoaded ? '#93c5fd' : catStyle.color,
-                                        fontWeight: 800,
-                                        lineHeight: 1.2
-                                      }}>
-                                        {group.category}
-                                      </span>
-                                      <span style={{ fontSize: '0.72rem', color: isOrderFullyLoaded ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
-                                        ({group.items.length}개 품목)
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{
+                                          fontSize: '0.74rem',
+                                          padding: '2px 8px',
+                                          borderRadius: '5px',
+                                          backgroundColor: catStyle.badgeBg,
+                                          color: catStyle.badgeColor,
+                                          fontWeight: 800,
+                                          lineHeight: 1.2
+                                        }}>
+                                          {group.category}
+                                        </span>
+                                        <span style={{ fontSize: '0.74rem', color: catStyle.text, fontWeight: 700 }}>
+                                          ({group.items.length}개 품목)
+                                        </span>
+                                      </div>
+                                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: catStyle.text }}>
+                                        {group.items.reduce((sum, { item }) => sum + (Number(item.qty) || 0), 0).toLocaleString()}개
                                       </span>
                                     </div>
 
@@ -1457,15 +1490,15 @@ const OrderList = ({
                                             alignItems: 'center',
                                             gap: '8px',
                                             padding: '9px 12px',
-                                            borderBottom: isLastInOrder ? 'none' : (isProcessed ? '1px solid #1e293b' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #f1f5f9')),
-                                            backgroundColor: isProcessed ? '#0f172a' : (isOrderFullyLoaded ? '#1e293b' : '#ffffff'),
+                                            borderBottom: isLastInOrder ? 'none' : '1px solid #f1f5f9',
+                                            backgroundColor: isProcessed ? '#f8fafc' : '#ffffff',
                                             cursor: 'pointer',
                                             position: 'relative',
                                             transition: 'background-color 0.18s ease'
                                           }}
                                         >
                                           {/* 1) 품목 번호 */}
-                                          <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isProcessed ? '#64748b' : (isOrderFullyLoaded ? '#94a3b8' : '#64748b'), textAlign: 'center', flexShrink: 0 }}>
+                                          <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isProcessed ? '#cbd5e1' : '#64748b', textAlign: 'center', flexShrink: 0 }}>
                                             {originalIdx + 1}
                                           </span>
 
@@ -1474,7 +1507,7 @@ const OrderList = ({
                                             <span 
                                               style={{
                                                 fontWeight: 800,
-                                                color: isProcessed ? '#94a3b8' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
+                                                color: isProcessed ? '#94a3b8' : '#0f172a',
                                                 fontSize: '1.02rem',
                                                 lineHeight: 1.3,
                                                 overflow: 'hidden',
@@ -1494,12 +1527,18 @@ const OrderList = ({
                                             height: '28px',
                                             padding: '0 8px',
                                             borderRadius: '7px',
-                                            backgroundColor: isProcessed ? '#1e293b' : (isOrderFullyLoaded ? '#0f172a' : '#f1f5f9'),
-                                            border: isProcessed ? '1px solid #334155' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0'),
+                                            backgroundColor: isProcessed ? '#f1f5f9' : '#f8fafc',
+                                            border: isProcessed ? '1px solid #e2e8f0' : '1px solid #cbd5e1',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            color: isProcessed ? '#94a3b8' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
+                                            color: isProcessed ? '#94a3b8' : '#0f172a',
+                                            fontWeight: 800,
+                                            fontSize: '0.96rem',
+                                            flexShrink: 0
+                                          }}>
+                                            {item.qty}
+                                          </div>
                                             fontWeight: 800,
                                             fontSize: '0.96rem',
                                             flexShrink: 0
