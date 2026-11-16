@@ -33,3 +33,7 @@ Created: 2026-11-16.
 - TODO: 기존 bundles/metadata/설정 경로 최소 권한 매핑, 평문 비밀번호 데이터 정리 계획 승인, 거래처 요청→기존 수주 연동.
 - TODO: Antigravity 재고 브랜치와 별도 통합 브랜치에서 인증/동시 상차/취소/재시도/전표/오프라인 테스트. 현재 P0 재고 과제의 완료 상태는 변경하지 않음.
 - TODO: 실제 메일 수신·Google 팝업/리디렉션·Functions HTTP/CORS, 플랫폼 최초 UID 등록, 운영 전환/배포 별도 승인.
+
+
+## 2026-11-16 인증 서버 연결 통합
+운영 전체 거부 유지. tenantRead/tenantWrite, 회사별 캐시 경계, 실제 재고 서비스 원본 통합 테스트 추가. 재고/상차/전표 함수 변경 없음. 전환 차단 조건과 후속 테스트는 security/DEPLOYMENT_BLOCKERS.ko.md 참조. 운영 배포·main 병합·계정/결제 변경 미실행.

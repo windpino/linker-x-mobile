@@ -1,8 +1,5 @@
-import { 
-  setDoc as rawSetDoc, 
-  updateDoc as rawUpdateDoc, 
-  deleteDoc as rawDeleteDoc 
-} from 'firebase/firestore';
+import { setDoc as rawSetDoc, updateDoc as rawUpdateDoc, deleteDoc as rawDeleteDoc } from '../auth/tenantFirestore';
+
 
 /**
  * LINKER-X Firestore Safety Guard & Circuit Breaker
@@ -161,3 +158,4 @@ export async function safeDeleteDoc(docRef) {
     throw error;
   }
 }
+

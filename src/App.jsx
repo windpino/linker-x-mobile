@@ -1,3 +1,4 @@
+import { getDocs, getDoc } from './auth/tenantFirestore';
 import { signOut } from 'firebase/auth';
 import { reauthenticate } from './auth/client';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -83,7 +84,7 @@ import PwaInstallPrompt from './components/PwaInstallPrompt';
 import MobileBottomNav from './components/MobileBottomNav';
 import useDevice from './hooks/useDevice';
 import { db, auth } from './firebase';
-import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, writeBatch, query, where } from 'firebase/firestore';
 import { safeSetDoc as setDoc, safeUpdateDoc as updateDoc, safeDeleteDoc as deleteDoc } from './utils/firestoreSafety';
 import UserSignup from './components/UserSignup';
 import { hasMenuPermission, hasMobileMenuPermission, MOBILE_CORE_MENUS, MENU_ID_TO_PERM } from './utils/menuPermissions';
@@ -1272,27 +1273,7 @@ function App({ authSession }) {
           }
           setter(processedData);
 
-          if (colName === 'staffList') {
-            setCurrentUser(prevUser => {
-              if (!prevUser || prevUser.role === 'super_admin' || prevUser.userId === 'admin') return prevUser;
-              const found = processedData.find(s => String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id));
-              if (found) {
-                const isDifferent = found.name !== prevUser.name ||
-                                    found.role !== prevUser.role ||
-                                    found.jobTitle !== prevUser.jobTitle ||
-                                    found.warehouse !== prevUser.warehouse ||
-                                    found.allowAllEditDelete !== prevUser.allowAllEditDelete ||
-                                    found.allowSpecialPriceSave !== prevUser.allowSpecialPriceSave ||
-                                    JSON.stringify(found.permissions) !== JSON.stringify(prevUser.permissions);
-                if (isDifferent) {
-                  const merged = { ...prevUser, ...found };
-                  localStorage.setItem('currentUser', JSON.stringify(merged));
-                  return merged;
-                }
-              }
-              return prevUser;
-            });
-          }
+          // Server session remains authoritative; directory rows cannot replace role/permissions.
           if (colName === 'salesInvoices' || (Array.isArray(processedData) && processedData.length >= 1000)) {
             setIdbBundle(companyId, colName, processedData);
           } else {

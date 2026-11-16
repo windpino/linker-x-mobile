@@ -6,6 +6,7 @@ import { login, register, googleLogin, verifyEmail, resetPassword, refreshIdenti
 import { clearLegacyCredentials, withoutSecrets } from './sanitize';
 import './auth.css';
 import MembershipAdmin from './MembershipAdmin';
+import { prepareSessionScope, clearSessionScope } from './sessionScope';
 
 function PartnerOrders({session}) {
   const [orders,setOrders] = useState([]), [item,setItem] = useState(''), [error,setError] = useState('');
@@ -27,11 +28,11 @@ export default function AuthGate({children}) {
   const change=e=>setForm(f=>({...f,[e.target.name]:e.target.value}));
   useEffect(()=>{
     clearLegacyCredentials(localStorage); clearLegacyCredentials(sessionStorage);
-    return onIdTokenChanged(auth,u=>{localStorage.removeItem('currentUser');setIdentity(u ? {uid:u.uid,email:u.email,emailVerified:u.emailVerified,displayName:u.displayName} : null);setSession(null);setBusy(false);setForm(f=>({...f,password:'',email:u?.email||f.email,name:u?.displayName||f.name}));});
+    return onIdTokenChanged(auth,u=>{clearSessionScope();localStorage.removeItem('currentUser');setIdentity(u ? {uid:u.uid,email:u.email,emailVerified:u.emailVerified,displayName:u.displayName} : null);setSession(null);setBusy(false);setForm(f=>({...f,password:'',email:u?.email||f.email,name:u?.displayName||f.name}));});
   },[]);
   const enter = async () => {
     setSession(null);setBusy(true);
-    try {await refreshIdentity(); const approved=withoutSecrets(await callAuth('authSession',{companyId:form.companyId}));localStorage.setItem('currentUser',JSON.stringify(approved));setSession(approved);}
+    try {await refreshIdentity(); const approved=withoutSecrets(await callAuth('authSession',{companyId:form.companyId}));await prepareSessionScope(approved);localStorage.setItem('currentUser',JSON.stringify(approved));setSession(approved);}
     catch {localStorage.removeItem('currentUser');setMessage('이메일 인증, 회사 소속 승인 또는 서버 연결을 확인해 주세요.');}
     finally{setBusy(false);}
   };
@@ -39,7 +40,7 @@ export default function AuthGate({children}) {
   useEffect(()=>{
     if (!sessionCompanyId || !sessionUid) return;
     let live=true;
-    const timer=setInterval(async()=>{try {const next=withoutSecrets(await callAuth('authSession',{companyId:sessionCompanyId}));if(live){setSession(next);localStorage.setItem('currentUser',JSON.stringify(next));}}catch{if(live){setSession(null);localStorage.removeItem('currentUser');setMessage('소속 승인 상태를 다시 확인해 주세요.');}}},60000);
+    const timer=setInterval(async()=>{try {const next=withoutSecrets(await callAuth('authSession',{companyId:sessionCompanyId}));if(live){await prepareSessionScope(next);setSession(next);localStorage.setItem('currentUser',JSON.stringify(next));}}catch{if(live){setSession(null);localStorage.removeItem('currentUser');setMessage('소속 승인 상태를 다시 확인해 주세요.');}}},60000);
     return ()=>{live=false;clearInterval(timer);};
   },[sessionCompanyId,sessionUid]);
   const act=async fn=>{setBusy(true);setMessage('');try{await fn();}catch{setMessage('요청을 처리하지 못했습니다. 입력 정보와 인증 상태를 확인해 주세요.');}finally{setBusy(false);setForm(f=>({...f,password:''}));}};

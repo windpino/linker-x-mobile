@@ -1,3 +1,4 @@
+import { collectionPolicy, hasCapability, canReadCollection, canWriteCollection, publicBusiness, directoryProjection } from './tenantPolicy.js';
 import { createHash } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
@@ -25,7 +26,7 @@ function sessionUser(uid, cid, membership, profile) {
   return { ...safe, id: safe.id || membership.legacyId, userId: safe.userId || membership.legacyId,
     authUid: uid, companyId: cid, legacyId: membership.legacyId, partnerId: membership.partnerId || null,
     role: ({ tenant_admin:'admin', tenant_staff:'staff', partner:'partner', platform_admin:'super_admin' })[membership.role],
-    authRole: membership.role, permissions: membership.permissions || {}, status:'active',
+    authRole: membership.role, permissions: { ...(membership.permissions || {}), sales: ['orders','loading','delivery','invoices'].some(k=>membership.permissions?.[k]===true), purchase: membership.permissions?.invoices===true, product: membership.permissions?.catalog===true, warehouse: membership.permissions?.catalog===true, partner: membership.permissions?.orders===true, account: membership.permissions?.invoices===true, schedule: membership.permissions?.orders===true, report: membership.permissions?.reports===true }, status:'active',
     isPlatformAdmin: membership.role === 'platform_admin' };
 }
 export const authSession = onCall(opts, async req => {
@@ -87,7 +88,7 @@ export const approveMembership = onCall(opts, async req => {
     const permissions = {};
     const allowed = ['orders','loading','delivery','invoices','inventory','catalog','reports'];
     if (data.role === 'tenant_staff') for (const key of allowed) if (req.data?.permissions?.[key] === true) permissions[key] = true;
-    const membership = {uid:targetUid,companyId:cid,legacyId,role:data.role,status:'active',permissions,approvedBy:actor.uid,approvedAt:FieldValue.serverTimestamp()};
+    const membership = {uid:targetUid,companyId:cid,legacyId,userId:profile.exists ? (profile.data().userId || legacyId) : legacyId,role:data.role,status:'active',permissions,approvedBy:actor.uid,approvedAt:FieldValue.serverTimestamp()};
     if (data.role === 'partner') { membership.partnerId = legacyId; membership.contactId = data.contactId; }
     tx.set(membershipRef(targetUid,cid),membership);
     tx.set(binding,{uid:targetUid,companyId:cid,legacyId});
@@ -115,4 +116,81 @@ export const updateMembership = onCall(opts,async req=>{
   tx.update(membershipRef(uid,cid),{permissions,status:req.data.status,updatedBy:actor.uid,updatedAt:FieldValue.serverTimestamp()});
   tx.create(db.collection('authAudit').doc(),{actor:actor.uid,target:uid,companyId:cid,action:'updateMembership',at:FieldValue.serverTimestamp()});
  });return {ok:true};
+});
+
+async function tenantContext(req){
+ const account=await identity(req),cid=id(req.data?.companyId);
+ const [m,c]=await Promise.all([membershipRef(account.uid,cid).get(),db.doc(`companies/${cid}`).get()]);
+ if(!active(m.data())||m.data().companyId!==cid||!active(c.data())||!['tenant_admin','tenant_staff'].includes(m.data().role))throw new HttpsError('permission-denied','승인된 회사 구성원만 접근할 수 있습니다.');
+ const profile=await db.doc(`companies/${cid}/staffList/${id(m.data().legacyId)}`).get();
+ if(!profile.exists)throw new HttpsError('failed-precondition','연결된 직원 문서가 없습니다.');
+ return {uid:account.uid,cid,m:m.data(),company:c.data(),actorName:profile.data().name};
+}
+function legacyPath(req){
+ const parts=String(req.data?.path||'').split('/');
+ if(parts.length<2||parts.length>4||parts[0]!=='companies'||parts[1]!==req.data?.companyId||parts.some(p=>!p||p==='.'||p==='..'))throw new HttpsError('invalid-argument','회사 내부의 허용된 경로만 사용할 수 있습니다.');
+ return parts;
+}
+function bundleBase(name){return name.replace(/_chunk_\d+$/,'');}
+const readableSettings=['systemSettings','staffZones','staffJobTitles','recentActivity','favoriteMenus','dashboardConfig'];
+function checkAccess(ctx,parts,write=false){
+ const col=parts[2],key=parts[3];
+ if(parts.length===2){if(write&&ctx.m.role!=='tenant_admin')throw new HttpsError('permission-denied','회사 관리자 권한이 필요합니다.');return;}
+ if(col==='bundles'){
+  if(!key)throw new HttpsError('permission-denied','번들 목록 접근은 허용되지 않습니다.');
+  if(!(write?canWriteCollection(ctx.m,bundleBase(key)):canReadCollection(ctx.m,bundleBase(key))))throw new HttpsError('permission-denied','해당 번들 권한이 없습니다.');return;
+ }
+ if(col==='metadata'&&key==='syncState')return;
+ if(col==='settings'&&readableSettings.includes(key)){if(write&&ctx.m.role!=='tenant_admin')throw new HttpsError('permission-denied','설정 변경 권한이 없습니다.');return;}
+ if(['staffList','partners'].includes(col)&&(write?canWriteCollection(ctx.m,col):canReadCollection(ctx.m,col)))return;
+ throw new HttpsError('permission-denied','이 경로는 서버 연결 경로에서 허용되지 않습니다.');
+}
+export const tenantRead = onCall(opts,async req=>{
+ const ctx=await tenantContext(req),parts=legacyPath(req);checkAccess(ctx,parts);
+ const path=parts.join('/'),col=parts[2];
+ const project=(raw,docId)=>{
+  let result=publicBusiness(raw);
+  if(['staffList','partners'].includes(col))result=directoryProjection(col,{...raw,_docId:docId,companyId:ctx.cid},ctx.m,ctx.actorName);
+  if(col==='bundles'){
+   const base=bundleBase(parts[3]);
+   const list=raw.list||raw.items;
+   if(Array.isArray(list)){const projected=list.map(x=>directoryProjection(base,{...x,companyId:ctx.cid},ctx.m,ctx.actorName)).filter(Boolean);result={...result,list:projected};if(Array.isArray(raw.items))result.items=projected;}
+  }
+  if(col==='metadata')result=Object.fromEntries(Object.entries(result).filter(([k])=>canReadCollection(ctx.m,k)));
+  return result;
+ };
+ if(parts.length===3){
+  const snap=await db.collection(path).limit(2001).get();if(snap.size>2000)throw new HttpsError('resource-exhausted','분할 조회가 필요한 데이터입니다.');
+  return {docs:snap.docs.map(d=>({id:d.id,data:project(d.data(),d.id)})).filter(d=>d.data!==null)};
+ }
+ const snapshot=await db.doc(path).get();if(!snapshot.exists)return {exists:false,id:parts.at(-1)};
+ const value=project(snapshot.data(),snapshot.id);return {exists:value!==null,id:snapshot.id,data:value};
+});
+export const tenantWrite = onCall(opts,async req=>{
+ const ctx=await tenantContext(req),parts=legacyPath(req);checkAccess(ctx,parts,true);
+ if(parts.length%2!==0)throw new HttpsError('invalid-argument','문서 경로가 필요합니다.');
+ const col=parts[2],input=req.data?.data;
+ if(!input||Array.isArray(input)||typeof input!=='object')throw new HttpsError('invalid-argument','문서 객체가 필요합니다.');
+ if(Buffer.byteLength(JSON.stringify(input),'utf8')>800000)throw new HttpsError('resource-exhausted','요청 데이터가 너무 큽니다.');
+ let safe=publicBusiness(input);
+ if(col==='metadata'){
+  if(Object.keys(safe).some(k=>!canWriteCollection(ctx.m,k)))throw new HttpsError('permission-denied','허용되지 않은 동기화 항목입니다.');
+ }
+ if(col==='bundles'&&Array.isArray(safe.list))safe.list=safe.list.map(item=>({...item,companyId:ctx.cid}));
+ if(['staffList','partners'].includes(col))safe={...safe,companyId:ctx.cid};
+ if(parts.length===2){
+  const allowed=['name','address','phone','managerContact','ceo','ceoName','businessNo','updatedAt'];
+  if(Object.keys(safe).some(k=>!allowed.includes(k)))throw new HttpsError('permission-denied','회사 상태·권한·구독 변경은 이 경로에서 허용되지 않습니다.');
+ }
+ if(!['set','update'].includes(req.data?.operation))throw new HttpsError('invalid-argument','지원되지 않는 변경입니다.');
+ const ref=db.doc(parts.join('/'));
+ await db.runTransaction(async tx=>{
+  const [currentMember,currentCompany]=await Promise.all([tx.get(membershipRef(ctx.uid,ctx.cid)),tx.get(db.doc(`companies/${ctx.cid}`))]);
+  if(!active(currentMember.data())||currentMember.data().companyId!==ctx.cid||!active(currentCompany.data()))throw new HttpsError('permission-denied','승인 상태가 변경됐습니다.');
+  const current={...ctx,m:currentMember.data()};checkAccess(current,parts,true);
+  if(['staffList','partners'].includes(col)){ const existing=await tx.get(ref);if(existing.exists)for(const key of ['id','userId'])if(safe[key]!==undefined&&existing.data()[key]!==undefined&&String(safe[key])!==String(existing.data()[key]))throw new HttpsError('permission-denied','기존 계정 식별자를 변경할 수 없습니다.'); }
+  if(col==='metadata'&&Object.keys(safe).some(k=>!canWriteCollection(current.m,k)))throw new HttpsError('permission-denied','동기화 권한이 변경됐습니다.');
+  if(req.data.operation==='update'||parts.length===2)tx.update(ref,safe);else tx.set(ref,safe,{merge:req.data.merge===true});
+ });
+ return {ok:true};
 });
