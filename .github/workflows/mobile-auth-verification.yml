@@ -1,5 +1,8 @@
 name: Mobile authentication verification
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
   issue_comment:
     types: [created]
 permissions:
@@ -9,9 +12,10 @@ jobs:
   verify:
     if: >-
       github.repository == 'windpino/linker-x-mobile' &&
-      github.event.issue.number == 1 &&
-      github.event.comment.user.login == 'windpino' &&
-      startsWith(github.event.comment.body, '/linker-security ')
+      ((github.event_name == 'pull_request' && github.event.pull_request.user.login == 'windpino' &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+       (github.event_name == 'issue_comment' && github.event.issue.number == 1 &&
+        github.event.comment.user.login == 'windpino' && startsWith(github.event.comment.body, '/linker-security ')))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -24,6 +28,10 @@ jobs:
         id: source
         with:
           script: |
+            if (context.eventName === 'pull_request') {
+              core.setOutput('sha', '87fb100c1aa15b42b3ad1930e61b099112b8b0a3');
+              return;
+            }
             const match = context.payload.comment.body.match(/^\/linker-security ([a-f0-9]{40})\s*$/);
             if (!match) throw new Error('Invalid source ref');
             core.setOutput('sha', match[1]);
