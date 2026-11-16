@@ -1,0 +1,27 @@
+{
+  "test1_current_lost_update": {
+    "runs": 20,
+    "reproduced": 20,
+    "passed": 0
+  },
+  "test2_batch_toggle_overwrite": {
+    "runs": 20,
+    "reproduced": 20,
+    "passed": 0
+  },
+  "test3_proposed_concurrency": {
+    "runs": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "test4_duplicate_op_id": {
+    "runs": 20,
+    "blocked": 20,
+    "doubleDeducted": 0
+  },
+  "test5_revert_idempotency": {
+    "runs": 20,
+    "safe": 20,
+    "ghostStockCreated": 0
+  }
+}
