@@ -1,0 +1,1548 @@
+{
+  "metadata": {
+    "executedAt": "2026-11-16T07:05:10.765Z",
+    "emulatorHost": "127.0.0.1:8080",
+    "projectId": "emulator-test-isolated"
+  },
+  "lifecycle": [
+    {
+      "run": 1,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 2,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 3,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 4,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 5,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 6,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 7,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 8,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 9,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 10,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 11,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 12,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 13,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 14,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 15,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 16,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 17,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 18,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 19,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    },
+    {
+      "run": 20,
+      "step1_상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step2_취소": {
+        "본사": 0,
+        "차량": 0,
+        "pass": true
+      },
+      "step3_재상차": {
+        "본사": -2,
+        "차량": 2,
+        "pass": true
+      },
+      "step4_납품": {
+        "본사": -2,
+        "차량": 0,
+        "매출출고": 2,
+        "pass": true
+      },
+      "step5_납품취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "step6_전표수정": {
+        "본사": -2,
+        "차량": -1,
+        "매출출고": 3,
+        "pass": true
+      },
+      "step7_전표취소": {
+        "본사": -2,
+        "차량": 2,
+        "매출출고": 0,
+        "pass": true
+      },
+      "status": "PASS"
+    }
+  ],
+  "negativeStockRapidClick": [
+    {
+      "run": 1,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 2,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 3,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 4,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 5,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 6,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 7,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 8,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 9,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 10,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 11,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 12,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 13,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 14,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 15,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 16,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 17,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 18,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 19,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    },
+    {
+      "run": 20,
+      "initial": -5,
+      "expected": -8,
+      "actualWh": -8,
+      "actualCar": 3,
+      "status": "PASS",
+      "details": "본사: -8 (기대: -8), 차량: 3 (기대: 3)"
+    }
+  ],
+  "multiUserContention": [
+    {
+      "run": 1,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 2,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 3,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 4,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 5,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 6,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 7,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 8,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 9,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 10,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 11,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 12,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 13,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 14,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 15,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 16,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 17,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 18,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 19,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    },
+    {
+      "run": 20,
+      "initial": 0,
+      "expected": -15,
+      "actualWh": -15,
+      "cars": {
+        "car1": 5,
+        "car2": 5,
+        "car3": 5
+      },
+      "status": "PASS",
+      "details": "본사: -15, 차량1: 5, 차량2: 5, 차량3: 5"
+    }
+  ],
+  "networkRetryIdempotency": [
+    {
+      "run": 1,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 2,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 3,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 4,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 5,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 6,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 7,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 8,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 9,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 10,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 11,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 12,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 13,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 14,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 15,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 16,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 17,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 18,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 19,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    },
+    {
+      "run": 20,
+      "initial": 10,
+      "expected": 6,
+      "actualWh": 6,
+      "actualCar": 4,
+      "retryAlreadyProcessed": true,
+      "status": "PASS",
+      "details": "본사: 6, 차량: 4, 재시도 차단: true"
+    }
+  ],
+  "auditReport": {
+    "auditedAt": "2026-11-16T07:06:03.936Z",
+    "companyId": "audit_verify_1794812763797",
+    "totalHistoryCount": 2,
+    "warehousesAudited": 3,
+    "discrepancies": [],
+    "matches": [
+      {
+        "warehouse": "본사창고",
+        "product": "품목A",
+        "snapshotStock": -10,
+        "calculatedFromHistory": -10,
+        "delta": 0,
+        "status": "BALANCED"
+      },
+      {
+        "warehouse": "매출출고",
+        "product": "품목A",
+        "snapshotStock": 6,
+        "calculatedFromHistory": 6,
+        "delta": 0,
+        "status": "BALANCED"
+      },
+      {
+        "warehouse": "차량",
+        "product": "품목A",
+        "snapshotStock": 4,
+        "calculatedFromHistory": 4,
+        "delta": 0,
+        "status": "BALANCED"
+      }
+    ]
+  }
+}

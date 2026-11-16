@@ -316,7 +316,197 @@ export async function revertAutoMoveStockAtomic({
 }
 
 /**
- * 4. Legacy (Unpatched) Actual Code Logic (비교 테스트용 기존 로직)
+ * 4. Atomic Sales Invoice Stock Deduction (매출전표 발행 시 재고 원자적 차감)
+ * 차량에서 고객(매출출고)으로 수량을 이동하며, 상차와 중복 차감되지 않도록 고유 OpID 관리
+ */
+export async function recordSalesInvoiceStockAtomic({
+  db,
+  companyId = 'default',
+  invoiceId,
+  items = [],
+  warehouse = '차량',
+  date = null,
+  partner = '',
+  operator = '시스템',
+  operationId = null
+}) {
+  if (!db) throw new Error('[stockTransaction] db instance is required');
+  if (!invoiceId) throw new Error('[stockTransaction] invoiceId is required');
+
+  const opId = String(operationId || `op_inv_${invoiceId}`);
+  const opRef = doc(db, 'companies', companyId, 'operations', opId);
+  const inventoryRef = doc(db, 'companies', companyId, 'settings', 'inventory');
+
+  return await runTransaction(db, async (transaction) => {
+    // 1) 멱등성 검사: 동일 전표 재고 차감이 이미 확정되었는지 확인
+    const opSnap = await transaction.get(opRef);
+    if (opSnap.exists() && opSnap.data()?.status === 'CONFIRMED') {
+      return {
+        success: true,
+        alreadyProcessed: true,
+        operationId: opId,
+        message: 'Duplicate invoice stock deduction prevented.'
+      };
+    }
+
+    // 2) 최신 재고 조회
+    const invSnap = await transaction.get(inventoryRef);
+    const currentInv = invSnap.exists() ? (invSnap.data()?.value || {}) : {};
+    const nextInv = JSON.parse(JSON.stringify(currentInv));
+
+    if (!nextInv[warehouse]) nextInv[warehouse] = {};
+    if (!nextInv['매출출고']) nextInv['매출출고'] = {};
+
+    const moveDate = date || new Date().toISOString().split('T')[0];
+    const moveTime = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    const historyEntries = [];
+
+    // 3) 차량 ➔ 매출출고 이동 (마이너스 재고 허용)
+    for (const item of items) {
+      const name = item.name;
+      const qty = Number(item.qty || 0);
+      if (!name || qty === 0) continue;
+
+      nextInv[warehouse][name] = Number(nextInv[warehouse][name] || 0) - qty;
+      nextInv['매출출고'][name] = Number(nextInv['매출출고'][name] || 0) + qty;
+
+      const historyId = `inv_hist_${invoiceId}_${name}`;
+      const historyRef = doc(db, 'companies', companyId, 'inventoryTransferHistory', historyId);
+      const historyData = {
+        id: historyId,
+        operationId: opId,
+        date: moveDate,
+        from: warehouse,
+        to: '매출출고',
+        item: name,
+        spec: item.spec || '',
+        qty,
+        processedAt: moveTime,
+        operator,
+        memo: `[매출] ${partner || ''}`,
+        salesInvoiceId: String(invoiceId),
+        companyId,
+        status: 'CONFIRMED',
+        createdAt: Date.now()
+      };
+      historyEntries.push(historyData);
+      transaction.set(historyRef, historyData);
+    }
+
+    transaction.set(inventoryRef, { value: nextInv }, { merge: true });
+    transaction.set(opRef, {
+      operationId: opId,
+      status: 'CONFIRMED',
+      type: 'SALES_INVOICE_OUT',
+      invoiceId: String(invoiceId),
+      warehouse,
+      items: items.map(i => ({ name: i.name, qty: Number(i.qty || 0) })),
+      timestamp: Date.now()
+    });
+
+    return {
+      success: true,
+      alreadyProcessed: false,
+      operationId: opId,
+      nextInv,
+      historyEntries
+    };
+  });
+}
+
+/**
+ * 5. Safe Revert of Sales Invoice Stock (매출전표 삭제/취소 시 재고 안전 환원)
+ * 매출출고 ➔ 차량으로 정확히 환원하며, 상차(본사창고) 재고를 훼손하지 않음
+ */
+export async function revertSalesInvoiceStockAtomic({
+  db,
+  companyId = 'default',
+  invoiceId,
+  items = [],
+  warehouse = '차량',
+  operator = '시스템',
+  operationId = null
+}) {
+  if (!db) throw new Error('[stockTransaction] db instance is required');
+  if (!invoiceId) throw new Error('[stockTransaction] invoiceId is required');
+
+  const cancelOpId = String(operationId || `cancel_inv_${invoiceId}`);
+  const cancelOpRef = doc(db, 'companies', companyId, 'operations', cancelOpId);
+  const origOpRef = doc(db, 'companies', companyId, 'operations', `op_inv_${invoiceId}`);
+  const inventoryRef = doc(db, 'companies', companyId, 'settings', 'inventory');
+
+  return await runTransaction(db, async (transaction) => {
+    // 1) 멱등성 검사: 이미 전표 취소가 완료되었는지 확인
+    const cancelOpSnap = await transaction.get(cancelOpRef);
+    if (cancelOpSnap.exists() && cancelOpSnap.data()?.status === 'CONFIRMED') {
+      return {
+        success: true,
+        alreadyProcessed: true,
+        operationId: cancelOpId,
+        message: 'Already cancelled invoice.'
+      };
+    }
+
+    // 2) 원본 전표 발급 여부 확인 (허위/중복 취소 차단)
+    const origOpSnap = await transaction.get(origOpRef);
+    if (!origOpSnap.exists() || origOpSnap.data()?.status !== 'CONFIRMED') {
+      const err = new Error(`INVALID_OR_ALREADY_CANCELLED: No active invoice stock operation found for ${invoiceId}`);
+      err.code = 'INVALID_OR_ALREADY_CANCELLED';
+      throw err;
+    }
+
+    const origData = origOpSnap.data();
+    const effectiveItems = (items && items.length > 0) ? items : (origData.items || []);
+    const effectiveWarehouse = warehouse || origData.warehouse || '차량';
+
+    // 3) 최신 재고 조회 및 매출출고 -> 차량 환원
+    const invSnap = await transaction.get(inventoryRef);
+    const currentInv = invSnap.exists() ? (invSnap.data()?.value || {}) : {};
+    const nextInv = JSON.parse(JSON.stringify(currentInv));
+
+    if (!nextInv[effectiveWarehouse]) nextInv[effectiveWarehouse] = {};
+    if (!nextInv['매출출고']) nextInv['매출출고'] = {};
+
+    for (const item of effectiveItems) {
+      const name = item.name;
+      const qty = Number(item.qty || 0);
+      if (!name || qty === 0) continue;
+
+      nextInv[effectiveWarehouse][name] = Number(nextInv[effectiveWarehouse][name] || 0) + qty;
+      nextInv['매출출고'][name] = Number(nextInv['매출출고'][name] || 0) - qty;
+
+      const historyId = `inv_hist_${invoiceId}_${name}`;
+      const historyRef = doc(db, 'companies', companyId, 'inventoryTransferHistory', historyId);
+      transaction.delete(historyRef);
+    }
+
+    transaction.set(inventoryRef, { value: nextInv }, { merge: true });
+    transaction.set(cancelOpRef, {
+      operationId: cancelOpId,
+      status: 'CONFIRMED',
+      type: 'REVERT_INVOICE_STOCK',
+      invoiceId: String(invoiceId),
+      warehouse: effectiveWarehouse,
+      items: effectiveItems,
+      timestamp: Date.now()
+    });
+    transaction.set(origOpRef, {
+      status: 'CANCELLED',
+      cancelledBy: cancelOpId,
+      cancelledAt: Date.now()
+    }, { merge: true });
+
+    return {
+      success: true,
+      alreadyProcessed: false,
+      operationId: cancelOpId,
+      nextInv
+    };
+  });
+}
+
+/**
+ * 6. Legacy (Unpatched) Actual Code Logic (비교 테스트용 기존 로직)
  */
 export async function legacyMoveStock({
   db,

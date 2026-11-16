@@ -159,6 +159,38 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
   - `main` 브랜치는 수정/병합되지 않았음.
   - 배포는 사장님 최종 승인 전까지 일체 진행하지 않음.
 
+## 2026-11-16 — Antigravity — Negative Stock Policy, Full Lifecycle E2E, and Desktop Comparison
+- Status: COMPLETED (Verified in dedicated branch `feat/idempotent-inventory-transaction`)
+- Branch: `feat/idempotent-inventory-transaction`
+- Key Business Rule & Architecture Enforcements:
+  1. 마이너스 재고 전면 허용:
+     - 링커엑스 업무 규칙에 따라 "INSUFFICIENT_STOCK" 차단 로직 전면 배제.
+     - 창고 0개 상태에서 2개 상차 시 창고 -2, 차량 +2 정상 승인.
+  2. 실제 오류 원인 심층 분석:
+     - 상차 취소 선행 쓰기 버그: 이력 존재 검증 전 `setDoc`이 먼저 호출되어 유령 재고 발생.
+     - 중복 클릭/요청 버그: 네트워크 지연 시 재요청이 들어왔을 때 멱등성 체크 없이 재차감.
+     - 일괄 상차 Stale 스냅샷 버그: 루프 내부에서 이전 스냅샷을 덮어써 중간 차감분 유실.
+     - 매출전표 저장/취소 시 재고 왜곡: 상차로 이미 차감된 메인창고 재고를 전표 저장 시 중복 차감하거나, 전표 취소 시 상차 이력까지 일괄 삭제하여 창고 재고 왜곡.
+     - 캐시/초기재고 불일치: `stockOverrides`와 UI 스냅샷 간 오차.
+  3. 전체 라이프사이클 트랜잭션 서비스 완성:
+     - `recordSalesInvoiceStockAtomic`: 차량 ➔ 매출출고 이동을 원자적 트랜잭션으로 처리하며, 상차 재고와 중복 차감 방지.
+     - `revertSalesInvoiceStockAtomic`: 전표 취소 시 매출출고 ➔ 차량으로 안전 환원하며, 상차(본사창고) 재고는 보존.
+  4. 읽기 전용 감사 도구 신설 (`scratch/audit_inventory_discrepancy.mjs`):
+     - 이동 이력 전체 합산과 현재 재고 스냅샷을 읽기 전용으로 대조하여 불일치 원인 분석 (운영 데이터 무단 수정 0건).
+  5. 공식 Firebase 에뮬레이터 80회 스트레스 검증 완료 (`scratch/run_lifecycle_and_stress_tests.mjs`):
+     - Test 1 (라이프사이클 7단계 20회): [초기0 ➔ 상차2 ➔ 취소 ➔ 재상차2 ➔ 납품2 ➔ 납품취소 ➔ 전표수정3 ➔ 전표취소] 전 단계 수량 보존 20/20 PASS.
+     - Test 2 (마이너스 재고 상태 더블탭 20회): 초기 -5 상태에서 동시 중복 클릭 시 1회만 차감(-8, 차량 +3) 20/20 PASS.
+     - Test 3 (동시 다중 사용자 경합 20회): 3명 동시 상차 시 트랜잭션 재시도로 정확히 15개 차감 20/20 PASS.
+     - Test 4 (통신 중단 후 재시도 20회): 응답 유실 착각으로 재전송 시 `alreadyProcessed: true` 반환 및 중복 차감 차단 20/20 PASS.
+     - Test 5 (읽기 전용 감사 진단): 검증 완료 후 이동 이력 누적치와 재고 스냅샷 100% 일치 확인.
+  6. 모바일과 데스크톱 데이터 처리 경로 조사:
+     - 데스크톱 저장소(`F:\Project\LINKER-X\linker-x-project`)의 `src/desktop/DesktopApp.jsx:2404` 및 `src/desktop/components/OrderList.jsx` 조사 완료.
+     - 데스크톱과 모바일은 동일한 Firestore 컬렉션(`settings/inventory`, `inventoryTransferHistory`)을 공유하지만, **소스코드는 물리적으로 분리된 별도 프로젝트**임.
+     - 따라서 모바일 수정만으로는 데스크톱 클라이언트의 비원자적 `setDoc`을 해결할 수 없으며, 모바일 승인 완료 후 데스크톱에도 동일 트랜잭션 서비스를 이식해야 함을 명확히 구분함.
+- Production Safeguards:
+  - 운영 Firebase 접속 및 운영 데이터 변경 0건.
+  - `main` 브랜치 병합 절대 금지 및 배포 일체 중단.
+
 ## Log entry template
 ### YYYY-MM-DD — Actor — task
 - Status:
