@@ -1,0 +1,32 @@
+{
+  "test1_current_concurrent_load": {
+    "runs": 20,
+    "reproduced_lost_update": 20,
+    "passed": 0
+  },
+  "test2_current_batch_toggle": {
+    "runs": 20,
+    "reproduced_batch_loss": 20,
+    "passed": 0
+  },
+  "test3_current_revert_ghost_stock": {
+    "runs": 20,
+    "ghost_stock_created": 20,
+    "safe": 0
+  },
+  "test4_proposed_concurrent_load": {
+    "runs": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "test5_proposed_duplicate_opid": {
+    "runs": 20,
+    "blocked": 20,
+    "double_deducted": 0
+  },
+  "test6_proposed_revert_safety": {
+    "runs": 20,
+    "safe": 20,
+    "ghost_stock_created": 0
+  }
+}

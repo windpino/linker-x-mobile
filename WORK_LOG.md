@@ -62,6 +62,55 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
   - Production database remains clean.
   - All test scripts and raw execution logs are tracked in Git on `test/emulator-isolation` for complete reproducibility by any reviewer.
 
+## 2026-11-16 — Antigravity — Official Firebase Emulator Suite Execution (120 Runs)
+- Status: COMPLETED (Verified against Google Cloud Firestore Emulator v1.22.0)
+- Branch / commit: test/emulator-isolation
+- Environment Setup:
+  - Runtime: Microsoft OpenJDK 21 LTS (`jdk-21.0.13.0.2+1`)
+  - Firebase Tools: `firebase-tools@15.36.0` (Local devDependency)
+  - Configuration: `firebase.json` (Firestore on 127.0.0.1:8080), `firestore.rules` (open for local emulator)
+  - Project Target: `emulator-test-isolated` (Zero connection to production `link-x-6606e`)
+- Files committed:
+  - `firebase.json`: Official Firebase Emulator Suite configuration.
+  - `firestore.rules`: Security rules for local testing.
+  - `scratch/real_emulator_suite.mjs`: Test suite executing Linker-X actual inventory logic directly against the official Firestore Emulator.
+  - `scratch/real_emulator_suite.log`: Raw stdout execution log of the official emulator startup, execution, and shutdown.
+  - `scratch/real_emulator_results.json`: Metric counts for 120 runs across 6 scenarios.
+- Execution Command:
+  `$env:JAVA_HOME = "C:\Users\WINDPINO\.tools\jdk-21\jdk-21.0.13.0.2+1"; $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"; npx firebase emulators:exec --only firestore --project emulator-test-isolated "node scratch/real_emulator_suite.mjs" | Tee-Object -FilePath "scratch/real_emulator_suite.log"`
+- Real Firestore Emulator Test Results (120 runs, 20 runs per scenario):
+  1. Scenario 1 (Current unpatched `onMoveStock` concurrent loading):
+     - Setup: 본사창고 initial stock 100. Two workers concurrently move 10 units each to 차량1 and 차량2.
+     - Expected: 본사창고 80, 차량1 10, 차량2 10.
+     - Actual on Emulator: 본사창고 90, 차량1 10, 차량2 0 (or 0 and 10).
+     - Result: 20/20 runs REPRODUCED Lost Update in real Firestore (100% bug reproduction rate).
+  2. Scenario 2 (Current unpatched `handleBatchToggleProduct` batch loop):
+     - Setup: 5 items (10 units each) batch-toggled in synchronous loop with stale snapshot.
+     - Expected deduction: 50 (Remaining: 50).
+     - Actual on Emulator: 10 deducted (Remaining: 90).
+     - Result: 20/20 runs REPRODUCED Batch Overwrite in real Firestore (40 units lost every run).
+  3. Scenario 3 (Current unpatched `onRevertAutoMoveStock` without match):
+     - Setup: Initial stock 100. Two revert calls made without matching history records.
+     - Expected: Revert rejected, stock remains 100.
+     - Actual on Emulator: `setDoc` executes before history check, stock inflates to 120.
+     - Result: 20/20 runs REPRODUCED Ghost Stock Inflation in real Firestore (100% bug reproduction rate).
+  4. Scenario 4 (Proposed `runTransaction` + Operation ID concurrent loading):
+     - Setup: 2 concurrent workers writing atomically via `runTransaction`.
+     - Actual on Emulator: Contention automatically handled, stock accurately decremented to 80 (10 in 차량1, 10 in 차량2).
+     - Result: 20/20 runs PASSED in real Firestore (100% success rate, 0 lost updates).
+  5. Scenario 5 (Proposed `runTransaction` + Operation ID duplicate request idempotency):
+     - Setup: Identical Operation ID submitted twice (simulating double-tap / retry).
+     - Actual on Emulator: Second request detected `alreadyProcessed: true` and aborted write. Stock preserved at 90.
+     - Result: 20/20 runs BLOCKED in real Firestore (100% idempotency, 0 double deductions).
+  6. Scenario 6 (Proposed `runTransaction` + Operation ID revert safety):
+     - Setup: Valid revert restores stock (90 -> 100). Duplicate revert on already-cancelled load or non-existent operation.
+     - Actual on Emulator: Rejected with `INVALID_OR_ALREADY_CANCELLED`. Stock preserved at 100.
+     - Result: 20/20 runs PASSED in real Firestore (0 ghost stock created).
+- Production data touched?: NO. All 120 transactions executed in local Firestore emulator memory.
+- Outstanding risks:
+  - The proposed `runTransaction` pattern must now be safely integrated into the application components (`src/App.jsx` and `src/components/OrderList.jsx`) in a separate feature branch.
+  - Production code on `main` branch remains untouched.
+
 ## Log entry template
 ### YYYY-MM-DD — Actor — task
 - Status:
