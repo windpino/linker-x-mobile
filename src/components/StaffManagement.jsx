@@ -1,3 +1,4 @@
+import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { UserPlus, Printer, Download, Plus, Edit2, Trash2, Building2, GripVertical, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import WindowModal from './WindowModal';
@@ -89,7 +90,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
 
           const mergedList = Array.from(mergedMap.values());
           if (mergedList.length !== (staffList || []).length || JSON.stringify(mergedList) !== JSON.stringify(staffList)) {
-            if (setStaffList) setStaffList(mergedList);
+            if (setStaffList) setStaffList(withoutSecrets(mergedList));
             await saveBundle(companyId, 'staffList', mergedList);
             localStorage.setItem(`staffList_${companyId}`, JSON.stringify(mergedList));
             localStorage.setItem('staffList', JSON.stringify(mergedList));
@@ -144,7 +145,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       // 1. Direct Firestore subcollection document write (for login lookup)
       try {
         const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
-        await setDoc(staffDocRef, finalData, { merge: true });
+        await setDoc(staffDocRef, withoutSecrets(finalData), { merge: true });
 
         // Clean up old documents if document ID or userId changed
         const docIdsToDelete = new Set();
@@ -179,7 +180,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             if (warehouse) {
               const whDocId = warehouse._docId || String(warehouse.id);
               const whDocRef = doc(db, 'companies', companyId, 'warehouses', whDocId);
-              batch.set(whDocRef, { manager: staffData.name, updatedAt: new Date().toISOString() }, { merge: true });
+              batch.set(whDocRef, withoutSecrets({ manager: staffData.name, updatedAt: new Date().toISOString() }), { merge: true });
               hasWarehouseUpdates = true;
             }
 
@@ -187,7 +188,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
               const otherDocId = w._docId || String(w.id);
               if (w.name !== staffData.warehouse && w.manager === staffData.name) {
                 const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-                batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+                batch.set(oldWhDocRef, withoutSecrets({ manager: '', updatedAt: new Date().toISOString() }), { merge: true });
                 hasWarehouseUpdates = true;
               }
             });
@@ -196,7 +197,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
               const otherDocId = w._docId || String(w.id);
               if (w.manager === staffData.name) {
                 const oldWhDocRef = doc(db, 'companies', companyId, 'warehouses', otherDocId);
-                batch.set(oldWhDocRef, { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+                batch.set(oldWhDocRef, withoutSecrets({ manager: '', updatedAt: new Date().toISOString() }), { merge: true });
                 hasWarehouseUpdates = true;
               }
             });
@@ -225,7 +226,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       const filtered = isNewStaff ? currentList : currentList.filter(s => !isSameStaff(s));
       const nextStaffList = [...filtered, finalData];
 
-      if (setStaffList) setStaffList(nextStaffList);
+      if (setStaffList) setStaffList(withoutSecrets(nextStaffList));
       await saveBundle(companyId, 'staffList', nextStaffList);
       localStorage.setItem(`staffList_${companyId}`, JSON.stringify(nextStaffList));
       localStorage.setItem('staffList', JSON.stringify(nextStaffList));
@@ -297,7 +298,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           warehouses.forEach(w => {
             if (w.manager === staff.name) {
               const whDocId = w._docId || String(w.id);
-              batch.set(doc(db, 'companies', companyId, 'warehouses', whDocId), { manager: '', updatedAt: new Date().toISOString() }, { merge: true });
+              batch.set(doc(db, 'companies', companyId, 'warehouses', whDocId), withoutSecrets({ manager: '', updatedAt: new Date().toISOString() }), { merge: true });
               hasWhUpdates = true;
             }
           });
@@ -318,7 +319,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       };
 
       const nextStaffList = (staffList || []).filter(s => !isTargetStaff(s));
-      if (setStaffList) setStaffList(nextStaffList);
+      if (setStaffList) setStaffList(withoutSecrets(nextStaffList));
       await saveBundle(companyId, 'staffList', nextStaffList);
       localStorage.setItem(`staffList_${companyId}`, JSON.stringify(nextStaffList));
       localStorage.setItem('staffList', JSON.stringify(nextStaffList));
@@ -413,7 +414,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
     setDragOverIndex(null);
 
     // 1. 상태 즉시 업데이트
-    if (setStaffList) setStaffList(reorderedList);
+    if (setStaffList) setStaffList(withoutSecrets(reorderedList));
 
     // 2. LocalStorage 및 번들 저장
     const companyId = currentUser?.companyId || 'default';
@@ -429,7 +430,7 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           const docId = item._docId || (item.userId ? `${companyId}_${item.userId}` : (item.id ? String(item.id) : null));
           if (docId) {
             const docRef = doc(db, 'companies', companyId, 'staffList', docId);
-            batch.set(docRef, { sequence: item.sequence, updatedAt: item.updatedAt }, { merge: true });
+            batch.set(docRef, withoutSecrets({ sequence: item.sequence, updatedAt: item.updatedAt }), { merge: true });
           }
         });
         await batch.commit();
@@ -787,3 +788,4 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
 };
 
 export default StaffManagement;
+

@@ -1,3 +1,4 @@
+import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useEffect } from 'react';
 import { UserPlus, User, Lock, Phone, Building2, Check, Edit, Eye, EyeOff, Copy, Trash2, Plus, X, Calendar } from 'lucide-react';
 import WindowModal from './WindowModal';
@@ -337,7 +338,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           return;
         }
         const { _docId, ...cleanForm } = formData;
-        onSave({ 
+        onSave(withoutSecrets({ 
           ...cleanForm, 
           showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
@@ -346,7 +347,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           allowPastDateDeposit: isAllowPastDateDeposit,
           permissions: enrichedPermissions,
           id: Date.now() 
-        }, true);
+        }), true);
       } else {
         const payload = {
           ...formData,
@@ -363,7 +364,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           password: formData.password || initialData?.password || '',
           permissions: enrichedPermissions
         };
-        onSave(payload, false);
+        onSave(withoutSecrets(payload), false);
       }
     } else {
       onClose();
@@ -1126,7 +1127,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
             localStorage.setItem(`staffZones_${companyId}`, JSON.stringify(nextZones));
             localStorage.setItem('staffZones', JSON.stringify(nextZones));
             try {
-              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), { value: nextZones, updatedAt: new Date().toISOString() }, { merge: true });
+              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), withoutSecrets({ value: nextZones, updatedAt: new Date().toISOString() }), { merge: true });
             } catch (e) {
               console.warn('Failed to save staffZones:', e);
             }
@@ -1142,7 +1143,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
               localStorage.setItem(`staffZones_${companyId}`, JSON.stringify(nextZones));
               localStorage.setItem('staffZones', JSON.stringify(nextZones));
               try {
-                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), { value: nextZones, updatedAt: new Date().toISOString() }, { merge: true });
+                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffZones'), withoutSecrets({ value: nextZones, updatedAt: new Date().toISOString() }), { merge: true });
               } catch (e) {
                 console.warn('Failed to save staffZones:', e);
               }
@@ -1164,7 +1165,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
             localStorage.setItem(`staffJobTitles_${companyId}`, JSON.stringify(nextTitles));
             localStorage.setItem('staffJobTitles', JSON.stringify(nextTitles));
             try {
-              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), { value: nextTitles, updatedAt: new Date().toISOString() }, { merge: true });
+              await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), withoutSecrets({ value: nextTitles, updatedAt: new Date().toISOString() }), { merge: true });
             } catch (e) {
               console.warn('Failed to save staffJobTitles:', e);
             }
@@ -1180,7 +1181,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
               localStorage.setItem(`staffJobTitles_${companyId}`, JSON.stringify(nextTitles));
               localStorage.setItem('staffJobTitles', JSON.stringify(nextTitles));
               try {
-                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), { value: nextTitles, updatedAt: new Date().toISOString() }, { merge: true });
+                await setDoc(doc(db, 'companies', companyId, 'settings', 'staffJobTitles'), withoutSecrets({ value: nextTitles, updatedAt: new Date().toISOString() }), { merge: true });
               } catch (e) {
                 console.warn('Failed to save staffJobTitles:', e);
               }
@@ -1409,3 +1410,4 @@ const CategoryManagerModal = ({ title, items = [], onAdd, onDelete, onClose }) =
 };
 
 export default StaffRegistration;
+

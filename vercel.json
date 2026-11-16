@@ -33,5 +33,10 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "feature/firebase-auth": false
+    }
+  }
 }

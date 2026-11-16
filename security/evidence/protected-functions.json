@@ -1,0 +1,702 @@
+[
+  {
+    "repo": "desktop",
+    "name": "openPurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "34bfc3c3d88768a9dcfeb3c4c4c7d25fe4d122239f9fff62a371919cf01dbb1c"
+  },
+  {
+    "repo": "desktop",
+    "name": "openPurchaseOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "0b6d1784789014257722cec6bddafbcfab56f8b457fa0ffe3c1c07a08f1a082c"
+  },
+  {
+    "repo": "desktop",
+    "name": "openSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "cb12d536644da88224d2feabefc5b3cc24f6f224464a9e97980d46e59e465ccd"
+  },
+  {
+    "repo": "desktop",
+    "name": "openSalesInvoiceList",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "15f17495313c6bf5769cb49902d3772cd9ffc46c8613584a11b5c31101888a72"
+  },
+  {
+    "repo": "desktop",
+    "name": "openSalesOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "6650c1067b1978e1c5ce524cb5261602dcd61fc8a5cb244ecdabe9035f97b749"
+  },
+  {
+    "repo": "desktop",
+    "name": "openSalesOrderManagement",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "646439ba521994bb1a70ebeb55d0c07a79008a852b07e25a343ac2a8e15843a5"
+  },
+  {
+    "repo": "desktop",
+    "name": "openPurchaseOrderManagement",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "31241d6c65242eab3cae40391d03d6ce76f9a233d5bb8b199423a8a028290948"
+  },
+  {
+    "repo": "desktop",
+    "name": "openOrderList",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a789a9e834b6e4f828812213d242b2f28b3104d997f4c62b55a28e531559890f"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryReport",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a87f28427f8c8443751a22dc9cb7623828d6aedf4681879bc9ed8a7c69c4d106"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryTransfer",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "439ff0e7bf3a587888adbfc2bd05e5049486606e47e6c99b33aaba198d0e95ed"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryMovementManager",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "344a6b224c35dda6d7675f0f19309c041589b5d26023de256e6b1e665ea25412"
+  },
+  {
+    "repo": "desktop",
+    "name": "openOrderReport",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "646121b3ce9e87343008710dd0c887d3286e1f12832eba6211e2a92234415f3f"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryTransferExcel",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "0b12e726d08be8662cdb9c124814189eb6a4cdf2f33d7605c0e3174b859af5ac"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryAdjustment",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "019f9db20fd27a6ee44f515b6ceb2840fceb961f2fa877e2317378b6a4d34ef0"
+  },
+  {
+    "repo": "desktop",
+    "name": "openInventoryMismatch",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "2cb2608007f2d392621b3e78a18cc2dcc68e95891ab60c572bc3fbbc54439770"
+  },
+  {
+    "repo": "desktop",
+    "name": "openPhysicalInventory",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "37649230e4f8545bd1cd8743d08c0333b16f4ef2aee5a936467b510af77cdbdd"
+  },
+  {
+    "repo": "desktop",
+    "name": "openWarehouseInitialStockBatch",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "464367944a4f9cc2100a546fce394aff1983c4656ad7d2e2921dfb0ef13eeed5"
+  },
+  {
+    "repo": "desktop",
+    "name": "onMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "4d41502e85d37ec4383d21b57188577dd2574af859eb1701d3dbc0ca44519c3f"
+  },
+  {
+    "repo": "desktop",
+    "name": "onDeleteMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "969e6e41c0828489118de898ce341c761e4f404ede294c7c38aadf97dddac303"
+  },
+  {
+    "repo": "desktop",
+    "name": "onUpdateInventoryTransfer",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "4a7bef8615c731ad1f7f9a7936497338e92404c11be11816142feceac9256d6c"
+  },
+  {
+    "repo": "desktop",
+    "name": "onRevertAutoMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "4983de6756689dccd57b9f9a08f789e99730bda4ced1927c50b00e2052881b45"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleDeleteSalesOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "12a29d9fa14ec26537403e7c303f11688ebe6bd2c6b709de64e497c365b67db5"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleDeleteSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "97d378743750743f2525d9d5b664f76f6b9a067a166206017c46870de78e8e67"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleDeletePurchaseOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "833c2cdf6083ae2abba55d6d1068401bda4cfab05379cae65988841e380a131f"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleDeletePurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "eacca52eb3183ff50b604313a824d3f3e50b148191dbea84d8e74a6429da890f"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleSavePurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "456946281fa3215e4fff034a7faf7da4d1504216e28883ce43758b51d404c1f9"
+  },
+  {
+    "repo": "desktop",
+    "name": "parseOrderItemsHelper",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "60ff481b87a9d476270f8e046bcff5b317b971f1ac186cf1558541ff35129d77"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleSaveSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "eaa9617f9c544e11af42744866e0fdfabbdb2f9f9859ad00bd690c4c9e2491cd"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleSaveStocktakeAdjustments",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "35f1d8bd11e4e5902ad53c1fdc8874f1ed9bdc0dac589d194a1a25e428704b84"
+  },
+  {
+    "repo": "desktop",
+    "name": "openMismatchFromOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "f3f9408705b53a85c16da276ef65a5a64afc05f76a96a5a28638f7167435fa35"
+  },
+  {
+    "repo": "desktop",
+    "name": "getOrderAmount",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "4856be22b80a68b344511964a2d15d6305f7c62b950ccba929cd071012681fd0"
+  },
+  {
+    "repo": "desktop",
+    "name": "isDayOrderCompleted",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "e55dbf452a80ee91182f4c7f552b750ec57040f4bca9ea124510229d6adf0140"
+  },
+  {
+    "repo": "desktop",
+    "name": "getOrderQty",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "8afca41466de796032f0f0eebccabb64b071ebb7f50ce76a359230b3cc10f081"
+  },
+  {
+    "repo": "desktop",
+    "name": "isOrderCompleted",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "e55dbf452a80ee91182f4c7f552b750ec57040f4bca9ea124510229d6adf0140"
+  },
+  {
+    "repo": "desktop",
+    "name": "handleMallOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "0b1337c8dc27bfbae9953618d519ad15b092e9c937ade989538d21c1b470b9fe"
+  },
+  {
+    "repo": "desktop",
+    "name": "onUpdateOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "428c81e1284bc295a37dc0a014f638f41485ec6715ebff7e8698629414f14de3"
+  },
+  {
+    "repo": "desktop",
+    "name": "onAddOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "032f7a5002de7f415a3ac9d18713b4c2eab208c3fd1761ec838bc4299ab33e94"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenSalesInvoiceListForDate",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "fab41e66cc1cd4fa10f274ed9613ab6d4ae024cddb1e034f0916bdec2017d10a"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenOrderListForDate",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "5eae40aa4aa0dbe7793c0849ee6e37db4ddf9922197703e4656b6d6687f3497d"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenInventoryTransferForDate",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "3e46641c53c51e8752558d144abd0646e152dabc30432a5bd2579187f6132328"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenSalesOrder",
+    "instances": 4,
+    "unchanged": true,
+    "sha256": "65c7643310daefd5cd2d8b6b8467202d0d30da34a04613d3d15142b3b48d8262"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a42ca0cb37df2abbed7938ea8b36456d5b810373d446190f388025aff7bcb8c4"
+  },
+  {
+    "repo": "desktop",
+    "name": "onPrintTaxInvoice",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "5105d229d63ce69ad7a00280ea01b210b1568602e82cc4d7a3052f613bc0a8a2"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenInvoice",
+    "instances": 3,
+    "unchanged": true,
+    "sha256": "d0985caf428bafe87cb3bd79bb13d7d53479599b150930fd2f6d29700733d6e1"
+  },
+  {
+    "repo": "desktop",
+    "name": "onUpdateInvoice",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "a59f469acae2a5abe8d65782d5d8853ba4b349fed2878f2e2b69a69411dd3fed"
+  },
+  {
+    "repo": "desktop",
+    "name": "onTransferToInvoice",
+    "instances": 6,
+    "unchanged": true,
+    "sha256": "d9e0e662b60e990bc57bfc4446d47f86542c625fffc522129715f5fd5fb85a73"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenOrderList",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "503786633204405a83b347e7d7d5ae46fc68fb6e7384a8f39b4145f093860e7c"
+  },
+  {
+    "repo": "desktop",
+    "name": "onConvertToOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "26e9884b2a5b28c9d8c65f7b9875d8b7db409a604b40d288d8fa65b0223eecbf"
+  },
+  {
+    "repo": "desktop",
+    "name": "onEditOrder",
+    "instances": 4,
+    "unchanged": true,
+    "sha256": "b0216371665e439266277223f99d9a085030a1ee724f5c4d5951bbbc32109748"
+  },
+  {
+    "repo": "desktop",
+    "name": "onNewOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "a7ce4e464862f338e61cd39f14c7a2012c02d8687bab9fabf27a619e4f8e1ed5"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenLoading",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "9d019564f22fd440c8173a7705156655245ddeeb5c3259a60114cf9bd3d4a039"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenSalesOrderManagement",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "3628ce855a9a591e658162586ae8d0bf139ef1d7b2944c4b67bf12e4a688b86f"
+  },
+  {
+    "repo": "desktop",
+    "name": "onOpenSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "ca57e825ba0bf6f119eba553b478790f79ad85f3e7167739876c845e8b9524ff"
+  },
+  {
+    "repo": "desktop",
+    "name": "onApplyOptimalStockToAll",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "129ea13cab2b1bdeac5076f5ea44dabd3557ec5f1ac75cad17ee637fdaaae598"
+  },
+  {
+    "repo": "mobile",
+    "name": "openPurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "e79420c83c060b434ed08dd5ab6f063fb1ec55628d127f210fee02504868786a"
+  },
+  {
+    "repo": "mobile",
+    "name": "openSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5eeb99c73c0e39c3c26930744ce7eca2a6a5033126ea8a3bf97a5769b801ee0e"
+  },
+  {
+    "repo": "mobile",
+    "name": "openSalesInvoiceList",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a67e90bb43027c9f575dc71c469bf99ccb8a3558848431c8769bd6c13d94677e"
+  },
+  {
+    "repo": "mobile",
+    "name": "openOrderList",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "ef244fc63ec909032fc3dad78b2daa68a8acbc810397d00bd9d2159d1c23280c"
+  },
+  {
+    "repo": "mobile",
+    "name": "openLoadingCheck",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "1646427c71c4483649fc090af0067eb1e14ccd51bc3b25f19c1c4136ac24b7f3"
+  },
+  {
+    "repo": "mobile",
+    "name": "openInventoryReport",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "3d0fb8fbd2e3e78579f373b08919e01c8dca1ca965b2195fd3eb49ab76846f5c"
+  },
+  {
+    "repo": "mobile",
+    "name": "openInventoryTransfer",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "ba7cc4640d206bda6c72e345d13400be618187446200dc6f3df86409008b905d"
+  },
+  {
+    "repo": "mobile",
+    "name": "onMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "9ad6e24bcc61025b21b539f8094c4d2b9decd4054afb6bec3764ccbf8d916341"
+  },
+  {
+    "repo": "mobile",
+    "name": "onDeleteMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "79008d243e31e3dbaae7342828ba06443b8ec101dcc99196c8baaea503c86926"
+  },
+  {
+    "repo": "mobile",
+    "name": "onUpdateInventoryTransfer",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "4a7bef8615c731ad1f7f9a7936497338e92404c11be11816142feceac9256d6c"
+  },
+  {
+    "repo": "mobile",
+    "name": "onRevertAutoMoveStock",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5e5265f297052daf6f1c306323f48681aec5258caa1d29992325bba7d1117bc8"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleDeleteSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "f98befc10fd4626ffbabf51583952106127b885d322546e56490a9dcbb9e73d5"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleDeleteSalesOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5e6fb5d3355ddb9d69c8d7ec40002e338fdbd966228f67bb28c124c4f901b55d"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleDeletePurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "8871a5b2a118468e7a442fe0dbaa8b7eb35c1ae4ee3359bd1f2786277053fe4f"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleSavePurchaseInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "d0c1c28f254bae7028acc6e6c3a0a2aa496887f76ce8fe1e943ed907a5eb3dca"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleSaveSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "3ba2741d2dd98f9422727529f637cb531866d2f429bd430b91cc6518b910498e"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleSaveStocktakeAdjustments",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "116342a816c01cc880b3c03afa92ef480453504e484ba24d6ff41a7dee402654"
+  },
+  {
+    "repo": "mobile",
+    "name": "openMismatchFromOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "f3f9408705b53a85c16da276ef65a5a64afc05f76a96a5a28638f7167435fa35"
+  },
+  {
+    "repo": "mobile",
+    "name": "onAddOrder",
+    "instances": 3,
+    "unchanged": true,
+    "sha256": "933536eb4dcfd58cb243ef22fcd3db7a2b1e596e418f56a7ecf92df90162bc95"
+  },
+  {
+    "repo": "mobile",
+    "name": "handleMallOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "96fa1d0318492d22cc6a016d98c333a5557a53fe5fe5597093d8488ccff05f7c"
+  },
+  {
+    "repo": "mobile",
+    "name": "onUpdateOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "deab19885a97f31da939a0b2fdd9cf82d76650abc6971c68c74924911a56d464"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryMovementManager",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5aad5c528e136db7fb5f6abdc4ba2ef7ccf409090f43a094ccc3d3ee18ee3931"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenPurchaseInvoice",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "04c54be13062963d0265fe99175600496dd56d6adcff00efebfcd063dcf8b30d"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenPurchaseOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "213d9e784eecdbfc76e30c638971b1a8569801a6a1aeb7427180117ce3428f91"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenSalesOrder",
+    "instances": 6,
+    "unchanged": true,
+    "sha256": "b56f0e16d1ad57e6f22318421937680a0ed6c611eb4c105cb38aceb22199f660"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenOrderList",
+    "instances": 3,
+    "unchanged": true,
+    "sha256": "617ef51f18ee9c5eda9e20f39a29f87eb8be19df4ebfb7eb1dc6db2707bb3106"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenOrderReport",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "57415ce7e9bdc755e71b2a208d98e20e7fae40c278ec75e769e7fdce55618df6"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryTransferExcel",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "f99488816f8ef380fa77ba47a38f4a35f618dc9b2f56769c619308b1763ffd2c"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryAdjustment",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5743d5626df02f9dfdf213d407af4efcb2e4d7f38aa5590fef23610eaea15f46"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryMismatch",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "d8b48eb83667b2399f6a65fb3872515016949da3003215bea85b2e23654e6d5d"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenPhysicalInventory",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "76a572460e838fea1d4747d1e86ca3f1c7dbb4aed2172431045057993b330f91"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenWarehouseInitialStockBatch",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "23a1f2024c6e646c7b56790cd40d3ff5a4ab8d33e47f0be937391c048005d44c"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenSalesInvoiceListForDate",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "0db1bbba30bfaf87ed1c278c50a8873ced293956ddab126239f259151f74c82a"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenOrderListForDate",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "5b930fc040ac3ff629a3c4a1bfa0b30222e5ea2385bb3377b89b09e5acbb5ac9"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryTransferForDate",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "aaf38f437b1b8f33905239f8f1f106fde45c112f087544d80d6a542c198f5dab"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a42ca0cb37df2abbed7938ea8b36456d5b810373d446190f388025aff7bcb8c4"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInvoice",
+    "instances": 3,
+    "unchanged": true,
+    "sha256": "d0985caf428bafe87cb3bd79bb13d7d53479599b150930fd2f6d29700733d6e1"
+  },
+  {
+    "repo": "mobile",
+    "name": "onUpdateInvoice",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "c4a0546c693bd5748b3106be8a58f3fbbe26b6f49ec71194d2e6d67bcbe44826"
+  },
+  {
+    "repo": "mobile",
+    "name": "onTransferToInvoice",
+    "instances": 4,
+    "unchanged": true,
+    "sha256": "3fa9bc2a23d4185fddd8b9b4c68b6b5e2d77260afde6616997cecca7be043fd9"
+  },
+  {
+    "repo": "mobile",
+    "name": "onPrintTaxInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "55952d00284a0f2fabd9b0d5b1c9222b886333c76549e16ff10c7a0c5af42407"
+  },
+  {
+    "repo": "mobile",
+    "name": "onDeleteOrder",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "0d2f2a873837ec9bcfd9e07ef1a4f6e56026636a34de652ed2ca33c0542df72b"
+  },
+  {
+    "repo": "mobile",
+    "name": "onConvertToOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "26e9884b2a5b28c9d8c65f7b9875d8b7db409a604b40d288d8fa65b0223eecbf"
+  },
+  {
+    "repo": "mobile",
+    "name": "onEditOrder",
+    "instances": 2,
+    "unchanged": true,
+    "sha256": "0a4f31f93b4840634b5f9a17f09b9592be48d1dc601241ad223dae832b85bdbd"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenSalesInvoice",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "e7388575b76546e41e5712c2f2759767266b78763c14b50a141a7544764f7a5e"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenLoadingCheck",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "a308579fbe4b32a2c8cb350c2b21b539d7eb71044a6ee72f471dbcb019a036e0"
+  },
+  {
+    "repo": "mobile",
+    "name": "onOpenInventoryTransfer",
+    "instances": 1,
+    "unchanged": true,
+    "sha256": "664d23a54224bd6c817649ee8fa54ea79a174568b761fbb1c620aa466952246d"
+  }
+]

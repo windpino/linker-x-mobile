@@ -1,0 +1,42 @@
+[
+  {
+    "file": "desktop/src/desktop/components/StaffRegistration.jsx",
+    "wrappedCalls": 6
+  },
+  {
+    "file": "desktop/src/desktop/components/StaffManagement.jsx",
+    "wrappedCalls": 10
+  },
+  {
+    "file": "desktop/src/desktop/components/PartnerRegistration.jsx",
+    "wrappedCalls": 1
+  },
+  {
+    "file": "desktop/src/desktop/components/PartnerManagement.jsx",
+    "wrappedCalls": 12
+  },
+  {
+    "file": "desktop/src/desktop/components/SuperAdmin.jsx",
+    "wrappedCalls": 32
+  },
+  {
+    "file": "mobile/src/components/StaffRegistration.jsx",
+    "wrappedCalls": 6
+  },
+  {
+    "file": "mobile/src/components/StaffManagement.jsx",
+    "wrappedCalls": 10
+  },
+  {
+    "file": "mobile/src/components/PartnerRegistration.jsx",
+    "wrappedCalls": 1
+  },
+  {
+    "file": "mobile/src/components/PartnerManagement.jsx",
+    "wrappedCalls": 4
+  },
+  {
+    "file": "mobile/src/components/SuperAdmin.jsx",
+    "wrappedCalls": 32
+  }
+]

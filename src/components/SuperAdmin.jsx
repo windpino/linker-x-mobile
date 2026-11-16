@@ -1,3 +1,4 @@
+import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, getDocs, query, where, writeBatch, getDoc, orderBy } from 'firebase/firestore';
@@ -123,7 +124,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     try {
       setSystemConfig(prev => ({ ...prev, useMissRing: enabled }));
       localStorage.setItem('systemConfig_useMissRing', String(enabled));
-      await setDoc(doc(db, 'settings', 'system_config'), { useMissRing: enabled }, { merge: true });
+      await setDoc(doc(db, 'settings', 'system_config'), withoutSecrets({ useMissRing: enabled }), { merge: true });
     } catch (err) {
       console.error('환경설정 저장 오류:', err);
       alert('설정 저장 중 오류가 발생했습니다: ' + err.message);
@@ -134,7 +135,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     try {
       setSystemConfig(prev => ({ ...prev, useMissRingDevMode: enabled }));
       localStorage.setItem('systemConfig_useMissRingDevMode', String(enabled));
-      await setDoc(doc(db, 'settings', 'system_config'), { useMissRingDevMode: enabled }, { merge: true });
+      await setDoc(doc(db, 'settings', 'system_config'), withoutSecrets({ useMissRingDevMode: enabled }), { merge: true });
     } catch (err) {
       console.error('개발자 모드 환경설정 저장 오류:', err);
       alert('설정 저장 중 오류가 발생했습니다: ' + err.message);
@@ -181,7 +182,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           { name: '기타', color: '#8b5cf6', userId: 'system' }
         ];
         for (const dt of defaultTypes) {
-          await setDoc(doc(db, 'master_schedule_types', dt.name), dt);
+          await setDoc(doc(db, 'master_schedule_types', dt.name), withoutSecrets(dt));
         }
         typesList = defaultTypes;
       }
@@ -260,13 +261,13 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   const handleUpdateStatus = async (companyId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'companies', companyId), { status: newStatus });
+      await updateDoc(doc(db, 'companies', companyId), withoutSecrets({ status: newStatus }));
     } catch (err) { alert('상태 변경 실패: ' + err.message); }
   };
 
   const handleUpdateExpiryDate = async (companyId, newDate) => {
     try {
-      await updateDoc(doc(db, 'companies', companyId), { expiryDate: newDate });
+      await updateDoc(doc(db, 'companies', companyId), withoutSecrets({ expiryDate: newDate }));
     } catch (err) { alert('만료일 변경 실패: ' + err.message); }
   };
 
@@ -436,17 +437,17 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         if (!confirm(`아이디를 [${originalAgencyId}]에서 [${companyId}](으)로 변경하시겠습니까?\n기존 아이디의 데이터가 새 아이디로 연결됩니다.`)) return;
         
         // 1. Create new doc
-        await setDoc(doc(db, 'companies', companyId), companyPayload);
+        await setDoc(doc(db, 'companies', companyId), withoutSecrets(companyPayload));
         
         // 2. Delete old doc
         await deleteDoc(doc(db, 'companies', originalAgencyId));
         console.log(`Agency ID migrated from ${originalAgencyId} to ${companyId}`);
       } else {
-        await setDoc(doc(db, 'companies', companyId), companyPayload, { merge: true });
+        await setDoc(doc(db, 'companies', companyId), withoutSecrets(companyPayload), { merge: true });
       }
 
       // Sync licenseData inside companies/{companyId}/settings/licenseData
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), withoutSecrets({
         value: {
           trialStartDate: companyPayload.trialStartDate,
           expiryDate: expiryDate,
@@ -454,7 +455,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           isLockedOnExpiry: false,
           lastPaymentDate: null
         }
-      }, { merge: true });
+      }), { merge: true });
       
       // Create admin staff & bundle inside companies/{companyId} if new
       const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
@@ -497,7 +498,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           allowPastDateDeposit: true,
           createdAt: nowIso
         };
-        await setDoc(adminRef, baseAdminStaff);
+        await setDoc(adminRef, withoutSecrets(baseAdminStaff));
 
         const initialStaffArray = [baseAdminStaff];
         await saveBundle(companyId, 'staffList', initialStaffArray);
@@ -526,11 +527,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           createdAt: nowIso
         };
         await saveBundle(companyId, 'warehouses', [defaultWarehouse]);
-        await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), defaultWarehouse);
+        await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), withoutSecrets(defaultWarehouse));
 
         // 재고 설정 초기화
-        await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {} });
-        await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {} });
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), withoutSecrets({ value: {} }));
+        await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), withoutSecrets({ value: {} }));
       }
       
       alert(originalAgencyId ? '회원사 정보가 수정되었습니다.' : '신규 회원사가 등록되었습니다.');
@@ -548,11 +549,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!csForm.companyId || !csForm.content) return alert('상담 업체와 내용을 입력하세요.');
     try {
       const logId = csForm.id || Date.now().toString();
-      await setDoc(doc(db, 'cs_history', logId), {
+      await setDoc(doc(db, 'cs_history', logId), withoutSecrets({
         ...csForm,
         createdAt: csForm.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }), { merge: true });
       setIsCsModalOpen(false);
       setCsForm({ companyId: '', companyName: '', type: '일반상담', content: '', status: '완료', contact: '' });
     } catch (err) { alert('상담 기록 실패: ' + err.message); }
@@ -573,10 +574,10 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!noticeForm.title || !noticeForm.content) return alert('제목과 내용을 입력하세요.');
     try {
       const noticeId = Date.now().toString();
-      await setDoc(doc(db, 'system_notices', noticeId), {
+      await setDoc(doc(db, 'system_notices', noticeId), withoutSecrets({
         ...noticeForm,
         createdAt: new Date().toISOString()
-      });
+      }));
       setIsNoticeModalOpen(false);
       setNoticeForm({ title: '', content: '', type: 'info', isActive: true });
     } catch (err) { alert('공지 배포 실패: ' + err.message); }
@@ -595,7 +596,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   const handleToggleNoticeStatus = async (noticeId, isActive) => {
     try {
-      await updateDoc(doc(db, 'system_notices', noticeId), { isActive });
+      await updateDoc(doc(db, 'system_notices', noticeId), withoutSecrets({ isActive }));
     } catch (err) {
       alert('공지 상태 변경 실패: ' + err.message);
     }
@@ -612,12 +613,12 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!scheduleForm.title || !scheduleForm.date) return alert('제목과 날짜를 입력하세요.');
     try {
       const scheduleId = scheduleForm.id || Date.now().toString();
-      await setDoc(doc(db, 'master_schedules', scheduleId), {
+      await setDoc(doc(db, 'master_schedules', scheduleId), withoutSecrets({
         ...scheduleForm,
         id: scheduleId,
         createdAt: scheduleForm.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }), { merge: true });
       setIsScheduleModalOpen(false);
       setScheduleForm({ id: '', title: '', date: new Date().toISOString().split('T')[0], category: '', type: '업무', content: '', startTime: '', endTime: '', priority: '보통' });
     } catch (err) { alert('일정 저장 실패: ' + err.message); }
@@ -637,13 +638,13 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!todoText.trim()) return alert('할일 내용을 입력하세요.');
     try {
       const todoId = Date.now().toString();
-      await setDoc(doc(db, 'master_todos', todoId), {
+      await setDoc(doc(db, 'master_todos', todoId), withoutSecrets({
         id: todoId,
         title: todoText.trim(),
         completed: false,
         priority: todoPriority,
         createdAt: new Date().toISOString()
-      });
+      }));
       setTodoText('');
       setTodoPriority('보통');
     } catch (err) {
@@ -653,10 +654,10 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   const handleToggleTodoComplete = async (todo) => {
     try {
-      await updateDoc(doc(db, 'master_todos', todo.id), {
+      await updateDoc(doc(db, 'master_todos', todo.id), withoutSecrets({
         completed: !todo.completed,
         updatedAt: new Date().toISOString()
-      });
+      }));
     } catch (err) {
       alert('할일 상태 변경 실패: ' + err.message);
     }
@@ -689,7 +690,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!newCategoryName.trim()) return;
     try {
       const updated = [...new Set([...agencyCategories, newCategoryName.trim()])];
-      await setDoc(doc(db, 'settings', 'agencyCategories'), { categories: updated }, { merge: true });
+      await setDoc(doc(db, 'settings', 'agencyCategories'), withoutSecrets({ categories: updated }), { merge: true });
       setNewCategoryName('');
     } catch (e) { alert('카테고리 추가 실패: ' + e.message); }
   };
@@ -698,7 +699,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!window.confirm(`'${cat}' 카테고리를 삭제하시겠습니까?`)) return;
     try {
       const updated = agencyCategories.filter(c => c !== cat);
-      await setDoc(doc(db, 'settings', 'agencyCategories'), { categories: updated }, { merge: true });
+      await setDoc(doc(db, 'settings', 'agencyCategories'), withoutSecrets({ categories: updated }), { merge: true });
     } catch (e) { alert('카테고리 삭제 실패: ' + e.message); }
   };
 
@@ -710,13 +711,13 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       const newCat = editingCategoryValue.trim();
       updated[index] = newCat;
       
-      await setDoc(doc(db, 'settings', 'agencyCategories'), { categories: updated }, { merge: true });
+      await setDoc(doc(db, 'settings', 'agencyCategories'), withoutSecrets({ categories: updated }), { merge: true });
       
       // Update companies with oldCat to newCat
       const companiesToUpdate = companies.filter(c => c.category === oldCat);
       const batch = writeBatch(db);
       companiesToUpdate.forEach(c => {
-        batch.update(doc(db, 'companies', c.id), { category: newCat });
+        batch.update(doc(db, 'companies', c.id), withoutSecrets({ category: newCat }));
       });
       if (companiesToUpdate.length > 0) {
         await batch.commit();
@@ -729,7 +730,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   const handleSaveCMS = async () => {
     try {
-      await setDoc(doc(db, 'settings', 'homepage_content'), {
+      await setDoc(doc(db, 'settings', 'homepage_content'), withoutSecrets({
         hero: {
           badge: cmsHeroBadge,
           title: cmsHeroTitle,
@@ -737,7 +738,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           ctaText: cmsHeroCtaText,
           secondaryCtaText: cmsHeroSecondaryCtaText
         }
-      }, { merge: true });
+      }), { merge: true });
       alert('홈페이지 CMS 설정이 저장되었습니다.');
     } catch (err) {
       console.error('CMS Save error:', err);
@@ -793,9 +794,9 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      await setDoc(doc(db, 'companies', companyId), companyData);
+      await setDoc(doc(db, 'companies', companyId), withoutSecrets(companyData));
 
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), withoutSecrets({
         value: {
           trialStartDate: trialStartDate,
           expiryDate: expiryDate,
@@ -803,7 +804,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           isLockedOnExpiry: false,
           lastPaymentDate: null
         }
-      });
+      }));
 
       // 모든 메뉴 접근 권한 체크박스 활성화 맵 생성
       const allMenuPermissions = {
@@ -841,7 +842,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         createdAt: nowIso
       };
       const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${adminUserId}`);
-      await setDoc(adminRef, baseAdminStaff);
+      await setDoc(adminRef, withoutSecrets(baseAdminStaff));
 
       const initialStaffArray = [baseAdminStaff];
       await saveBundle(companyId, 'staffList', initialStaffArray);
@@ -870,18 +871,18 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
         createdAt: nowIso
       };
       await saveBundle(companyId, 'warehouses', [defaultWarehouse]);
-      await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), defaultWarehouse);
+      await setDoc(doc(db, 'companies', companyId, 'warehouses', String(defaultWarehouse.id)), withoutSecrets(defaultWarehouse));
 
       // 재고 설정 초기화
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: {} });
-      await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), { value: {} });
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), withoutSecrets({ value: {} }));
+      await setDoc(doc(db, 'companies', companyId, 'settings', 'physicalInventory'), withoutSecrets({ value: {} }));
 
-      await setDoc(doc(db, 'agency_inquiries', inquiry.id), {
+      await setDoc(doc(db, 'agency_inquiries', inquiry.id), withoutSecrets({
         ...inquiry,
         status: 'approved',
         approvedCompanyId: companyId,
         processedAt: new Date().toISOString()
-      });
+      }));
 
       alert(`[${inquiry.companyName}] 회원사 가입 승인이 완료되었습니다!\n발급된 회사 ID: ${companyId}\n관리자 ID: ${adminUserId}`);
     } catch (err) {
@@ -893,11 +894,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const handleRejectInquiry = async (inquiry) => {
     if (!window.confirm(`[${inquiry.companyName}] 대리점 가입 신청을 반려하시겠습니까?`)) return;
     try {
-      await setDoc(doc(db, 'agency_inquiries', inquiry.id), {
+      await setDoc(doc(db, 'agency_inquiries', inquiry.id), withoutSecrets({
         ...inquiry,
         status: 'rejected',
         processedAt: new Date().toISOString()
-      });
+      }));
       alert('신청서가 반려 처리되었습니다.');
     } catch (err) {
       console.error('Reject error:', err);
@@ -2477,7 +2478,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                                 <button 
                                   onClick={() => {
                                     if (window.confirm('도입 문의 확인 처리를 완료하시겠습니까?')) {
-                                      setDoc(doc(db, 'agency_inquiries', inq.id), { ...inq, status: 'checked' }, { merge: true });
+                                      setDoc(doc(db, 'agency_inquiries', inq.id), withoutSecrets({ ...inq, status: 'checked' }), { merge: true });
                                     }
                                   }}
                                   style={{
@@ -3171,3 +3172,4 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 };
 
 export default SuperAdmin;
+

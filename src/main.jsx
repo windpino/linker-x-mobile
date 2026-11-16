@@ -1,3 +1,5 @@
+import AuthGate from './auth/AuthGate';
+import './auth/storageGuard';
 import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -70,7 +72,7 @@ function AppWithSingleInstance() {
           <span style={{ lineHeight: 1.4 }}>새 창 실행이 감지되어 <strong>기존 링커엑스 창</strong>이 활성화되었습니다.</span>
         </div>
       )}
-      <App />
+      <AuthGate>{session => <App key={`${session.authUid}:${session.companyId}`} authSession={session} />}</AuthGate>
     </>
   );
 }
@@ -97,3 +99,4 @@ try {
     }
   }
 }
+

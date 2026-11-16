@@ -1,0 +1,18 @@
+{
+  "baseline": {
+    "errors": 63,
+    "warnings": 510
+  },
+  "before_bom_fix": {
+    "errors": 64,
+    "warnings": 512
+  },
+  "new_error_fixed": "BOM moved into src/main.jsx by prepended import; removed. Auth+main targeted lint subsequently exit 0.",
+  "auth_sources_errors": 0,
+  "auth_sources_warnings": 0,
+  "final": {
+    "errors": 63,
+    "auth_sources_errors": 0,
+    "auth_sources_warnings": 0
+  }
+}

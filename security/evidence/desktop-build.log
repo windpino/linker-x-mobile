@@ -1,0 +1,22 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> ---@0.0.0 build
+> vite build
+
+vite v8.0.9 building client environment for production...
+
+transforming...✓ 2727 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     3.17 kB │ gzip:   1.31 kB
+dist/assets/index-BADJ--Sm.css    252.12 kB │ gzip:  41.63 kB
+dist/assets/index-C0S4mxvr.js   3,610.75 kB │ gzip: 888.33 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[INEFFECTIVE_DYNAMIC_IMPORT] Warning: node_modules/firebase/auth/dist/esm/index.esm.js is dynamically imported by src/auth/client.js but also statically imported by src/auth/AuthGate.jsx, src/auth/client.js, src/desktop/DesktopApp.jsx, src/firebase.js, dynamic import will not move module into another chunk.
+
+✓ built in 1.90s

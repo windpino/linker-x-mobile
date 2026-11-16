@@ -1,11 +1,12 @@
 import { initializeApp } from "firebase/app";
 import { 
+  connectFirestoreEmulator,
   getFirestore, 
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager 
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 
 const getCleanEnv = (val) => {
   if (typeof val !== 'string') return val;
@@ -21,6 +22,9 @@ const firebaseConfig = {
   appId: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_APP_ID)) || "1:236294239528:web:8f735c42d36d6d1c434c1d",
   measurementId: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID)) || "G-G8626RZH6X"
 };
+
+const useEmulators = import.meta.env.VITE_AUTH_PRODUCTION_APPROVED !== 'true';
+if (useEmulators) Object.assign(firebaseConfig, { projectId: 'demo-linker-auth', apiKey: 'demo-key', authDomain: 'demo-linker-auth.firebaseapp.com', appId: 'demo-app', measurementId: undefined });
 
 const app = initializeApp(firebaseConfig);
 
@@ -38,4 +42,6 @@ try {
 
 export const db = dbInstance;
 export const auth = getAuth(app);
+if (useEmulators) { connectAuthEmulator(auth, 'http://127.0.0.1:9099', {disableWarnings:true}); connectFirestoreEmulator(db, '127.0.0.1', 8080); }
 export default app;
+

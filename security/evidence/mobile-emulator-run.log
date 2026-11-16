@@ -1,0 +1,71 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> linker-x-mobile@0.0.0 test:auth
+> firebase emulators:exec --project demo-linker-auth --config firebase.emulator.json --only auth,firestore "node --test --test-concurrency=1 security/tests/*.test.mjs"
+
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-linker-auth", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+⚠  emulators: It seems that you are running multiple instances of the emulator suite for project demo-linker-auth. This may result in unexpected behavior.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node --test --test-concurrency=1 security/tests/*.test.mjs
+i  To verify the email address auth-fixture@example.test, follow this link: http://127.0.0.1:9099/emulator/action?mode=verifyEmail&lang=en&oobCode=[REDACTED_EMULATOR_CODE]&apiKey=fake-api-key
+i  To reset the password for auth-fixture@example.test, follow this link: http://127.0.0.1:9099/emulator/action?mode=resetPassword&lang=en&oobCode=[REDACTED_EMULATOR_CODE]&apiKey=fake-api-key&newPassword=NEW_PASSWORD_HERE
+✔ email signup, verification, reset and callable approval boundary (1955.214317ms)
+✔ Google credential authenticates but grants no business membership (68.797188ms)
+✔ callable without identity denied (0.497626ms)
+✔ tenant admin cannot approve representative and duplicate legacy binding denied (301.355494ms)
+[2026-11-16T07:53:40.774Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d0587f8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L58, false for 'create' @ L63, false for 'update' @ L58, false for 'update' @ L63
+✔ unauthenticated business reads/writes denied (766.935119ms)
+[2026-11-16T07:53:40.977Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d0587fa error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L32:34 for 'create' @ L32, false for 'create' @ L58, false for 'create' @ L63, evaluation error at L32:34 for 'update' @ L32, false for 'update' @ L58, false for 'update' @ L63, Null value error. for 'create' @ L32, false for 'create' @ L58, false for 'create' @ L63
+✔ A staff cannot read/list/write B (200.528753ms)
+✔ pending or unassigned signup denied (74.119328ms)
+✔ unverified email denied (28.165359ms)
+[2026-11-16T07:53:41.114Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d0587fe error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L13, false for 'update' @ L63
+[2026-11-16T07:53:41.128Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d0587ff error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L15, false for 'create' @ L63, false for 'update' @ L15, false for 'update' @ L63
+[2026-11-16T07:53:41.143Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058800 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L24, false for 'update' @ L58, false for 'update' @ L63
+✔ staff cannot grant admin or change approval (63.912824ms)
+✔ partner only reads own order projection (168.69938ms)
+[2026-11-16T07:53:41.373Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058802 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L39:26 for 'create' @ L39, false for 'create' @ L58, false for 'create' @ L63, false for 'update' @ L40, false for 'update' @ L58, false for 'update' @ L63, false for 'create' @ L39, false for 'create' @ L58, false for 'create' @ L63
+[2026-11-16T07:53:41.385Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058803 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L40, false for 'update' @ L58, false for 'update' @ L63
+✔ partner submission cannot forge ownership/status (73.04273ms)
+✔ authorized staff order/loading/delivery/invoice path access (181.744001ms)
+✔ authenticated staff without required permission denied (24.425442ms)
+[2026-11-16T07:53:41.621Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058807 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L63, false for 'update' @ L63
+[2026-11-16T07:53:41.643Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058808 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L63, false for 'update' @ L63
+[2026-11-16T07:53:41.674Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d058809 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L58, false for 'create' @ L63, false for 'update' @ L58, false for 'update' @ L63
+✔ unknown/global paths denied for admin (82.082151ms)
+[2026-11-16T07:53:41.702Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d05880a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L24, false for 'create' @ L58, false for 'create' @ L63, false for 'update' @ L24, false for 'update' @ L58, false for 'update' @ L63
+[2026-11-16T07:53:41.714Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x1d05880b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L32, false for 'create' @ L58, false for 'create' @ L63, false for 'update' @ L32, false for 'update' @ L58, false for 'update' @ L63
+✔ legacy password writes and authz reads denied (47.526351ms)
+✔ revocation effective without token refresh (72.191252ms)
+✔ nested secrets are excluded from business profiles (1.333941ms)
+✔ old password keys and cached profiles are purged (0.378169ms)
+✔ storage write guard excludes password fields and preserves SDK token state (1.003393ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4832.242894
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
