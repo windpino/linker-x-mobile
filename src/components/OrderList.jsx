@@ -1539,12 +1539,6 @@ const OrderList = ({
                                           }}>
                                             {item.qty}
                                           </div>
-                                            fontWeight: 800,
-                                            fontSize: '0.96rem',
-                                            flexShrink: 0
-                                          }}>
-                                            {item.qty}
-                                          </div>
 
                                           {/* 4) 재고불일치 버튼 + 상단 말풍선 */}
                                           <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
