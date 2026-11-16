@@ -19,22 +19,32 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
 ## 2026-11-16 — Antigravity — Emulator Isolation & Concurrency Verification
 - Status: COMPLETED (Verified in branch `test/emulator-isolation`)
 - Branch / commit: test/emulator-isolation
-- Files changed: scratch/test_emulator_isolation.mjs, scratch/run_concurrency_stress_matrix.mjs, WORK_LOG.md
-- Checks actually run and results:
-  1. Emulator Isolation & Fail-Closed Test (`scratch/test_emulator_isolation.mjs`):
+- Files committed:
+  - `.gitignore`: Updated to unignore `scratch/*.mjs`, `scratch/*.log`, `scratch/*.json` (previously `*.mjs` globally blocked committing test scripts).
+  - `scratch/test_emulator_isolation.mjs`: Test script for strict local emulator configuration and fail-closed assertion.
+  - `scratch/test_emulator_isolation.log`: Raw stdout execution log verifying `connect ECONNREFUSED 127.0.0.1:58088` and fail-closed termination.
+  - `scratch/isolated_concurrency_test.mjs`: End-to-end 5-scenario concurrency harness.
+  - `scratch/isolated_concurrency_test.log`: Raw stdout execution log for the harness.
+  - `scratch/run_concurrency_stress_matrix.mjs`: 100-run (20 iterations x 5 scenarios) stress matrix test suite.
+  - `scratch/run_concurrency_stress_matrix.log`: Raw stdout execution log of the matrix suite.
+  - `scratch/matrix_results.json`: JSON output of the 100 stress runs.
+- Execution Commands and Verification Evidence:
+  1. Emulator Isolation & Fail-Closed Test:
+     - Command: `node scratch/test_emulator_isolation.mjs | Tee-Object -FilePath "scratch/test_emulator_isolation.log"`
      - Configured Firestore to strict local emulator (`connectFirestoreEmulator` to 127.0.0.1:58088).
      - Verified connection refusal immediately terminates with `connect ECONNREFUSED 127.0.0.1:58088`.
      - Confirmed ZERO traffic routed to production cloud (`link-x-6606e`). Fail-closed behavior validated.
-  2. Concurrency Stress Matrix (20 runs each, 100 total simulated tests in `scratch/run_concurrency_stress_matrix.mjs`):
+  2. Concurrency Stress Matrix (20 runs each, 100 total simulated tests):
+     - Command: `node scratch/run_concurrency_stress_matrix.mjs | Tee-Object -FilePath "scratch/run_concurrency_stress_matrix.log"`
      - Test 1 (Current unpatched code - Monolithic setDoc Concurrency):
        - Before: 본사창고 100
        - Expected after 2 workers load 10 each: 본사창고 80, 차량1 10, 차량2 10
-       - Actual: 본사창고 90, 차량1 0, 차량2 10
+       - Actual: 본사창고 90, 차량1 0, 차량2 10 (Worker 1 update lost)
        - Result: 20/20 runs REPRODUCED Lost Update (100% failure rate on concurrent loads).
      - Test 2 (Current unpatched code - Batch Toggle Overwrite):
        - 5 items (10 units each) batch-toggled in synchronous loop.
-       - Expected deduction: 50
-       - Actual deduction: 10 (40 units lost due to stale snapshot in closure).
+       - Expected deduction: 50 (Remaining: 50)
+       - Actual deduction: 10 (Remaining: 90; 40 units lost due to stale snapshot in closure).
        - Result: 20/20 runs REPRODUCED Overwrite bug (100% failure rate).
      - Test 3 (Proposed Transaction + Operation ID):
        - 2 concurrent workers writing atomically via runTransaction.
@@ -50,7 +60,7 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
 - Outstanding risks and next action:
   - Production code remains completely untouched as instructed.
   - Production database remains clean.
-  - Next step: Await user approval before porting proposed atomic transaction and Operation ID architecture into application code in a separate branch.
+  - All test scripts and raw execution logs are tracked in Git on `test/emulator-isolation` for complete reproducibility by any reviewer.
 
 ## Log entry template
 ### YYYY-MM-DD — Actor — task

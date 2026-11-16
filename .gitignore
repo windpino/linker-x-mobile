@@ -27,3 +27,6 @@ dist-ssr
 .cdp_profile*
 .chrome_temp*
 *.mjs
+!scratch/*.mjs
+!scratch/*.log
+!scratch/*.json
