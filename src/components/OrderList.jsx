@@ -960,18 +960,18 @@ const OrderList = ({
 
                     return (
                       <div key={category} style={{
-                        backgroundColor: '#f0fdf4',
+                        backgroundColor: isCatAllLoaded ? '#0f172a' : '#1e3a8a',
                         borderRadius: '14px',
-                        border: isCatAllLoaded ? '1px solid #166534' : '1px solid #bbf7d0',
+                        border: isCatAllLoaded ? '1px solid #334155' : '1px solid #2563eb',
                         overflow: 'hidden',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                        boxShadow: '0 2px 8px rgba(30, 58, 138, 0.25)',
                         flexShrink: 0
                       }}>
                         {/* 카테고리 헤더 */}
                         <div style={{
                           padding: '8px 12px',
-                          backgroundColor: isCatAllLoaded ? '#14532d' : '#dcfce7',
-                          borderBottom: isCatAllLoaded ? '1px solid #166534' : '1px solid #bbf7d0',
+                          backgroundColor: isCatAllLoaded ? '#0b1120' : '#172554',
+                          borderBottom: isCatAllLoaded ? '1px solid #1e293b' : '1px solid #1e40af',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center'
@@ -981,23 +981,23 @@ const OrderList = ({
                               fontSize: '0.74rem',
                               padding: '2px 8px',
                               borderRadius: '6px',
-                              backgroundColor: isCatAllLoaded ? 'rgba(255, 255, 255, 0.2)' : catStyle.bg,
-                              border: isCatAllLoaded ? '1px solid rgba(255, 255, 255, 0.35)' : `1px solid ${catStyle.border}`,
-                              color: isCatAllLoaded ? '#ffffff' : catStyle.color,
+                              backgroundColor: isCatAllLoaded ? 'rgba(255, 255, 255, 0.15)' : 'rgba(59, 130, 246, 0.35)',
+                              border: isCatAllLoaded ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid #60a5fa',
+                              color: '#ffffff',
                               fontWeight: 800
                             }}>
                               {category}
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: isCatAllLoaded ? '#bbf7d0' : '#166534', fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.74rem', color: isCatAllLoaded ? '#94a3b8' : '#93c5fd', fontWeight: 600 }}>
                               ({Object.keys(items).length}개 품목)
                             </span>
                           </div>
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: isCatAllLoaded ? '#ffffff' : '#166534' }}>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#ffffff' }}>
                             총 {categoryTotalQty.toLocaleString()}개
                           </span>
                         </div>
 
-                        {/* 품목 리스트 (수주목록칸과 동일한 줄 나눔 및 레이아웃, 클릭 시 전체 상차) */}
+                        {/* 품목 리스트 (클릭 시 전체 상차) */}
                         <div>
                           {Object.entries(items).map(([name, data], idx) => {
                             const isAllLoaded = data.loadedQty >= data.totalQty && data.totalQty > 0;
@@ -1011,16 +1011,16 @@ const OrderList = ({
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '8px',
-                                  padding: '8px 12px',
-                                  borderBottom: idx === Object.keys(items).length - 1 ? 'none' : (isAllLoaded ? '1px solid #166534' : '1px solid #bbf7d0'),
-                                  backgroundColor: isAllLoaded ? '#15803d' : '#f0fdf4',
+                                  padding: '9px 12px',
+                                  borderBottom: idx === Object.keys(items).length - 1 ? 'none' : (isAllLoaded ? '1px solid #1e293b' : '1px solid #1d4ed8'),
+                                  backgroundColor: isAllLoaded ? '#0b1329' : '#1e3a8a',
                                   cursor: 'pointer',
                                   transition: 'background-color 0.18s ease'
                                 }}
                                 title={`${name} 클릭 시 해당 품목 전체 ${isAllLoaded ? '상차 취소' : '상차'}`}
                               >
                                 {/* 1) 번호 */}
-                                <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isAllLoaded ? '#bbf7d0' : '#166534', textAlign: 'center', flexShrink: 0 }}>
+                                <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isAllLoaded ? '#64748b' : '#93c5fd', textAlign: 'center', flexShrink: 0 }}>
                                   {idx + 1}
                                 </span>
 
@@ -1031,12 +1031,12 @@ const OrderList = ({
                                       width: '18px',
                                       height: '18px',
                                       borderRadius: '50%',
-                                      backgroundColor: '#ffffff',
+                                      backgroundColor: '#3b82f6',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}>
-                                      <Check size={12} color="#15803d" strokeWidth={3.5} />
+                                      <Check size={12} color="#ffffff" strokeWidth={3.5} />
                                     </div>
                                   ) : isPartiallyLoaded ? (
                                     <div style={{
@@ -1056,51 +1056,36 @@ const OrderList = ({
                                       width: '18px',
                                       height: '18px',
                                       borderRadius: '50%',
-                                      border: '2px solid #86efac',
-                                      backgroundColor: '#ffffff'
+                                      border: '2px solid #60a5fa',
+                                      backgroundColor: 'transparent'
                                     }} />
                                   )}
                                 </div>
 
-                                {/* 3 & 4) 카테고리 뱃지 위 + 품목명 아래 */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <span style={{
-                                      fontSize: '0.68rem',
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                      backgroundColor: isAllLoaded ? 'rgba(255, 255, 255, 0.25)' : catStyle.bg,
-                                      border: isAllLoaded ? '1px solid rgba(255, 255, 255, 0.4)' : `1px solid ${catStyle.border}`,
-                                      color: isAllLoaded ? '#ffffff' : catStyle.color,
-                                      fontWeight: 800,
-                                      lineHeight: 1.2,
-                                      letterSpacing: '-0.2px',
-                                      display: 'inline-block'
-                                    }}>
-                                      {category || '기타'}
-                                    </span>
-                                  </div>
+                                {/* 3) 품목명 (카테고리 뱃지 삭제됨, 상차 시 취소선 및 흐린 색상) */}
+                                <div style={{ display: 'flex', flex: 1, minWidth: 0, alignItems: 'center' }}>
                                   <span style={{
                                     fontWeight: 800,
-                                    color: isAllLoaded ? '#ffffff' : '#14532d',
+                                    color: isAllLoaded ? '#94a3b8' : '#ffffff',
                                     fontSize: '1.02rem',
                                     lineHeight: 1.3,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'nowrap',
+                                    textDecoration: isAllLoaded ? 'line-through' : 'none'
                                   }}>
                                     {name}
                                   </span>
                                 </div>
 
-                                {/* 5) 수량 박스 */}
+                                {/* 4) 수량 박스 */}
                                 <div style={{
                                   minWidth: '40px',
                                   height: '28px',
                                   padding: '0 8px',
                                   borderRadius: '7px',
-                                  backgroundColor: isAllLoaded ? '#14532d' : '#dcfce7',
-                                  border: isAllLoaded ? '1px solid #166534' : '1px solid #bbf7d0',
+                                  backgroundColor: isAllLoaded ? '#1e293b' : '#1d4ed8',
+                                  border: isAllLoaded ? '1px solid #334155' : '1px solid #3b82f6',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1109,7 +1094,7 @@ const OrderList = ({
                                   <span style={{
                                     fontSize: '0.96rem',
                                     fontWeight: 800,
-                                    color: isAllLoaded ? '#ffffff' : '#14532d'
+                                    color: isAllLoaded ? '#94a3b8' : '#ffffff'
                                   }}>
                                     {isPartiallyLoaded ? `${data.loadedQty}/${data.totalQty}` : data.totalQty.toLocaleString()}
                                   </span>
@@ -1402,188 +1387,199 @@ const OrderList = ({
                         </div>
 
                         {/* 2. Items List (Foldable when isCollapsed is false) */}
-                        {!isCollapsed && (
-                          <div style={{ backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff', padding: '0' }}>
-                            {displayItems.length === 0 ? (
-                              <div style={{ padding: '12px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
-                                등록된 수주 품목이 없습니다.
-                              </div>
-                            ) : null}
-                            {displayItems.map((item, iIdx) => {
-                            const key = `${order.id}-${iIdx}`;
-                            const isProcessed = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
-                            const feedback = stockFeedback[key];
-                            const catStyle = getCategoryBadgeStyle(item.category);
+                        {!isCollapsed && (() => {
+                          // 카테고리별 묶음 생성 (원래 품목 인덱스 유지)
+                          const categoryGroups = [];
+                          const catMap = new Map();
+                          displayItems.forEach((item, originalIdx) => {
+                            const cat = item.category || '기타';
+                            if (!catMap.has(cat)) {
+                              const group = { category: cat, items: [] };
+                              catMap.set(cat, group);
+                              categoryGroups.push(group);
+                            }
+                            catMap.get(cat).items.push({ item, originalIdx });
+                          });
 
-                            return (
-                              <div 
-                                key={iIdx}
-                                onClick={() => handleItemMove(order, item, iIdx)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                  padding: '8px 12px',
-                                  borderBottom: iIdx === displayItems.length - 1 ? 'none' : (isProcessed ? '1px solid #1e293b' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #f1f5f9')),
-                                  backgroundColor: isProcessed ? '#0f172a' : (isOrderFullyLoaded ? '#1e293b' : '#ffffff'),
-                                  cursor: 'pointer',
-                                  position: 'relative',
-                                  transition: 'background-color 0.18s ease'
-                                }}
-                              >
-                                {/* 1) Item Index */}
-                                <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isProcessed ? '#94a3b8' : (isOrderFullyLoaded ? '#94a3b8' : '#64748b'), textAlign: 'center', flexShrink: 0 }}>
-                                  {iIdx + 1}
-                                </span>
+                          return (
+                            <div style={{ backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff', padding: '0' }}>
+                              {displayItems.length === 0 ? (
+                                <div style={{ padding: '12px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
+                                  등록된 수주 품목이 없습니다.
+                                </div>
+                              ) : null}
 
-                                {/* 2) Checkmark Circle */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', flexShrink: 0 }}>
-                                  {isProcessed ? (
+                              {categoryGroups.map((group, gIdx) => {
+                                const catStyle = getCategoryBadgeStyle(group.category);
+
+                                return (
+                                  <div key={group.category || gIdx}>
+                                    {/* 카테고리 묶음 헤더 (맨 앞에 묶음으로 하나만 표시) */}
                                     <div style={{
-                                      width: '18px',
-                                      height: '18px',
-                                      borderRadius: '50%',
-                                      backgroundColor: '#10b981',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center'
+                                      gap: '6px',
+                                      padding: '5px 12px 4px 12px',
+                                      backgroundColor: isOrderFullyLoaded ? '#0f172a' : '#f8fafc',
+                                      borderBottom: isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0',
+                                      borderTop: gIdx > 0 ? (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0') : 'none'
                                     }}>
-                                      <Check size={12} color="#ffffff" strokeWidth={3.5} />
+                                      <span style={{
+                                        fontSize: '0.72rem',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        backgroundColor: isOrderFullyLoaded ? 'rgba(255, 255, 255, 0.12)' : catStyle.bg,
+                                        border: isOrderFullyLoaded ? '1px solid rgba(255, 255, 255, 0.25)' : `1px solid ${catStyle.border}`,
+                                        color: isOrderFullyLoaded ? '#93c5fd' : catStyle.color,
+                                        fontWeight: 800,
+                                        lineHeight: 1.2
+                                      }}>
+                                        {group.category}
+                                      </span>
+                                      <span style={{ fontSize: '0.72rem', color: isOrderFullyLoaded ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                                        ({group.items.length}개 품목)
+                                      </span>
                                     </div>
-                                  ) : (
-                                    <div style={{
-                                      width: '18px',
-                                      height: '18px',
-                                      borderRadius: '50%',
-                                      border: isOrderFullyLoaded ? '2px solid #475569' : '2px solid #cbd5e1',
-                                      backgroundColor: isOrderFullyLoaded ? '#1e293b' : '#ffffff'
-                                    }} />
-                                  )}
-                                </div>
 
-                                {/* 3 & 4) Category Above + Product Name Below (Clicking also toggles check) */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0, justifyContent: 'center' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <span style={{
-                                      fontSize: '0.68rem',
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                      backgroundColor: isProcessed ? 'rgba(255, 255, 255, 0.15)' : catStyle.bg,
-                                      border: isProcessed ? '1px solid rgba(255, 255, 255, 0.3)' : `1px solid ${catStyle.border}`,
-                                      color: isProcessed ? '#ffffff' : catStyle.color,
-                                      fontWeight: 800,
-                                      lineHeight: 1.2,
-                                      letterSpacing: '-0.2px',
-                                      display: 'inline-block'
-                                    }}>
-                                      {item.category || '기타'}
-                                    </span>
+                                    {/* 묶음 내 품목 리스트 */}
+                                    {group.items.map(({ item, originalIdx }, itemIdx) => {
+                                      const key = `${order.id}-${originalIdx}`;
+                                      const isProcessed = key in processedItems ? Boolean(processedItems[key]) : Boolean(item.loaded);
+                                      const feedback = stockFeedback[key];
+                                      const isLastInOrder = gIdx === categoryGroups.length - 1 && itemIdx === group.items.length - 1;
+
+                                      return (
+                                        <div 
+                                          key={originalIdx}
+                                          onClick={() => handleItemMove(order, item, originalIdx)}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '9px 12px',
+                                            borderBottom: isLastInOrder ? 'none' : (isProcessed ? '1px solid #1e293b' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #f1f5f9')),
+                                            backgroundColor: isProcessed ? '#0f172a' : (isOrderFullyLoaded ? '#1e293b' : '#ffffff'),
+                                            cursor: 'pointer',
+                                            position: 'relative',
+                                            transition: 'background-color 0.18s ease'
+                                          }}
+                                        >
+                                          {/* 1) 품목 번호 */}
+                                          <span style={{ width: '20px', fontSize: '0.84rem', fontWeight: 800, color: isProcessed ? '#64748b' : (isOrderFullyLoaded ? '#94a3b8' : '#64748b'), textAlign: 'center', flexShrink: 0 }}>
+                                            {originalIdx + 1}
+                                          </span>
+
+                                          {/* 2) 체크 원형 표시 삭제됨! 품목명 (품목 위 카테고리 삭제, 상차시 줄 긋기 및 배경/글자색 차별화) */}
+                                          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                                            <span 
+                                              style={{
+                                                fontWeight: 800,
+                                                color: isProcessed ? '#94a3b8' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
+                                                fontSize: '1.02rem',
+                                                lineHeight: 1.3,
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                textDecoration: isProcessed ? 'line-through' : 'none',
+                                                cursor: 'pointer'
+                                              }}
+                                            >
+                                              {item.name}
+                                            </span>
+                                          </div>
+
+                                          {/* 3) 수량 박스 */}
+                                          <div style={{
+                                            minWidth: '36px',
+                                            height: '28px',
+                                            padding: '0 8px',
+                                            borderRadius: '7px',
+                                            backgroundColor: isProcessed ? '#1e293b' : (isOrderFullyLoaded ? '#0f172a' : '#f1f5f9'),
+                                            border: isProcessed ? '1px solid #334155' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0'),
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: isProcessed ? '#94a3b8' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
+                                            fontWeight: 800,
+                                            fontSize: '0.96rem',
+                                            flexShrink: 0
+                                          }}>
+                                            {item.qty}
+                                          </div>
+
+                                          {/* 4) 재고불일치 버튼 + 상단 말풍선 */}
+                                          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name);
+                                              }}
+                                              style={{
+                                                border: '1px solid rgba(245, 158, 11, 0.5)',
+                                                backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                                                color: '#d97706',
+                                                padding: '3px 7px',
+                                                borderRadius: '5px',
+                                                fontSize: '0.74rem',
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                flexShrink: 0
+                                              }}
+                                              title="재고불일치"
+                                            >
+                                              재고불일치
+                                            </button>
+
+                                            {/* Temporary Stock Feedback Toast (재고불일치 버튼 바로 위 말풍선) */}
+                                            {feedback && (
+                                              <div style={{ 
+                                                position: 'absolute', 
+                                                bottom: 'calc(100% + 7px)', 
+                                                right: 0, 
+                                                backgroundColor: '#090d16', 
+                                                color: '#38bdf8', 
+                                                padding: '5px 12px', 
+                                                borderRadius: '8px', 
+                                                fontSize: '0.94rem', 
+                                                fontWeight: 900, 
+                                                whiteSpace: 'nowrap', 
+                                                zIndex: 100, 
+                                                border: '2px solid #38bdf8', 
+                                                boxShadow: '0 6px 18px rgba(0,0,0,0.65), 0 0 12px rgba(56, 189, 248, 0.45)', 
+                                                pointerEvents: 'none',
+                                                letterSpacing: '-0.3px'
+                                              }}>
+                                                {feedback}
+                                                {/* 말풍선 아래 꼬리침 */}
+                                                <div style={{
+                                                  position: 'absolute',
+                                                  bottom: '-6px',
+                                                  right: '20px',
+                                                  width: 0,
+                                                  height: 0,
+                                                  borderLeft: '6px solid transparent',
+                                                  borderRight: '6px solid transparent',
+                                                  borderTop: '6px solid #38bdf8'
+                                                }} />
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                  <span 
-                                    style={{
-                                      fontWeight: 800,
-                                      color: isProcessed ? '#ffffff' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
-                                      fontSize: '1.02rem',
-                                      lineHeight: 1.3,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {item.name}
-                                  </span>
+                                );
+                              })}
+
+                              {order.memo && (
+                                <div style={{ padding: '6px 12px 8px 12px', fontSize: '0.78rem', color: '#dc2626', backgroundColor: '#fef2f2', borderTop: '1px dashed #fecaca' }}>
+                                  <span style={{ fontWeight: 700 }}>[메모]</span> {order.memo}
                                 </div>
-
-                                {/* 5) Quantity Box */}
-                                <div style={{
-                                  minWidth: '36px',
-                                  height: '28px',
-                                  padding: '0 8px',
-                                  borderRadius: '7px',
-                                  backgroundColor: isProcessed ? '#1e293b' : (isOrderFullyLoaded ? '#0f172a' : '#f1f5f9'),
-                                  border: isProcessed ? '1px solid #334155' : (isOrderFullyLoaded ? '1px solid #334155' : '1px solid #e2e8f0'),
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: isProcessed ? '#ffffff' : (isOrderFullyLoaded ? '#f8fafc' : '#1e293b'),
-                                  fontWeight: 800,
-                                  fontSize: '0.96rem',
-                                  flexShrink: 0
-                                }}>
-                                  {item.qty}
-                                </div>
-
-                                {/* 6) Mismatch Button (맨 끝에 재고불일치 버튼) + 상단 재고 수량 말풍선 */}
-                                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onOpenInventoryMismatch && onOpenInventoryMismatch(order.outWarehouse, item.name);
-                                    }}
-                                    style={{
-                                      border: '1px solid rgba(245, 158, 11, 0.5)',
-                                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                                      color: '#d97706',
-                                      padding: '3px 7px',
-                                      borderRadius: '5px',
-                                      fontSize: '0.74rem',
-                                      fontWeight: 800,
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      flexShrink: 0
-                                    }}
-                                    title="재고불일치"
-                                  >
-                                    재고불일치
-                                  </button>
-
-                                  {/* Temporary Stock Feedback Toast (재고불일치 버튼 바로 위 말풍선) */}
-                                  {feedback && (
-                                    <div style={{ 
-                                      position: 'absolute', 
-                                      bottom: 'calc(100% + 7px)', 
-                                      right: 0, 
-                                      backgroundColor: '#090d16', 
-                                      color: '#38bdf8', 
-                                      padding: '5px 12px', 
-                                      borderRadius: '8px', 
-                                      fontSize: '0.94rem', 
-                                      fontWeight: 900, 
-                                      whiteSpace: 'nowrap', 
-                                      zIndex: 100, 
-                                      border: '2px solid #38bdf8', 
-                                      boxShadow: '0 6px 18px rgba(0,0,0,0.65), 0 0 12px rgba(56, 189, 248, 0.45)', 
-                                      pointerEvents: 'none',
-                                      letterSpacing: '-0.3px'
-                                    }}>
-                                      {feedback}
-                                      {/* 말풍선 아래 꼬리침 */}
-                                      <div style={{
-                                        position: 'absolute',
-                                        bottom: '-6px',
-                                        right: '20px',
-                                        width: 0,
-                                        height: 0,
-                                        borderLeft: '6px solid transparent',
-                                        borderRight: '6px solid transparent',
-                                        borderTop: '6px solid #38bdf8'
-                                      }} />
-                                    </div>
-                                  )}
-                                </div>
-
-
-                              </div>
-                            );
-                          })}
-                          {order.memo && (
-                            <div style={{ padding: '6px 12px 8px 12px', fontSize: '0.78rem', color: '#dc2626', backgroundColor: '#fef2f2', borderTop: '1px dashed #fecaca' }}>
-                              <span style={{ fontWeight: 700 }}>[메모]</span> {order.memo}
+                              )}
                             </div>
-                          )}
-                        </div>
-                      )}
+                          );
+                        })()}
                     </div>
                   );
                 }
@@ -1974,14 +1970,15 @@ const OrderList = ({
                                       title="클릭 시 재고 확인"
                                       style={{ 
                                         fontWeight: 800, 
-                                        color: isProcessed ? '#f8fafc' : '#1e293b', 
+                                        color: isProcessed ? '#94a3b8' : '#1e293b', 
                                         fontSize: '1.02rem',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '6px'
+                                        gap: '6px',
+                                        textDecoration: isProcessed ? 'line-through' : 'none'
                                       }}
                                     >
                                       {item.name}
@@ -2068,7 +2065,7 @@ const OrderList = ({
                                   <input type="checkbox" checked={!!isProcessed} onChange={() => handleItemMove(order, item, iIdx)} style={{ cursor: 'pointer' }} />
                                 </div>
                                 <span style={{ color: getCategoryColor(item.category || '기타'), fontWeight: 600 }}>{item.category || '기타'}</span>
-                                <span style={{ fontWeight: 700, color: (item.category || '기타') === '미등록상품' ? '#ef4444' : '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 700, color: (item.category || '기타') === '미등록상품' ? '#ef4444' : (isProcessed ? '#94a3b8' : '#1e293b'), textDecoration: isProcessed ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {item.name}
                                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
                                     (출고창고 재고: {(() => {
