@@ -338,7 +338,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           return;
         }
         const { _docId, ...cleanForm } = formData;
-        onSave(withoutSecrets({ 
+        onSave(withoutSecrets({
           ...cleanForm, 
           showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,

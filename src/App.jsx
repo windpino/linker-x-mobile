@@ -204,7 +204,7 @@ const getFavMenuIcon = (menuId, size = 18) => {
 const FAV_CATEGORIES = ['기초자료등록', '매출/주문관리', '매입/발주관리', '재고관리', '입출금관리', '스마트지원', '데이터관리', '환경설정'];
 
 function App({ authSession }) {
-  const [currentView, setCurrentView] = useState(authSession?.role === 'super_admin' ? 'super_admin' : 'dashboard'); 
+  const [currentView, setCurrentView] = useState(authSession?.role === 'super_admin' ? 'super_admin' : 'dashboard');
 
 
   const getInitialStateFromCache = (key, fallback) => {
