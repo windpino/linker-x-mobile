@@ -11,7 +11,7 @@
 
 .auth-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   border-radius: 20px;
   background: #ffffff;
   padding: 32px;
@@ -46,6 +46,77 @@
   color: #475569;
   line-height: 1.6;
   margin-bottom: 16px;
+}
+
+/* Tabs: 로그인 vs 회원가입 */
+.auth-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* 가입 대상 선택 카드 (새 회원사 vs 기존 회원사) */
+.auth-type-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.auth-type-card {
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.auth-type-card:hover {
+  border-color: #93c5fd;
+  background: #f0f7ff;
+}
+
+.auth-type-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.auth-type-card-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.auth-type-card-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .auth-badge-status {
@@ -179,6 +250,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .auth-btn-secondary:hover:not(:disabled) {
@@ -304,28 +379,10 @@
 }
 
 .auth-notice-text {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #64748b;
   margin-top: 8px;
-}
-
-.auth-details-box {
-  margin-top: 20px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 14px;
-}
-
-.auth-details-box summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #2563eb;
-  font-size: 0.9rem;
-}
-
-.auth-form-help {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin-top: 6px;
+  line-height: 1.5;
 }
 
 .auth-admin-toggle {
@@ -348,7 +405,7 @@
     padding: 12px;
   }
   .auth-card {
-    padding: 22px 18px;
+    padding: 22px 16px;
     border-radius: 16px;
   }
 }
