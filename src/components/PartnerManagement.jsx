@@ -1,3 +1,4 @@
+import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Users, Plus, Edit2, Trash2, FileText, Search, X,
@@ -41,7 +42,7 @@ const PartnerManagement = ({
     if (Array.isArray(partners) && safePartners.length < partners.length && currentUser?.companyId) {
       if (cleanedPartnersLengthRef.current === partners.length) return;
       cleanedPartnersLengthRef.current = partners.length;
-      setPartners(safePartners);
+      setPartners(withoutSecrets(safePartners));
       saveBundle(currentUser.companyId, 'partners', safePartners).catch(console.warn);
     }
   }, [partners, safePartners, currentUser?.companyId, setPartners]);
@@ -212,7 +213,7 @@ const PartnerManagement = ({
           const cleanPartner = { ...p };
           delete cleanPartner._docId;
 
-          batch.set(doc(db, 'companies', companyId, 'partners', docId), cleanPartner);
+          batch.set(doc(db, 'companies', companyId, 'partners', docId), withoutSecrets(cleanPartner));
           hasChanges = true;
         }
       });
@@ -292,7 +293,7 @@ const PartnerManagement = ({
         isSequenceValid ? partnerData.sequence : null
       );
 
-      setPartners(withNewSequences);
+      setPartners(withoutSecrets(withNewSequences));
       await savePartnerSequences(withNewSequences, finalData.id);
 
       if (logOperation) {
@@ -425,7 +426,7 @@ const PartnerManagement = ({
     newPartners.splice(actualTargetIdx, 0, movedItem);
 
     const withNewSequences = autoAssignSequences(newPartners);
-    setPartners(withNewSequences);
+    setPartners(withoutSecrets(withNewSequences));
     await savePartnerSequences(withNewSequences);
   }, [getFilteredPartners, getSortedPartners, autoAssignSequences, setPartners]);
 
@@ -983,3 +984,4 @@ const PartnerManagement = ({
 };
 
 export default PartnerManagement;
+

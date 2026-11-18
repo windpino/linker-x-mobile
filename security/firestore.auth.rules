@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function verified(){return request.auth!=null && request.auth.token.email_verified==true;}
+  function member(c){return get(/databases/$(database)/documents/authz/$(request.auth.uid)/companies/$(c)).data;}
+  function active(c){return verified() && get(/databases/$(database)/documents/companies/$(c)).data.status=='active' && member(c).status=='active' && member(c).companyId==c;}
+  function admin(c){return active(c)&&member(c).role=='tenant_admin';}
+  function staff(c){return active(c)&&member(c).role in ['tenant_admin','tenant_staff'];}
+  function has(c,p){return admin(c)||(staff(c)&&member(c).permissions.get(p,false)==true);}
+  function some(c,ps){return admin(c)||(staff(c)&&(
+    (ps.hasAny(['orders'])&&member(c).permissions.get('orders',false)==true)||
+    (ps.hasAny(['loading'])&&member(c).permissions.get('loading',false)==true)||
+    (ps.hasAny(['delivery'])&&member(c).permissions.get('delivery',false)==true)||
+    (ps.hasAny(['invoices'])&&member(c).permissions.get('invoices',false)==true)||
+    (ps.hasAny(['inventory'])&&member(c).permissions.get('inventory',false)==true)||
+    (ps.hasAny(['catalog'])&&member(c).permissions.get('catalog',false)==true)||
+    (ps.hasAny(['reports'])&&member(c).permissions.get('reports',false)==true)));}
+  function noSecrets(d){return !d.keys().hasAny(['password','password2','password3','pwd','token','credentials','authUid','permissions','role','isPlatformAdmin']);}
+  function readable(c,col){return
+   (col in ['products','categories','warehouses']&&some(c,['catalog','orders','loading','invoices']))||
+   (col in ['vehicles','vehicleLogs']&&some(c,['catalog','loading','delivery']))||
+   (col in ['salesOrders','schedules','schedule_types']&&some(c,['orders','loading','delivery']))||
+   (col in ['purchaseOrders']&&has(c,'orders'))||
+   (col in ['quotations']&&some(c,['orders','reports']))||
+   (col in ['salesInvoices','purchaseInvoices','accounts','expenses']&&some(c,['invoices','reports']))||
+   (col in ['specialPrices']&&some(c,['orders','invoices']))||
+   (col in ['inventoryAdjustments','inventoryTransferHistory','operations']&&has(c,'inventory'))||
+   (col in ['actionLogs']&&has(c,'reports'));}
+  function writable(c,col){return
+   (col in ['products','categories','warehouses','vehicles']&&has(c,'catalog'))||
+   (col in ['vehicleLogs']&&some(c,['loading','delivery']))||
+   (col in ['salesOrders','schedules','schedule_types']&&some(c,['orders','loading','delivery']))||
+   (col in ['purchaseOrders','quotations']&&has(c,'orders'))||
+   (col in ['salesInvoices','purchaseInvoices','accounts','expenses','specialPrices']&&has(c,'invoices'))||
+   (col in ['inventoryAdjustments','inventoryTransferHistory','operations']&&has(c,'inventory'));}
+  match /companies/{c} {
+   // Legacy company/profile/bundle/config records may contain credentials. Server projection only.
+   allow read,write:if false;
+   match /settings/{name}{
+    allow read:if name in ['inventory','physicalInventory']&&has(c,'inventory');
+    allow create,update:if name in ['inventory','physicalInventory']&&has(c,'inventory')&&noSecrets(request.resource.data);
+    allow delete:if false;
+   }
+   match /{col}/{d}{
+    allow read:if readable(c,col);
+    allow create,update:if writable(c,col)&&noSecrets(request.resource.data);
+    allow delete:if writable(c,col)&&col!='operations';
+   }
+   match /actionLogs/{d}{allow create:if some(c,['orders','loading','delivery','invoices','inventory'])&&noSecrets(request.resource.data);}
+   match /userSettings/{d}{
+    function own(){return staff(c)&&d in [member(c).get('userId',member(c).legacyId)+'_favoriteMenus',member(c).get('userId',member(c).legacyId)+'_dashboardConfig'];}
+    allow read:if own();allow create,update:if own()&&noSecrets(request.resource.data);allow delete:if own();
+   }
+   match /userDashboardConfig/{d}{allow read,write:if staff(c)&&d==member(c).get('userId',member(c).legacyId);}
+   match /partnerOrders/{d}{
+    function own(data){return active(c)&&member(c).role=='partner'&&data.companyId==c&&data.partnerId==member(c).partnerId;}
+    allow read:if has(c,'orders')||own(resource.data);
+    allow create:if (has(c,'orders')||own(request.resource.data))&&request.resource.data.keys().hasOnly(['companyId','partnerId','items','note','status','createdAt'])&&request.resource.data.status=='submitted';
+    allow update,delete:if false;
+   }
+  }
+  match /{path=**}{allow read,write:if false;}
+ }
+}

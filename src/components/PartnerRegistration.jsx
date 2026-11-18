@@ -1,3 +1,4 @@
+import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Phone, Users, Contact, Lock, Save, MapPin, 
@@ -149,13 +150,13 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
     }
 
     if (onSave) {
-      onSave({
+      onSave(withoutSecrets({
         ...formData,
         creditLimit: Number(formData.creditLimit || 0),
         receivables: Number(formData.receivables || 0),
         receivableBase: Number(formData.receivableBase || 0),
         grade: formData.grade || '1'
-      });
+      }));
     } else {
       onClose();
     }
@@ -520,3 +521,4 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
 };
 
 export default PartnerRegistration;
+

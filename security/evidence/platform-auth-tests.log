@@ -1,0 +1,114 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> linker-x-mobile@0.0.0 test:auth
+> firebase emulators:exec --project demo-linker-auth --config firebase.emulator.json --only auth,firestore "node --test --test-concurrency=1 security/tests/*.test.mjs"
+
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-linker-auth", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node --test --test-concurrency=1 security/tests/*.test.mjs
+i  To verify the email address auth-fixture@example.test, follow this link: http://127.0.0.1:9099/emulator/action?mode=verifyEmail&lang=en&oobCode=Hs3KYjKgoASajuSCKCiV2XNF_RrCnVnNsMBgBJfFnv7POFffi7mcnI&apiKey=fake-api-key
+i  To reset the password for auth-fixture@example.test, follow this link: http://127.0.0.1:9099/emulator/action?mode=resetPassword&lang=en&oobCode=Jpba7w_TRqfcsUmE7j4B1nFm6t8zevjzeXnls3pbZhTfR6ANudTsSD&apiKey=fake-api-key&newPassword=NEW_PASSWORD_HERE
+✔ email signup, verification, reset and callable approval boundary (2212.456441ms)
+✔ Google credential authenticates but grants no business membership (71.239642ms)
+✔ callable without identity denied (0.380164ms)
+✔ tenant admin cannot approve representative and duplicate legacy binding denied (276.471332ms)
+✔ legacy signup entry uses Firebase approval gate without a client-generated verification code (0.968113ms)
+✔ company bootstrap components do not create fixed plaintext credentials (0.666567ms)
+[2026-11-16T15:36:45.008Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8161 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L46, false for 'create' @ L62, false for 'update' @ L46, false for 'update' @ L62
+✔ unauthenticated business reads/writes denied (801.939144ms)
+[2026-11-16T15:36:45.239Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8163 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L46:28 for 'create' @ L46, false for 'create' @ L62, evaluation error at L46:28 for 'update' @ L46, false for 'update' @ L62, Null value error. for 'create' @ L46, false for 'create' @ L62
+✔ A staff cannot read/list/write B (230.271769ms)
+✔ pending or unassigned signup denied (80.234248ms)
+✔ unverified email denied (31.300766ms)
+[2026-11-16T15:36:45.381Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8167 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L62
+[2026-11-16T15:36:45.397Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8168 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L62, false for 'update' @ L62
+[2026-11-16T15:36:45.408Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8169 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L46, false for 'update' @ L62
+✔ staff cannot grant admin or change approval (56.589276ms)
+✔ partner only reads own order projection (148.359364ms)
+[2026-11-16T15:36:45.615Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b816b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L46, evaluation error at L58:21 for 'create' @ L58, false for 'create' @ L62, false for 'update' @ L46, false for 'update' @ L59, false for 'update' @ L62, false for 'create' @ L46, false for 'create' @ L58, false for 'create' @ L62
+[2026-11-16T15:36:45.626Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b816c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L46, false for 'update' @ L59, false for 'update' @ L62
+✔ partner submission cannot forge ownership/status (69.139198ms)
+✔ authorized staff order/loading/delivery/invoice path access (199.84995ms)
+✔ authenticated staff without required permission denied (34.78474ms)
+[2026-11-16T15:36:45.897Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8170 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L62, false for 'update' @ L62
+[2026-11-16T15:36:45.920Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8171 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L62, false for 'update' @ L62
+[2026-11-16T15:36:45.955Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8172 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L46, false for 'create' @ L62, false for 'update' @ L46, false for 'update' @ L62
+✔ unknown/global paths denied for admin (94.021259ms)
+[2026-11-16T15:36:45.985Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8173 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L46, false for 'create' @ L62, false for 'update' @ L46, false for 'update' @ L62
+[2026-11-16T15:36:46.003Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x8b0b8174 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L46, false for 'create' @ L62, false for 'update' @ L46, false for 'update' @ L62
+✔ legacy password writes and authz reads denied (57.302098ms)
+✔ revocation effective without token refresh (55.554533ms)
+✔ nested secrets are excluded from business profiles (1.506116ms)
+✔ old password keys and cached profiles are purged (0.37697ms)
+✔ storage write guard excludes password fields and preserves SDK token state (0.883925ms)
+✔ unchanged Antigravity source runs order/loading/delivery/invoice lifecycle under restrictive auth rules (938.591008ms)
+✔ two authorized staff retry duplicate operation without double deduction (813.265862ms)
+✔ unchanged transaction service denied to unauthenticated and other-company callers (62.040874ms)
+✔ revoked driver cannot replay pending operation after reconnection (141.508832ms)
+{"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ actual callable HTTP wrapper requires identity and approved membership (297.538267ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ legacy company/password data remains stored but projection never sends secrets (46.243268ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ staff directory hides payroll and role; partner directory is assigned only (100.165133ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ cross-company and path traversal rejected before any data is returned (57.037329ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ limited approved staff cannot fetch business bundles; metadata is capability-filtered (47.658551ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ staff cannot write staff profiles, auth fields or unrelated bundle metadata (35.673352ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ authorized bundle roundtrip strips credentials and fixes embedded company ID (78.929571ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ server write cannot alter company approval or promote legacy role (60.066004ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ revoked membership is rejected by actual callable transport (30.391451ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ approved admin preserves company state and cannot replace existing staff identity (59.902716ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ platform overview rejects company admins and ordinary staff (29.0336ms)
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+✔ verified platform admin sees allowlisted companies and partial telemetry only (70.213201ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9201.724427
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

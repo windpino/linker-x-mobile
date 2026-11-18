@@ -1,5 +1,7 @@
+import { canReadBundle, canWriteBundle } from '../auth/sessionScope';
+import { getDoc, setDoc, getDocs, deleteDoc } from '../auth/tenantFirestore';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, collection, writeBatch } from 'firebase/firestore';
 import { getIdbBundle, setIdbBundle, removeIdbBundle, clearAllIdbBundles } from './idbBundleCache';
 
 // Supported bundle collections
@@ -235,6 +237,7 @@ export const getLocalVersion = (companyId, colName) => {
  * Fetch a single bundle document from Firestore (supports chunked bundles transparently)
  */
 export const fetchBundle = async (companyId, colName) => {
+  if (!canReadBundle(companyId,colName)) return [];
   if (!companyId || !db) return [];
   try {
     const bundleDocRef = doc(db, 'companies', companyId, 'bundles', colName);
@@ -263,11 +266,11 @@ export const fetchBundle = async (companyId, colName) => {
       if (!data.isChunked && rawList.length > list.length) {
         console.log(`[BundleSync] 🧹 Auto-healing bundle for [${colName}] (pruned ${rawList.length - list.length} duplicates)`);
         const healVer = (Number(data.version) || 1) + 1;
-        setDoc(bundleDocRef, {
+        (canWriteBundle(companyId,colName) ? setDoc(bundleDocRef, {
           list: list,
           version: healVer,
           updatedAt: new Date().toISOString()
-        }, { merge: true }).catch(console.warn);
+        }, { merge: true }) : Promise.resolve()).catch(console.warn);
       }
 
       // 🛡️ RECONCILIATION SAFETY NET:
@@ -303,16 +306,16 @@ export const fetchBundle = async (companyId, colName) => {
             if (filteredColList.length > 0) {
               console.log(`[BundleSync] 🔄 Reconciled empty bundle for [${colName}] with ${filteredColList.length} documents from Firestore!`);
               const nextVer = (Number(data.version) || 1) + 1;
-              await setDoc(bundleDocRef, {
+              await (canWriteBundle(companyId,colName) ? setDoc(bundleDocRef, {
                 list: filteredColList,
                 version: nextVer,
                 updatedAt: new Date().toISOString()
-              }, { merge: true });
+              }, { merge: true }) : Promise.resolve());
 
               const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
-              await setDoc(syncStateRef, {
+              await (canWriteBundle(companyId,colName) ? setDoc(syncStateRef, {
                 [colName]: { version: nextVer, updatedAt: new Date().toISOString() }
-              }, { merge: true });
+              }, { merge: true }) : Promise.resolve());
 
               setLocalBundle(companyId, colName, filteredColList, nextVer);
               return filteredColList;
@@ -345,17 +348,17 @@ export const fetchBundle = async (companyId, colName) => {
       });
       const list = filterBundleListForCompany(companyId, colName, rawList);
       // Save as bundle on Firestore for future 1-read lookups
-      await setDoc(bundleDocRef, {
+      await (canWriteBundle(companyId,colName) ? setDoc(bundleDocRef, {
         list: list,
         version: 1,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }, { merge: true }) : Promise.resolve());
 
       // Initialize syncState
       const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
-      await setDoc(syncStateRef, {
+      await (canWriteBundle(companyId,colName) ? setDoc(syncStateRef, {
         [colName]: { version: 1, updatedAt: new Date().toISOString() }
-      }, { merge: true });
+      }, { merge: true }) : Promise.resolve());
 
       setLocalBundle(companyId, colName, list, 1);
       return list;
@@ -374,6 +377,7 @@ export const fetchBundle = async (companyId, colName) => {
  * Automatically chunks datasets that exceed ~700KB (Firestore 1MB limit safe).
  */
 export const saveBundle = async (companyId, colName, list) => {
+  if (!canWriteBundle(companyId,colName)) throw new Error('해당 번들 쓰기 권한이 없습니다.');
   if (!companyId || !db) return;
   try {
     const cleanList = (list || []).map(item => {
@@ -498,6 +502,7 @@ export const saveBundleItem = async (companyId, colName, item, action = 'upsert'
  */
 export const syncBundlesOnce = async (companyId, onBundleChange, targetCollections = BUNDLE_COLLECTIONS, onlyIfOutdated = false) => {
   if (!companyId || !db) return;
+  targetCollections=(targetCollections||BUNDLE_COLLECTIONS).filter(col=>canReadBundle(companyId,col));
   try {
     const syncStateRef = doc(db, 'companies', companyId, 'metadata', 'syncState');
     const snapshot = await getDoc(syncStateRef);
@@ -640,3 +645,4 @@ export const clearAllBundles = async (companyId, preservedStaffList = []) => {
     console.warn('[BundleSync] Error clearing all bundles:', err);
   }
 };
+

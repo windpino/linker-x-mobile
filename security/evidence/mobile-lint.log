@@ -1,0 +1,656 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> linker-x-mobile@0.0.0 lint
+> oxlint
+
+src/components/ErrorBoundary.jsx:29:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SingleInstanceModal.jsx:20:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SingleInstanceModal.jsx:26:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SingleInstanceModal.jsx:32:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/PurchaseLedgerExcelManager.jsx:2:79: warning eslint(no-unused-vars): Identifier 'ArrowLeft' is imported but never used. help: Consider removing this import.
+src/components/PurchaseLedgerExcelManager.jsx:6:25: warning eslint(no-unused-vars): Identifier 'formatDataForExcel' is imported but never used. help: Consider removing this import.
+src/components/PurchaseLedgerExcelManager.jsx:100:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/PurchaseLedgerExcelManager.jsx:147:35: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/components/PurchaseLedgerExcelManager.jsx:147:51: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/components/PurchaseLedgerExcelManager.jsx:154:50: warning eslint(no-useless-escape): Unnecessary escape character '-' help: Replace `\-` with `-`.
+src/components/PartnerSearchInput.jsx:3:31: warning eslint(no-unused-vars): Identifier 'getInitialSound' is imported but never used. help: Consider removing this import.
+src/components/PartnerSearchInput.jsx:158:49: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/components/TaxInvoiceDocument.jsx:2:10: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/TaxInvoiceDocument.jsx:2:22: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/DashboardBanner.jsx:5:10: warning eslint(no-unused-vars): Identifier 'playMenuClickSound' is imported but never used. help: Consider removing this import.
+src/components/DashboardBanner.jsx:7:42: warning eslint(no-unused-vars): Parameter 'onOpenDashboardSettings' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PurchaseOrder.jsx:2:30: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:39: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:71: warning eslint(no-unused-vars): Identifier 'AlertTriangle' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:86: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:93: warning eslint(no-unused-vars): Identifier 'List' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:99: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:2:107: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/PurchaseOrder.jsx:11:9: warning eslint(no-unused-vars): Variable 'isSim' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PurchaseOrder.jsx:269:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryMismatch.jsx:2:10: warning eslint(no-unused-vars): Identifier 'Package' is imported but never used. help: Consider removing this import.
+src/components/InventoryMismatch.jsx:2:70: warning eslint(no-unused-vars): Identifier 'ChevronRight' is imported but never used. help: Consider removing this import.
+src/components/InventoryMismatch.jsx:2:114: warning eslint(no-unused-vars): Identifier 'ArrowUpDown' is imported but never used. help: Consider removing this import.
+src/components/InventoryMismatch.jsx:80:7: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/InventoryMismatch.jsx:85:5: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/InventoryMismatch.jsx:105:5: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/InventoryMismatch.jsx:112:5: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/ScheduleList.jsx:2:33: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/ScheduleList.jsx:2:68: warning eslint(no-unused-vars): Identifier 'Copy' is imported but never used. help: Consider removing this import.
+src/components/ScheduleList.jsx:8:79: warning eslint(no-unused-vars): Parameter 'onCopy' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/utils/serverBackupUtils.js:121:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/serverBackupUtils.js:247:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/koreanUtils.js:62:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/idbBundleCache.js:34:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/idbBundleCache.js:50:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/idbBundleCache.js:66:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/idbBundleCache.js:80:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SalesLedgerExcelManager.jsx:2:79: warning eslint(no-unused-vars): Identifier 'ArrowLeft' is imported but never used. help: Consider removing this import.
+src/components/SalesLedgerExcelManager.jsx:6:25: warning eslint(no-unused-vars): Identifier 'formatDataForExcel' is imported but never used. help: Consider removing this import.
+src/components/SalesLedgerExcelManager.jsx:100:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SalesLedgerExcelManager.jsx:147:35: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/components/SalesLedgerExcelManager.jsx:147:51: warning eslint(no-useless-escape): Unnecessary escape character '/' help: Replace `\/` with `/`.
+src/components/SalesLedgerExcelManager.jsx:154:50: warning eslint(no-useless-escape): Unnecessary escape character '-' help: Replace `\-` with `-`.
+src/components/ScheduleSidebar.jsx:2:52: warning eslint(no-unused-vars): Identifier 'Copy' is imported but never used. help: Consider removing this import.
+src/components/ScheduleSidebar.jsx:4:18: warning eslint(no-unused-vars): Identifier 'isSameDay' is imported but never used. help: Consider removing this import.
+src/components/ScheduleSidebar.jsx:4:29: warning eslint(no-unused-vars): Identifier 'startOfDay' is imported but never used. help: Consider removing this import.
+src/components/ScheduleSidebar.jsx:4:41: warning eslint(no-unused-vars): Identifier 'isWithinInterval' is imported but never used. help: Consider removing this import.
+src/components/ScheduleSidebar.jsx:7:118: warning eslint(no-unused-vars): Parameter 'onCopy' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/StaffRegistration.jsx:3:50: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/StaffRegistration.jsx:300:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/SalesInvoiceList.jsx:2:29: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/SalesInvoiceList.jsx:50:9: warning eslint(no-unused-vars): Variable 'formatDate' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoiceList.jsx:156:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/utils/bundleSyncManager.js:208:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/bundleSyncManager.js:223:14: warning eslint(no-unused-vars): Catch parameter 'verErr' is caught but never used. help: Consider handling this error.
+src/utils/bundleSyncManager.js:281:18: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/bundleSyncManager.js:405:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/bundleSyncManager.js:632:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/audio.js:173:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/audio.js:202:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/Quotation.jsx:5:3: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:7:3: warning eslint(no-unused-vars): Identifier 'Package' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:10:3: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:11:3: warning eslint(no-unused-vars): Identifier 'AlertTriangle' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:12:3: warning eslint(no-unused-vars): Identifier 'Info' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:14:3: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/Quotation.jsx:59:3: warning eslint(no-unused-vars): Parameter 'quotations' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Quotation.jsx:67:3: warning eslint(no-unused-vars): Parameter 'vehicles' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Quotation.jsx:71:3: warning eslint(no-unused-vars): Parameter 'companySettings' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Quotation.jsx:75:9: warning eslint(no-unused-vars): Variable 'isMobileView' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Quotation.jsx:76:9: warning eslint(no-unused-vars): Variable 'themeColor' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Quotation.jsx:82:10: warning eslint(no-unused-vars): Variable 'isBasicInfoCollapsed' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Quotation.jsx:82:32: warning eslint(no-unused-vars): Variable 'setIsBasicInfoCollapsed' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Quotation.jsx:399:16: warning eslint(no-unused-vars): Catch parameter 'cacheErr' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:71:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:86:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:111:18: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:175:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:179:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:186:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:220:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:277:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:280:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:314:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:340:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:344:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:348:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:354:58: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:368:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/singleInstanceManager.js:375:44: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/utils/productStockUtils.js:37:54: warning eslint(no-unused-vars): Parameter 'warehouses' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/CashBook.jsx:3:22: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:5:31: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:5:38: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:5:49: warning eslint(no-unused-vars): Identifier 'Eye' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:5:54: warning eslint(no-unused-vars): Identifier 'EyeOff' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:5:62: warning eslint(no-unused-vars): Identifier 'Save' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:9:10: warning eslint(no-unused-vars): Identifier 'DateNavButton' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:9:46: warning eslint(no-unused-vars): Identifier 'addDays' is imported but never used. help: Consider removing this import.
+src/components/CashBook.jsx:22:3: warning eslint(no-unused-vars): Parameter 'accounts' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/CashBook.jsx:626:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerRegistration.jsx:4:14: warning eslint(no-unused-vars): Identifier 'Phone' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:4:21: warning eslint(no-unused-vars): Identifier 'Users' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:4:28: warning eslint(no-unused-vars): Identifier 'Contact' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:4:37: warning eslint(no-unused-vars): Identifier 'Lock' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:4:49: warning eslint(no-unused-vars): Identifier 'MapPin' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:5:3: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:5:37: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:5:44: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:5:47: warning eslint(no-unused-vars): Identifier 'ShieldAlert' is imported but never used. help: Consider removing this import.
+src/components/PartnerRegistration.jsx:11:9: warning eslint(no-unused-vars): Variable 'safeWarehouses' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerRegistration.jsx:12:9: warning eslint(no-unused-vars): Variable 'safeAccounts' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerRegistration.jsx:134:9: warning eslint(no-unused-vars): Variable 'handleAccountChange' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WindowModal.jsx:75:9: warning eslint(no-unused-vars): Variable 'isSim' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WindowModal.jsx:84:21: warning eslint(no-unused-vars): Variable 'setSavedData' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WindowModal.jsx:88:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/WindowModal.jsx:291:16: warning eslint(no-unused-vars): Variable 'entry' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:2:30: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:48: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:69: warning eslint(no-unused-vars): Identifier 'ArrowLeftRight' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:97: warning eslint(no-unused-vars): Identifier 'Package' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:106: warning eslint(no-unused-vars): Identifier 'AlertCircle' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:122: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:185: warning eslint(no-unused-vars): Identifier 'Edit3' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:2:192: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/InventoryReport.jsx:24:9: warning eslint(no-unused-vars): Variable 'isSim' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:25:9: warning eslint(no-unused-vars): Variable 'isMobile' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:45:9: warning eslint(no-unused-vars): Variable 'firstDayOfMonth' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:117:9: warning eslint(no-unused-vars): Variable 'handleStockInputChange' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:191:9: warning eslint(no-unused-vars): Variable 'handleSaveSingleProductWarehouseStocks' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:434:9: warning eslint(no-unused-vars): Variable 'tabs' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:547:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryReport.jsx:123:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/InventoryReport.jsx:144:34: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/InventoryReport.jsx:197:32: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/CashReport.jsx:2:30: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/CashReport.jsx:2:40: warning eslint(no-unused-vars): Identifier 'Filter' is imported but never used. help: Consider removing this import.
+src/components/CashReport.jsx:2:48: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/CashReport.jsx:2:65: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/components/CashReport.jsx:63:9: warning eslint(no-unused-vars): Variable 'partners' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/CashReport.jsx:125:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PurchaseInvoice.jsx:2:42: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/PurchaseInvoice.jsx:27:9: warning eslint(no-unused-vars): Variable 'onResizeMouseDown' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PurchaseInvoice.jsx:73:29: warning eslint(no-unused-vars): Parameter 'slipOrEvent' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PurchaseInvoice.jsx:120:13: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/PurchaseInvoice.jsx:135:13: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/PurchaseInvoice.jsx:142:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/WarehouseRegistration.jsx:5:64: warning eslint(no-unused-vars): Parameter 'staffList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/StaffManagement.jsx:2:27: warning eslint(no-unused-vars): Identifier 'useRef' is imported but never used. help: Consider removing this import.
+src/components/StaffManagement.jsx:2:35: warning eslint(no-unused-vars): Identifier 'useCallback' is imported but never used. help: Consider removing this import.
+src/components/StaffManagement.jsx:3:20: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/StaffManagement.jsx:3:29: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/StaffManagement.jsx:485:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ScheduleDetailModal.jsx:5:84: warning eslint(no-unused-vars): Parameter 'onUpdateSchedule' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:2:10: warning eslint(no-unused-vars): Identifier 'ArrowLeftRight' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:2:34: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:2:52: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:2:62: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:2:77: warning eslint(no-unused-vars): Identifier 'RotateCw' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:5:10: warning eslint(no-unused-vars): Identifier 'exportToExcel' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:6:10: warning eslint(no-unused-vars): Identifier 'addDays' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:6:19: warning eslint(no-unused-vars): Identifier 'DateNavButton' is imported but never used. help: Consider removing this import.
+src/components/InventoryTransfer.jsx:16:3: warning eslint(no-unused-vars): Parameter 'onDeleteMoveStock' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:17:3: warning eslint(no-unused-vars): Parameter 'onUpdateMoveStock' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:19:3: warning eslint(no-unused-vars): Parameter 'setHistoryData' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:20:3: warning eslint(no-unused-vars): Parameter 'salesOrders' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:21:3: warning eslint(no-unused-vars): Parameter 'salesInvoices' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:22:3: warning eslint(no-unused-vars): Parameter 'onOpenSalesInvoice' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:23:3: warning eslint(no-unused-vars): Parameter 'onOpenSalesOrder' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:24:3: warning eslint(no-unused-vars): Parameter 'purchaseInvoices' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:25:3: warning eslint(no-unused-vars): Parameter 'onOpenPurchaseInvoice' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransfer.jsx:88:23: warning eslint(no-unused-vars): Variable 'setPrintBoxQty' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryTransfer.jsx:199:9: warning eslint(no-unused-vars): Variable 'handleNewSlip' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerManagement.jsx:4:23: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/PartnerManagement.jsx:24:3: warning eslint(no-unused-vars): Parameter 'isBulkOpen' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PartnerManagement.jsx:26:3: warning eslint(no-unused-vars): Parameter 'salesInvoices' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PartnerManagement.jsx:27:3: warning eslint(no-unused-vars): Parameter 'purchaseInvoices' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PartnerManagement.jsx:28:3: warning eslint(no-unused-vars): Parameter 'salesOrders' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PartnerManagement.jsx:29:3: warning eslint(no-unused-vars): Parameter 'purchaseOrders' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PartnerManagement.jsx:84:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/PartnerManagement.jsx:443:75: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/main.jsx:19:12: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SettingsManager.jsx:2:10: warning eslint(no-unused-vars): Identifier 'Settings' is imported but never used. help: Consider removing this import.
+src/components/SettingsManager.jsx:2:71: warning eslint(no-unused-vars): Identifier 'Save' is imported but never used. help: Consider removing this import.
+src/components/SettingsManager.jsx:2:77: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/SettingsManager.jsx:2:80: warning eslint(no-unused-vars): Identifier 'Globe' is imported but never used. help: Consider removing this import.
+src/auth/client.js:8:47: warning eslint(no-unused-vars): Parameter 'name' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:2:74: warning eslint(no-unused-vars): Identifier 'MessageSquare' is imported but never used. help: Consider removing this import.
+src/components/Header.jsx:2:115: warning eslint(no-unused-vars): Identifier 'Code' is imported but never used. help: Consider removing this import.
+src/components/Header.jsx:8:28: warning eslint(no-unused-vars): Parameter 'onOpenInventoryMovementManager' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:16:3: warning eslint(no-unused-vars): Parameter 'onOpenPartnerExcel' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:16:23: warning eslint(no-unused-vars): Parameter 'onOpenProductExcel' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:16:43: warning eslint(no-unused-vars): Parameter 'onOpenInventoryTransferExcel' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:16:73: warning eslint(no-unused-vars): Parameter 'onOpenPurchaseLedgerExcel' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:16:100: warning eslint(no-unused-vars): Parameter 'onOpenSalesLedgerExcel' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:17:19: warning eslint(no-unused-vars): Parameter 'onOpenLicense' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:22:43: warning eslint(no-unused-vars): Parameter 'onToggleMobileDrawer' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:24:3: warning eslint(no-unused-vars): Parameter 'isDevModeEnabled' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:25:3: warning eslint(no-unused-vars): Parameter 'onOpenDevAssistant' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Header.jsx:424:9: warning eslint(no-unused-vars): Variable 'handleMenuClick' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:430:9: warning eslint(no-unused-vars): Variable 'handleSubMenuClick' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:436:9: warning eslint(no-unused-vars): Variable 'closeDropdown' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:443:9: warning eslint(no-unused-vars): Variable 'showMenuIcons' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:445:9: warning eslint(no-unused-vars): Variable 'MENU_EMOJIS' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:509:10: warning eslint(no-unused-vars): Variable 'isMobile' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Header.jsx:542:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/UserSignup.jsx:2:55: warning eslint(no-unused-vars): Identifier 'MapPin' is imported but never used. help: Consider removing this import.
+src/components/UserSignup.jsx:2:63: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/UserSignup.jsx:2:109: warning eslint(no-unused-vars): Identifier 'Home' is imported but never used. help: Consider removing this import.
+src/components/UserSignup.jsx:6:60: warning eslint(no-unused-vars): Parameter 'staffList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/UserSignup.jsx:6:76: warning eslint(no-unused-vars): Parameter 'warehouses' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/ReceivablesReport.jsx:2:23: warning eslint(no-unused-vars): Identifier 'TrendingDown' is imported but never used. help: Consider removing this import.
+src/components/ReceivablesReport.jsx:2:37: warning eslint(no-unused-vars): Identifier 'TrendingUp' is imported but never used. help: Consider removing this import.
+src/components/ReceivablesReport.jsx:2:57: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/ReceivablesReport.jsx:13:7: warning eslint(no-unused-vars): Variable 'GradeBadge' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ReceivablesReport.jsx:67:9: warning eslint(no-unused-vars): Variable 'handleSort' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ReceivablesReport.jsx:75:9: warning eslint(no-unused-vars): Variable 'renderSortIcon' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ReceivablesReport.jsx:264:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ReceivablesReport.jsx:301:9: warning eslint(no-unused-vars): Variable 'gradeSelectStyle' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryMovementManager.jsx:2:34: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/InventoryMovementManager.jsx:150:14: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/components/InventoryMovementManager.jsx:159:16: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/components/InventoryMovementManager.jsx:182:16: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/components/PhysicalInventoryInput.jsx:4:3: warning eslint(no-unused-vars): Identifier 'ArrowUpDown' is imported but never used. help: Consider removing this import.
+src/components/PhysicalInventoryInput.jsx:4:32: warning eslint(no-unused-vars): Identifier 'Layers' is imported but never used. help: Consider removing this import.
+src/components/PhysicalInventoryInput.jsx:4:40: warning eslint(no-unused-vars): Identifier 'FileSpreadsheet' is imported but never used. help: Consider removing this import.
+src/components/PhysicalInventoryInput.jsx:5:10: warning eslint(no-unused-vars): Identifier 'CornerDownLeft' is imported but never used. help: Consider removing this import.
+src/components/PhysicalInventoryInput.jsx:17:3: warning eslint(no-unused-vars): Parameter 'currentUser' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PhysicalInventoryInput.jsx:45:10: warning eslint(no-unused-vars): Variable 'selectedIndex' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PhysicalInventoryInput.jsx:477:48: warning eslint(no-unused-vars): Parameter 'idx' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PhysicalInventoryInput.jsx:606:38: warning eslint(no-unused-vars): Parameter 'idx' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PhysicalInventoryInput.jsx:216:7: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/PhysicalInventoryInput.jsx:221:5: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/PhysicalInventoryInput.jsx:244:5: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/PhysicalInventoryInput.jsx:257:7: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/PhysicalInventoryInput.jsx:272:7: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/AgencyOnboarding.jsx:2:40: warning eslint(no-unused-vars): Identifier 'Mail' is imported but never used. help: Consider removing this import.
+src/components/AgencyOnboarding.jsx:2:84: warning eslint(no-unused-vars): Identifier 'CheckCircle2' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:2:28: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:2:46: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:2:95: warning eslint(no-unused-vars): Identifier 'ChevronLeft' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:2:108: warning eslint(no-unused-vars): Identifier 'ChevronRight' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:5:10: warning eslint(no-unused-vars): Identifier 'DateNavButton' is imported but never used. help: Consider removing this import.
+src/components/RecentActivityModal.jsx:489:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesReport.jsx:10:3: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:11:3: warning eslint(no-unused-vars): Identifier 'TrendingUp' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:14:3: warning eslint(no-unused-vars): Identifier 'ChevronDown' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:15:3: warning eslint(no-unused-vars): Identifier 'ArrowUpRight' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:16:3: warning eslint(no-unused-vars): Identifier 'ArrowDownRight' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:22:3: warning eslint(no-unused-vars): Identifier 'Filter' is imported but never used. help: Consider removing this import.
+src/components/SalesReport.jsx:43:3: warning eslint(no-unused-vars): Parameter 'salesOrders' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesReport.jsx:826:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesLedger.jsx:1:46: warning eslint(no-unused-vars): Identifier 'useCallback' is imported but never used. help: Consider removing this import.
+src/components/SalesLedger.jsx:2:19: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/SalesLedger.jsx:13:3: warning eslint(no-unused-vars): Parameter 'currentUser' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:14:3: warning eslint(no-unused-vars): Parameter 'onUpdateInvoice' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:18:3: warning eslint(no-unused-vars): Parameter 'staffList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:19:3: warning eslint(no-unused-vars): Parameter 'warehouses' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:20:3: warning eslint(no-unused-vars): Parameter 'categories' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:21:3: warning eslint(no-unused-vars): Parameter 'products' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:35:10: warning eslint(no-unused-vars): Variable 'refreshTrigger' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesLedger.jsx:157:28: warning eslint(no-unused-vars): Parameter 'idx' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesLedger.jsx:264:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ExpenseRegistration.jsx:2:27: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/ExpenseRegistration.jsx:2:37: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/components/ExpenseRegistration.jsx:2:43: warning eslint(no-unused-vars): Identifier 'Settings' is imported but never used. help: Consider removing this import.
+src/components/ExpenseRegistration.jsx:2:95: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/ExpenseRegistration.jsx:34:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/StaffPerformanceReport.jsx:2:30: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/StaffPerformanceReport.jsx:79:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/DepositSlipManagement.jsx:1:36: warning eslint(no-unused-vars): Identifier 'useRef' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:1:44: warning eslint(no-unused-vars): Identifier 'useEffect' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:3:25: warning eslint(no-unused-vars): Identifier 'Filter' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:3:33: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:3:43: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:3:52: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:3:62: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:3: warning eslint(no-unused-vars): Identifier 'Edit' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:12: warning eslint(no-unused-vars): Identifier 'RefreshCw' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:23: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:33: warning eslint(no-unused-vars): Identifier 'Landmark' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:43: warning eslint(no-unused-vars): Identifier 'CreditCard' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:55: warning eslint(no-unused-vars): Identifier 'Banknote' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:4:65: warning eslint(no-unused-vars): Identifier 'CheckCircle' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:5:3: warning eslint(no-unused-vars): Identifier 'TrendingUp' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:5:15: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:5:27: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:5:38: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:5:44: warning eslint(no-unused-vars): Identifier 'Clock' is imported but never used. help: Consider removing this import.
+src/components/DepositSlipManagement.jsx:24:3: warning eslint(no-unused-vars): Parameter 'onOpenLedger' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/DepositSlipManagement.jsx:55:26: warning eslint(no-unused-vars): Variable 'setFilterSlipType' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/DepositSlipManagement.jsx:283:9: warning eslint(no-unused-vars): Variable 'formRemainingReceivables' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/DepositSlipManagement.jsx:596:9: warning eslint(no-unused-vars): Variable 'handleExportExcel' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/TaxReport.jsx:2:10: warning eslint(no-unused-vars): Identifier 'FileSpreadsheet' is imported but never used. help: Consider removing this import.
+src/components/TaxReport.jsx:2:27: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/TaxReport.jsx:2:75: warning eslint(no-unused-vars): Identifier 'Users' is imported but never used. help: Consider removing this import.
+src/components/TaxReport.jsx:2:82: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/TaxReport.jsx:2:104: warning eslint(no-unused-vars): Identifier 'CalendarIcon' is imported but never used. help: Consider removing this import.
+src/components/BulkEditor.jsx:1:27: warning eslint(no-unused-vars): Identifier 'useMemo' is imported but never used. help: Consider removing this import.
+src/components/BulkEditor.jsx:1:36: warning eslint(no-unused-vars): Identifier 'useRef' is imported but never used. help: Consider removing this import.
+src/components/BulkEditor.jsx:1:44: warning eslint(no-unused-vars): Identifier 'useEffect' is imported but never used. help: Consider removing this import.
+src/components/BulkEditor.jsx:3:16: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/components/BulkEditor.jsx:501:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/BulkEditor.jsx:511:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/BulkEditor.jsx:692:18: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/BulkEditor.jsx:721:9: warning eslint(no-unused-vars): Variable 'R_sel' is assigned a value but never used. Unused variables should start with a '_'. help: Did you mean to use this variable?
+src/components/BulkEditor.jsx:722:9: warning eslint(no-unused-vars): Variable 'C_sel' is assigned a value but never used. Unused variables should start with a '_'. help: Did you mean to use this variable?
+src/components/BulkEditor.jsx:855:18: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/BulkEditor.jsx:1721:42: warning eslint(no-unused-vars): Parameter 'cIdx' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/QuotationManagement.jsx:3:3: warning eslint(no-unused-vars): Identifier 'FileSpreadsheet' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:5:3: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:7:3: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:8:3: warning eslint(no-unused-vars): Identifier 'Edit3' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:9:3: warning eslint(no-unused-vars): Identifier 'ShoppingCart' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:11:3: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:12:3: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:13:3: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:15:3: warning eslint(no-unused-vars): Identifier 'RotateCcw' is imported but never used. help: Consider removing this import.
+src/components/QuotationManagement.jsx:28:3: warning eslint(no-unused-vars): Parameter 'partners' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/QuotationManagement.jsx:29:3: warning eslint(no-unused-vars): Parameter 'currentUser' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/QuotationManagement.jsx:37:9: warning eslint(no-unused-vars): Variable 'isMobileView' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/QuotationManagement.jsx:46:11: warning eslint(no-unused-vars): Variable 'm' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ProductCategoryModal.jsx:2:16: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/ProductCategoryModal.jsx:7:59: warning eslint(no-unused-vars): Parameter 'setCategories' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/WithdrawalSlipManagement.jsx:3:29: warning eslint(no-unused-vars): Identifier 'Filter' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:3:37: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:3:47: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:3:56: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:3:66: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:3: warning eslint(no-unused-vars): Identifier 'Edit' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:12: warning eslint(no-unused-vars): Identifier 'RefreshCw' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:23: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:33: warning eslint(no-unused-vars): Identifier 'Landmark' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:43: warning eslint(no-unused-vars): Identifier 'Banknote' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:4:53: warning eslint(no-unused-vars): Identifier 'CheckCircle' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:5:3: warning eslint(no-unused-vars): Identifier 'TrendingDown' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:5:17: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:5:29: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:5:40: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:5:46: warning eslint(no-unused-vars): Identifier 'Clock' is imported but never used. help: Consider removing this import.
+src/components/WithdrawalSlipManagement.jsx:24:3: warning eslint(no-unused-vars): Parameter 'onOpenLedger' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/WithdrawalSlipManagement.jsx:56:26: warning eslint(no-unused-vars): Variable 'setFilterSlipType' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WithdrawalSlipManagement.jsx:598:9: warning eslint(no-unused-vars): Variable 'handleExportExcel' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PwaInstallPrompt.jsx:2:32: warning eslint(no-unused-vars): Identifier 'Share' is imported but never used. help: Consider removing this import.
+src/components/PwaInstallPrompt.jsx:18:11: warning eslint(no-unused-vars): Variable 'isMobileUA' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Onboarding.jsx:2:27: warning eslint(no-unused-vars): Identifier 'Mail' is imported but never used. help: Consider removing this import.
+src/components/Onboarding.jsx:6:48: warning eslint(no-unused-vars): Parameter 'staffList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Onboarding.jsx:6:64: warning eslint(no-unused-vars): Parameter 'warehouses' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Onboarding.jsx:68:9: warning eslint(no-unused-vars): Variable 'handleFinalSubmit' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SuperAdminDashboard.jsx:3:3: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:4:32: warning eslint(no-unused-vars): Identifier 'ArrowUpRight' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:4:46: warning eslint(no-unused-vars): Identifier 'ArrowDownRight' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:4:62: warning eslint(no-unused-vars): Identifier 'ChevronRight' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:5:3: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:6:3: warning eslint(no-unused-vars): Identifier 'Layers' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:6:11: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:7:25: warning eslint(no-unused-vars): Identifier 'Clock' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:7:32: warning eslint(no-unused-vars): Identifier 'ExternalLink' is imported but never used. help: Consider removing this import.
+src/components/SuperAdminDashboard.jsx:12:3: warning eslint(no-unused-vars): Parameter 'notices' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SuperAdminDashboard.jsx:18:25: warning eslint(no-unused-vars): Variable 'setSelectedRange' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerPortalEntry.jsx:2:75: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:10: warning eslint(no-unused-vars): Identifier 'ShoppingCart' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:60: warning eslint(no-unused-vars): Identifier 'List' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:102: warning eslint(no-unused-vars): Identifier 'ArrowLeft' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:113: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:125: warning eslint(no-unused-vars): Identifier 'UserCheck' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:2:136: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/SalesOrder.jsx:19:3: warning eslint(no-unused-vars): Parameter 'onOpenOrderList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesOrder.jsx:49:10: warning eslint(no-unused-vars): Variable 'step' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesOrder.jsx:51:10: warning eslint(no-unused-vars): Variable 'partnerDayOrders' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesOrder.jsx:52:10: warning eslint(no-unused-vars): Variable 'currentIndex' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesOrder.jsx:53:22: warning eslint(no-unused-vars): Variable 'setItemPrices' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesOrder.jsx:161:9: warning eslint(no-unused-vars): Variable 'partnerInputRef' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesOrder.jsx:370:16: warning eslint(no-unused-vars): Catch parameter 'cacheErr' is caught but never used. help: Consider handling this error.
+src/components/PartnerSpecialPriceManager.jsx:3:24: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:3:63: warning eslint(no-unused-vars): Identifier 'Filter' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:4:3: warning eslint(no-unused-vars): Identifier 'HelpCircle' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:4:39: warning eslint(no-unused-vars): Identifier 'Building2' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:4:50: warning eslint(no-unused-vars): Identifier 'Package' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:4:59: warning eslint(no-unused-vars): Identifier 'Tag' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:4:77: warning eslint(no-unused-vars): Identifier 'WarehouseIcon' is imported but never used. help: Consider removing this import.
+src/components/PartnerSpecialPriceManager.jsx:427:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerSpecialPriceManager.jsx:28:9: warning oxc(const-comparisons): Both sides of the logical operator are the same help: This logical expression will always evaluate to the same value as the expression itself.
+src/components/EditDeleteReport.jsx:2:29: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/EditDeleteReport.jsx:7:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/LicenseManager.jsx:3:74: warning eslint(no-unused-vars): Identifier 'Lock' is imported but never used. help: Consider removing this import.
+src/components/LicenseManager.jsx:5:35: warning eslint(no-unused-vars): Identifier 'TrendingUp' is imported but never used. help: Consider removing this import.
+src/components/LicenseManager.jsx:5:47: warning eslint(no-unused-vars): Identifier 'CheckCircle' is imported but never used. help: Consider removing this import.
+src/components/LicenseManager.jsx:5:60: warning eslint(no-unused-vars): Identifier 'Clock' is imported but never used. help: Consider removing this import.
+src/components/LicenseManager.jsx:5:67: warning eslint(no-unused-vars): Identifier 'ExternalLink' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:3:3: warning eslint(no-unused-vars): Identifier 'MessageSquare' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:3:27: warning eslint(no-unused-vars): Identifier 'Bot' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:3:53: warning eslint(no-unused-vars): Identifier 'Code' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:5:14: warning eslint(no-unused-vars): Identifier 'ShoppingCart' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:5:28: warning eslint(no-unused-vars): Identifier 'DollarSign' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:5:40: warning eslint(no-unused-vars): Identifier 'Package' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:5:49: warning eslint(no-unused-vars): Identifier 'Users' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:6:3: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:6:13: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:6:25: warning eslint(no-unused-vars): Identifier 'Sparkles' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:6:35: warning eslint(no-unused-vars): Identifier 'Activity' is imported but never used. help: Consider removing this import.
+src/components/ChatAssistant.jsx:13:3: warning eslint(no-unused-vars): Parameter 'context' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/ScheduleTypeManagement.jsx:2:26: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:2:58: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:4:10: warning eslint(no-unused-vars): Identifier 'ko' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:7:10: warning eslint(no-unused-vars): Identifier 'db' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:8:10: warning eslint(no-unused-vars): Identifier 'doc' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:8:15: warning eslint(no-unused-vars): Identifier 'setDoc' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:8:23: warning eslint(no-unused-vars): Identifier 'deleteDoc' is imported but never used. help: Consider removing this import.
+src/components/ScheduleRegistration.jsx:15:104: warning eslint(no-unused-vars): Parameter 'onUpdateTypes' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/ScheduleRegistration.jsx:15:119: warning eslint(no-unused-vars): Parameter 'currentUser' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/ScheduleRegistration.jsx:16:9: warning eslint(no-unused-vars): Variable 'isSim' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ScheduleRegistration.jsx:17:9: warning eslint(no-unused-vars): Variable 'isMobileView' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/PartnerShoppingMall.jsx:4:30: warning eslint(no-unused-vars): Identifier 'Truck' is imported but never used. help: Consider removing this import.
+src/components/PartnerShoppingMall.jsx:4:37: warning eslint(no-unused-vars): Identifier 'Star' is imported but never used. help: Consider removing this import.
+src/components/PartnerShoppingMall.jsx:4:43: warning eslint(no-unused-vars): Identifier 'Gift' is imported but never used. help: Consider removing this import.
+src/components/PartnerShoppingMall.jsx:4:49: warning eslint(no-unused-vars): Identifier 'Bell' is imported but never used. help: Consider removing this import.
+src/components/PartnerShoppingMall.jsx:4:55: warning eslint(no-unused-vars): Identifier 'RotateCcw' is imported but never used. help: Consider removing this import.
+src/components/PartnerShoppingMall.jsx:80:9: warning eslint(no-unused-vars): Variable 'b' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ProductManagement.jsx:2:28: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/ProductManagement.jsx:2:67: warning eslint(no-unused-vars): Identifier 'Tag' is imported but never used. help: Consider removing this import.
+src/components/ProductManagement.jsx:2:72: warning eslint(no-unused-vars): Identifier 'Grid' is imported but never used. help: Consider removing this import.
+src/components/ProductManagement.jsx:2:88: warning eslint(no-unused-vars): Identifier 'Check' is imported but never used. help: Consider removing this import.
+src/components/ProductManagement.jsx:32:89: warning eslint(no-unused-vars): Parameter 'onOpenBulk' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/ProductManagement.jsx:120:9: warning eslint(no-unused-vars): Variable 'toggleColumn' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ProductManagement.jsx:254:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/OrderReport.jsx:2:33: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/OrderReport.jsx:2:51: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/OrderReport.jsx:2:67: warning eslint(no-unused-vars): Identifier 'List' is imported but never used. help: Consider removing this import.
+src/components/OrderReport.jsx:91:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/AgencySignup.jsx:2:19: warning eslint(no-unused-vars): Identifier 'Mail' is imported but never used. help: Consider removing this import.
+src/components/AgencySignup.jsx:9:21: warning eslint(no-unused-vars): Variable 'setInputCode' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/AgencySignup.jsx:11:10: warning eslint(no-unused-vars): Variable 'isCodeSent' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/AgencySignup.jsx:27:9: warning eslint(no-unused-vars): Variable 'handleSendCode' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/AgencySignup.jsx:67:9: warning eslint(no-unused-vars): Variable 'handleVerifyCode' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/Calendar.jsx:3:46: warning eslint(no-unused-vars): Identifier 'Lock' is imported but never used. help: Consider removing this import.
+src/components/Calendar.jsx:3:52: warning eslint(no-unused-vars): Identifier 'Unlock' is imported but never used. help: Consider removing this import.
+src/components/Calendar.jsx:12:3: warning eslint(no-unused-vars): Parameter 'onLogout' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Calendar.jsx:15:3: warning eslint(no-unused-vars): Parameter 'onOpenDashboardSettings' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Calendar.jsx:16:3: warning eslint(no-unused-vars): Parameter 'isDashboardLocked' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Calendar.jsx:17:3: warning eslint(no-unused-vars): Parameter 'onToggleDashboardLock' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/Calendar.jsx:19:3: warning eslint(no-unused-vars): Parameter 'staffList' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/PurchaseLedger.jsx:2:29: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/PurchaseLedger.jsx:408:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/InventoryAdjustment.jsx:2:41: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/AccountManagement.jsx:2:31: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/AccountManagement.jsx:204:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/AccountManagement.jsx:52:34: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/AccountManagement.jsx:97:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/NewScheduleNoticeModal.jsx:2:73: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/NewScheduleNoticeModal.jsx:55:9: warning eslint(no-unused-vars): Variable 'handleConfirmAll' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ProductExcelManager.jsx:2:79: warning eslint(no-unused-vars): Identifier 'ArrowLeft' is imported but never used. help: Consider removing this import.
+src/components/ProductExcelManager.jsx:8:15: warning eslint(no-unused-vars): Identifier 'setDoc' is imported but never used. help: Consider removing this import.
+src/components/ProductExcelManager.jsx:71:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/ProductExcelManager.jsx:117:50: warning eslint(no-useless-escape): Unnecessary escape character '-' help: Replace `\-` with `-`.
+src/components/SalesInvoice.jsx:3:20: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/components/SalesInvoice.jsx:3:89: warning eslint(no-unused-vars): Identifier 'Calendar' is imported but never used. help: Consider removing this import.
+src/components/SalesInvoice.jsx:15:10: warning eslint(no-unused-vars): Identifier 'printMobileReceipt' is imported but never used. help: Consider removing this import.
+src/components/SalesInvoice.jsx:17:147: warning eslint(no-unused-vars): Parameter 'onPrintTaxInvoice' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesInvoice.jsx:17:292: warning eslint(no-unused-vars): Parameter 'saveMode' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/SalesInvoice.jsx:45:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SalesInvoice.jsx:57:9: warning eslint(no-unused-vars): Variable 'staffWH' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:72:10: warning eslint(no-unused-vars): Variable 'saveStatus' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:72:22: warning eslint(no-unused-vars): Variable 'setSaveStatus' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:90:9: warning eslint(no-unused-vars): Variable 'tableRef' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:94:9: warning eslint(no-unused-vars): Variable 'onResizeMouseDown' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:188:9: warning eslint(no-unused-vars): Variable 'hideAmount' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:362:9: warning eslint(no-unused-vars): Variable 'outstandingBalance' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:519:9: warning eslint(no-unused-vars): Variable 'hasSpecialPricePermission' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:636:16: warning eslint(no-unused-vars): Catch parameter 'cacheErr' is caught but never used. help: Consider handling this error.
+src/components/SalesInvoice.jsx:642:9: warning eslint(no-unused-vars): Variable 'handleSelectProduct' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:656:9: warning eslint(no-unused-vars): Variable 'handleClearProduct' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:871:9: warning eslint(no-unused-vars): Variable 'handleDeletePaymentSlip' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:909:9: warning eslint(no-unused-vars): Variable 'handleAddItem' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SalesInvoice.jsx:524:9: warning oxc(const-comparisons): Both sides of the logical operator are the same help: This logical expression will always evaluate to the same value as the expression itself.
+src/components/SalesInvoice.jsx:884:7: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/SalesInvoice.jsx:1039:9: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/SalesInvoice.jsx:1141:13: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/SalesInvoice.jsx:1156:13: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/SalesInvoice.jsx:1163:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/SalesInvoice.jsx:1379:29: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/SalesInvoice.jsx:1381:29: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/InventoryTransferExcelManager.jsx:18:3: warning eslint(no-unused-vars): Parameter 'products' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/InventoryTransferExcelManager.jsx:208:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/InventoryTransferExcelManager.jsx:282:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/InventoryTransferExcelManager.jsx:345:22: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/DataManager.jsx:3:3: warning eslint(no-unused-vars): Identifier 'Save' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:3:35: warning eslint(no-unused-vars): Identifier 'FileJson' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:4:18: warning eslint(no-unused-vars): Identifier 'Lock' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:5:27: warning eslint(no-unused-vars): Identifier 'CheckCircle' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:7:13: warning eslint(no-unused-vars): Identifier 'BarChart3' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:7:24: warning eslint(no-unused-vars): Identifier 'CheckCircle2' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:7:38: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:11:43: warning eslint(no-unused-vars): Identifier 'doc' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:11:48: warning eslint(no-unused-vars): Identifier 'deleteDoc' is imported but never used. help: Consider removing this import.
+src/components/DataManager.jsx:20:3: warning eslint(no-unused-vars): Identifier 'formatBytes' is imported but never used. help: Consider removing this import.
+src/components/AccountRegistration.jsx:2:10: warning eslint(no-unused-vars): Identifier 'CreditCard' is imported but never used. help: Consider removing this import.
+src/components/AccountRegistration.jsx:2:22: warning eslint(no-unused-vars): Identifier 'Landmark' is imported but never used. help: Consider removing this import.
+src/components/AccountRegistration.jsx:2:32: warning eslint(no-unused-vars): Identifier 'User' is imported but never used. help: Consider removing this import.
+src/components/AccountRegistration.jsx:2:38: warning eslint(no-unused-vars): Identifier 'FileText' is imported but never used. help: Consider removing this import.
+src/components/AccountRegistration.jsx:2:54: warning eslint(no-unused-vars): Identifier 'X' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:1:27: warning eslint(no-unused-vars): Identifier 'useRef' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:1:35: warning eslint(no-unused-vars): Identifier 'useCallback' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:2:15: warning eslint(no-unused-vars): Identifier 'Printer' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:2:24: warning eslint(no-unused-vars): Identifier 'Download' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:2:47: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:2:55: warning eslint(no-unused-vars): Identifier 'RefreshCw' is imported but never used. help: Consider removing this import.
+src/components/WarehouseManagement.jsx:20:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/WarehouseManagement.jsx:377:9: warning eslint(no-unused-vars): Variable 'handleDeleteWarehouse' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WarehouseManagement.jsx:413:9: warning eslint(no-unused-vars): Variable 'handleExcelExport' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/WarehouseManagement.jsx:69:34: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/WarehouseManagement.jsx:290:9: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/components/PartnerExcelManager.jsx:2:79: warning eslint(no-unused-vars): Identifier 'ArrowLeft' is imported but never used. help: Consider removing this import.
+src/components/PartnerExcelManager.jsx:8:15: warning eslint(no-unused-vars): Identifier 'setDoc' is imported but never used. help: Consider removing this import.
+src/components/PartnerExcelManager.jsx:69:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/PartnerExcelManager.jsx:121:50: warning eslint(no-useless-escape): Unnecessary escape character '-' help: Replace `\-` with `-`.
+src/components/ProductRegistration.jsx:3:3: warning eslint(no-unused-vars): Identifier 'Box' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:3:8: warning eslint(no-unused-vars): Identifier 'Upload' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:3:16: warning eslint(no-unused-vars): Identifier 'Barcode' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:4:11: warning eslint(no-unused-vars): Identifier 'Edit2' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:4:18: warning eslint(no-unused-vars): Identifier 'Trash2' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:4:26: warning eslint(no-unused-vars): Identifier 'Settings' is imported but never used. help: Consider removing this import.
+src/components/ProductRegistration.jsx:4:42: warning eslint(no-unused-vars): Identifier 'Sparkles' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:1:27: warning eslint(no-unused-vars): Identifier 'useEffect' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:3:12: warning eslint(no-unused-vars): Identifier 'VolumeX' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:3:21: warning eslint(no-unused-vars): Identifier 'Smartphone' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:3:33: warning eslint(no-unused-vars): Identifier 'Sparkles' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:3:43: warning eslint(no-unused-vars): Identifier 'Sliders' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:4:44: warning eslint(no-unused-vars): Identifier 'CheckSquare' is imported but never used. help: Consider removing this import.
+src/components/MobileSettingsManager.jsx:7:70: warning eslint(no-unused-vars): Identifier 'DEFAULT_MOBILE_SETTINGS' is imported but never used. help: Consider removing this import.
+src/components/OrderList.jsx:2:37: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/components/OrderList.jsx:13:3: warning eslint(no-unused-vars): Parameter 'warehouses' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/components/OrderList.jsx:30:9: warning eslint(no-unused-vars): Variable 'isSim' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/OrderList.jsx:984:27: warning eslint(no-unused-vars): Variable 'catStyle' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/OrderList.jsx:1268:25: warning eslint(no-unused-vars): Variable 'isOrderFullyLoaded' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/OrderList.jsx:1548:49: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/OrderList.jsx:2052:80: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/OrderList.jsx:2133:80: warning eslint(no-unused-expressions): Expected expression to be used help: Consider using this expression or removing it
+src/components/SuperAdmin.jsx:6:24: warning eslint(no-unused-vars): Identifier 'ShieldCheck' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:6:69: warning eslint(no-unused-vars): Identifier 'Lock' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:7:3: warning eslint(no-unused-vars): Identifier 'MessageSquare' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:7:55: warning eslint(no-unused-vars): Identifier 'AlertCircle' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:8:3: warning eslint(no-unused-vars): Identifier 'ChevronRight' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:8:49: warning eslint(no-unused-vars): Identifier 'ChevronLeft' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:8:70: warning eslint(no-unused-vars): Identifier 'BookOpen' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:9:16: warning eslint(no-unused-vars): Identifier 'Maximize' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:9:45: warning eslint(no-unused-vars): Identifier 'PieChart' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:9:79: warning eslint(no-unused-vars): Identifier 'CheckCircle2' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:3: warning eslint(no-unused-vars): Identifier 'DollarSign' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:15: warning eslint(no-unused-vars): Identifier 'UploadCloud' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:28: warning eslint(no-unused-vars): Identifier 'UserPlus' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:38: warning eslint(no-unused-vars): Identifier 'UserCheck' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:49: warning eslint(no-unused-vars): Identifier 'ChevronUp' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:10:70: warning eslint(no-unused-vars): Identifier 'ArrowRight' is imported but never used. help: Consider removing this import.
+src/components/SuperAdmin.jsx:52:10: warning eslint(no-unused-vars): Variable 'homepageContent' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SuperAdmin.jsx:134:9: warning eslint(no-unused-vars): Variable 'handleToggleMissRingDevMode' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/SuperAdmin.jsx:375:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SuperAdmin.jsx:387:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/components/SuperAdmin.jsx:2635:129: warning eslint(no-extra-boolean-cast): Redundant double negation help: Remove the double negation as it will already be coerced to a boolean
+src/App.jsx:6:134: warning eslint(no-unused-vars): Identifier 'LayoutDashboard' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:8: warning eslint(no-unused-vars): Identifier 'Search' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:16: warning eslint(no-unused-vars): Identifier 'MoreVertical' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:30: warning eslint(no-unused-vars): Identifier 'ChevronLeft' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:43: warning eslint(no-unused-vars): Identifier 'ChevronRight' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:57: warning eslint(no-unused-vars): Identifier 'Plus' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:63: warning eslint(no-unused-vars): Identifier 'Menu' is imported but never used. help: Consider removing this import.
+src/App.jsx:8:69: warning eslint(no-unused-vars): Identifier 'LogOut' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:18: warning eslint(no-unused-vars): Identifier 'startOfMonth' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:32: warning eslint(no-unused-vars): Identifier 'endOfMonth' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:44: warning eslint(no-unused-vars): Identifier 'startOfWeek' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:57: warning eslint(no-unused-vars): Identifier 'endOfWeek' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:68: warning eslint(no-unused-vars): Identifier 'isSameMonth' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:81: warning eslint(no-unused-vars): Identifier 'isSameDay' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:92: warning eslint(no-unused-vars): Identifier 'addDays' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:101: warning eslint(no-unused-vars): Identifier 'addMonths' is imported but never used. help: Consider removing this import.
+src/App.jsx:10:112: warning eslint(no-unused-vars): Identifier 'subMonths' is imported but never used. help: Consider removing this import.
+src/App.jsx:11:10: warning eslint(no-unused-vars): Identifier 'ko' is imported but never used. help: Consider removing this import.
+src/App.jsx:16:8: warning eslint(no-unused-vars): Identifier 'DashboardBanner' is imported but never used. help: Consider removing this import.
+src/App.jsx:20:8: warning eslint(no-unused-vars): Identifier 'Login' is imported but never used. help: Consider removing this import.
+src/App.jsx:21:8: warning eslint(no-unused-vars): Identifier 'Signup' is imported but never used. help: Consider removing this import.
+src/App.jsx:22:8: warning eslint(no-unused-vars): Identifier 'AgencySignup' is imported but never used. help: Consider removing this import.
+src/App.jsx:23:8: warning eslint(no-unused-vars): Identifier 'Onboarding' is imported but never used. help: Consider removing this import.
+src/App.jsx:25:27: warning eslint(no-unused-vars): Identifier 'fetchBundle' is imported but never used. help: Consider removing this import.
+src/App.jsx:25:52: warning eslint(no-unused-vars): Identifier 'saveBundleItem' is imported but never used. help: Consider removing this import.
+src/App.jsx:25:134: warning eslint(no-unused-vars): Identifier 'getLocalBundle' is imported but never used. help: Consider removing this import.
+src/App.jsx:26:38: warning eslint(no-unused-vars): Identifier 'clearAllIdbBundles' is imported but never used. help: Consider removing this import.
+src/App.jsx:84:8: warning eslint(no-unused-vars): Identifier 'useDevice' is imported but never used. help: Consider removing this import.
+src/App.jsx:86:68: warning eslint(no-unused-vars): Identifier 'query' is imported but never used. help: Consider removing this import.
+src/App.jsx:86:75: warning eslint(no-unused-vars): Identifier 'where' is imported but never used. help: Consider removing this import.
+src/App.jsx:88:8: warning eslint(no-unused-vars): Identifier 'UserSignup' is imported but never used. help: Consider removing this import.
+src/App.jsx:89:10: warning eslint(no-unused-vars): Identifier 'hasMenuPermission' is imported but never used. help: Consider removing this import.
+src/App.jsx:89:54: warning eslint(no-unused-vars): Identifier 'MOBILE_CORE_MENUS' is imported but never used. help: Consider removing this import.
+src/App.jsx:89:73: warning eslint(no-unused-vars): Identifier 'MENU_ID_TO_PERM' is imported but never used. help: Consider removing this import.
+src/App.jsx:91:7: warning eslint(no-unused-vars): Variable 'ALL_PERMS' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:150:7: warning eslint(no-unused-vars): Variable 'getFavMenuIcon' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:258:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:503:10: warning eslint(no-unused-vars): Variable 'inventoryReportTab' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:533:10: warning eslint(no-unused-vars): Variable 'dontShowAgain' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:533:25: warning eslint(no-unused-vars): Variable 'setDontShowAgain' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:534:10: warning eslint(no-unused-vars): Variable 'prefilledAgencyId' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:534:29: warning eslint(no-unused-vars): Variable 'setPrefilledAgencyId' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:535:10: warning eslint(no-unused-vars): Variable 'selectedAgencyForSignup' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:535:35: warning eslint(no-unused-vars): Variable 'setSelectedAgencyForSignup' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:560:10: warning eslint(no-unused-vars): Variable 'isResizeLocked' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:560:26: warning eslint(no-unused-vars): Variable 'setIsResizeLocked' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:565:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:573:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:575:10: warning eslint(no-unused-vars): Variable 'calendarHeight' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:575:26: warning eslint(no-unused-vars): Variable 'setCalendarHeight' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:578:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:593:9: warning eslint(no-unused-vars): Variable 'getOpenModalsCount' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:650:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:723:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:735:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:744:16: warning eslint(no-unused-vars): Catch parameter 'err' is caught but never used. help: Consider handling this error.
+src/App.jsx:833:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:916:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:928:16: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:943:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:981:10: warning eslint(no-unused-vars): Variable 'agencyCategories' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:1143:103: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:1301:22: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:1412:9: warning eslint(no-unused-vars): Variable 'ALL_PERMS' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:1557:18: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:2931:18: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:3052:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:3135:22: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:3147:20: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:3307:14: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:4794:56: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:4799:87: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:6313:54: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:6443:26: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:6998:28: warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used. help: Consider handling this error.
+src/App.jsx:7091:3: warning eslint(no-unused-vars): Parameter 'currentUser' is declared but never used. Unused parameters should start with a '_'. help: Consider removing this parameter.
+src/App.jsx:7242:9: warning eslint(no-unused-vars): Variable 'getWidgetInfo' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/App.jsx:1576:45: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:1577:41: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:1852:49: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:1853:45: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:1877:59: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:2019:49: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:2020:45: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:2088:57: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:2089:53: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.
+src/App.jsx:4798:28: warning unicorn(no-useless-fallback-in-spread): Empty fallbacks in spreads are unnecessary help: Spreading falsy values in object literals won't add any unexpected properties, so it's unnecessary to add an empty object as fallback.

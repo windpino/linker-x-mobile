@@ -1,3 +1,6 @@
+import { getDocs, getDoc } from './auth/tenantFirestore';
+import { signOut } from 'firebase/auth';
+import { reauthenticate } from './auth/client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   AlertTriangle, Package, TrendingUp, ShoppingCart, Users, User, Home, ClipboardList, Star, Settings as SettingsIcon,
@@ -80,8 +83,8 @@ import ChatAssistant from './components/ChatAssistant';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import MobileBottomNav from './components/MobileBottomNav';
 import useDevice from './hooks/useDevice';
-import { db } from './firebase';
-import { doc, onSnapshot, collection, getDocs, getDoc, writeBatch, query, where } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { doc, onSnapshot, collection, writeBatch, query, where } from 'firebase/firestore';
 import { safeSetDoc as setDoc, safeUpdateDoc as updateDoc, safeDeleteDoc as deleteDoc } from './utils/firestoreSafety';
 import UserSignup from './components/UserSignup';
 import { hasMenuPermission, hasMobileMenuPermission, MOBILE_CORE_MENUS, MENU_ID_TO_PERM } from './utils/menuPermissions';
@@ -201,30 +204,8 @@ const getFavMenuIcon = (menuId, size = 18) => {
 
 const FAV_CATEGORIES = ['기초자료등록', '매출/주문관리', '매입/발주관리', '재고관리', '입출금관리', '스마트지원', '데이터관리', '환경설정'];
 
-function App() {
-  const [currentView, setCurrentView] = useState(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('view') === 'shopping' || window.location.hash.includes('shopping')) {
-        return 'shopping';
-      }
-
-      if (window.location.pathname === '/madmin') return 'super_admin';
-      
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser && savedUser !== 'undefined') {
-        const user = JSON.parse(savedUser);
-        if (user) {
-          if (user.role === 'super_admin') return 'super_admin';
-          if (user.role === 'partner') return 'shopping';
-          return 'dashboard';
-        }
-      }
-    } catch (err) {
-      console.error('Error initializing currentView:', err);
-    }
-    return 'login';
-  }); 
+function App({ authSession }) {
+  const [currentView, setCurrentView] = useState(authSession?.role === 'super_admin' ? 'super_admin' : 'dashboard');
 
 
   const getInitialStateFromCache = (key, fallback) => {
@@ -263,17 +244,7 @@ function App() {
   };
 
   const [selectedDate, setSelectedDate] = useState(new Date()); 
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
-        return JSON.parse(savedUser) || null;
-      }
-    } catch (e) {
-      console.warn('Failed to parse currentUser from localStorage:', e);
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState(authSession);
   const [staffList, setStaffList] = useState(() => getInitialStateFromCache('staffList', []));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -302,7 +273,7 @@ function App() {
   };
 
   const checkWritePermission = (docCreator = null, isMasterData = false) => {
-    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin') return true;
+    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin') return true;
     if (currentUser?.allowAllEditDelete === true) return true;
     if (isMasterData) return false;
     return docCreator && currentUser?.name && docCreator === currentUser.name;
@@ -1122,47 +1093,11 @@ function App() {
     return () => clearTimeout(timer);
   }, [currentUser, currentView]);
 
-  // [성능 및 무한 루프 방지] staffList 업데이트 시에만 현재 로그인 유저의 최신 권한을 동기화
-  // 기존 원인: [staffList, currentUser] 상호 의존성 및 JSON.stringify의 키 순서 차이로 인한 무한 setState 루프 위험 제거
-  React.useEffect(() => {
-    setCurrentUser(prevUser => {
-      if (!prevUser || !prevUser.userId || prevUser.role === 'super_admin') return prevUser;
-      const currentStaff = (staffList || []).find(s => 
-        String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id)
-      );
-      if (!currentStaff) return prevUser;
+  // Roles and permissions are supplied exclusively by the approved server session.
+  React.useEffect(() => { setCurrentUser(authSession); }, [authSession]);
 
-      // 키 순서와 무관한 정규화된 권한 비교 (무한 루프 방지)
-      const prevPerms = prevUser.permissions || {};
-      const staffPerms = currentStaff.permissions || {};
-      const allKeys = new Set([...Object.keys(prevPerms), ...Object.keys(staffPerms)]);
-      let isPermsDiff = false;
-      for (const k of allKeys) {
-        if (Boolean(prevPerms[k]) !== Boolean(staffPerms[k])) {
-          isPermsDiff = true;
-          break;
-        }
-      }
-
-      const hasDiff = currentStaff.allowAllEditDelete !== prevUser.allowAllEditDelete ||
-                      currentStaff.allowSpecialPriceSave !== prevUser.allowSpecialPriceSave ||
-                      isPermsDiff ||
-                      (currentStaff.name && currentStaff.name !== prevUser.name) ||
-                      (currentStaff.role && currentStaff.role !== prevUser.role) ||
-                      (currentStaff.jobTitle && currentStaff.jobTitle !== prevUser.jobTitle) ||
-                      (currentStaff.warehouse && currentStaff.warehouse !== prevUser.warehouse);
-
-      if (!hasDiff) return prevUser; // 변경사항 없음: 동일 참조 반환으로 불필요한 재렌더링 차단
-
-      const updatedUser = { ...prevUser, ...currentStaff };
-      try {
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      } catch (e) {}
-      return updatedUser;
-    });
-  }, [staffList]);
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut(auth);
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('autoLogin');
@@ -1338,27 +1273,7 @@ function App() {
           }
           setter(processedData);
 
-          if (colName === 'staffList') {
-            setCurrentUser(prevUser => {
-              if (!prevUser || prevUser.role === 'super_admin' || prevUser.userId === 'admin') return prevUser;
-              const found = processedData.find(s => String(s.userId) === String(prevUser.userId) || String(s.id) === String(prevUser.id));
-              if (found) {
-                const isDifferent = found.name !== prevUser.name ||
-                                    found.role !== prevUser.role ||
-                                    found.jobTitle !== prevUser.jobTitle ||
-                                    found.warehouse !== prevUser.warehouse ||
-                                    found.allowAllEditDelete !== prevUser.allowAllEditDelete ||
-                                    found.allowSpecialPriceSave !== prevUser.allowSpecialPriceSave ||
-                                    JSON.stringify(found.permissions) !== JSON.stringify(prevUser.permissions);
-                if (isDifferent) {
-                  const merged = { ...prevUser, ...found };
-                  localStorage.setItem('currentUser', JSON.stringify(merged));
-                  return merged;
-                }
-              }
-              return prevUser;
-            });
-          }
+          // Server session remains authoritative; directory rows cannot replace role/permissions.
           if (colName === 'salesInvoices' || (Array.isArray(processedData) && processedData.length >= 1000)) {
             setIdbBundle(companyId, colName, processedData);
           } else {
@@ -4550,7 +4465,7 @@ function App() {
             );
           })()}
           {widgetId === 'OrderReport' && (() => {
-            const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin' || currentUser?.userId === 'admin';
+            const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
             const canViewAllOrders = isAdmin || currentUser?.viewOtherWarehouseOrders === true;
             
             const selectedDateOrders = (salesOrders || []).filter(o => {
@@ -4818,447 +4733,11 @@ function App() {
     );
   };
 
-  if (currentView === 'login') {
-    return (
-      <Login 
-        prefilledAgencyId={prefilledAgencyId}
-        onFindAgency={async (idOrEmail, pwd) => {
-          // 0. Master Check (Login directly from Stage 1)
-          if ((idOrEmail === 'madmin' || idOrEmail === 'sadmin') && pwd === 'gdtop7818@@') {
-            const masterUser = { 
-              id: idOrEmail === 'madmin' ? 0 : -1, 
-              userId: idOrEmail, 
-              name: idOrEmail === 'madmin' ? '최고관리자' : '마스터관리자', 
-              jobTitle: 'System Master', 
-              role: 'super_admin', 
-              permissions: ALL_PERMS 
-            };
-            setCurrentUser(masterUser);
-            setCurrentView('super_admin');
-            setSelectedDate(new Date());
-            localStorage.setItem('currentUser', JSON.stringify(masterUser));
-            return { isMaster: true };
-          }
+  if (currentView === 'login') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
-          try {
-            let company = null;
-            const q = query(collection(db, 'companies'), where('email', '==', idOrEmail));
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-              company = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-            } else {
-              const docRef = doc(db, 'companies', idOrEmail);
-              const docSnap = await getDoc(docRef);
-              if (docSnap.exists()) company = { id: docSnap.id, ...docSnap.data() };
-            }
+  if (currentView === 'agency_signup') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
-            if (company && company.password === pwd) {
-              return company;
-            }
-            return null;
-          } catch (err) {
-            console.error("Agency login error:", err);
-            return null;
-          }
-        }}
-        onLogin={async (uid, pwd, companyId) => { 
-          // Clear prefilled ID after login attempt
-          setPrefilledAgencyId('');
-          
-          // Master check
-          if ((uid === 'madmin' || uid === 'sadmin') && pwd === 'gdtop7818@@') {
-            const masterUser = { id: 0, userId: uid, name: '최고관리자', jobTitle: 'System Admin', role: 'super_admin', permissions: ALL_PERMS };
-            setCurrentUser(masterUser);
-            setCurrentView('super_admin');
-            setSelectedDate(new Date());
-            return true;
-          }
-
-          if (!companyId) return false;
-
-          try {
-            // 1. Staff Check
-            let u = null;
-            const compositeId = `${companyId}_${uid}`;
-            
-            // Direct ID lookup (Fast & Reliable for same IDs across agencies)
-            const staffDoc = await getDoc(doc(db, 'companies', companyId, 'staffList', compositeId));
-            if (staffDoc.exists()) {
-              const data = staffDoc.data();
-              if (data.password === pwd) u = data;
-            }
-            
-            // Try userId match if direct ID lookup fails
-            if (!u) {
-              const staffRef = collection(db, 'companies', companyId, 'staffList');
-              const q2 = query(staffRef, where('userId', '==', uid));
-              const snap2 = await getDocs(q2);
-              if (!snap2.empty) {
-                const data = snap2.docs[0].data();
-                if (data.password === pwd) u = data;
-              }
-            }
-
-            // Fallback for company admin / owner login
-            if (!u) {
-              const compDoc = await getDoc(doc(db, 'companies', companyId));
-              if (compDoc.exists()) {
-                const compData = compDoc.data();
-                if ((uid === 'admin' || uid === companyId || uid === compData.email || uid === compData.adminId) && (pwd === compData.password || pwd === '781818')) {
-                  const staffRef = collection(db, 'companies', companyId, 'staffList');
-                  const staffSnap = await getDocs(staffRef);
-                  const adminStaff = staffSnap.docs.find(d => d.data().role === 'admin' || d.data().userId === 'admin' || d.data().userId === companyId);
-                  if (adminStaff) {
-                    u = adminStaff.data();
-                  } else {
-                    u = {
-                      id: Date.now(),
-                      userId: uid,
-                      name: compData.ceoName || compData.ceo || compData.name || '관리자',
-                      jobTitle: '대표',
-                      role: 'admin',
-                      companyId: companyId,
-                      permissions: { ALL: true },
-                      viewAllInventoryMovements: true,
-                      viewAllReceivables: true,
-                      allowAllEditDelete: true,
-                      allowSpecialPriceSave: true
-                    };
-                  }
-                }
-              }
-            }
-
-            if (u) { 
-              let activeLicense = licenseData;
-              try {
-                const [licSnap, compSnap] = await Promise.all([
-                  getDoc(doc(db, 'companies', companyId, 'settings', 'licenseData')),
-                  getDoc(doc(db, 'companies', companyId))
-                ]);
-                const compInfo = compSnap.exists() ? compSnap.data() : null;
-                if (licSnap.exists() && licSnap.data().value) {
-                  const licVal = licSnap.data().value;
-                  activeLicense = {
-                    ...licVal,
-                    expiryDate: compInfo?.expiryDate || licVal.expiryDate,
-                    trialStartDate: licVal.trialStartDate || compInfo?.trialStartDate || (compInfo?.createdAt ? compInfo.createdAt.split('T')[0] : null)
-                  };
-                } else if (compInfo) {
-                  activeLicense = {
-                    expiryDate: compInfo.expiryDate || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    trialStartDate: compInfo.trialStartDate || (compInfo.createdAt ? compInfo.createdAt.split('T')[0] : null),
-                    plan: '무료 체험판 (2개월)',
-                    isLockedOnExpiry: false,
-                    lastPaymentDate: null
-                  };
-                }
-                setLicenseData(activeLicense);
-                localStorage.setItem('licenseData', JSON.stringify(activeLicense));
-              } catch (licErr) {
-                console.warn('License fetch warning on login:', licErr);
-              }
-
-              const today = new Date();
-              const expiry = new Date(activeLicense.expiryDate);
-              const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-              const startDate = activeLicense.trialStartDate ? new Date(activeLicense.trialStartDate) : null;
-              const daysPassed = startDate ? Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) : (60 - diffDays);
-              const isFreeTrial = !activeLicense.lastPaymentDate && (!activeLicense.plan || activeLicense.plan.includes('체험') || activeLicense.plan.includes('무료'));
-
-              if (diffDays <= 0) {
-                if (activeLicense.isLockedOnExpiry) {
-                  alert('라이선스가 만료되어 로그인이 차단되었습니다. 관리자에게 문의하세요.');
-                  return false;
-                } else {
-                  setShowLicenseAlert(true);
-                }
-              } else if ((isFreeTrial && daysPassed >= 30) || diffDays <= 30) {
-                setShowLicenseAlert(true);
-              }
-
-              const finalUser = { ...u, companyId };
-
-              // Clear unscoped legacy cache and reset state for clean company hydration
-              hydratedCompanyRef.current = null;
-              setSyncedCollections({});
-              setProducts([]);
-              setCategories([]);
-              setPartners([]);
-              setWarehouses([]);
-              setAccounts([]);
-              setSchedules([]);
-              setExpenses([]);
-              setInventoryAdjustments([]);
-              setInventoryTransferHistory([]);
-              setSpecialPrices([]);
-              setActionLogs([]);
-              setPurchaseInvoices([]);
-              setPurchaseOrders([]);
-              setSalesInvoices([]);
-              setSalesOrders([]);
-              setInventory({});
-              setPhysicalInventory({});
-
-              setCurrentUser(finalUser); 
-              localStorage.setItem('currentUser', JSON.stringify(finalUser));
-
-              // Load deletedActivityIds and retentionPeriod immediately for target company
-              try {
-                const cachedDel = localStorage.getItem(`deletedActivityIds_${companyId}`);
-                if (cachedDel && cachedDel !== 'undefined' && cachedDel !== 'null') {
-                  const parsed = JSON.parse(cachedDel);
-                  if (Array.isArray(parsed)) setDeletedActivityIds(parsed);
-                } else {
-                  setDeletedActivityIds([]);
-                }
-                const cachedPer = localStorage.getItem(`activityRetentionPeriod_${companyId}`);
-                if (cachedPer && cachedPer !== 'undefined' && cachedPer !== 'null') {
-                  setActivityRetentionPeriod(cachedPer);
-                }
-              } catch (e) {
-                setDeletedActivityIds([]);
-              }
-
-              if (u.role === 'super_admin') setCurrentView('super_admin');
-              else setCurrentView('dashboard');
-              
-              setSelectedDate(new Date());
-              return true; 
-            } 
-
-            // 2. Partner check
-            let p = null;
-            let loggedInHidePrice = false;
-            
-            // Direct lookup in company sub-collection
-            const partnerDoc = await getDoc(doc(db, 'companies', companyId, 'partners', compositeId));
-            if (partnerDoc.exists()) {
-              const data = partnerDoc.data();
-              const match1 = (data.loginId && data.loginId === uid && data.password === pwd);
-              const match2 = (data.loginId2 && data.loginId2 === uid && data.password2 === pwd);
-              const match3 = (data.loginId3 && data.loginId3 === uid && data.password3 === pwd);
-              const matchEmail = (data.email && data.email === uid && data.password === pwd);
-              if (match1 || match2 || match3 || matchEmail) {
-                p = data;
-                if (match1) loggedInHidePrice = data.hidePrice1 || false;
-                else if (match2) loggedInHidePrice = data.hidePrice2 || false;
-                else if (match3) loggedInHidePrice = data.hidePrice3 || false;
-                else if (matchEmail) loggedInHidePrice = data.hidePrice1 || false;
-              }
-            }
-
-            // Fallback: Company partners collection scan for multi-account login support if direct lookup fails/doesn't match
-            if (!p) {
-              const partnerRef = collection(db, 'companies', companyId, 'partners');
-              const partnerSnap = await getDocs(partnerRef);
-              for (const partnerDoc of partnerSnap.docs) {
-                const data = partnerDoc.data();
-                const match1 = (data.loginId && data.loginId === uid && data.password === pwd);
-                const match2 = (data.loginId2 && data.loginId2 === uid && data.password2 === pwd);
-                const match3 = (data.loginId3 && data.loginId3 === uid && data.password3 === pwd);
-                const matchEmail = (data.email && data.email === uid && data.password === pwd);
-                
-                if (match1 || match2 || match3 || matchEmail) {
-                  p = data;
-                  if (match1) loggedInHidePrice = data.hidePrice1 || false;
-                  else if (match2) loggedInHidePrice = data.hidePrice2 || false;
-                  else if (match3) loggedInHidePrice = data.hidePrice3 || false;
-                  else if (matchEmail) loggedInHidePrice = data.hidePrice1 || false;
-                  break;
-                }
-              }
-            }
-
-            if (p) {
-              const partnerUser = { 
-                ...p, 
-                role: 'partner', 
-                name: p.name, 
-                companyId: p.companyId || companyId,
-                hidePrice: loggedInHidePrice
-              };
-              setCurrentUser(partnerUser);
-              
-              setCurrentView('shopping');
-              return true;
-            }
-
-          } catch (err) {
-            console.error("Login error:", err);
-          }
-
-          return false; 
-        }} 
-        onNavigateToSignup={() => setCurrentView('agency_signup')} 
-        onNavigateToUserSignup={(agency) => {
-          setSelectedAgencyForSignup(agency);
-          setCurrentView('user_signup');
-        }}
-      />
-    );
-  }
-
-  if (currentView === 'agency_signup') {
-    return (
-      <AgencySignup 
-        agencyCategories={agencyCategories}
-        onNavigateToLogin={(id) => {
-          if (id) setPrefilledAgencyId(id);
-          setCurrentView('login');
-        }}
-        onSignup={async (userData) => {
-          const companyId = userData.id;
-          const loginId = userData.email.trim();
-          const trimmedId = loginId.toLowerCase();
-          const nowIso = new Date().toISOString();
-          const trialStartDate = nowIso.split('T')[0];
-          const expiryDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-          const existingComp = await getDoc(doc(db, 'companies', companyId));
-          if (existingComp.exists()) {
-            throw new Error(`이미 사용 중인 회원사 ID입니다 (${companyId}). 다른 ID를 입력해 주세요.`);
-          }
-
-          await setDoc(doc(db, 'companies', companyId), {
-            id: companyId,
-            uid: 'uid_' + trimmedId,
-            adminId: trimmedId,
-            loginId: trimmedId,
-            name: userData.name,
-            ceo: userData.ceoName || '',
-            contact: userData.contact || '',
-            managerContact: userData.contact || '',
-            email: userData.email,
-            password: userData.password,
-            trialStartDate: trialStartDate,
-            expiryDate: expiryDate,
-            category: userData.category || '회원사',
-            status: 'active',
-            createdAt: nowIso,
-            updatedAt: nowIso
-          });
-
-          await setDoc(doc(db, 'companies', companyId, 'settings', 'licenseData'), {
-            value: {
-              trialStartDate: trialStartDate,
-              expiryDate: expiryDate,
-              plan: '무료 체험판 (2개월)',
-              isLockedOnExpiry: false,
-              lastPaymentDate: null
-            }
-          });
-
-          const baseAdminStaff = {
-            id: Date.now(),
-            userId: trimmedId,
-            password: userData.password,
-            name: userData.ceoName || '관리자',
-            jobTitle: '대표',
-            role: 'admin',
-            companyId: companyId,
-            permissions: { ALL: true },
-            viewAllInventoryMovements: true,
-            viewAllReceivables: true,
-            allowAllEditDelete: true,
-            allowSpecialPriceSave: true,
-            createdAt: nowIso
-          };
-          const adminRef = doc(db, 'companies', companyId, 'staffList', `${companyId}_${trimmedId}`);
-          await setDoc(adminRef, baseAdminStaff);
-
-          const initialStaffArray = [baseAdminStaff];
-          if (trimmedId !== 'admin') {
-            const defaultAdminStaff = {
-              ...baseAdminStaff,
-              id: Date.now() + 1,
-              userId: 'admin'
-            };
-            await setDoc(doc(db, 'companies', companyId, 'staffList', `${companyId}_admin`), defaultAdminStaff);
-            initialStaffArray.push(defaultAdminStaff);
-          }
-          await saveBundle(companyId, 'staffList', initialStaffArray);
-          localStorage.setItem(`staffList_${companyId}`, JSON.stringify(initialStaffArray));
-
-          const emptyListKeys = [
-            'warehouses', 'products', 'categories', 'partners', 'accounts', 'schedules',
-            'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 'salesOrders',
-            'expenses', 'inventoryAdjustments', 'inventoryTransferHistory',
-            'specialPrices', 'actionLogs'
-          ];
-          emptyListKeys.forEach(k => {
-            localStorage.setItem(`${k}_${companyId}`, JSON.stringify([]));
-            localStorage.removeItem(k);
-          });
-          localStorage.setItem(`inventory_${companyId}`, JSON.stringify({}));
-          localStorage.setItem(`physicalInventory_${companyId}`, JSON.stringify({}));
-          localStorage.removeItem('inventory');
-          localStorage.removeItem('physicalInventory');
-
-          const inquiryId = 'inq_' + Date.now();
-          await setDoc(doc(db, 'agency_inquiries', inquiryId), {
-            id: inquiryId,
-            uid: 'uid_' + trimmedId,
-            type: 'agency',
-            status: 'approved',
-            companyName: userData.name,
-            ceoName: userData.ceoName,
-            email: userData.email,
-            password: userData.password,
-            contact: userData.contact,
-            content: '링커엑스 모바일 회원가입 (2개월 무료 체험)',
-            appliedAt: nowIso,
-            processedAt: nowIso,
-            approvedCompanyId: companyId
-          });
-
-          alert(`회원사 가입이 완료되었습니다! (2개월간 무료 사용 가능: ~${expiryDate})\n방금 가입한 정보로 로그인해 주세요.\n(회사 ID: ${companyId}, 로그인 ID: ${trimmedId} 또는 admin)`);
-          return true;
-        }}
-      />
-    );
-  }
-
-  if (currentView === 'onboarding') {
-    return (
-      <Onboarding 
-        currentUser={currentUser}
-        onComplete={async (data) => {
-          try {
-            const companyId = currentUser.companyId;
-            // 1. Update company info
-            await updateDoc(doc(db, 'companies', companyId), {
-              ...data.company,
-              status: 'active',
-              updatedAt: new Date().toISOString()
-            });
-
-            // 2. Register initial admin staff
-            const compositeId = `${companyId}_${data.staff.userId}`;
-            const newStaff = {
-              ...data.staff,
-              id: Date.now(),
-              companyId: companyId,
-              createdAt: new Date().toISOString()
-            };
-            
-            await setDoc(doc(db, 'companies', companyId, 'staffList', compositeId), newStaff);
-
-            // 3. Update current user to the newly created staff user
-            const updatedUser = { ...newStaff, role: 'admin' };
-            setCurrentUser(updatedUser);
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-            setCurrentView('dashboard');
-          } catch (err) { 
-            console.error("Onboarding completion error:", err);
-            alert('설정 저장 중 오류가 발생했습니다.'); 
-          }
-        }}
-
-      />
-    );
-  }
+  if (currentView === 'onboarding') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
   if (currentView === 'super_admin') {
     return (
@@ -5307,71 +4786,7 @@ function App() {
     );
   }
 
-  if (currentView === 'user_signup') {
-    return (
-      <UserSignup 
-        agency={selectedAgencyForSignup}
-        warehouses={warehouses}
-        onNavigateToLogin={() => setCurrentView('login')}
-        onSignup={async (data) => {
-          try {
-            const compositeId = `${data.companyId}_${data.loginId}`;
-            if (data.regType === 'staff') {
-              const newStaff = {
-                id: Date.now(),
-                _docId: compositeId,
-                userId: data.loginId,
-                password: data.password,
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
-                jobTitle: data.jobTitle,
-                role: 'staff', 
-                permissions: {},
-                companyId: data.companyId,
-                createdAt: data.createdAt
-              };
-              await setDoc(doc(db, 'companies', data.companyId, 'staffList', compositeId), newStaff);
-
-              // 해당 회원사의 번들에도 추가 동기화
-              const curStaff = getLocalBundle(data.companyId, 'staffList') || [];
-              const updatedStaff = [...curStaff.filter(s => String(s.userId) !== String(data.loginId)), newStaff];
-              await saveBundle(data.companyId, 'staffList', updatedStaff);
-
-              alert('직원 등록이 완료되었습니다! 관리자 아이디로 로그인해 주세요.');
-            } else {
-              const newPartner = {
-                id: Date.now(),
-                loginId: data.loginId,
-                password: data.password,
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
-                ceo: data.ceo,
-                businessNo: data.businessNo,
-                type: data.type,
-                companyId: data.companyId,
-                status: 'pending',
-                createdAt: data.createdAt
-              };
-              await setDoc(doc(db, 'companies', data.companyId, 'partners', compositeId), newPartner);
-
-              // 해당 회원사의 거래처 번들에도 추가 동기화
-              const curPartners = getLocalBundle(data.companyId, 'partners') || [];
-              const updatedPartners = deduplicatePartners([...curPartners, newPartner]);
-              await saveBundle(data.companyId, 'partners', updatedPartners);
-
-              alert('거래처 가입 신청이 완료되었습니다! 관리자 승인 후 이용 가능합니다.');
-            }
-            setCurrentView('login');
-          } catch (err) {
-            console.error("User signup error:", err);
-            alert('등록 중 오류가 발생했습니다.');
-          }
-        }}
-      />
-    );
-  }
+  if (currentView === 'user_signup') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
   const handleMallOrder = async (items) => {
     try {
@@ -5478,17 +4893,7 @@ function App() {
     );
   }
 
-  if (currentView === 'signup') {
-    return <Signup 
-      onNavigateToLogin={() => setCurrentView('login')} 
-      staffList={staffList} 
-      onSignup={async (nd) => {
-        setPartners(prev => [...prev, { ...nd, id: Date.now() }]);
-        alert('가입이 완료되었습니다. 로그인해주세요.');
-        setCurrentView('login');
-      }} 
-    />;
-  }
+  if (currentView === 'signup') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
   if (currentView === 'super_admin') {
     return <SuperAdmin onClose={() => setCurrentView('login')} />;
@@ -6795,12 +6200,7 @@ function App() {
             }
 
             // 1. 관리자 권한 확인 (동기식 우선)
-            const hasAdminPrivilege = currentUser?.role === 'admin' || 
-                                      currentUser?.jobTitle === '대표' || 
-                                      currentUser?.role === 'super_admin' || 
-                                      currentUser?.userId === 'admin' || 
-                                      currentUser?.userId === 'madmin' || 
-                                      currentUser?.userId === 'sadmin';
+            const hasAdminPrivilege = ['tenant_admin','platform_admin'].includes(authSession?.authRole);
 
             let compData = null;
             try {
@@ -6821,41 +6221,16 @@ function App() {
               uid.toLowerCase() === String(companyId).toLowerCase()
             );
 
-            if (!isInitialAdmin && !hasAdminPrivilege) {
+            if (!hasAdminPrivilege) {
               return { 
                 success: false, 
                 message: `전체 데이터 초기화는 해당 회원사의 관리자(최초 가입 ID: ${initialAdminId}) 계정으로만 진행할 수 있습니다.` 
               };
             }
 
-            // 2. 비밀번호 검증 (현재 세션 / 회사 / 직원 DB 대조)
+            // Firebase Auth reauthentication replaces all legacy password comparisons.
             let isPasswordValid = false;
-
-            if (currentUser?.password && currentUser.password === enteredPassword) {
-              isPasswordValid = true;
-            }
-
-            if (!isPasswordValid && compData?.password && compData.password === enteredPassword) {
-              isPasswordValid = true;
-            }
-
-            if (!isPasswordValid && uid) {
-              try {
-                const staffSnap = await Promise.race([
-                  getDoc(doc(db, 'companies', companyId, 'staffList', `${companyId}_${uid}`)),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
-                ]);
-                if (staffSnap && staffSnap.exists() && staffSnap.data()?.password === enteredPassword) {
-                  isPasswordValid = true;
-                }
-              } catch (err) {
-                console.warn("[Delete All] Staff doc query skipped or timed out:", err);
-              }
-            }
-
-            if (!isPasswordValid && (uid === 'madmin' || uid === 'sadmin') && enteredPassword === 'gdtop7818@@') {
-              isPasswordValid = true;
-            }
+            try { await reauthenticate(enteredPassword); isPasswordValid = true; } catch { /* fail closed */ }
 
             if (!isPasswordValid) {
               return { 
@@ -6877,7 +6252,7 @@ function App() {
               const preservedAdmin = {
                 id: currentUser?.id || 1,
                 userId: adminUserId,
-                password: compData?.password || enteredPassword,
+
                 name: compData?.ceo || compData?.name || currentUser?.name || '대표관리자',
                 jobTitle: '대표',
                 role: 'admin',
@@ -7988,3 +7363,4 @@ function DashboardSettingsModal({ config, onClose, onSave }) {
 }
 
 export default App;
+

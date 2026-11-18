@@ -1,0 +1,4202 @@
+[
+  {
+    "repo": "desktop",
+    "file": "src/auth/AuthGate.jsx",
+    "line": 14,
+    "operation": "collection",
+    "path": "companies/{expression}/partnerOrders"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/auth/AuthGate.jsx",
+    "line": 20,
+    "operation": "collection",
+    "path": "companies/{expression}/partnerOrders"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 261,
+    "operation": "collection",
+    "path": "companies/{companyId}/categories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 386,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{catId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 650,
+    "operation": "collection",
+    "path": "companies/{companyId}/schedule_types"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 668,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1236,
+    "operation": "doc",
+    "path": "companies/{companyId}/userDashboardConfig/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1323,
+    "operation": "collection",
+    "path": "system_notices"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1427,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1449,
+    "operation": "doc",
+    "path": "companies/{companyQuery}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1595,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1743,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1750,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1855,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 1873,
+    "operation": "doc",
+    "path": "companies/{companyId}/userDashboardConfig/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2195,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2231,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2257,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2305,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2341,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2363,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2443,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2446,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2450,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2480,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2512,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2526,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2555,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2568,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2599,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2649,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2717,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2725,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2729,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2841,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2858,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2867,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{docId1}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2869,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{docId2}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2872,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{docId3}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2918,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2974,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2975,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 2992,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3030,
+    "operation": "doc",
+    "path": "companies/{companyId}/quotations/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3064,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3132,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3160,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3188,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3202,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3231,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3251,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3346,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3347,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3349,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{trId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3352,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3425,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3452,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3456,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3473,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 3509,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4048,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4053,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4057,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4060,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4064,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4072,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4075,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4126,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4131,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryAdjustments/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4151,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4239,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4259,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryAdjustments/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4278,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4284,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4302,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryCounts/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4311,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4354,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4488,
+    "operation": "doc",
+    "path": "companies/{expression}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4538,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/favoriteMenus"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4541,
+    "operation": "doc",
+    "path": "settings/favoriteMenus"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4641,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4731,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 4774,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 5030,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 6982,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7021,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7062,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7772,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7816,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7873,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7950,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 7981,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8014,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8116,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8196,
+    "operation": "doc",
+    "path": "companies/{companyId}/quotations/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8389,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8474,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8889,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8896,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 8989,
+    "operation": "doc",
+    "path": "companies/{companyId}/{expression}/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9032,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9033,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9037,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/systemSettings"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9041,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/favoriteMenus"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9061,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9118,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9193,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/{docName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9194,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/{docName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9221,
+    "operation": "doc",
+    "path": "companies/{companyId}/{colName}/{cleanId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9300,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9384,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{adminCompositeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9474,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9499,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9548,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9601,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9606,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9612,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/systemSettings"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9625,
+    "operation": "doc",
+    "path": "companies/{expression}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9734,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/licenseData"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9739,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9753,
+    "operation": "doc",
+    "path": "companies/{expression}/payments/{payId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 9807,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/favoriteMenus"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 10175,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/favoriteMenus"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 10807,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{trimmedName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/DesktopApp.jsx",
+    "line": 10838,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{typeName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AccountManagement.jsx",
+    "line": 32,
+    "operation": "collection",
+    "path": "companies/{companyId}/accounts"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AccountManagement.jsx",
+    "line": 126,
+    "operation": "doc",
+    "path": "companies/{companyId}/accounts/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AccountManagement.jsx",
+    "line": 181,
+    "operation": "doc",
+    "path": "companies/{companyId}/accounts/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 177,
+    "operation": "collection",
+    "path": "ai_tasks"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 188,
+    "operation": "doc",
+    "path": "ai_tasks/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 300,
+    "operation": "doc",
+    "path": "ai_tasks/{newTaskId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 339,
+    "operation": "doc",
+    "path": "ai_tasks/{taskId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 352,
+    "operation": "doc",
+    "path": "ai_tasks/{taskId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/AiTaskManager.jsx",
+    "line": 390,
+    "operation": "doc",
+    "path": "system_notices/{noticeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/CashBook.jsx",
+    "line": 103,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/cashBookData"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/CashBook.jsx",
+    "line": 134,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/cashBookData"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ChatAssistant.jsx",
+    "line": 185,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ChatAssistant.jsx",
+    "line": 210,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/DataManager.jsx",
+    "line": 481,
+    "operation": "collection",
+    "path": "companies/{companyId}/{col}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/IntegratedReceivablesReport.jsx",
+    "line": 502,
+    "operation": "doc",
+    "path": "companies/{expression}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryReport.jsx",
+    "line": 129,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryReport.jsx",
+    "line": 172,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryReport.jsx",
+    "line": 1729,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 235,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 308,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 331,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 346,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 412,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/InventoryTransferExcelManager.jsx",
+    "line": 493,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 60,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 244,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 246,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 276,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 360,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 362,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerExcelManager.jsx",
+    "line": 393,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 445,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 467,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{oId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 479,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 496,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 510,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 568,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 571,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerManagement.jsx",
+    "line": 624,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{targetId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerSpecialPriceManager.jsx",
+    "line": 348,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerSpecialPriceManager.jsx",
+    "line": 426,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PartnerSpecialPriceManager.jsx",
+    "line": 452,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PayablesReport.jsx",
+    "line": 83,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/payablesConfig"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PayablesReport.jsx",
+    "line": 113,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/payablesConfig"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductCategoryModal.jsx",
+    "line": 72,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductCategoryModal.jsx",
+    "line": 113,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductCategoryModal.jsx",
+    "line": 134,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductCategoryModal.jsx",
+    "line": 166,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductCategoryModal.jsx",
+    "line": 231,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductExcelManager.jsx",
+    "line": 16,
+    "operation": "collection",
+    "path": "companies/{companyId}/categories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductExcelManager.jsx",
+    "line": 141,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{catId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductExcelManager.jsx",
+    "line": 206,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductExcelManager.jsx",
+    "line": 394,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductExcelManager.jsx",
+    "line": 481,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 245,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 293,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 327,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 365,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 387,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ProductManagement.jsx",
+    "line": 532,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/PurchaseLedgerExcelManager.jsx",
+    "line": 88,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/Quotation.jsx",
+    "line": 460,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ReceivablesReport.jsx",
+    "line": 101,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/receivablesConfig"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ReceivablesReport.jsx",
+    "line": 131,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/receivablesConfig"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ReceivablesReport.jsx",
+    "line": 332,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SalesInvoice.jsx",
+    "line": 1259,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SalesLedgerExcelManager.jsx",
+    "line": 88,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SalesOrder.jsx",
+    "line": 569,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleList.jsx",
+    "line": 150,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleList.jsx",
+    "line": 177,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleList.jsx",
+    "line": 194,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleTypeManagement.jsx",
+    "line": 71,
+    "operation": "doc",
+    "path": "master_schedule_types/{trimmedName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleTypeManagement.jsx",
+    "line": 73,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{trimmedName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleTypeManagement.jsx",
+    "line": 107,
+    "operation": "doc",
+    "path": "master_schedule_types/{typeName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/ScheduleTypeManagement.jsx",
+    "line": 109,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{typeName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 72,
+    "operation": "collection",
+    "path": "companies/{companyId}/staffList"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 168,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{targetDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 184,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{oldDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 203,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{whDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 211,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 220,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 305,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{dId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 320,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{whDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffManagement.jsx",
+    "line": 469,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffRegistration.jsx",
+    "line": 1022,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffZones"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffRegistration.jsx",
+    "line": 1038,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffZones"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffRegistration.jsx",
+    "line": 1060,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffJobTitles"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/StaffRegistration.jsx",
+    "line": 1076,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffJobTitles"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 51,
+    "operation": "collection",
+    "path": "platformStaff"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 72,
+    "operation": "doc",
+    "path": "platformStaff/{staffId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 86,
+    "operation": "doc",
+    "path": "platformStaff/{staffId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 234,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 245,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 253,
+    "operation": "collection",
+    "path": "companies"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 256,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 261,
+    "operation": "collection",
+    "path": "system_notices"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 264,
+    "operation": "collection",
+    "path": "master_schedules"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 270,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 273,
+    "operation": "collection",
+    "path": "master_schedule_types"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 286,
+    "operation": "doc",
+    "path": "settings/homepage_content"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 303,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 313,
+    "operation": "collection",
+    "path": "agency_inquiries"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 317,
+    "operation": "collection",
+    "path": "master_todos"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 369,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 375,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 404,
+    "operation": "collection",
+    "path": "companies/{companyId}/{collName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 422,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 434,
+    "operation": "collection",
+    "path": "agency_inquiries"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 451,
+    "operation": "doc",
+    "path": "users/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 459,
+    "operation": "collection",
+    "path": "users"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 474,
+    "operation": "collection",
+    "path": "{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 483,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 519,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 547,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 550,
+    "operation": "doc",
+    "path": "companies/{originalAgencyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 553,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 557,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/licenseData"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 567,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 636,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 639,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 640,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 658,
+    "operation": "doc",
+    "path": "cs_history/{logId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 671,
+    "operation": "doc",
+    "path": "cs_history/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 683,
+    "operation": "doc",
+    "path": "system_notices/{noticeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 695,
+    "operation": "doc",
+    "path": "system_notices/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 705,
+    "operation": "doc",
+    "path": "system_notices/{noticeId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 722,
+    "operation": "doc",
+    "path": "master_schedules/{scheduleId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 736,
+    "operation": "doc",
+    "path": "master_schedules/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 747,
+    "operation": "doc",
+    "path": "master_todos/{todoId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 763,
+    "operation": "doc",
+    "path": "master_todos/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 775,
+    "operation": "doc",
+    "path": "master_todos/{todoId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 799,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 808,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 820,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 826,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 839,
+    "operation": "doc",
+    "path": "settings/homepage_content"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 870,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 902,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 904,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/licenseData"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 949,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 979,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 982,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 983,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 985,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 1002,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 2951,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/SuperAdmin.jsx",
+    "line": 3165,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 111,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 192,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicles/{vId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 196,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 216,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 248,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicles/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 251,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 254,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 255,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 256,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 282,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicleLogs/{logId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 317,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicles/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/VehicleManagement.jsx",
+    "line": 339,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicleLogs/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseInitialStockModal.jsx",
+    "line": 115,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 53,
+    "operation": "collection",
+    "path": "companies/{companyId}/warehouses"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 175,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 223,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{targetDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 230,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 286,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 294,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 302,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicles/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 314,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 322,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/desktop/components/WarehouseManagement.jsx",
+    "line": 381,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 243,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 257,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 305,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 326,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 348,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 369,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 402,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 442,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 454,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 481,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 544,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 675,
+    "operation": "collection",
+    "path": "companies/{companyId}/bundles"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 699,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 719,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 92,
+    "operation": "collection",
+    "path": "error_logs"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 164,
+    "operation": "collection",
+    "path": "error_logs"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 183,
+    "operation": "collection",
+    "path": "error_logs"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 205,
+    "operation": "doc",
+    "path": "error_logs/{logId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 221,
+    "operation": "collection",
+    "path": "error_logs"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/errorLogger.js",
+    "line": 231,
+    "operation": "doc",
+    "path": "error_logs/{id}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 88,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 98,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks/{expression}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 120,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 140,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 180,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 190,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 207,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 214,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 245,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 267,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/trafficTracker.js",
+    "line": 27,
+    "operation": "doc",
+    "path": "telemetry_traffic/{template}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/trafficTracker.js",
+    "line": 119,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/trafficTracker.js",
+    "line": 133,
+    "operation": "collection",
+    "path": "companies/{companyId}/bundles"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/trafficTracker.js",
+    "line": 161,
+    "operation": "collection",
+    "path": "telemetry_traffic"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/vehicleUtils.js",
+    "line": 124,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{oilSchedId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/vehicleUtils.js",
+    "line": 145,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{inspSchedId}"
+  },
+  {
+    "repo": "desktop",
+    "file": "src/utils/vehicleUtils.js",
+    "line": 167,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{insSchedId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 315,
+    "operation": "collection",
+    "path": "companies/{companyId}/schedule_types"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 333,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 862,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 967,
+    "operation": "doc",
+    "path": "companies/{companyQuery}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1003,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1056,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1079,
+    "operation": "doc",
+    "path": "companies/{companyId}/{colName}/{id}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1213,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1216,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1327,
+    "operation": "doc",
+    "path": "companies/{companyId}/userSettings/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1329,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1551,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1583,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1606,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1685,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1688,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1692,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1722,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1754,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1768,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1798,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1812,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1865,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1883,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1884,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1895,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 1971,
+    "operation": "doc",
+    "path": "companies/{companyId}/quotations/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2033,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2101,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2109,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2113,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2176,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2198,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2204,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2209,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2262,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2289,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2293,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2303,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2435,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2455,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2521,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2544,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2549,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2559,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2586,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2600,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2691,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2696,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryAdjustments/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2716,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2764,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2781,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryAdjustments/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2801,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2807,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2825,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryCounts/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2834,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2865,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2920,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2948,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2976,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 2990,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3019,
+    "operation": "doc",
+    "path": "companies/{companyId}/actionLogs/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3039,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/recentActivity"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3196,
+    "operation": "doc",
+    "path": "companies/{expression}/userSettings/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3197,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/favoriteMenus"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3201,
+    "operation": "doc",
+    "path": "settings/favoriteMenus"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3282,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3377,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 3595,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 4841,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 4874,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 4903,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5105,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5336,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5374,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5426,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5496,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5524,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5551,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5648,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5722,
+    "operation": "doc",
+    "path": "companies/{companyId}/quotations/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5803,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 5862,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesOrders/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6034,
+    "operation": "doc",
+    "path": "companies/{companyId}/expenses/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6121,
+    "operation": "doc",
+    "path": "companies/{companyId}/{collectionName}/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6172,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6173,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6177,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/systemSettings"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6181,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/favoriteMenus"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6227,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6319,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/{docName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6320,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/{docName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6322,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6323,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6324,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6325,
+    "operation": "doc",
+    "path": "companies/{companyId}/systemSettings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6326,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{adminCompositeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6352,
+    "operation": "doc",
+    "path": "companies/{companyId}/{colName}/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6421,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6537,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6561,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6599,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6623,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{catId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6673,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6678,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6684,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/systemSettings"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6781,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/licenseData"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6783,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6812,
+    "operation": "doc",
+    "path": "companies/{expression}/userSettings/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/App.jsx",
+    "line": 6813,
+    "operation": "doc",
+    "path": "companies/{expression}/settings/favoriteMenus"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/auth/AuthGate.jsx",
+    "line": 14,
+    "operation": "collection",
+    "path": "companies/{expression}/partnerOrders"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/auth/AuthGate.jsx",
+    "line": 20,
+    "operation": "collection",
+    "path": "companies/{expression}/partnerOrders"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/AccountManagement.jsx",
+    "line": 35,
+    "operation": "collection",
+    "path": "companies/{companyId}/accounts"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/AccountManagement.jsx",
+    "line": 129,
+    "operation": "doc",
+    "path": "companies/{companyId}/accounts/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/AccountManagement.jsx",
+    "line": 184,
+    "operation": "doc",
+    "path": "companies/{companyId}/accounts/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/CashBook.jsx",
+    "line": 82,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/cashBookData"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/CashBook.jsx",
+    "line": 113,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/cashBookData"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ChatAssistant.jsx",
+    "line": 58,
+    "operation": "collection",
+    "path": "companies/{targetCompanyId}/devCommands"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ChatAssistant.jsx",
+    "line": 183,
+    "operation": "collection",
+    "path": "companies/{targetCompanyId}/devCommands"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ChatAssistant.jsx",
+    "line": 184,
+    "operation": "collection",
+    "path": "companies/{targetCompanyId}/agentCommands"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ChatAssistant.jsx",
+    "line": 187,
+    "operation": "doc",
+    "path": "companies/{targetCompanyId}/devCommands/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/DataManager.jsx",
+    "line": 460,
+    "operation": "collection",
+    "path": "companies/{companyId}/{col}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryReport.jsx",
+    "line": 169,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryReport.jsx",
+    "line": 212,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryReport.jsx",
+    "line": 1476,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryTransferExcelManager.jsx",
+    "line": 197,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryTransferExcelManager.jsx",
+    "line": 270,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/InventoryTransferExcelManager.jsx",
+    "line": 337,
+    "operation": "doc",
+    "path": "companies/{companyId}/inventoryTransferHistory/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 60,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 244,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 246,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 276,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 360,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 362,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerExcelManager.jsx",
+    "line": 393,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{staffCompositeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerManagement.jsx",
+    "line": 216,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerManagement.jsx",
+    "line": 271,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{oldDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerSpecialPriceManager.jsx",
+    "line": 305,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerSpecialPriceManager.jsx",
+    "line": 383,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PartnerSpecialPriceManager.jsx",
+    "line": 409,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{targetId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductCategoryModal.jsx",
+    "line": 53,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductCategoryModal.jsx",
+    "line": 94,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductCategoryModal.jsx",
+    "line": 115,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductCategoryModal.jsx",
+    "line": 147,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductExcelManager.jsx",
+    "line": 62,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductExcelManager.jsx",
+    "line": 230,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductExcelManager.jsx",
+    "line": 290,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductExcelManager.jsx",
+    "line": 316,
+    "operation": "doc",
+    "path": "companies/{companyId}/categories/{catId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductManagement.jsx",
+    "line": 140,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductManagement.jsx",
+    "line": 188,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductManagement.jsx",
+    "line": 222,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{productId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductManagement.jsx",
+    "line": 244,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ProductManagement.jsx",
+    "line": 385,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/PurchaseLedgerExcelManager.jsx",
+    "line": 88,
+    "operation": "doc",
+    "path": "companies/{companyId}/purchaseInvoices/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/Quotation.jsx",
+    "line": 386,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ReceivablesReport.jsx",
+    "line": 196,
+    "operation": "doc",
+    "path": "companies/{companyId}/partners/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SalesInvoice.jsx",
+    "line": 623,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SalesLedgerExcelManager.jsx",
+    "line": 88,
+    "operation": "doc",
+    "path": "companies/{companyId}/salesInvoices/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SalesOrder.jsx",
+    "line": 357,
+    "operation": "doc",
+    "path": "companies/{companyId}/specialPrices/{spId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleList.jsx",
+    "line": 57,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleList.jsx",
+    "line": 73,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleTypeManagement.jsx",
+    "line": 71,
+    "operation": "doc",
+    "path": "master_schedule_types/{trimmedName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleTypeManagement.jsx",
+    "line": 73,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{trimmedName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleTypeManagement.jsx",
+    "line": 107,
+    "operation": "doc",
+    "path": "master_schedule_types/{typeName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/ScheduleTypeManagement.jsx",
+    "line": 109,
+    "operation": "doc",
+    "path": "companies/{companyId}/schedule_types/{typeName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 52,
+    "operation": "collection",
+    "path": "companies/{companyId}/staffList"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 147,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{targetDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 163,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{oldDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 182,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{whDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 190,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 199,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 286,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{dId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 301,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{whDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffManagement.jsx",
+    "line": 432,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffRegistration.jsx",
+    "line": 1130,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffZones"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffRegistration.jsx",
+    "line": 1146,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffZones"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffRegistration.jsx",
+    "line": 1168,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffJobTitles"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/StaffRegistration.jsx",
+    "line": 1184,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/staffJobTitles"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 127,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 138,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 146,
+    "operation": "collection",
+    "path": "companies"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 149,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 152,
+    "operation": "collection",
+    "path": "system_notices"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 155,
+    "operation": "collection",
+    "path": "master_schedules"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 158,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 165,
+    "operation": "doc",
+    "path": "settings/system_config"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 174,
+    "operation": "collection",
+    "path": "master_schedule_types"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 185,
+    "operation": "doc",
+    "path": "master_schedule_types/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 192,
+    "operation": "collection",
+    "path": "agency_inquiries"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 196,
+    "operation": "doc",
+    "path": "settings/homepage_content"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 209,
+    "operation": "collection",
+    "path": "master_todos"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 264,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 270,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 299,
+    "operation": "collection",
+    "path": "companies/{companyId}/{collName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 317,
+    "operation": "collection",
+    "path": "cs_history"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 329,
+    "operation": "collection",
+    "path": "agency_inquiries"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 346,
+    "operation": "doc",
+    "path": "users/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 354,
+    "operation": "collection",
+    "path": "users"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 369,
+    "operation": "collection",
+    "path": "{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 378,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 414,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 440,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 443,
+    "operation": "doc",
+    "path": "companies/{originalAgencyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 446,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 450,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/licenseData"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 461,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 530,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 533,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 534,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 552,
+    "operation": "doc",
+    "path": "cs_history/{logId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 565,
+    "operation": "doc",
+    "path": "cs_history/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 577,
+    "operation": "doc",
+    "path": "system_notices/{noticeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 589,
+    "operation": "doc",
+    "path": "system_notices/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 599,
+    "operation": "doc",
+    "path": "system_notices/{noticeId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 616,
+    "operation": "doc",
+    "path": "master_schedules/{scheduleId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 630,
+    "operation": "doc",
+    "path": "master_schedules/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 641,
+    "operation": "doc",
+    "path": "master_todos/{todoId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 657,
+    "operation": "doc",
+    "path": "master_todos/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 669,
+    "operation": "doc",
+    "path": "master_todos/{todoId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 693,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 702,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 714,
+    "operation": "doc",
+    "path": "settings/agencyCategories"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 720,
+    "operation": "doc",
+    "path": "companies/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 733,
+    "operation": "doc",
+    "path": "settings/homepage_content"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 765,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 797,
+    "operation": "doc",
+    "path": "companies/{companyId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 799,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/licenseData"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 844,
+    "operation": "doc",
+    "path": "companies/{companyId}/staffList/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 874,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 877,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/inventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 878,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/physicalInventory"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 880,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 897,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/SuperAdmin.jsx",
+    "line": 2481,
+    "operation": "doc",
+    "path": "agency_inquiries/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseInitialStockModal.jsx",
+    "line": 115,
+    "operation": "doc",
+    "path": "companies/{companyId}/products/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 53,
+    "operation": "collection",
+    "path": "companies/{companyId}/warehouses"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 129,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 173,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{targetDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 180,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 227,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{targetDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 311,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 319,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{otherDocId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 327,
+    "operation": "doc",
+    "path": "companies/{companyId}/vehicles/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/components/WarehouseManagement.jsx",
+    "line": 386,
+    "operation": "doc",
+    "path": "companies/{companyId}/warehouses/{docId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 240,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 251,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 291,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 312,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 334,
+    "operation": "collection",
+    "path": "companies/{companyId}/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 355,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 387,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 409,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 417,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 445,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 502,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 608,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{template}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 614,
+    "operation": "doc",
+    "path": "companies/{companyId}/bundles/{colName}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/bundleSyncManager.js",
+    "line": 635,
+    "operation": "doc",
+    "path": "companies/{companyId}/metadata/syncState"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 84,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 104,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks/{expression}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 115,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 135,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 175,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 185,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 202,
+    "operation": "doc",
+    "path": "companies/{companyId}/serverBackups/{backupId}"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 209,
+    "operation": "collection",
+    "path": "companies/{companyId}/serverBackups/{backupId}/chunks"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 236,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  },
+  {
+    "repo": "mobile",
+    "file": "src/utils/serverBackupUtils.js",
+    "line": 258,
+    "operation": "doc",
+    "path": "companies/{companyId}/settings/backupSettings"
+  }
+]

@@ -27,3 +27,14 @@ dist-ssr
 .cdp_profile*
 .chrome_temp*
 *.mjs
+
+
+# Local emulator artifacts
+*-debug.log
+.firebase/
+
+# Reproducible security test evidence
+!security/evidence/*.log
+
+# Security verification sources
+!security/tests/*.mjs

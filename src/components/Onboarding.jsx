@@ -18,7 +18,6 @@ const Onboarding = ({ currentUser, onComplete, staffList = [], warehouses = [] }
   const [staffData, setStaffData] = useState({
     name: currentUser?.name || '',
     userId: 'admin',
-    password: '123456',
     jobTitle: '관리자',
     role: 'admin',
     phone: '',
@@ -282,3 +281,4 @@ const Onboarding = ({ currentUser, onComplete, staffList = [], warehouses = [] }
 };
 
 export default Onboarding;
+
