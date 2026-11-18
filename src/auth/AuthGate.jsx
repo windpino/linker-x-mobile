@@ -477,19 +477,18 @@ export default function AuthGate({children}) {
   const isProdVerifyMode = authTargetMode === 'production-auth-only';
 
   if (session?.role === 'partner') return <PartnerOrders session={session} />;
-  if (session && manage) {
+  if (session && manage && session.authRole === 'tenant_admin') {
     return <MembershipAdmin session={session} onBack={() => setManage(false)} />;
   }
   if (session) {
     return (
       <>
-        {(session.authRole === 'tenant_admin' || session.authRole === 'platform_admin') && (
+        {session.authRole === 'tenant_admin' && (
           <button 
             className="auth-admin-toggle" 
             onClick={() => setManage(true)}
-            style={session.authRole === 'platform_admin' ? { top: '16px', right: '16px', zIndex: 99999 } : undefined}
           >
-            {session.authRole === 'platform_admin' ? '🛡️ 신규 회원사 승인 관리' : '소속 승인 관리'}
+            소속 승인 관리
           </button>
         )}
         {children(session)}
@@ -1041,19 +1040,7 @@ export default function AuthGate({children}) {
               </button>
             </div>
 
-            <div className="auth-action-divider" style={{ margin: '16px 0 12px 0' }}></div>
-
-            <button
-              type="button"
-              className="auth-btn-ghost"
-              disabled={busy}
-              onClick={() => enter('linker_x_hq')}
-              style={{ width: '100%', marginBottom: '8px', fontSize: '0.85rem' }}
-            >
-              👑 플랫폼 슈퍼관리자 콘솔 입장
-            </button>
-
-            <button type="button" className="auth-btn-ghost" disabled={busy} onClick={handleLogout} style={{ marginTop: '8px' }}>
+            <button type="button" className="auth-btn-ghost" disabled={busy} onClick={handleLogout} style={{ marginTop: '16px' }}>
               로그아웃
             </button>
           </>
