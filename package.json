@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:verify-auth": "vite --mode verify-auth --port 5175",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",

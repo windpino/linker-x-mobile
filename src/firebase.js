@@ -23,8 +23,21 @@ const firebaseConfig = {
   measurementId: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID)) || "G-G8626RZH6X"
 };
 
-const useEmulators = import.meta.env.VITE_AUTH_PRODUCTION_APPROVED !== 'true';
-if (useEmulators) Object.assign(firebaseConfig, { projectId: 'demo-linker-auth', apiKey: 'demo-key', authDomain: 'demo-linker-auth.firebaseapp.com', appId: 'demo-app', measurementId: undefined });
+const isProdApproved = typeof import.meta !== 'undefined' && import.meta.env?.VITE_AUTH_PRODUCTION_APPROVED === 'true';
+const isProdAuthVerification = typeof import.meta !== 'undefined' && import.meta.env?.VITE_PROD_AUTH_VERIFICATION === 'true';
+
+const useAuthEmulator = !isProdApproved && !isProdAuthVerification;
+const useFirestoreEmulator = !isProdApproved;
+
+if (useAuthEmulator && useFirestoreEmulator) {
+  Object.assign(firebaseConfig, { 
+    projectId: 'demo-linker-auth', 
+    apiKey: 'demo-key', 
+    authDomain: 'demo-linker-auth.firebaseapp.com', 
+    appId: 'demo-app', 
+    measurementId: undefined 
+  });
+}
 
 const app = initializeApp(firebaseConfig);
 
@@ -42,6 +55,23 @@ try {
 
 export const db = dbInstance;
 export const auth = getAuth(app);
-if (useEmulators) { connectAuthEmulator(auth, 'http://127.0.0.1:9099', {disableWarnings:true}); connectFirestoreEmulator(db, '127.0.0.1', 8080); }
-export default app;
 
+if (useAuthEmulator) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+} else if (isProdAuthVerification) {
+  if (auth.emulatorConfig) {
+    throw new Error("안전 위반: 운영 인증 검증 모드에서 127.0.0.1:9099 에뮬레이터가 감지되었습니다.");
+  }
+}
+
+if (useFirestoreEmulator) {
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+}
+
+export const authTargetMode = isProdApproved
+  ? 'production'
+  : isProdAuthVerification
+    ? 'production-auth-only'
+    : 'emulator';
+
+export default app;
