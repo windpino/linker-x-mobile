@@ -63,10 +63,25 @@ export default function AuthGate({children}) {
     setMessageType(type);
   };
 
+  const resolvePlatformAdmin = async () => {
+    try {
+      const approved = withoutSecrets(await callAuth('authSession', { companyId: 'linker_x_hq' }));
+      if (approved?.authRole === 'platform_admin') {
+        await prepareSessionScope(approved);
+        localStorage.setItem('currentUser', JSON.stringify(approved));
+        setSession(approved);
+        return true;
+      }
+    } catch {
+      // Not platform admin, continue normal flow
+    }
+    return false;
+  };
+
   useEffect(() => {
     clearLegacyCredentials(localStorage);
     clearLegacyCredentials(sessionStorage);
-    return onIdTokenChanged(auth, u => {
+    return onIdTokenChanged(auth, async u => {
       clearSessionScope();
       localStorage.removeItem('currentUser');
       const nextIdentity = u ? {
@@ -85,6 +100,9 @@ export default function AuthGate({children}) {
         email: u?.email || f.email,
         name: u?.displayName || f.name
       }));
+      if (u && u.emailVerified) {
+        await resolvePlatformAdmin();
+      }
     });
   }, []);
 
@@ -165,7 +183,10 @@ export default function AuthGate({children}) {
     try {
       await login(email, pw);
       setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
-      setVerifiedView('company_login');
+      const isPlatform = await resolvePlatformAdmin();
+      if (!isPlatform) {
+        setVerifiedView('company_login');
+      }
     } catch (err) {
       setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
@@ -200,7 +221,10 @@ export default function AuthGate({children}) {
           showMsg('Google 계정 인증이 완료되었습니다. 소속 신청 정보를 입력해 주세요.', 'success');
         }
       } else {
-        setVerifiedView('company_login');
+        const isPlatform = await resolvePlatformAdmin();
+        if (!isPlatform) {
+          setVerifiedView('company_login');
+        }
       }
       return result;
     } catch (err) {
@@ -1013,7 +1037,19 @@ export default function AuthGate({children}) {
               </button>
             </div>
 
-            <button type="button" className="auth-btn-ghost" disabled={busy} onClick={handleLogout} style={{ marginTop: '16px' }}>
+            <div className="auth-action-divider" style={{ margin: '16px 0 12px 0' }}></div>
+
+            <button
+              type="button"
+              className="auth-btn-ghost"
+              disabled={busy}
+              onClick={() => enter('linker_x_hq')}
+              style={{ width: '100%', marginBottom: '8px', fontSize: '0.85rem' }}
+            >
+              👑 플랫폼 슈퍼관리자 콘솔 입장
+            </button>
+
+            <button type="button" className="auth-btn-ghost" disabled={busy} onClick={handleLogout} style={{ marginTop: '8px' }}>
               로그아웃
             </button>
           </>
