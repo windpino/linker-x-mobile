@@ -475,21 +475,11 @@ export default function AuthGate({children}) {
         <h1>링커엑스</h1>
         <p className="auth-subtext">내 계정으로 인증하고, 승인받은 회사에서 업무를 시작하세요.</p>
 
-        {isProdVerifyMode ? (
-          isEmulatorAttached ? (
-            <div className="auth-badge-status failure">
-              🚨 안전 실패: 운영 인증 검증 모드이나 127.0.0.1:9099 에뮬레이터에 연결되었습니다.
-            </div>
-          ) : (
-            <div className="auth-badge-status prod-verify">
-              🛡️ 운영 Firebase Auth 검증 모드 (link-x-6606e) · 운영 Firestore 쓰기 원천 차단됨
-            </div>
-          )
-        ) : authTargetMode === 'emulator' ? (
-          <div className="auth-badge-status emulator">
-            🧪 격리된 로컬 에뮬레이터 환경 (127.0.0.1:9099)
+        {isProdVerifyMode && isEmulatorAttached && (
+          <div className="auth-badge-status failure">
+            🚨 안전 실패: 운영 인증 검증 모드이나 127.0.0.1:9099 에뮬레이터에 연결되었습니다.
           </div>
-        ) : null}
+        )}
 
         {message && (
           <div className={`auth-msg ${messageType}`} role={messageType === 'error' ? 'alert' : 'status'}>
@@ -586,26 +576,22 @@ export default function AuthGate({children}) {
             ) : (
               <>
                 <h2 className="auth-mode-title">회원가입</h2>
-                <p className="auth-desc">가입 목적을 선택한 뒤 Google 계정 또는 이메일로 가입해 주세요.</p>
-
-                <div className="auth-type-cards">
-                  <div
-                    className={`auth-type-card ${signupTarget === 'new_tenant' ? 'selected' : ''}`}
+                <div className="auth-pill-selector">
+                  <button
+                    type="button"
+                    className={`auth-pill ${signupTarget === 'new_tenant' ? 'active' : ''}`}
                     onClick={() => setSignupTarget('new_tenant')}
                   >
-                    <div className="auth-type-card-title">🏢 새 회원사 등록 (대표자)</div>
-                    <div className="auth-type-card-desc">링커엑스에 새로운 회사(회원사)를 신규 개설하고 대표 권한을 신청합니다. (슈퍼관리자 승인 필요)</div>
-                  </div>
-                  <div
-                    className={`auth-type-card ${signupTarget === 'existing_tenant' ? 'selected' : ''}`}
+                    🏢 새 회원사 개설 (대표)
+                  </button>
+                  <button
+                    type="button"
+                    className={`auth-pill ${signupTarget === 'existing_tenant' ? 'active' : ''}`}
                     onClick={() => setSignupTarget('existing_tenant')}
                   >
-                    <div className="auth-type-card-title">👥 기존 회원사 소속 신청 (직원·거래처)</div>
-                    <div className="auth-type-card-desc">이미 등록된 회원사의 직원 또는 거래처로 소속을 신청합니다. (해당 회사 관리자 승인 필요)</div>
-                  </div>
+                    👥 기존 회원사 소속 (직원·거래처)
+                  </button>
                 </div>
-
-                <div className="auth-action-divider"><span>가입 방식 선택</span></div>
 
                 <button
                   type="button"
@@ -658,18 +644,18 @@ export default function AuthGate({children}) {
                     />
                   </label>
                   <button type="submit" className="auth-btn-primary" disabled={busy}>
-                    {busy ? '가입 처리 중...' : '이메일 계정 생성 및 인증 메일 받기'}
+                    {busy ? '가입 처리 중...' : '가입하고 인증 메일 받기'}
                   </button>
                 </form>
 
-                <div className="auth-button-group">
+                <div className="auth-button-group" style={{ justifyContent: 'center' }}>
                   <button
                     type="button"
-                    className="auth-btn-secondary"
+                    className="auth-btn-text"
                     disabled={busy}
                     onClick={() => { setViewMode('login'); setMessage(''); }}
                   >
-                    로그인으로 돌아가기
+                    이미 계정이 있으신가요? 로그인
                   </button>
                 </div>
               </>

@@ -77,6 +77,36 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
+/* Pill Selector for Signup type */
+.auth-pill-selector {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  margin: 10px 0 16px;
+  gap: 4px;
+}
+
+.auth-pill {
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-pill.active {
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
 /* 가입 대상 선택 카드 (새 회원사 vs 기존 회원사) */
 .auth-type-cards {
   display: flex;
