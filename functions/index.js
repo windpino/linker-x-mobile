@@ -211,18 +211,24 @@ export const platformOverview = onCall(opts, async req => {
   if (after) companiesQuery = companiesQuery.startAfter(after);
   const snapshot = await companiesQuery.get();
   const page = snapshot.docs.slice(0, 50);
-  const traffic = await db.collection('telemetry_traffic').where('date', '==', date).limit(201).get();
   const trafficByCompany = new Map();
-  for (const document of traffic.docs) {
-    const value = document.data();
-    if (typeof value.companyId === 'string') trafficByCompany.set(value.companyId, value);
+  const expectedIds = new Map(page.map(company => [`${company.id}_${date}`, company.id]));
+  const telemetryIds = [...expectedIds.keys()];
+  // Query only this page. Firestore supports up to 30 IDs per in query.
+  for (let offset = 0; offset < telemetryIds.length; offset += 30) {
+    const traffic = await db.collection('telemetry_traffic')
+      .where(FieldPath.documentId(), 'in', telemetryIds.slice(offset, offset + 30)).get();
+    for (const document of traffic.docs) {
+      const value = document.data();
+      const companyId = expectedIds.get(document.id);
+      if (value.companyId === companyId && value.date === date) trafficByCompany.set(companyId, value);
+    }
   }
   const counter = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
   return {
     date,
     source: 'application_telemetry',
     coverage: 'partial',
-    telemetryLimited: traffic.size > 200,
     nextAfter: snapshot.size > 50 ? page.at(-1).id : null,
     companies: page.map(document => {
       const company = document.data();

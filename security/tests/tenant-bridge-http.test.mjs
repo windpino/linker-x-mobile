@@ -56,6 +56,13 @@ test('verified platform admin sees allowlisted companies and partial telemetry o
   await db.doc('companies/PLATFORM_FIXTURE').set({name:'Fixture Platform Company',status:'active',password:'PLATFORM_FIXTURE_SECRET',credentials:{secret:'PRIVATE_FIXTURE'}});
   const date = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
   await db.doc(`telemetry_traffic/PLATFORM_FIXTURE_${date}`).set({companyId:'PLATFORM_FIXTURE',date,reads:0,writes:2,bytes:0});
+  const batch = db.batch();
+  for (let i = 0; i < 201; i++) {
+    const companyId = `AAA_NOISE_${i}`;
+    batch.set(db.doc(`telemetry_traffic/${companyId}_${date}`), {companyId,date,reads:1});
+  }
+  batch.set(db.doc(`telemetry_traffic/BRIDGE_${date}`), {companyId:'OTHER_BRIDGE',date,reads:999});
+  await batch.commit();
   const result = await call('platformOverview', {});
   const company = result.companies.find(item => item.id === 'PLATFORM_FIXTURE');
   assert.equal(company.reads,0);
@@ -67,6 +74,19 @@ test('verified platform admin sees allowlisted companies and partial telemetry o
   const missing = result.companies.find(item => item.id === 'BRIDGE');
   assert.equal(missing.reads,null);
   assert.equal(missing.collectionStatus,'uncollected');
+  assert.equal(result.companies.find(item => item.id === 'OTHER_BRIDGE').reads,null);
+  const pageBatch = db.batch();
+  for (let i = 0; i < 49; i++) pageBatch.set(db.doc(`companies/AAA_PAGE_${i}`), {});
+  const lastOnFirstPage = 'AAA_PAGE_9';
+  pageBatch.set(db.doc(`telemetry_traffic/${lastOnFirstPage}_${date}`), {companyId:lastOnFirstPage,date,reads:4});
+  await pageBatch.commit();
+  const firstPage = await call('platformOverview', {});
+  assert.equal(firstPage.companies.length,50);
+  assert.equal(firstPage.companies.find(item => item.id === lastOnFirstPage).reads,4);
+  assert.equal(firstPage.companies.some(item => item.id === 'PLATFORM_FIXTURE'),false);
+  const secondPage = await call('platformOverview', {after:firstPage.nextAfter});
+  assert.equal(secondPage.companies.find(item => item.id === 'PLATFORM_FIXTURE').reads,0);
+  assert.equal(secondPage.nextAfter,null);
   await db.doc(`platformAccess/${accounts.admin.uid}`).update({status:'revoked'});
   await denied(() => call('platformOverview', {}));
 });

@@ -48,7 +48,6 @@ export default function PlatformConsole({ session }) {
         <td>{company.collectionStatus === 'uncollected' ? '미수집' : '부분 수집'}</td>
       </tr>)}</tbody>
     </table>
-    {pages.some(page => page.telemetryLimited) && <p>수집 조회 한도에 도달했습니다. 일부 회사의 수치는 표시되지 않을 수 있습니다.</p>}
     {nextAfter && <button disabled={busy} onClick={() => load(nextAfter)}>다음 회사 보기</button>}
   </section></main>;
 }
