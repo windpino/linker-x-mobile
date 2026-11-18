@@ -477,15 +477,19 @@ export default function AuthGate({children}) {
   const isProdVerifyMode = authTargetMode === 'production-auth-only';
 
   if (session?.role === 'partner') return <PartnerOrders session={session} />;
-  if (session?.authRole === 'platform_admin' || (session && manage)) {
-    return <MembershipAdmin session={session} onBack={session.authRole === 'tenant_admin' ? () => setManage(false) : undefined} />;
+  if (session && manage) {
+    return <MembershipAdmin session={session} onBack={() => setManage(false)} />;
   }
   if (session) {
     return (
       <>
-        {session.authRole === 'tenant_admin' && (
-          <button className="auth-admin-toggle" onClick={() => setManage(true)}>
-            소속 승인 관리
+        {(session.authRole === 'tenant_admin' || session.authRole === 'platform_admin') && (
+          <button 
+            className="auth-admin-toggle" 
+            onClick={() => setManage(true)}
+            style={session.authRole === 'platform_admin' ? { top: '16px', right: '16px', zIndex: 99999 } : undefined}
+          >
+            {session.authRole === 'platform_admin' ? '🛡️ 신규 회원사 승인 관리' : '소속 승인 관리'}
           </button>
         )}
         {children(session)}
