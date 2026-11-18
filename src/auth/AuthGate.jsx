@@ -582,14 +582,14 @@ export default function AuthGate({children}) {
                     className={`auth-pill ${signupTarget === 'new_tenant' ? 'active' : ''}`}
                     onClick={() => setSignupTarget('new_tenant')}
                   >
-                    🏢 새 회원사 개설 (대표)
+                    🏢 새 회원사(대표)
                   </button>
                   <button
                     type="button"
                     className={`auth-pill ${signupTarget === 'existing_tenant' ? 'active' : ''}`}
                     onClick={() => setSignupTarget('existing_tenant')}
                   >
-                    👥 기존 회원사 소속 (직원·거래처)
+                    👥 기존 회원사(직원/거래처)
                   </button>
                 </div>
 

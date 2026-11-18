@@ -94,10 +94,15 @@
   border-radius: 8px;
   background: transparent;
   color: #64748b;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
 }
 
 .auth-pill.active {
