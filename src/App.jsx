@@ -4742,7 +4742,7 @@ function App({ authSession }) {
   if (currentView === 'super_admin') {
     return (
       <SuperAdmin 
-        onClose={() => setCurrentView('login')} 
+        onClose={handleLogout} 
         onEnterCompany={(id) => {
           hydratedCompanyRef.current = null;
           setSyncedCollections({});
@@ -4896,7 +4896,7 @@ function App({ authSession }) {
   if (currentView === 'signup') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
   if (currentView === 'super_admin') {
-    return <SuperAdmin onClose={() => setCurrentView('login')} />;
+    return <SuperAdmin onClose={handleLogout} />;
   }
 
   const getAgentContext = () => {

@@ -65,7 +65,7 @@ const Header = ({
       title: '플랫폼 관리',
       category: '플랫폼',
       action: onOpenPlatformManager,
-      perm: currentUser?.role === 'super_admin',
+      perm: currentUser?.role === 'super_admin' || currentUser?.isPlatformAdmin === true || currentUser?.claims?.superAdmin === true || currentUser?.claims?.platform_admin === true,
     },
     // 기초자료등록
     {

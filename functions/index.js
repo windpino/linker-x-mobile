@@ -1,4 +1,5 @@
 import { collectionPolicy, hasCapability, canReadCollection, canWriteCollection, publicBusiness, directoryProjection } from './tenantPolicy.js';
+import { generateVerificationEmailHtml, generateVerificationEmailPlainText } from './emailTemplates.js';
 import { createHash } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
@@ -19,6 +20,10 @@ const compoundId = (...parts) => createHash('sha256').update(JSON.stringify(part
 const requestRef = (uid,cid) => db.doc(`signupRequests/${compoundId(uid,cid)}`);
 const platformRef = (uid) => db.doc(`platformAccess/${uid}`);
 function active(data) { return data?.status === 'active'; }
+function hasPlatformAdminClaim(req) {
+  const token = req.auth?.token || {};
+  return token.superAdmin === true || token.platform_admin === true || token.role === 'super_admin';
+}
 function sessionUser(uid, cid, membership, profile) {
   // Explicit allowlist: never return legacy password, role, permissions or flags.
   const safe = {};
@@ -34,7 +39,7 @@ export const authSession = onCall(opts, async req => {
   const cid = id(req.data?.companyId);
   if (cid === 'linker_x_hq') {
     const p = (await platformRef(account.uid).get()).data();
-    if (!active(p)) throw new HttpsError('permission-denied','플랫폼 관리자 승인이 필요합니다.');
+    if (!active(p) && !hasPlatformAdminClaim(req)) throw new HttpsError('permission-denied','플랫폼 관리자 승인이 필요합니다.');
     return sessionUser(account.uid,cid,{role:'platform_admin',legacyId:account.uid,permissions:{}},{name:account.displayName || '관리자'});
   }
   const [m,c] = await Promise.all([membershipRef(account.uid,cid).get(),db.doc(`companies/${cid}`).get()]);
@@ -74,7 +79,7 @@ export const approveMembership = onCall(opts, async req => {
     const companyRef = db.doc(`companies/${cid}`), company = await tx.get(companyRef);
     const rref = requestRef(targetUid,cid), r = await tx.get(rref), data = r.data();
     if (!data || data.status !== 'pending' || data.uid !== targetUid || data.companyId !== cid) throw new HttpsError('failed-precondition','대기 신청이 없습니다.');
-    const platform = active(p.data());
+    const platform = active(p.data()) || hasPlatformAdminClaim(req);
     if (!platform && !(active(admin.data()) && admin.data().companyId === cid && admin.data().role === 'tenant_admin' && active(company.data()))) throw new HttpsError('permission-denied','관리자 승인이 필요합니다.');
     if (data.role === 'tenant_admin' && !platform) throw new HttpsError('permission-denied','대표 권한은 플랫폼 관리자만 승인합니다.');
     const legacyId = id(data.legacyId), kind = data.role === 'partner' ? 'partners' : 'staffList';
@@ -98,11 +103,101 @@ export const approveMembership = onCall(opts, async req => {
   return {status:'approved'};
 });
 export const listMembershipRequests = onCall(opts,async req=>{
- const actor=await identity(req),cid=id(req.data?.companyId);
- const [p,m,c]=await Promise.all([platformRef(actor.uid).get(),membershipRef(actor.uid,cid).get(),db.doc(`companies/${cid}`).get()]);
- if(!active(p.data())&&!(active(m.data())&&m.data().companyId===cid&&m.data().role==='tenant_admin'&&active(c.data())))throw new HttpsError('permission-denied','관리자 권한이 필요합니다.');
- const records=await db.collection('signupRequests').where('companyId','==',cid).limit(100).get();
- return records.docs.map(d=>{const r=d.data();return {uid:r.uid,companyId:r.companyId,legacyId:r.legacyId,role:r.role,status:r.status,profile:r.profile,contactId:r.contactId||'primary'};});
+  const actor=await identity(req);
+  const p = await platformRef(actor.uid).get();
+  const platform = active(p.data()) || hasPlatformAdminClaim(req);
+  const rawCid = req.data?.companyId;
+
+  if (platform && (!rawCid || rawCid === 'linker_x_hq' || rawCid === 'all')) {
+    const records = await db.collection('signupRequests').limit(100).get();
+    return records.docs.map(d => {
+      const r = d.data();
+      return { id: d.id, uid: r.uid, companyId: r.companyId, legacyId: r.legacyId, role: r.role, status: r.status, profile: r.profile, contactId: r.contactId || 'primary', createdAt: r.createdAt };
+    });
+  }
+
+  const cid = id(rawCid);
+  const [m, c] = await Promise.all([membershipRef(actor.uid, cid).get(), db.doc(`companies/${cid}`).get()]);
+  if (!platform && !(active(m.data()) && m.data().companyId === cid && m.data().role === 'tenant_admin' && active(c.data()))) {
+    throw new HttpsError('permission-denied', '관리자 권한이 필요합니다.');
+  }
+  const records = await db.collection('signupRequests').where('companyId', '==', cid).limit(100).get();
+  return records.docs.map(d => {
+    const r = d.data();
+    return { id: d.id, uid: r.uid, companyId: r.companyId, legacyId: r.legacyId, role: r.role, status: r.status, profile: r.profile, contactId: r.contactId || 'primary', createdAt: r.createdAt };
+  });
+});
+
+export const getMyRegistrationStatus = onCall(opts, async req => {
+  const account = await identity(req);
+  const uid = account.uid;
+
+  // 1. Check if user already has an active company membership (check for tenant_admin first)
+  const membershipsSnap = await db.collection(`authz/${uid}/companies`).where('status', '==', 'active').limit(10).get();
+  if (!membershipsSnap.empty) {
+    const activeMembers = membershipsSnap.docs.map(d => d.data());
+    const adminMem = activeMembers.find(m => m.role === 'tenant_admin');
+    const target = adminMem || activeMembers[0];
+    if (target) {
+      const compDoc = await db.doc(`companies/${target.companyId}`).get();
+      if (active(compDoc.data())) {
+        return {
+          status: 'approved',
+          companyId: target.companyId,
+          companyName: compDoc.data()?.name || target.companyId,
+          role: target.role,
+          isTenantAdmin: target.role === 'tenant_admin'
+        };
+      }
+    }
+  }
+
+  // 2. Check signupRequests for this UID
+  const requestsSnap = await db.collection('signupRequests').where('uid', '==', uid).limit(10).get();
+  if (!requestsSnap.empty) {
+    const requests = requestsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort descending by createdAt
+    requests.sort((a, b) => {
+      const ta = a.createdAt?._seconds || a.createdAt?.seconds || (a.createdAt instanceof Date ? a.createdAt.getTime() / 1000 : 0);
+      const tb = b.createdAt?._seconds || b.createdAt?.seconds || (b.createdAt instanceof Date ? b.createdAt.getTime() / 1000 : 0);
+      return tb - ta;
+    });
+
+    const latest = requests[0];
+    if (latest.status === 'pending') {
+      return {
+        status: 'pending',
+        companyId: latest.companyId,
+        companyName: latest.profile?.companyName || latest.companyId,
+        role: latest.role,
+        profile: latest.profile,
+        createdAt: latest.createdAt
+      };
+    }
+    if (latest.status === 'approved') {
+      const memDoc = await db.doc(`authz/${uid}/companies/${latest.companyId}`).get();
+      const mem = memDoc.data();
+      if (active(mem)) {
+        return {
+          status: 'approved',
+          companyId: latest.companyId,
+          companyName: latest.profile?.companyName || latest.companyId,
+          role: mem.role,
+          isTenantAdmin: mem.role === 'tenant_admin'
+        };
+      }
+    }
+    if (latest.status === 'rejected') {
+      return {
+        status: 'rejected',
+        companyId: latest.companyId,
+        companyName: latest.profile?.companyName || latest.companyId,
+        reason: latest.reason || '신청이 반려되었습니다.'
+      };
+    }
+  }
+
+  return { status: 'none' };
 });
 export const updateMembership = onCall(opts,async req=>{
  const actor=await identity(req),cid=id(req.data?.companyId),uid=id(req.data?.uid);
@@ -110,7 +205,8 @@ export const updateMembership = onCall(opts,async req=>{
  await db.runTransaction(async tx=>{
   const [p,m,c,t]=await Promise.all([tx.get(platformRef(actor.uid)),tx.get(membershipRef(actor.uid,cid)),tx.get(db.doc(`companies/${cid}`)),tx.get(membershipRef(uid,cid))]);
   const target=t.data();
-  if(!active(p.data())&&!(active(m.data())&&m.data().companyId===cid&&m.data().role==='tenant_admin'&&active(c.data())&&['tenant_staff','partner'].includes(target?.role)))throw new HttpsError('permission-denied','대상 권한을 수정할 수 없습니다.');
+  const platform = active(p.data()) || hasPlatformAdminClaim(req);
+  if(!platform&&!(active(m.data())&&m.data().companyId===cid&&m.data().role==='tenant_admin'&&active(c.data())&&['tenant_staff','partner'].includes(target?.role)))throw new HttpsError('permission-denied','대상 권한을 수정할 수 없습니다.');
   if(!target||target.companyId!==cid||!['active','revoked'].includes(req.data?.status))throw new HttpsError('invalid-argument','대상 소속 또는 상태를 확인하세요.');
   const permissions={};if(target.role==='tenant_staff')for(const key of ['orders','loading','delivery','invoices','inventory','catalog','reports'])if(req.data?.permissions?.[key]===true)permissions[key]=true;
   tx.update(membershipRef(uid,cid),{permissions,status:req.data.status,updatedBy:actor.uid,updatedAt:FieldValue.serverTimestamp()});
@@ -193,4 +289,25 @@ export const tenantWrite = onCall(opts,async req=>{
   if(req.data.operation==='update'||parts.length===2)tx.update(ref,safe);else tx.set(ref,safe,{merge:req.data.merge===true});
  });
  return {ok:true};
+});
+
+export const generateCustomVerificationEmail = onCall(opts, async req => {
+  const account = await identity(req);
+  const email = account.email;
+  const actionCodeSettings = {
+    url: 'https://link-x-6606e.firebaseapp.com?mode=verifyEmail',
+    handleCodeInApp: true
+  };
+  const link = await getAuth().generateEmailVerificationLink(email, actionCodeSettings);
+  // Important: DO NOT log the verification link anywhere
+  const html = generateVerificationEmailHtml({ link, email });
+  const text = generateVerificationEmailPlainText({ link, email });
+  return {
+    subject: '[링커엑스] 가입을 계속하려면 이메일을 확인해 주세요',
+    from: '링커엑스 <noreply@linker-x.com>',
+    to: email,
+    html,
+    text,
+    status: 'ready'
+  };
 });

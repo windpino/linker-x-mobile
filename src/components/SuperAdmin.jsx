@@ -1,6 +1,8 @@
 import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
+import { callAuth } from '../auth/client';
+import MembershipAdmin from '../auth/MembershipAdmin';
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, getDocs, query, where, writeBatch, getDoc, orderBy } from 'firebase/firestore';
 import { 
   Building2, Calendar, ShieldCheck, X, Search, Plus, Trash2, Edit2, Lock, 
@@ -21,6 +23,30 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 900 : false);
   const [expandedMenus, setExpandedMenus] = useState({ reports: true, agencies: false });
   const [companies, setCompanies] = useState([]);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+
+  const fetchPendingCount = async () => {
+    try {
+      const list = await callAuth('listMembershipRequests', { companyId: 'linker_x_hq' });
+      if (Array.isArray(list)) {
+        const pending = list.filter(r => r.status === 'pending');
+        setPendingApprovalsCount(pending.length);
+      }
+    } catch {
+      try {
+        const stored = JSON.parse(localStorage.getItem('dev_membership_requests') || '[]');
+        if (Array.isArray(stored)) {
+          setPendingApprovalsCount(stored.filter(r => r.status === 'pending').length);
+        }
+      } catch {}
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
+    const timer = setInterval(fetchPendingCount, 15000);
+    return () => clearInterval(timer);
+  }, []);
   const [csHistory, setCsHistory] = useState([]);
   const [notices, setNotices] = useState([]);
   const [masterSchedules, setMasterSchedules] = useState([]);
@@ -1052,6 +1078,30 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <ChevronDown size={14} style={{ opacity: 0.6 }} />
           </button>
 
+          {/* 2-1. 신규회원사 승인 */}
+          <button
+            onClick={() => handleSelectNav('approvals')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'approvals' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'approvals' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'approvals' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <UserCheck size={17} color={activeTab === 'approvals' ? '#ffffff' : '#38bdf8'} />
+              <span>신규회원사 승인</span>
+            </div>
+            {pendingApprovalsCount > 0 ? (
+              <span style={{ fontSize: '0.68rem', backgroundColor: '#ef4444', color: '#ffffff', padding: '1px 7px', borderRadius: '10px', fontWeight: 800 }}>
+                {pendingApprovalsCount}
+              </span>
+            ) : (
+              activeTab === 'approvals' && <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ffffff' }}></span>
+            )}
+          </button>
+
           {/* 3. 직원 관리 */}
           <button
             onClick={() => alert('직원 관리 메뉴로 이동합니다.')}
@@ -1255,7 +1305,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
               alignItems: 'center', justifyContent: 'center', gap: '6px'
             }}
           >
-            <X size={12} /> 관리자 화면 닫기 (메인으로)
+            <X size={12} /> 관리자 화면 닫기 (로그아웃)
           </button>
         </div>
       </aside>
@@ -1320,9 +1370,9 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                 borderRadius: '8px', color: '#475569', fontSize: '0.74rem', fontWeight: 700,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
               }}
-              title="관리자 화면 닫기"
+              title="슈퍼관리자 로그아웃"
             >
-              <X size={14} /> 나가기
+              <X size={14} /> 로그아웃
             </button>
           </div>
         </header>
@@ -1336,6 +1386,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 {activeTab === 'agencies' && '회원사 통합 관리'}
+                {activeTab === 'approvals' && '신규 회원사 가입 및 소속 승인 관리'}
                 {activeTab === 'schedules' && '일정 및 회원사 관리 (마스터 달력)'}
                 {activeTab === 'cs' && '고객 지원 및 상담 내역'}
                 {activeTab === 'notices' && '시스템 공지 사항'}
@@ -1361,6 +1412,17 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {activeTab === 'agencies' && (
                 <>
+                  <button 
+                    onClick={() => setActiveTab('approvals')}
+                    style={{ 
+                      padding: '6px 10px', backgroundColor: '#0284c7', color: 'white', 
+                      border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', 
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' 
+                    }}
+                  >
+                    <UserCheck size={13} />
+                    가입 승인 대기 {pendingApprovalsCount > 0 ? `(${pendingApprovalsCount})` : ''}
+                  </button>
                   <button 
                     onClick={handleGitPush}
                     disabled={isPushing}
@@ -1432,6 +1494,25 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                 setIsScheduleModalOpen(true); 
               }}
             />
+          )}
+          {activeTab === 'approvals' && (
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden', padding: '24px' }}>
+              <MembershipAdmin 
+                session={{
+                  authUid: auth.currentUser?.uid || 'BL1Rp07y5CXPIVJhhiiajfgljN63',
+                  email: auth.currentUser?.email || 'windpino@gmail.com',
+                  authRole: 'platform_admin',
+                  role: 'super_admin',
+                  companyId: 'linker_x_hq',
+                  isPlatformAdmin: true
+                }} 
+                embedded={true}
+                onBack={() => {
+                  setActiveTab('agencies');
+                  fetchPendingCount();
+                }} 
+              />
+            </div>
           )}
           {activeTab === 'agencies' && (
             <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
