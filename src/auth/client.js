@@ -297,8 +297,18 @@ export async function callAuth(name, data) {
         }
         finalCompanyName = targetReq?.profile?.companyName || data?.companyName || '신규 회원사';
 
-        // dev_companies 등록
+        // dev_companies 등록 및 무료 체험(30일) 기간 설정 (재시도 시 리셋 금지)
         const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+        const existingComp = storedCompanies.find(c => c.id === finalCompanyId);
+        let trialStartDate = existingComp?.trialStartDate || null;
+        let trialEndDate = existingComp?.trialEndDate || null;
+        if (!trialStartDate) {
+          const now = new Date();
+          trialStartDate = now.toISOString();
+          const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          trialEndDate = end.toISOString().split('T')[0];
+        }
+
         const newComp = {
           id: finalCompanyId,
           name: finalCompanyName,
@@ -308,9 +318,11 @@ export async function callAuth(name, data) {
           email: targetReq?.email || data?.email || '',
           status: 'active',
           category: '신규등록',
-          expiryDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          plan: '체험판 (60일)',
-          monthlyFee: 100000
+          trialStartDate,
+          trialEndDate,
+          expiryDate: trialEndDate,
+          plan: '무료 체험판 (30일)',
+          monthlyFee: 0
         };
         const cIdx = storedCompanies.findIndex(c => c.id === finalCompanyId);
         if (cIdx >= 0) storedCompanies[cIdx] = newComp;
@@ -402,12 +414,21 @@ export async function callAuth(name, data) {
       const adminMem = userMemberships.find(m => m.role === 'tenant_admin') || userMemberships[0];
 
       if (adminMem) {
+        const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+        const comp = storedCompanies.find(c => c.id === adminMem.companyId);
+        const trialEndDate = comp?.trialEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const diffMs = new Date(trialEndDate).getTime() - new Date().setHours(0, 0, 0, 0);
+        const trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
         return {
           status: 'approved',
           companyId: adminMem.companyId,
-          companyName: adminMem.companyName || adminMem.companyId,
+          companyName: comp?.name || adminMem.companyName || adminMem.companyId,
           role: adminMem.role,
-          isTenantAdmin: adminMem.role === 'tenant_admin'
+          isTenantAdmin: adminMem.role === 'tenant_admin',
+          trialStartDate: comp?.trialStartDate || new Date().toISOString(),
+          trialEndDate,
+          trialDaysRemaining
         };
       }
 

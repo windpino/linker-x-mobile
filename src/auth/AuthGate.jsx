@@ -185,8 +185,16 @@ export default function AuthGate({children}) {
       const res = await callAuth('getMyRegistrationStatus');
       setRegData(res);
       if (res.status === 'approved' && res.companyId) {
-        // Condition C: 승인 완료이고 권한 확인되면, 회사 ID를 다시 입력하지 않고 승인된 회사로 자동 입장
-        await enter(res.companyId);
+        // 승인 및 활성화 완료: '회사 업무 시작' 버튼과 무료 이용 종료일을 표시
+        setVerifiedView('awaiting_tenant_approval');
+        setForm(f => ({
+          ...f,
+          companyId: res.companyId || f.companyId,
+          companyName: res.companyName || res.profile?.companyName || f.companyName,
+          name: res.profile?.name || f.name,
+          phone: res.profile?.phone || f.phone
+        }));
+        showMsg(`[${res.companyName || res.companyId}] 회원사 승인이 완료되었습니다. 업무를 시작해 주세요!`, 'success');
       } else if (res.status === 'pending') {
         // Condition A: 접수 완료·검토 중이면 회원사 승인 대기 화면을 표시하고 재등록/회사 ID 입력 숨김
         setVerifiedView('awaiting_tenant_approval');
@@ -1036,80 +1044,159 @@ export default function AuthGate({children}) {
               </>
             ) : (
               <>
-                <h2 className="auth-mode-title">회원가입</h2>
-                <div className="auth-pill-selector">
-                  <button
-                    type="button"
-                    className={`auth-pill ${signupTarget === 'new_tenant' ? 'active' : ''}`}
-                    onClick={() => setSignupTarget('new_tenant')}
-                  >
-                    🏢 새 회원사(대표)
-                  </button>
-                  <button
-                    type="button"
-                    className={`auth-pill ${signupTarget === 'existing_tenant' ? 'active' : ''}`}
-                    onClick={() => setSignupTarget('existing_tenant')}
-                  >
-                    👥 기존 회원사(직원/거래처)
-                  </button>
+                {/* 30일 무료 체험 프로모션 헤더 */}
+                <div className="auth-trial-hero">
+                  <div className="auth-badge-trial">✨ 30일 무료 체험 프로모션</div>
+                  <h2 className="auth-trial-headline">주문부터 배송까지, 한 달 무료로 써보세요</h2>
+                  <p className="auth-trial-sub">
+                    주문 수집, 상차 검수, 모바일 현장 전표 발행까지 원스톱으로 처리하는 통합 물류 솔루션
+                  </p>
                 </div>
 
+                {/* 3대 핵심 기능 실제 제품 화면 미니 프리뷰 */}
+                <div className="auth-preview-grid">
+                  {/* 1. 주문 통합 */}
+                  <div className="auth-preview-card">
+                    <div className="preview-card-header">
+                      <div className="preview-card-title">📦 주문 통합 관리</div>
+                      <span className="preview-card-tag">스마트 수주</span>
+                    </div>
+                    <p className="preview-card-desc">카톡·전화·엑셀 주문을 한곳에서 자동 집계하고 단가와 미수금을 실시간 연동합니다.</p>
+                    <div className="preview-mini-screen">
+                      <div className="mini-screen-header">
+                        <span>수주서 ORD-2026-001</span>
+                        <span className="mini-screen-badge mini-badge-blue">접수완료</span>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>거래처</span>
+                        <strong>남해낚시마트 (미수 120만원)</strong>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>품목</span>
+                        <span>동명 고급 크릴 1kg × 50개 (275,000원)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. 상차 체크 */}
+                  <div className="auth-preview-card">
+                    <div className="preview-card-header">
+                      <div className="preview-card-title">🚚 상차 검수 체크</div>
+                      <span className="preview-card-tag">모바일 실시간</span>
+                    </div>
+                    <p className="preview-card-desc">창고 재고 파악부터 배송 차량별 적재 수량을 현장에서 모바일로 즉시 대조합니다.</p>
+                    <div className="preview-mini-screen">
+                      <div className="mini-screen-header">
+                        <span>1호 탑차 (부산80바1234)</span>
+                        <span className="mini-screen-badge mini-badge-green">상차 100% 완료</span>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>출고창고</span>
+                        <span>메인냉동창고</span>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>검수현황</span>
+                        <strong>[✓] 크릴 50개 [✓] 각크릴 30개 적재</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. 현장 전표 발행 */}
+                  <div className="auth-preview-card">
+                    <div className="preview-card-header">
+                      <div className="preview-card-title">🧾 현장 전표 발행</div>
+                      <span className="preview-card-tag">원클릭 공유</span>
+                    </div>
+                    <p className="preview-card-desc">배송지 현장에서 즉시 전자 매출전표를 발행하고 문자나 카톡으로 명세서를 전송합니다.</p>
+                    <div className="preview-mini-screen">
+                      <div className="mini-screen-header">
+                        <span>매출전표 INV-2026-001</span>
+                        <span className="mini-screen-badge mini-badge-amber">발행완료</span>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>공급가액 / 세액</span>
+                        <span>250,000원 / 25,000원</span>
+                      </div>
+                      <div className="mini-screen-row">
+                        <span>합계 / 전송</span>
+                        <strong>275,000원 (카톡 명세서 전송)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 주요 액션 버튼: 회원사 무료 체험 신청 */}
                 <button
                   type="button"
-                  className="auth-btn-google"
-                  disabled={busy}
-                  onClick={() => handleGoogleAuth(true)}
+                  className="auth-btn-trial-main"
+                  onClick={() => {
+                    setSignupTarget('new_tenant');
+                    const formEl = document.getElementById('signup-form-anchor');
+                    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  Google 계정으로 가입
+                  🚀 회원사 무료 체험 신청
                 </button>
 
-                <div className="auth-action-divider"><span>또는 이메일로 가입</span></div>
-
-                <form onSubmit={handleEmailSignup} className="auth-form">
-                  <label>
-                    이메일
-                    <input
-                      type="email"
-                      name="email"
-                      autoComplete="email"
-                      required
-                      placeholder="user@example.com"
-                      value={form.email}
-                      onChange={change}
-                    />
-                  </label>
-                  <label>
-                    비밀번호
-                    <input
-                      type="password"
-                      name="password"
-                      autoComplete="new-password"
-                      minLength={6}
-                      required
-                      placeholder="6자리 이상 비밀번호"
-                      value={form.password}
-                      onChange={change}
-                    />
-                  </label>
-                  <label>
-                    비밀번호 확인
-                    <input
-                      type="password"
-                      name="passwordConfirm"
-                      autoComplete="new-password"
-                      minLength={6}
-                      required
-                      placeholder="비밀번호 재입력"
-                      value={form.passwordConfirm}
-                      onChange={change}
-                    />
-                  </label>
-                  <button type="submit" className="auth-btn-primary" disabled={busy}>
-                    {busy ? '가입 처리 중...' : '가입하고 인증 메일 받기'}
+                {/* 가입 양식 (기존 이메일 인증 & 회사 정보 입력 연계) */}
+                <div id="signup-form-anchor" style={{ marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="auth-btn-google"
+                    disabled={busy}
+                    onClick={() => { setSignupTarget('new_tenant'); handleGoogleAuth(true); }}
+                  >
+                    Google 계정으로 가입
                   </button>
-                </form>
 
-                <div className="auth-button-group" style={{ justifyContent: 'center' }}>
+                  <div className="auth-action-divider"><span>또는 이메일로 가입</span></div>
+
+                  <form onSubmit={handleEmailSignup} className="auth-form">
+                    <label>
+                      이메일
+                      <input
+                        type="email"
+                        name="email"
+                        autoComplete="email"
+                        required
+                        placeholder="user@example.com"
+                        value={form.email}
+                        onChange={change}
+                      />
+                    </label>
+                    <label>
+                      비밀번호
+                      <input
+                        type="password"
+                        name="password"
+                        autoComplete="new-password"
+                        minLength={6}
+                        required
+                        placeholder="6자리 이상 비밀번호"
+                        value={form.password}
+                        onChange={change}
+                      />
+                    </label>
+                    <label>
+                      비밀번호 확인
+                      <input
+                        type="password"
+                        name="passwordConfirm"
+                        autoComplete="new-password"
+                        minLength={6}
+                        required
+                        placeholder="비밀번호 재입력"
+                        value={form.passwordConfirm}
+                        onChange={change}
+                      />
+                    </label>
+                    <button type="submit" className="auth-btn-primary" disabled={busy}>
+                      {busy ? '가입 처리 중...' : '30일 무료 체험 가입하고 인증 메일 받기'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="auth-button-group" style={{ flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
                   <button
                     type="button"
                     className="auth-btn-text"
@@ -1117,6 +1204,19 @@ export default function AuthGate({children}) {
                     onClick={() => { setViewMode('login'); setMessage(''); }}
                   >
                     이미 계정이 있으신가요? 로그인
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-btn-text"
+                    style={{ fontSize: '0.82rem', color: '#64748b' }}
+                    disabled={busy}
+                    onClick={() => {
+                      setSignupTarget('existing_tenant');
+                      setVerifiedView('existing_tenant_form');
+                      setMessage('기존 등록된 회원사의 직원 또는 거래처 정보를 입력해 주세요.');
+                    }}
+                  >
+                    기존 회원사의 직원·거래처이신가요? 소속 신청
                   </button>
                 </div>
               </>
@@ -1310,42 +1410,121 @@ export default function AuthGate({children}) {
           </>
         ) : verifiedView === 'awaiting_tenant_approval' ? (
           /* ─────────────────────────────────────────────────────────────
-              3-B. 새 회원사 등록 신청 완료: 슈퍼관리자 승인 대기
+              3-B. 회원사 등록 신청 완료 / 활성화 안내 화면
           ───────────────────────────────────────────────────────────── */
-          <>
-            <div className="auth-badge-status warning">회원사 승인 대기</div>
-            <h2 className="auth-mode-title">회원사 승인 대기</h2>
-            <p className="auth-desc">
-              신규 회원사 <strong>[{regData?.companyName || form.companyName || form.companyId}]</strong> 등록 신청이 접수되었습니다.<br />
-              새 회원사 신청은 <strong>링커엑스 슈퍼관리자</strong>가 검토 및 승인합니다. 승인 전에는 회사 업무 데이터에 접근할 수 없습니다.
-            </p>
+          regData?.status === 'approved' ? (
+            /* 활성화 완료 상태: '회사 업무 시작' 버튼과 무료 이용 종료일 표시 */
+            <>
+              <div className="auth-badge-status success">회원사 활성화 완료</div>
+              <h2 className="auth-mode-title">회원사 이용이 활성화되었습니다</h2>
+              <p className="auth-desc">
+                <strong>[{regData?.companyName || form.companyName || '등록 회원사'}]</strong>의 심사가 승인되어 정식 등록되었습니다.
+              </p>
 
-            <div className="auth-user-info-box">
-              <p><strong>회사명:</strong> {regData?.companyName || form.companyName || '미지정'} (ID: <code>{regData?.companyId || form.companyId}</code>)</p>
-              <p><strong>대표자:</strong> {regData?.profile?.name || form.name} ({regData?.profile?.phone || form.phone})</p>
-              <p><strong>신청 계정:</strong> {identity.email} <span className="auth-verified-tag">인증됨</span></p>
-              <p><strong>승인 상태:</strong> <span className="auth-badge-status warning" style={{ display: 'inline', padding: '2px 8px' }}>접수 완료 · 검토 중</span></p>
-            </div>
+              <div className="auth-trial-active-box">
+                <div className="auth-trial-active-title">🎉 첫 30일 무료 이용 혜택 시작</div>
+                <div className="auth-trial-active-date">
+                  무료 이용 종료일: {regData?.trialEndDate || '2026-12-20'} {regData?.trialDaysRemaining != null ? `(D-${regData.trialDaysRemaining})` : ''}
+                </div>
+                <p className="auth-trial-active-desc">
+                  주문 통합 관리 · 실시간 상차 체크 · 모바일 현장 전표를 제한 없이 자유롭게 이용하세요.
+                </p>
+              </div>
 
-            <div className="auth-action-stack">
-              <button
-                type="button"
-                className="auth-btn-primary"
-                disabled={busy || regLoading}
-                onClick={() => checkRegistrationStatus()}
-              >
-                {busy || regLoading ? '승인 상태 확인 중...' : '슈퍼관리자 승인 확인 후 입장'}
-              </button>
-              <button
-                type="button"
-                className="auth-btn-ghost"
-                disabled={busy}
-                onClick={handleLogout}
-              >
-                로그아웃
-              </button>
-            </div>
-          </>
+              <div className="auth-user-info-box">
+                <p><strong>회사명:</strong> {regData?.companyName || form.companyName || '미지정'} (ID: <code>{regData?.companyId || form.companyId}</code>)</p>
+                <p><strong>대표자:</strong> {regData?.profile?.name || form.name} ({regData?.profile?.phone || form.phone})</p>
+                <p><strong>인증 계정:</strong> {identity.email} <span className="auth-verified-tag">인증됨</span></p>
+                <p><strong>계정 권한:</strong> <span className="auth-badge-status success" style={{ display: 'inline', padding: '2px 8px' }}>회사 관리자 (Admin)</span></p>
+              </div>
+
+              <div className="auth-action-stack">
+                <button
+                  type="button"
+                  className="auth-btn-trial-main"
+                  disabled={busy}
+                  onClick={() => enter(regData.companyId)}
+                >
+                  🚀 회사 업무 시작
+                </button>
+                <button
+                  type="button"
+                  className="auth-btn-ghost"
+                  disabled={busy}
+                  onClick={handleLogout}
+                >
+                  로그아웃
+                </button>
+              </div>
+            </>
+          ) : (
+            /* 심사/승인 대기 상태: '회원사 등록 신청을 받았습니다' + 회사명 + '신청 상태 확인' 버튼 + '첫 30일 무료 이용' 시작 기준 안내 */
+            <>
+              <div className="auth-badge-status warning">등록 신청 접수 완료</div>
+              <h2 className="auth-mode-title">회원사 등록 신청을 받았습니다</h2>
+              <p className="auth-desc">
+                신청 회사: <strong>[{regData?.companyName || form.companyName || form.companyId || '신규 회원사'}]</strong><br />
+                링커엑스 슈퍼관리자가 등록 정보를 검토 중입니다. 심사가 완료되면 바로 업무를 시작할 수 있습니다.
+              </p>
+
+              <div className="auth-action-stack" style={{ margin: '14px 0 18px 0' }}>
+                <button
+                  type="button"
+                  className="auth-btn-primary"
+                  disabled={busy || regLoading}
+                  onClick={() => checkRegistrationStatus()}
+                >
+                  {busy || regLoading ? '신청 상태 확인 중...' : '신청 상태 확인'}
+                </button>
+              </div>
+
+              <div className="auth-user-info-box">
+                <p><strong>신청 회사명:</strong> {regData?.companyName || form.companyName || '미지정'}</p>
+                <p><strong>담당자(대표자):</strong> {regData?.profile?.name || form.name} ({regData?.profile?.phone || form.phone})</p>
+                <p><strong>인증 계정:</strong> {identity.email} <span className="auth-verified-tag">인증됨</span></p>
+                <p><strong>진행 상태:</strong> <span className="auth-badge-status warning" style={{ display: 'inline', padding: '2px 8px' }}>심사 대기 중</span></p>
+              </div>
+
+              {/* 하단: 첫 30일 무료 이용 안내 및 시작 기준 */}
+              <div className="auth-trial-info-box">
+                <div className="auth-trial-info-header">
+                  <span>🎁</span>
+                  <span>첫 30일 무료 이용 안내</span>
+                </div>
+                <ul className="auth-trial-rule-list">
+                  <li className="auth-trial-rule-item">
+                    <span className="rule-icon">📅</span>
+                    <div>
+                      <strong>시작 기준:</strong> 무료 이용 기간(30일)은 슈퍼관리자의 심사 완료 후 <u>회사 이용이 처음 활성화된 날</u>을 기준으로 기록 및 시작됩니다.
+                    </div>
+                  </li>
+                  <li className="auth-trial-rule-item">
+                    <span className="rule-icon">🛡️</span>
+                    <div>
+                      <strong>기간 보장:</strong> 동일 회사의 재신청이나 승인 재시도로 무료 이용 기간이 다시 시작(리셋)되지 않고, 활성화된 날로부터 30일간 안전하게 보장됩니다.
+                    </div>
+                  </li>
+                  <li className="auth-trial-rule-item">
+                    <span className="rule-icon">🚀</span>
+                    <div>
+                      <strong>활성화 후 즉시 시작:</strong> 승인 완료 즉시 [회사 업무 시작] 버튼과 함께 잔여 무료 이용 기간이 제공됩니다.
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="auth-action-stack">
+                <button
+                  type="button"
+                  className="auth-btn-ghost"
+                  disabled={busy}
+                  onClick={handleLogout}
+                >
+                  로그아웃
+                </button>
+              </div>
+            </>
+          )
         ) : verifiedView === 'existing_tenant_form' ? (
           /* ─────────────────────────────────────────────────────────────
               3-C. 기존 회원사 가입 흐름: 직원·거래처 소속 신청

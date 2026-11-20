@@ -420,6 +420,247 @@
   line-height: 1.5;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   30일 무료 체험 프로모션 & 3대 핵심 기능 실제 제품 화면 프리뷰
+───────────────────────────────────────────────────────────── */
+.auth-trial-hero {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.auth-badge-trial {
+  display: inline-block;
+  background: #4f46e5;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  letter-spacing: -0.2px;
+}
+
+.auth-trial-headline {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+}
+
+.auth-trial-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #4338ca;
+  line-height: 1.5;
+}
+
+.auth-preview-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.auth-preview-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-preview-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.preview-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.94rem;
+  color: #0f172a;
+}
+
+.preview-card-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.preview-card-desc {
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
+/* 실제 제품 화면 미니 UI 목업 */
+.preview-mini-screen {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #334155;
+  font-family: inherit;
+}
+
+.mini-screen-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mini-screen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.mini-screen-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mini-badge-blue { background: #dbeafe; color: #1e40af; }
+.mini-badge-green { background: #dcfce7; color: #166534; }
+.mini-badge-amber { background: #fef3c7; color: #92400e; }
+
+/* 주요 CTA 버튼 */
+.auth-btn-trial-main {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 1.02rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.auth-btn-trial-main:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.auth-btn-trial-main:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   신청 완료 및 무료 이용 안내 박스 (시작 기준 & 리셋 방지)
+───────────────────────────────────────────────────────────── */
+.auth-trial-info-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.auth-trial-info-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.auth-trial-rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.auth-trial-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.auth-trial-rule-item .rule-icon {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.auth-trial-active-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: 14px;
+  padding: 18px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.auth-trial-active-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #14532d;
+  margin-bottom: 6px;
+}
+
+.auth-trial-active-date {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #15803d;
+  margin: 8px 0;
+}
+
+.auth-trial-active-desc {
+  font-size: 0.84rem;
+  color: #166534;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .auth-admin-toggle {
   position: fixed;
   right: 16px;
