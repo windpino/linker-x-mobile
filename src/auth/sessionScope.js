@@ -8,7 +8,7 @@ export async function prepareSessionScope(session){
  if(localStorage.getItem('authCacheOwner')!==owner){
   const cleared=await clearAllIdbBundles();
   if(!cleared && typeof indexedDB!=='undefined')throw new Error('이전 계정 캐시를 지우지 못했습니다. 브라우저 사이트 데이터를 확인해 주세요.');
-  for(const key of Object.keys(localStorage))if(!key.startsWith('firebase:')&&!['system_cleaned_ver','app_theme'].includes(key))localStorage.removeItem(key);
+  for(const key of Object.keys(localStorage))if(!key.startsWith('firebase:')&&!key.startsWith('dev_')&&!['system_cleaned_ver','app_theme'].includes(key))localStorage.removeItem(key);
   localStorage.setItem('authCacheOwner',owner);
  }
  scope={...session,role:session.authRole};

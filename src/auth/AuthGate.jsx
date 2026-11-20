@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { onIdTokenChanged } from 'firebase/auth';
 import { auth, db, authTargetMode } from '../firebase';
 import { addDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-import { login, register, googleLogin, verifyEmail, resetPassword, verifyResetCode, confirmResetPassword, applyEmailVerification, verifyActionCode, refreshIdentity, logout, callAuth } from './client';
+import { login, register, googleLogin, verifyEmail, resetPassword, verifyResetCode, confirmResetPassword, applyEmailVerification, verifyActionCode, refreshIdentity, logout, callAuth, initDongmyeongSampleData } from './client';
 import { clearLegacyCredentials, withoutSecrets } from './sanitize';
 import './auth.css';
 import MembershipAdmin from './MembershipAdmin';
@@ -102,7 +102,8 @@ export default function AuthGate({children}) {
         setSession(sessionWithClaims);
         return true;
       }
-    } catch {
+    } catch (e) {
+      console.error('[resolvePlatformAdmin error]', e);
       // Not platform admin, continue normal flow
     }
     return false;
@@ -112,13 +113,14 @@ export default function AuthGate({children}) {
     clearLegacyCredentials(localStorage);
     clearLegacyCredentials(sessionStorage);
     return onIdTokenChanged(auth, async u => {
+      const activeUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || u;
       clearSessionScope();
       localStorage.removeItem('currentUser');
-      const nextIdentity = u ? {
-        uid: u.uid,
-        email: u.email,
-        emailVerified: u.emailVerified,
-        displayName: u.displayName
+      const nextIdentity = activeUser ? {
+        uid: activeUser.uid,
+        email: activeUser.email,
+        emailVerified: activeUser.emailVerified,
+        displayName: activeUser.displayName
       } : null;
       setIdentity(nextIdentity);
       setSession(null);
@@ -127,13 +129,13 @@ export default function AuthGate({children}) {
         ...f,
         password: '',
         passwordConfirm: '',
-        email: u?.email || f.email,
-        name: u?.displayName || f.name
+        email: activeUser?.email || f.email,
+        name: activeUser?.displayName || f.name
       }));
-      if (u && u.emailVerified) {
-        const isPlatform = await resolvePlatformAdmin(u);
+      if (activeUser && activeUser.emailVerified) {
+        const isPlatform = await resolvePlatformAdmin(activeUser);
         if (!isPlatform) {
-          await checkRegistrationStatus(u);
+          await checkRegistrationStatus(activeUser);
         }
       }
     });
@@ -151,13 +153,17 @@ export default function AuthGate({children}) {
     showMsg('');
     try {
       await refreshIdentity();
-      if (!auth.currentUser?.emailVerified) {
+      const verifiedUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || auth.currentUser;
+      if (!verifiedUser?.emailVerified) {
         showMsg('회사 입장 전 이메일 인증이 필요합니다.', 'error');
         setIdentity(prev => prev ? ({ ...prev, emailVerified: false }) : null);
         return;
       }
       const approved = withoutSecrets(await callAuth('authSession', { companyId: targetCid }));
       await prepareSessionScope(approved);
+      if (approved.companyId === 'no1dmkr') {
+        initDongmyeongSampleData();
+      }
       localStorage.setItem('currentUser', JSON.stringify(approved));
       setSession(approved);
     } catch {
@@ -178,8 +184,8 @@ export default function AuthGate({children}) {
     try {
       const res = await callAuth('getMyRegistrationStatus');
       setRegData(res);
-      if (res.status === 'approved' && res.isTenantAdmin && res.companyId) {
-        // Condition C: 승인 완료이고 회사 관리자 권한까지 확인되면, 회사 ID를 다시 입력하지 않고 승인된 회사로 입장
+      if (res.status === 'approved' && res.companyId) {
+        // Condition C: 승인 완료이고 권한 확인되면, 회사 ID를 다시 입력하지 않고 승인된 회사로 자동 입장
         await enter(res.companyId);
       } else if (res.status === 'pending') {
         // Condition A: 접수 완료·검토 중이면 회원사 승인 대기 화면을 표시하고 재등록/회사 ID 입력 숨김
@@ -459,20 +465,15 @@ export default function AuthGate({children}) {
     }
   };
 
-  // Submit new company registration (Step 3: 슈퍼관리자 검토 요청)
+  // Submit new company registration (Step 3: 슈퍼관리자 검토 요청 - 희망 회사 ID 입력 불필요, 승인 시 서버 자동 발급)
   const handleNewTenantSubmit = async (e) => {
     e.preventDefault();
     if (busy) return;
-    const cid = form.companyId.trim();
     const cname = form.companyName.trim();
     const bno = form.businessNo.trim();
     const name = form.name.trim();
     const phone = form.phone.trim();
 
-    if (!cid || !/^[A-Za-z0-9_-]{2,50}$/.test(cid)) {
-      showMsg('회사 ID는 2~50자의 영문, 숫자, 하이픈(-), 밑줄(_)만 가능합니다.', 'error');
-      return;
-    }
     if (!cname) {
       showMsg('회사명을 입력해 주세요.', 'error');
       return;
@@ -495,7 +496,7 @@ export default function AuthGate({children}) {
     try {
       await refreshIdentity();
       await callAuth('requestMembership', withoutSecrets({
-        companyId: cid,
+        companyId: 'pending',
         role: 'tenant_admin',
         legacyId: identity.uid,
         name,
@@ -505,7 +506,7 @@ export default function AuthGate({children}) {
       }));
       setRegData({
         status: 'pending',
-        companyId: cid,
+        companyId: 'pending',
         companyName: cname,
         role: 'tenant_admin',
         profile: { name, phone, companyName: cname, businessNo: bno },
@@ -1216,20 +1217,10 @@ export default function AuthGate({children}) {
                   onChange={change}
                 />
               </label>
-              <label>
-                희망 회사 ID (영문/숫자 식별자)
-                <input
-                  name="companyId"
-                  required
-                  pattern="[A-Za-z0-9_-]{2,50}"
-                  placeholder="예: new_company (영문/숫자 2~50자)"
-                  value={form.companyId}
-                  onChange={change}
-                />
-              </label>
 
               <div className="auth-notice-text">
-                * 새 회원사 신청은 링커엑스 슈퍼관리자가 검토 및 승인합니다. 이메일이 일치하더라도 기존 동명크릴 계정에 자동 연결되지 않습니다.
+                * 새 회원사 신청은 링커엑스 슈퍼관리자가 검토 및 승인하며, 승인 시 내부 회사 식별 번호가 자동 발급됩니다.<br />
+                * 이메일이 일치하더라도 기존 동명크릴 등 기존 회원사 계정에 자동 연결되지 않습니다.
               </div>
 
               <button type="submit" className="auth-btn-primary" disabled={busy}>

@@ -9,8 +9,23 @@ export default function MembershipAdmin({ session, onBack, embedded = false }) {
   const [selected, setSelected] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [permissions, setPermissions] = useState({});
-  const [createCompany, setCreateCompany] = useState(false);
+  const [approvalType, setApprovalType] = useState('link_existing'); // 'link_existing' | 'create_new'
+  const [targetExistingCompanyId, setTargetExistingCompanyId] = useState('no1dmkr');
+  const [existingCompanies, setExistingCompanies] = useState([
+    { id: 'no1dmkr', name: '동명크릴 (기존 회원사)' }
+  ]);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+      const list = stored.map(c => ({ id: c.id, name: `${c.name || c.id} (${c.id})` }));
+      if (!list.some(c => c.id === 'no1dmkr')) {
+        list.unshift({ id: 'no1dmkr', name: '동명크릴 (no1dmkr)' });
+      }
+      setExistingCompanies(list);
+    } catch {}
+  }, []);
 
   const loadRequests = async (targetCid = companyId) => {
     setBusy(true);
@@ -39,15 +54,18 @@ export default function MembershipAdmin({ session, onBack, embedded = false }) {
     setBusy(true);
     setMessage('');
     try {
-      const targetCid = selected.companyId || companyId;
-      await callAuth('approveMembership', {
+      const isCreateNew = approvalType === 'create_new';
+      const targetCid = isCreateNew ? 'pending' : (targetExistingCompanyId || 'no1dmkr');
+      const res = await callAuth('approveMembership', {
         companyId: targetCid,
+        targetCompanyId: isCreateNew ? undefined : targetCid,
         uid: selected.uid,
         confirmLegacyLink: confirmed,
         permissions,
-        createCompany
+        createCompany: isCreateNew
       });
-      setMessage(`[${selected.profile?.name || selected.uid}] 승인이 완료되었습니다.`);
+      const modeLabel = isCreateNew ? `새 회원사 개설 [${res.companyId}]` : `기존 회원사 연결 [${res.companyId}]`;
+      setMessage(`[${selected.profile?.name || selected.uid}] ${modeLabel} 승인이 완료되었습니다.`);
       setSelected(null);
       await loadRequests(companyId);
     } catch {
@@ -142,10 +160,57 @@ export default function MembershipAdmin({ session, onBack, embedded = false }) {
           </label>
 
           {isPlatform && selected.role === 'tenant_admin' && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: '8px 0 12px 0', color: '#4338ca', fontWeight: 600 }}>
-              <input type="checkbox" checked={createCompany} onChange={e => setCreateCompany(e.target.checked)} />
-              <span style={{ fontSize: '0.88rem' }}>신규 회원사 생성을 정식 승인합니다.</span>
-            </label>
+            <div style={{ margin: '14px 0', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '8px', color: '#1e293b' }}>
+                회원사 승인 방식 선택:
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.86rem', fontWeight: approvalType === 'link_existing' ? 700 : 400 }}>
+                  <input
+                    type="radio"
+                    name="approvalType"
+                    value="link_existing"
+                    checked={approvalType === 'link_existing'}
+                    onChange={() => setApprovalType('link_existing')}
+                  />
+                  기존 회원사에 연결 (동명크릴 등)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.86rem', fontWeight: approvalType === 'create_new' ? 700 : 400 }}>
+                  <input
+                    type="radio"
+                    name="approvalType"
+                    value="create_new"
+                    checked={approvalType === 'create_new'}
+                    onChange={() => setApprovalType('create_new')}
+                  />
+                  새 회원사 개설 (서버 자동 ID 발급)
+                </label>
+              </div>
+
+              {approvalType === 'link_existing' ? (
+                <div>
+                  <label style={{ fontSize: '0.82rem', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                    연결할 대상 회원사 선택:
+                  </label>
+                  <select
+                    value={targetExistingCompanyId}
+                    onChange={e => setTargetExistingCompanyId(e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  >
+                    {existingCompanies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                    * 슈퍼관리자가 지정한 기존 회원사(동명크릴) 관리자로 연결되며, 주문·재고·전표 조회 권한이 부여됩니다. (이메일/회사명 자동 연결 차단)
+                  </p>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.8rem', color: '#4338ca', background: '#e0e7ff', padding: '8px 10px', borderRadius: '6px' }}>
+                  * 서버에서 내부 회사 ID(comp_...)를 자동 발급하고, 기존 회원사 데이터와 분리된 0-state 업무 공간을 개설합니다. (희망 회사 ID 미입력)
+                </div>
+              )}
+            </div>
           )}
 
           {selected.role === 'tenant_staff' && (
@@ -173,7 +238,7 @@ export default function MembershipAdmin({ session, onBack, embedded = false }) {
             onClick={handleApprove}
             style={{ width: '100%', marginTop: '8px' }}
           >
-            {busy ? '승인 처리 중...' : selected.role === 'tenant_admin' ? '신규 회원사 개설 및 대표 승인 완료' : '확인한 계정의 소속 승인'}
+            {busy ? '승인 처리 중...' : selected.role === 'tenant_admin' ? (approvalType === 'create_new' ? '새 회원사 개설 및 대표 승인 완료' : '기존 회원사 관리자 권한 연결 승인 완료') : '확인한 계정의 소속 승인'}
           </button>
         </div>
       )}
