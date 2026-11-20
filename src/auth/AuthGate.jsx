@@ -712,32 +712,13 @@ export default function AuthGate({children}) {
 
   return (
     <main className="auth-shell dark-theme">
-      {/* 1. 상단 브랜딩: 3D X 로고 + Linker X + 서브 슬로건 */}
+      {/* 1. 상단 브랜딩: 사용자 공식 로고 이미지 (X + Linker X + 슬로건) */}
       <div className="dark-auth-header">
-        <div className="dark-logo-wrap">
-          <svg width="72" height="72" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark-logo-icon">
-            <defs>
-              <linearGradient id="xGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#00f2fe" />
-                <stop offset="50%" stopColor="#38bdf8" />
-                <stop offset="100%" stopColor="#1d4ed8" />
-              </linearGradient>
-              <linearGradient id="xGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#00e5ff" />
-                <stop offset="50%" stopColor="#2563eb" />
-                <stop offset="100%" stopColor="#0f172a" />
-              </linearGradient>
-              <filter id="xGlow" x="-30%" y="-30%" width="160%" height="160%">
-                <feGaussianBlur stdDeviation="5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-            <path d="M16 12 L30 12 L64 68 L50 68 Z" fill="url(#xGrad1)" filter="url(#xGlow)" />
-            <path d="M64 12 L50 12 L16 68 L30 68 Z" fill="url(#xGrad2)" filter="url(#xGlow)" />
-          </svg>
-        </div>
-        <h1 className="dark-brand-title">Linker X</h1>
-        <p className="dark-brand-sub">LINK BEYOND, AUTOMATE EVERYTHING.</p>
+        <img
+          src="/assets/linker-x-brand.png"
+          alt="Linker X - Link Beyond, Automate Everything."
+          className="dark-brand-logo-img"
+        />
       </div>
 
       <section className="auth-card dark-glass">
