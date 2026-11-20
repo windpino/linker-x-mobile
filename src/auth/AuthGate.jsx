@@ -71,6 +71,7 @@ export default function AuthGate({children}) {
     role: 'tenant_staff'
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
   const change = e => {
@@ -1096,179 +1097,156 @@ export default function AuthGate({children}) {
               </>
             ) : (
               <>
-                {/* 30일 무료 체험 프로모션 헤더 */}
-                <div className="auth-trial-hero">
-                  <div className="auth-badge-trial">✨ 30일 무료 체험 프로모션</div>
-                  <h2 className="auth-trial-headline">주문부터 배송까지, 한 달 무료로 써보세요</h2>
-                  <p className="auth-trial-sub">
-                    주문 수집, 상차 검수, 모바일 현장 전표 발행까지 원스톱으로 처리하는 통합 물류 솔루션
-                  </p>
+                {/* 1. 회원가입 구분: 새 회원사(대표) vs 기존 회원사(소속) */}
+                <div className="dark-pill-selector">
+                  <button
+                    type="button"
+                    className={`dark-pill ${signupTarget === 'new_tenant' ? 'active' : ''}`}
+                    onClick={() => setSignupTarget('new_tenant')}
+                  >
+                    🏢 새 회원사(대표)
+                  </button>
+                  <button
+                    type="button"
+                    className={`dark-pill ${signupTarget === 'existing_tenant' ? 'active' : ''}`}
+                    onClick={() => setSignupTarget('existing_tenant')}
+                  >
+                    👥 기존 회원사(소속)
+                  </button>
                 </div>
 
-                {/* 3대 핵심 기능 실제 제품 화면 미니 프리뷰 */}
-                <div className="auth-preview-grid">
-                  {/* 1. 주문 통합 */}
-                  <div className="auth-preview-card">
-                    <div className="preview-card-header">
-                      <div className="preview-card-title">📦 주문 통합 관리</div>
-                      <span className="preview-card-tag">스마트 수주</span>
+                <form onSubmit={handleEmailSignup} className="dark-auth-form">
+                  {/* 이메일 입력 */}
+                  <div className="dark-input-wrap">
+                    <div className="dark-input-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                      </svg>
                     </div>
-                    <p className="preview-card-desc">카톡·전화·엑셀 주문을 한곳에서 자동 집계하고 단가와 미수금을 실시간 연동합니다.</p>
-                    <div className="preview-mini-screen">
-                      <div className="mini-screen-header">
-                        <span>수주서 ORD-2026-001</span>
-                        <span className="mini-screen-badge mini-badge-blue">접수완료</span>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>거래처</span>
-                        <strong>남해낚시마트 (미수 120만원)</strong>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>품목</span>
-                        <span>동명 고급 크릴 1kg × 50개 (275,000원)</span>
-                      </div>
-                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      required
+                      placeholder="이메일을 입력하세요"
+                      value={form.email}
+                      onChange={change}
+                      className="dark-input"
+                    />
                   </div>
 
-                  {/* 2. 상차 체크 */}
-                  <div className="auth-preview-card">
-                    <div className="preview-card-header">
-                      <div className="preview-card-title">🚚 상차 검수 체크</div>
-                      <span className="preview-card-tag">모바일 실시간</span>
+                  {/* 비밀번호 입력 */}
+                  <div className="dark-input-wrap">
+                    <div className="dark-input-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
                     </div>
-                    <p className="preview-card-desc">창고 재고 파악부터 배송 차량별 적재 수량을 현장에서 모바일로 즉시 대조합니다.</p>
-                    <div className="preview-mini-screen">
-                      <div className="mini-screen-header">
-                        <span>1호 탑차 (부산80바1234)</span>
-                        <span className="mini-screen-badge mini-badge-green">상차 100% 완료</span>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>출고창고</span>
-                        <span>메인냉동창고</span>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>검수현황</span>
-                        <strong>[✓] 크릴 50개 [✓] 각크릴 30개 적재</strong>
-                      </div>
-                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                      placeholder="비밀번호를 입력하세요 (6자리 이상)"
+                      value={form.password}
+                      onChange={change}
+                      className="dark-input"
+                    />
+                    <button
+                      type="button"
+                      className="dark-toggle-eye"
+                      onClick={() => setShowPassword(p => !p)}
+                      aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                      tabIndex="-1"
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
 
-                  {/* 3. 현장 전표 발행 */}
-                  <div className="auth-preview-card">
-                    <div className="preview-card-header">
-                      <div className="preview-card-title">🧾 현장 전표 발행</div>
-                      <span className="preview-card-tag">원클릭 공유</span>
+                  {/* 비밀번호 확인 입력 */}
+                  <div className="dark-input-wrap">
+                    <div className="dark-input-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
                     </div>
-                    <p className="preview-card-desc">배송지 현장에서 즉시 전자 매출전표를 발행하고 문자나 카톡으로 명세서를 전송합니다.</p>
-                    <div className="preview-mini-screen">
-                      <div className="mini-screen-header">
-                        <span>매출전표 INV-2026-001</span>
-                        <span className="mini-screen-badge mini-badge-amber">발행완료</span>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>공급가액 / 세액</span>
-                        <span>250,000원 / 25,000원</span>
-                      </div>
-                      <div className="mini-screen-row">
-                        <span>합계 / 전송</span>
-                        <strong>275,000원 (카톡 명세서 전송)</strong>
-                      </div>
-                    </div>
+                    <input
+                      type={showPasswordConfirm ? 'text' : 'password'}
+                      name="passwordConfirm"
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                      placeholder="비밀번호 확인"
+                      value={form.passwordConfirm}
+                      onChange={change}
+                      className="dark-input"
+                    />
+                    <button
+                      type="button"
+                      className="dark-toggle-eye"
+                      onClick={() => setShowPasswordConfirm(p => !p)}
+                      aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
+                      tabIndex="-1"
+                    >
+                      {showPasswordConfirm ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
+
+                  <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy}>
+                    <span>{busy ? '가입 처리 중...' : '회원가입'}</span>
+                    <span className="dark-btn-arrow">→</span>
+                  </button>
+                </form>
+
+                <div className="dark-divider">
+                  <span>또는 간편 가입</span>
                 </div>
 
-                {/* 주요 액션 버튼: 회원사 무료 체험 신청 */}
                 <button
                   type="button"
-                  className="auth-btn-trial-main"
-                  onClick={() => {
-                    setSignupTarget('new_tenant');
-                    const formEl = document.getElementById('signup-form-anchor');
-                    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  className="auth-btn-google dark-btn-google"
+                  disabled={busy}
+                  onClick={() => handleGoogleAuth(true)}
                 >
-                  🚀 회원사 무료 체험 신청
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span>Google로 시작하기</span>
                 </button>
 
-                {/* 가입 양식 (기존 이메일 인증 & 회사 정보 입력 연계) */}
-                <div id="signup-form-anchor" style={{ marginTop: '16px' }}>
+                <div className="dark-auth-footer-link">
+                  <span>이미 계정이 있으신가요?</span>
                   <button
                     type="button"
-                    className="auth-btn-google"
-                    disabled={busy}
-                    onClick={() => { setSignupTarget('new_tenant'); handleGoogleAuth(true); }}
-                  >
-                    Google 계정으로 가입
-                  </button>
-
-                  <div className="auth-action-divider"><span>또는 이메일로 가입</span></div>
-
-                  <form onSubmit={handleEmailSignup} className="auth-form">
-                    <label>
-                      이메일
-                      <input
-                        type="email"
-                        name="email"
-                        autoComplete="email"
-                        required
-                        placeholder="user@example.com"
-                        value={form.email}
-                        onChange={change}
-                      />
-                    </label>
-                    <label>
-                      비밀번호
-                      <input
-                        type="password"
-                        name="password"
-                        autoComplete="new-password"
-                        minLength={6}
-                        required
-                        placeholder="6자리 이상 비밀번호"
-                        value={form.password}
-                        onChange={change}
-                      />
-                    </label>
-                    <label>
-                      비밀번호 확인
-                      <input
-                        type="password"
-                        name="passwordConfirm"
-                        autoComplete="new-password"
-                        minLength={6}
-                        required
-                        placeholder="비밀번호 재입력"
-                        value={form.passwordConfirm}
-                        onChange={change}
-                      />
-                    </label>
-                    <button type="submit" className="auth-btn-primary" disabled={busy}>
-                      {busy ? '가입 처리 중...' : '30일 무료 체험 가입하고 인증 메일 받기'}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="auth-button-group" style={{ flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    className="auth-btn-text"
-                    disabled={busy}
                     onClick={() => { setViewMode('login'); setMessage(''); }}
                   >
-                    이미 계정이 있으신가요? 로그인
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-btn-text"
-                    style={{ fontSize: '0.82rem', color: '#64748b' }}
-                    disabled={busy}
-                    onClick={() => {
-                      setSignupTarget('existing_tenant');
-                      setVerifiedView('existing_tenant_form');
-                      setMessage('기존 등록된 회원사의 직원 또는 거래처 정보를 입력해 주세요.');
-                    }}
-                  >
-                    기존 회원사의 직원·거래처이신가요? 소속 신청
+                    로그인
                   </button>
                 </div>
               </>
