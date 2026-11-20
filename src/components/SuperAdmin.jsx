@@ -994,36 +994,27 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       }}>
         {/* Brand Logo Header */}
         <div style={{
-          padding: '18px 20px',
+          padding: '16px 18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)'
-            }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v20M2 12h20" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.3px', lineHeight: 1.15 }}>
-                Linker X
-              </div>
-              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '1px', opacity: 0.9 }}>
-                ERP SYSTEM
-              </div>
-            </div>
+          <div 
+            onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <img
+              src="/assets/linker-x-horizontal.png"
+              alt="Linker X - Link Beyond, Automate Everything."
+              style={{
+                height: '32px',
+                maxWidth: '150px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))'
+              }}
+            />
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -1078,29 +1069,6 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <ChevronDown size={14} style={{ opacity: 0.6 }} />
           </button>
 
-          {/* 2-1. 신규회원사 승인 */}
-          <button
-            onClick={() => handleSelectNav('approvals')}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-              backgroundColor: activeTab === 'approvals' ? '#1d4ed8' : 'transparent',
-              color: activeTab === 'approvals' ? '#ffffff' : '#94a3b8',
-              fontWeight: activeTab === 'approvals' ? 700 : 600, fontSize: '0.84rem'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <UserCheck size={17} color={activeTab === 'approvals' ? '#ffffff' : '#38bdf8'} />
-              <span>신규회원사 승인</span>
-            </div>
-            {pendingApprovalsCount > 0 ? (
-              <span style={{ fontSize: '0.68rem', backgroundColor: '#ef4444', color: '#ffffff', padding: '1px 7px', borderRadius: '10px', fontWeight: 800 }}>
-                {pendingApprovalsCount}
-              </span>
-            ) : (
-              activeTab === 'approvals' && <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ffffff' }}></span>
-            )}
-          </button>
 
           {/* 3. 직원 관리 */}
           <button

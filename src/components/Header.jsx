@@ -584,15 +584,21 @@ const Header = ({
           {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {companyLogo ? (
-            <img src={companyLogo} alt="Company Logo" style={{ height: '26px', objectFit: 'contain' }} />
+            <>
+              <img src={companyLogo} alt="Company Logo" style={{ height: '26px', objectFit: 'contain' }} />
+              <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
+                {companyName}
+              </span>
+            </>
           ) : (
-            <Package size={18} color="white" />
+            <img 
+              src="/assets/linker-x-horizontal.png" 
+              alt="Linker X - Link Beyond, Automate Everything." 
+              style={{ height: '24px', maxWidth: '120px', objectFit: 'contain' }} 
+            />
           )}
-          <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
-            {companyName}
-          </span>
         </div>
       </div>
 
