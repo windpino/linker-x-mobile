@@ -203,28 +203,38 @@ export async function callAuth(name, data) {
     if (name === 'authSession') {
       const cid = data?.companyId;
       if (cid === 'linker_x_hq') {
-        const isPlatform = await hasPlatformSuperAdminPrivilege(currentUser);
-        if (!isPlatform) {
-          const pErr = new Error('플랫폼 관리자 승인이 필요합니다.');
+        const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
+        const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
+        const pAccess = storedPlatformAccess[currentUser.uid];
+        const isOps = pAccess && pAccess.status === 'active' && ['support', 'subscription', 'developer', 'super_admin'].includes(pAccess.role);
+
+        if (!isSuper && !isOps) {
+          const pErr = new Error('플랫폼 관리자 또는 운영팀 권한이 필요합니다.');
           pErr.code = 'permission-denied';
           throw pErr;
         }
+
+        const role = isSuper ? 'super_admin' : pAccess.role;
+        const isPlatformAdmin = role === 'super_admin';
         const tokenResult = await currentUser.getIdTokenResult().catch(() => null);
+
         return {
           authUid: currentUser.uid,
           id: currentUser.uid,
           userId: currentUser.uid,
           companyId: 'linker_x_hq',
+          companyName: '링커엑스(Linker X) 본사 운영팀',
           legacyId: currentUser.uid,
           partnerId: null,
-          role: 'super_admin',
-          authRole: 'platform_admin',
-          isPlatformAdmin: true,
+          role,
+          authRole: isPlatformAdmin ? 'platform_admin' : 'platform_ops',
+          isPlatformAdmin,
+          isPlatformStaff: true,
           claims: tokenResult?.claims || {},
           status: 'active',
-          name: currentUser.displayName || '슈퍼관리자',
+          name: currentUser.displayName || pAccess?.name || (isPlatformAdmin ? '슈퍼관리자' : role === 'support' ? '고객지원 담당자' : '구독관리 담당자'),
           email: currentUser.email,
-          permissions: {
+          permissions: isPlatformAdmin ? {
             sales: true,
             purchase: true,
             product: true,
@@ -233,7 +243,14 @@ export async function callAuth(name, data) {
             account: true,
             schedule: true,
             report: true
-          }
+          } : (pAccess?.permissions || {
+            tickets: role === 'support',
+            errors: role === 'support' || role === 'developer',
+            sync: role === 'support',
+            subscriptions: role === 'subscription',
+            billing: role === 'subscription',
+            tenantBusinessData: false
+          })
         };
       }
 
@@ -613,6 +630,28 @@ export async function callAuth(name, data) {
         };
       });
 
+      // 0. 링커엑스 본사 운영팀 소속 확인 (슈퍼관리자 또는 플랫폼 운영팀)
+      const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
+      const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
+      const pAccess = storedPlatformAccess[uid];
+      if (isSuper || (pAccess && pAccess.status === 'active')) {
+        const role = isSuper ? 'super_admin' : pAccess.role;
+        const roleLabel = role === 'super_admin' ? '최고 운영 관리자 (슈퍼관리자)'
+          : role === 'support' ? '운영팀 고객지원 담당자'
+          : role === 'subscription' ? '운영팀 구독관리 담당자'
+          : '운영팀 플랫폼 개발자';
+        workspaces.unshift({
+          companyId: 'linker_x_hq',
+          companyName: '링커엑스(Linker X) 본사 운영팀',
+          role,
+          authRole: isSuper ? 'platform_admin' : 'platform_ops',
+          isPlatformStaff: true,
+          isSuperAdmin: isSuper,
+          type: 'platform_ops',
+          roleLabel
+        });
+      }
+
       // 대기 중인 초대
       const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
       const pendingInvitations = storedInvitations.filter(inv => 
@@ -833,6 +872,187 @@ export async function callAuth(name, data) {
       return { ok: true, companyId: cid, staffId, revokedUid: targetUid };
     }
 
+    // ── 3-5. 링커엑스 본사 운영팀 직원 초대 (슈퍼관리자 전용) ──
+    if (name === 'createPlatformStaffInvitation') {
+      const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
+      if (!isSuper) throw new Error('슈퍼관리자만 운영팀 직원을 초대할 수 있습니다.');
+
+      const targetEmail = String(data?.targetEmail || '').toLowerCase().trim();
+      const staffName = String(data?.staffName || '').trim();
+      const staffId = data?.staffId || `pstaff_${Date.now()}`;
+      const role = data?.role || 'support';
+      if (!['support', 'subscription', 'developer'].includes(role)) {
+        throw new Error('유효한 운영 역할을 지정해 주세요.');
+      }
+      if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+        throw new Error('유효한 직원 이메일 주소를 입력해 주세요.');
+      }
+
+      // 로컬 dev_platform_staff 확인 및 업데이트
+      const storedStaff = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+      let staffCard = storedStaff.find(s => s.id === staffId);
+      if (staffCard && staffCard.accountStatus === 'linked' && staffCard.linkedEmail && staffCard.linkedEmail !== targetEmail) {
+        throw new Error(`이미 다른 계정(${staffCard.linkedEmail})에 연결된 직원 카드입니다.`);
+      }
+
+      if (!staffCard) {
+        staffCard = {
+          id: staffId,
+          name: staffName,
+          email: targetEmail,
+          role,
+          dept: data?.dept || (role === 'support' ? '고객지원팀' : role === 'subscription' ? '구독관리팀' : '플랫폼 개발팀'),
+          tasks: data?.tasks || (role === 'support' ? '고객 문의 및 시스템 오류 확인' : role === 'subscription' ? '구독/요금제 상태 관리' : '시스템 유지보수'),
+          status: '초대 발송',
+          accountStatus: 'invited',
+          createdAt: new Date().toISOString()
+        };
+        storedStaff.push(staffCard);
+      } else {
+        staffCard.accountStatus = 'invited';
+        staffCard.status = '초대 발송';
+        staffCard.email = targetEmail;
+        staffCard.role = role;
+        staffCard.invitedAt = new Date().toISOString();
+      }
+      localStorage.setItem('dev_platform_staff', JSON.stringify(storedStaff));
+
+      // 초대 생성
+      const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      const invId = `inv_pstaff_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const permissions = role === 'support'
+        ? { tickets: true, errors: true, sync: true, tenantBusinessData: false }
+        : role === 'subscription'
+        ? { subscriptions: true, billing: true, tenantBusinessData: false }
+        : { errors: true, sync: true, tenantBusinessData: false };
+
+      const newInv = {
+        id: invId,
+        type: 'platform_staff',
+        companyId: 'linker_x_hq',
+        companyName: '링커엑스(Linker X) 본사 운영팀',
+        staffId,
+        staffName: staffName || targetEmail.split('@')[0],
+        targetEmail,
+        role,
+        permissions,
+        invitedBy: currentUser.uid,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      storedInvitations.push(newInv);
+      localStorage.setItem('dev_invitations', JSON.stringify(storedInvitations));
+
+      // 감사 로그
+      const storedAudit = JSON.parse(localStorage.getItem('dev_auth_audit') || '[]');
+      storedAudit.push({
+        actor: currentUser.uid,
+        target: staffId,
+        targetEmail,
+        role,
+        action: 'createPlatformStaffInvitation',
+        at: new Date().toISOString()
+      });
+      localStorage.setItem('dev_auth_audit', JSON.stringify(storedAudit));
+
+      return { ok: true, invitationId: invId, staffId, targetEmail, role };
+    }
+
+    // ── 3-6. 링커엑스 본사 운영팀 직원 역할 변경 (슈퍼관리자 전용) ──
+    if (name === 'updatePlatformStaffRole') {
+      const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
+      if (!isSuper) throw new Error('슈퍼관리자만 역할을 변경할 수 있습니다.');
+
+      const staffId = data?.staffId;
+      const newRole = data?.role;
+      if (!staffId || !['support', 'subscription', 'developer'].includes(newRole)) {
+        throw new Error('유효한 직원 ID와 역할을 입력해 주세요.');
+      }
+
+      const storedStaff = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+      const staffCard = storedStaff.find(s => s.id === staffId);
+      if (!staffCard) throw new Error('직원 카드를 찾을 수 없습니다.');
+
+      const oldRole = staffCard.role;
+      staffCard.role = newRole;
+      if (data?.dept) staffCard.dept = data.dept;
+      if (data?.tasks) staffCard.tasks = data.tasks;
+      staffCard.updatedAt = new Date().toISOString();
+      localStorage.setItem('dev_platform_staff', JSON.stringify(storedStaff));
+
+      if (staffCard.linkedUid) {
+        const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
+        if (storedPlatformAccess[staffCard.linkedUid]) {
+          storedPlatformAccess[staffCard.linkedUid].role = newRole;
+          storedPlatformAccess[staffCard.linkedUid].permissions = newRole === 'support'
+            ? { tickets: true, errors: true, sync: true, tenantBusinessData: false }
+            : newRole === 'subscription'
+            ? { subscriptions: true, billing: true, tenantBusinessData: false }
+            : { errors: true, sync: true, tenantBusinessData: false };
+          storedPlatformAccess[staffCard.linkedUid].updatedAt = new Date().toISOString();
+          localStorage.setItem('dev_platform_access', JSON.stringify(storedPlatformAccess));
+        }
+      }
+
+      // 감사 로그
+      const storedAudit = JSON.parse(localStorage.getItem('dev_auth_audit') || '[]');
+      storedAudit.push({
+        actor: currentUser.uid,
+        target: staffId,
+        targetUid: staffCard.linkedUid || null,
+        oldRole,
+        newRole,
+        action: 'updatePlatformStaffRole',
+        at: new Date().toISOString()
+      });
+      localStorage.setItem('dev_auth_audit', JSON.stringify(storedAudit));
+
+      return { ok: true, staffId, newRole };
+    }
+
+    // ── 3-7. 링커엑스 운영팀 접근 권한 해제 / 퇴사 (슈퍼관리자 전용) ──
+    if (name === 'revokePlatformStaffAccess') {
+      const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
+      if (!isSuper) throw new Error('슈퍼관리자만 운영팀 접근 권한을 해제할 수 있습니다.');
+
+      const staffId = data?.staffId;
+      const storedStaff = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+      const staffCard = storedStaff.find(s => s.id === staffId);
+      if (!staffCard) throw new Error('직원 카드를 찾을 수 없습니다.');
+
+      const uidToRevoke = staffCard.linkedUid;
+      staffCard.accountStatus = 'revoked';
+      staffCard.status = '접근해제';
+      staffCard.resigned = true;
+      staffCard.resignedAt = new Date().toISOString();
+      localStorage.setItem('dev_platform_staff', JSON.stringify(storedStaff));
+
+      if (uidToRevoke) {
+        // 링커엑스 본사 접근 권한만 회수! (회원사 소속 dev_memberships 및 이전 업무 기록은 완전 보존)
+        const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
+        if (storedPlatformAccess[uidToRevoke]) {
+          storedPlatformAccess[uidToRevoke].status = 'revoked';
+          storedPlatformAccess[uidToRevoke].revokedAt = new Date().toISOString();
+          storedPlatformAccess[uidToRevoke].revokedBy = currentUser.uid;
+          localStorage.setItem('dev_platform_access', JSON.stringify(storedPlatformAccess));
+        }
+      }
+
+      // 감사 로그
+      const storedAudit = JSON.parse(localStorage.getItem('dev_auth_audit') || '[]');
+      storedAudit.push({
+        actor: currentUser.uid,
+        target: staffId,
+        targetUid: uidToRevoke || null,
+        action: 'revokePlatformStaffAccess',
+        at: new Date().toISOString()
+      });
+      localStorage.setItem('dev_auth_audit', JSON.stringify(storedAudit));
+
+      return { ok: true, staffId, revokedUid: uidToRevoke };
+    }
+
     // ── 4. 거래처 주문 초대 생성 ──
     if (name === 'createPartnerInvitation') {
       const cid = data?.companyId;
@@ -939,6 +1159,53 @@ export async function callAuth(name, data) {
           approvedBy: inv.invitedBy,
           approvedAt: new Date().toISOString()
         };
+      } else if (inv.type === 'platform_staff') {
+        const storedStaff = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+        const existing = storedStaff.find(s => s.id === inv.staffId);
+        if (existing && existing.linkedUid && existing.linkedUid !== currentUser.uid) {
+          throw new Error('이미 다른 계정에 연결된 운영팀 직원 카드입니다.');
+        }
+
+        const updatedStaff = storedStaff.map(s => {
+          if (s.id === inv.staffId) {
+            return {
+              ...s,
+              accountStatus: 'linked',
+              status: '연결 완료',
+              linkedUid: currentUser.uid,
+              linkedEmail: currentUser.email,
+              linkedAt: new Date().toISOString()
+            };
+          }
+          return s;
+        });
+        localStorage.setItem('dev_platform_staff', JSON.stringify(updatedStaff));
+
+        const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
+        storedPlatformAccess[currentUser.uid] = {
+          uid: currentUser.uid,
+          status: 'active',
+          role: inv.role,
+          staffId: inv.staffId,
+          name: inv.staffName || currentUser.displayName || '운영자',
+          email: currentUser.email,
+          permissions: inv.permissions || {},
+          approvedBy: inv.invitedBy,
+          approvedAt: new Date().toISOString()
+        };
+        localStorage.setItem('dev_platform_access', JSON.stringify(storedPlatformAccess));
+
+        // 감사 로그 기록
+        const storedAudit = JSON.parse(localStorage.getItem('dev_auth_audit') || '[]');
+        storedAudit.push({
+          actor: currentUser.uid,
+          target: inv.staffId,
+          targetEmail: currentUser.email,
+          action: 'acceptPlatformStaffInvitation',
+          role: inv.role,
+          at: new Date().toISOString()
+        });
+        localStorage.setItem('dev_auth_audit', JSON.stringify(storedAudit));
       }
 
       inv.status = 'accepted';

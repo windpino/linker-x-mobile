@@ -23,6 +23,7 @@ import Signup from './components/Signup';
 import AgencySignup from './components/AgencySignup';
 import Onboarding from './components/Onboarding';
 import SuperAdmin from './components/SuperAdmin';
+import PlatformOpsPortal from './components/common/PlatformOpsPortal';
 import { syncBundlesOnce, fetchBundle, saveBundle, saveBundleItem, filterBundleListForCompany, clearAllBundles, deduplicatePartners, getLocalBundle, BUNDLE_COLLECTIONS } from './utils/bundleSyncManager';
 import { getIdbBundle, setIdbBundle, clearAllIdbBundles } from './utils/idbBundleCache';
 import { checkAndRunAutoBackup } from './utils/serverBackupUtils';
@@ -205,7 +206,11 @@ const getFavMenuIcon = (menuId, size = 18) => {
 const FAV_CATEGORIES = ['기초자료등록', '매출/주문관리', '매입/발주관리', '재고관리', '입출금관리', '스마트지원', '데이터관리', '환경설정'];
 
 function App({ authSession }) {
-  const [currentView, setCurrentView] = useState(authSession?.role === 'super_admin' ? 'super_admin' : 'dashboard');
+  const [currentView, setCurrentView] = useState(() => {
+    if (authSession?.role === 'super_admin') return 'super_admin';
+    if (authSession?.companyId === 'linker_x_hq' || authSession?.isPlatformStaff) return 'platform_ops';
+    return 'dashboard';
+  });
 
 
   const getInitialStateFromCache = (key, fallback) => {
@@ -4738,6 +4743,16 @@ function App({ authSession }) {
   if (currentView === 'agency_signup') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
 
   if (currentView === 'onboarding') return <button onClick={handleLogout}>계정 인증 화면으로 돌아가기</button>;
+
+  if (currentView === 'platform_ops' || (currentUser?.companyId === 'linker_x_hq' && currentUser?.role !== 'super_admin')) {
+    return (
+      <PlatformOpsPortal
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onSwitchWorkspace={onSwitchWorkspace || handleLogout}
+      />
+    );
+  }
 
   if (currentView === 'super_admin') {
     return (

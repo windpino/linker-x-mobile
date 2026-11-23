@@ -2194,8 +2194,8 @@ export default function AuthGate({children}) {
                             padding: '2px 8px',
                             borderRadius: '10px',
                             fontWeight: 700,
-                            backgroundColor: w.type === 'partner_order' ? 'rgba(16, 185, 129, 0.2)' : w.isTenantAdmin ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                            color: w.type === 'partner_order' ? '#34d399' : w.isTenantAdmin ? '#f87171' : '#38bdf8'
+                            backgroundColor: w.type === 'platform_ops' ? 'rgba(99, 102, 241, 0.25)' : w.type === 'partner_order' ? 'rgba(16, 185, 129, 0.2)' : w.isTenantAdmin ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                            color: w.type === 'platform_ops' ? '#a5b4fc' : w.type === 'partner_order' ? '#34d399' : w.isTenantAdmin ? '#f87171' : '#38bdf8'
                           }}>
                             {w.roleLabel}
                           </span>
@@ -2212,7 +2212,7 @@ export default function AuthGate({children}) {
                         disabled={busy}
                         onClick={() => enter(w.companyId)}
                       >
-                        <span>{w.type === 'partner_order' ? '거래처 주문' : '회사 업무'}</span>
+                        <span>{w.type === 'platform_ops' ? (w.isSuperAdmin ? '본사 관리' : '운영 포털') : w.type === 'partner_order' ? '거래처 주문' : '회사 업무'}</span>
                         <span className="dark-btn-arrow">→</span>
                       </button>
                     </div>

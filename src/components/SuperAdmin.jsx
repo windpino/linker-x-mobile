@@ -73,6 +73,91 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   
   const [agencyForm, setAgencyForm] = useState({ id: '', name: '', ceo: '', email: '', password: '', expiryDate: '', status: 'active', managerContact: '', category: '' });
   
+  // 링커엑스(Linker X) 본사 직원 상태 관리
+  const [platformStaff, setPlatformStaff] = useState([]);
+  const [platformStaffSearch, setPlatformStaffSearch] = useState('');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteModalStaff, setInviteModalStaff] = useState(null);
+  const [inviteTargetEmail, setInviteTargetEmail] = useState('');
+  const [inviteTargetRole, setInviteTargetRole] = useState('support');
+  const [inviteSending, setInviteSending] = useState(false);
+
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [roleModalStaff, setRoleModalStaff] = useState(null);
+  const [selectedNewRole, setSelectedNewRole] = useState('support');
+  const [roleUpdating, setRoleUpdating] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'platformStaff'), (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (list.length > 0) {
+        setPlatformStaff(list);
+      } else {
+        const localList = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+        if (localList.length > 0) setPlatformStaff(localList);
+      }
+    }, (err) => {
+      console.warn('Platform staff listener error, loading from local dev store:', err);
+      const localList = JSON.parse(localStorage.getItem('dev_platform_staff') || '[]');
+      setPlatformStaff(localList);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSendPlatformStaffInvite = async () => {
+    if (!inviteModalStaff) return;
+    const targetEmail = (inviteTargetEmail || inviteModalStaff.email || '').trim().toLowerCase();
+    if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+      alert('초대장을 발송할 올바른 이메일 주소를 입력해 주세요.');
+      return;
+    }
+    setInviteSending(true);
+    try {
+      await callAuth('createPlatformStaffInvitation', {
+        staffId: inviteModalStaff.id,
+        staffName: inviteModalStaff.name,
+        targetEmail,
+        role: inviteTargetRole
+      });
+      alert(`[${inviteModalStaff.name}] 님(${targetEmail})에게 링커엑스 로그인 초대가 성공적으로 발송되었습니다.\n상태가 '초대 발송'으로 변경되었습니다.`);
+      setIsInviteModalOpen(false);
+      setPlatformStaff(prev => prev.map(s => s.id === inviteModalStaff.id ? { ...s, accountStatus: 'invited', status: '초대 발송', email: targetEmail, role: inviteTargetRole } : s));
+    } catch (err) {
+      console.error('Platform staff invite error:', err);
+      alert('초대 발송 실패: ' + (err.message || err));
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
+  const handleUpdateStaffRole = async () => {
+    if (!roleModalStaff) return;
+    setRoleUpdating(true);
+    try {
+      await callAuth('updatePlatformStaffRole', { staffId: roleModalStaff.id, role: selectedNewRole });
+      alert(`[${roleModalStaff.name}] 직원의 역할이 성공적으로 변경되었습니다.`);
+      setIsRoleModalOpen(false);
+      setPlatformStaff(prev => prev.map(s => s.id === roleModalStaff.id ? { ...s, role: selectedNewRole } : s));
+    } catch (err) {
+      console.error('Update staff role error:', err);
+      alert('역할 변경 실패: ' + (err.message || err));
+    } finally {
+      setRoleUpdating(false);
+    }
+  };
+
+  const handleRevokeStaffAccess = async (staff) => {
+    if (!window.confirm(`[${staff.name}] 직원의 링커엑스 본사 운영 접근 권한을 해제하시겠습니까?\n\n※ 해당 직원의 링커엑스 본사 권한만 회수되며, 회원사 소속 및 기존 업무 기록은 온전히 보존됩니다.`)) return;
+    try {
+      await callAuth('revokePlatformStaffAccess', { staffId: staff.id });
+      alert(`[${staff.name}] 직원의 본사 운영 접근 권한이 해제되었습니다.\n(회원사 소속 및 업무 기록은 안전하게 보존됨)`);
+      setPlatformStaff(prev => prev.map(s => s.id === staff.id ? { ...s, accountStatus: 'revoked', status: '접근해제', resigned: true } : s));
+    } catch (err) {
+      console.error('Revoke staff access error:', err);
+      alert('접근 해제 실패: ' + (err.message || err));
+    }
+  };
+  
   // Linker X Homepage CMS & Inquiries states
   const [agencyInquiries, setAgencyInquiries] = useState([]);
   const [homepageContent, setHomepageContent] = useState({});
@@ -1175,6 +1260,28 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <ChevronDown size={14} style={{ opacity: 0.6 }} />
           </button>
 
+          {/* 7-1. 링커엑스 본사 직원 관리 */}
+          <button
+            onClick={() => handleSelectNav('staff')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              padding: '10px 14px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              backgroundColor: activeTab === 'staff' ? '#1d4ed8' : 'transparent',
+              color: activeTab === 'staff' ? '#ffffff' : '#94a3b8',
+              fontWeight: activeTab === 'staff' ? 700 : 600, fontSize: '0.84rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Users size={17} />
+              <span>링커엑스 직원 관리</span>
+            </div>
+            {platformStaff.length > 0 && (
+              <span style={{ fontSize: '0.7rem', backgroundColor: activeTab === 'staff' ? 'rgba(255,255,255,0.2)' : 'rgba(56, 189, 248, 0.2)', color: activeTab === 'staff' ? '#ffffff' : '#38bdf8', padding: '1px 7px', borderRadius: '10px', fontWeight: 800 }}>
+                {platformStaff.length}
+              </span>
+            )}
+          </button>
+
           {/* 8. 공지사항 */}
           <button
             onClick={() => handleSelectNav('notices')}
@@ -1354,6 +1461,7 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 {activeTab === 'agencies' && '회원사 통합 관리'}
+                {activeTab === 'staff' && '링커엑스(Linker X) 본사 직원 관리'}
                 {activeTab === 'approvals' && '신규 회원사 가입 및 소속 승인 관리'}
                 {activeTab === 'schedules' && '일정 및 회원사 관리 (마스터 달력)'}
                 {activeTab === 'cs' && '고객 지원 및 상담 내역'}
@@ -1480,6 +1588,127 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                   fetchPendingCount();
                 }} 
               />
+            </div>
+          )}
+          {activeTab === 'staff' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>본사 직원 명부 ({platformStaff.length}명)</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#64748b' }}>운영 역할(CS, 구독관리, 개발) 및 로그인 계정 연결 상태</p>
+                </div>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '240px' }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="이름, 이메일 검색..."
+                    value={platformStaffSearch}
+                    onChange={(e) => setPlatformStaffSearch(e.target.value)}
+                    style={{ width: '100%', padding: '7px 10px 7px 30px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {platformStaff.filter(s => {
+                  if (!platformStaffSearch) return true;
+                  const q = platformStaffSearch.toLowerCase();
+                  return (s.name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || (s.tasks || '').toLowerCase().includes(q);
+                }).map((s, idx) => {
+                  const isRevoked = s.accountStatus === 'revoked' || s.status === '접근해제' || s.resigned;
+                  const isLinked = s.accountStatus === 'linked';
+                  const isInvited = s.accountStatus === 'invited';
+
+                  return (
+                    <div key={s.id || idx} style={{ backgroundColor: 'white', borderRadius: '14px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', opacity: isRevoked ? 0.65 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            backgroundColor: isRevoked ? '#94a3b8' : s.role === 'super_admin' ? '#1e293b' : s.role === 'support' ? '#2563eb' : s.role === 'subscription' ? '#059669' : '#7c3aed',
+                            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem'
+                          }}>
+                            {(s.name || '직')[0]}
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>{s.name}</span>
+                              {s.linkedUid && <span style={{ fontSize: '0.65rem', color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 4px', borderRadius: '4px' }}>연결됨</span>}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{s.email || s.userId || '-'}</div>
+                          </div>
+                        </div>
+
+                        {/* 4 Status Badges */}
+                        <div>
+                          {isRevoked ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800, backgroundColor: '#fee2e2', color: '#b91c1c' }}>
+                              <AlertCircle size={11} /> 접근 해제
+                            </span>
+                          ) : isLinked ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800, backgroundColor: '#dcfce7', color: '#15803d' }}>
+                              <CheckCircle2 size={11} /> 연결 완료
+                            </span>
+                          ) : isInvited ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800, backgroundColor: '#fef3c7', color: '#b45309' }}>
+                              <Clock size={11} /> 초대 발송
+                            </span>
+                          ) : (
+                            <span style={{ padding: '3px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800, backgroundColor: '#f1f5f9', color: '#64748b' }}>
+                              계정 미연결
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                          backgroundColor: s.role === 'super_admin' ? '#1e293b' : s.role === 'support' ? '#eff6ff' : s.role === 'subscription' ? '#f0fdf4' : '#faf5ff',
+                          color: s.role === 'super_admin' ? '#ffffff' : s.role === 'support' ? '#1d4ed8' : s.role === 'subscription' ? '#15803d' : '#7e22ce'
+                        }}>
+                          {s.role === 'super_admin' ? '최고운영' : s.role === 'support' ? '고객지원(CS)' : s.role === 'subscription' ? '구독관리(Billing)' : '개발자(Dev)'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{s.dept || '본사 플랫폼팀'}</span>
+                        {s.tasks && <span style={{ fontSize: '0.72rem', color: '#475569', backgroundColor: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>{s.tasks}</span>}
+                      </div>
+
+                      {/* Action buttons */}
+                      {!isRevoked && (
+                        <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                          <button
+                            onClick={() => {
+                              setInviteModalStaff(s);
+                              setInviteTargetEmail(s.email || '');
+                              setInviteTargetRole(s.role || 'support');
+                              setIsInviteModalOpen(true);
+                            }}
+                            style={{ flex: 1, padding: '7px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer' }}
+                          >
+                            {isLinked ? '재초대' : '로그인 초대'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRoleModalStaff(s);
+                              setSelectedNewRole(s.role || 'support');
+                              setIsRoleModalOpen(true);
+                            }}
+                            style={{ flex: 1, padding: '7px', backgroundColor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, color: '#7e22ce', cursor: 'pointer' }}
+                          >
+                            역할 변경
+                          </button>
+                          <button
+                            onClick={() => handleRevokeStaffAccess(s)}
+                            style={{ flex: 0.8, padding: '7px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, color: '#e11d48', cursor: 'pointer' }}
+                          >
+                            접근 해제
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           {activeTab === 'agencies' && (
@@ -3199,6 +3428,137 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
           onUpdateTypes={setMasterScheduleTypes}
           isMaster={true}
         />
+      )}
+
+      {/* ── 링커엑스 본사 운영팀 로그인 초대 모달 (모바일) ── */}
+      {isInviteModalOpen && inviteModalStaff && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10003, padding: '16px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '100%', maxWidth: '420px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', animation: 'slideUp 0.25s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '16px', backgroundColor: '#eff6ff', color: '#2563eb', fontSize: '0.72rem', fontWeight: 800, marginBottom: '4px' }}>
+                  <ShieldCheck size={12} /> 슈퍼관리자
+                </span>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                  본사 로그인 초대 발송
+                </h3>
+              </div>
+              <button onClick={() => setIsInviteModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>초대 대상 작업자</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{inviteModalStaff.name}</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>초대 수신 이메일 주소 *</label>
+                <input
+                  type="email"
+                  placeholder="예: staff@linker-x.com"
+                  value={inviteTargetEmail}
+                  onChange={(e) => setInviteTargetEmail(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>부여할 운영 역할 *</label>
+                <select
+                  value={inviteTargetRole}
+                  onChange={(e) => setInviteTargetRole(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', backgroundColor: 'white', boxSizing: 'border-box' }}
+                >
+                  <option value="support">고객지원 (문의 및 오류 모니터링)</option>
+                  <option value="subscription">구독관리 (회원사 요금제 & 결제)</option>
+                  <option value="developer">플랫폼 개발자 (시스템 유지보수)</option>
+                </select>
+                <div style={{ fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fffbeb', padding: '6px 8px', borderRadius: '6px', marginTop: '6px', lineHeight: 1.3 }}>
+                  🔒 회원사의 주문·전표·재고 원본 데이터는 기본 제외됩니다.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleSendPlatformStaffInvite}
+                disabled={inviteSending}
+                style={{ flex: 1, padding: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem', cursor: inviteSending ? 'not-allowed' : 'pointer' }}
+              >
+                {inviteSending ? '발송 중...' : '초대장 발송하기'}
+              </button>
+              <button
+                onClick={() => setIsInviteModalOpen(false)}
+                style={{ flex: 0.4, padding: '12px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 링커엑스 본사 운영 역할 및 권한 변경 모달 (모바일) ── */}
+      {isRoleModalOpen && roleModalStaff && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10003, padding: '16px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', animation: 'slideUp 0.25s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '16px', backgroundColor: '#faf5ff', color: '#7e22ce', fontSize: '0.72rem', fontWeight: 800, marginBottom: '4px' }}>
+                  <ShieldCheck size={12} /> 권한 변경
+                </span>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                  {roleModalStaff.name} 직원의 역할 변경
+                </h3>
+              </div>
+              <button onClick={() => setIsRoleModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              {[
+                { key: 'support', title: '고객지원 (support)', desc: '고객 문의, 실시간 오류 로그, 동기화 상태' },
+                { key: 'subscription', title: '구독관리 (subscription)', desc: '회원사 요금제, 체험 잔여일, 결제 관리' },
+                { key: 'developer', title: '플랫폼 개발자 (developer)', desc: '시스템 오류 로그, 인프라 상태 모니터링' }
+              ].map(opt => (
+                <label
+                  key={opt.key}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', borderRadius: '10px',
+                    border: selectedNewRole === opt.key ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                    backgroundColor: selectedNewRole === opt.key ? '#eff6ff' : 'white', cursor: 'pointer'
+                  }}
+                >
+                  <input type="radio" name="mobileRoleSelect" checked={selectedNewRole === opt.key} onChange={() => setSelectedNewRole(opt.key)} style={{ marginTop: '2px' }} />
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>{opt.title}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '1px' }}>{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleUpdateStaffRole}
+                disabled={roleUpdating}
+                style={{ flex: 1, padding: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem', cursor: roleUpdating ? 'not-allowed' : 'pointer' }}
+              >
+                {roleUpdating ? '적용 중...' : '역할 변경 적용'}
+              </button>
+              <button
+                onClick={() => setIsRoleModalOpen(false)}
+                style={{ flex: 0.4, padding: '12px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`
