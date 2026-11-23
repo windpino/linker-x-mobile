@@ -6,12 +6,14 @@ import {
 } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { addDays, DateNavButton } from '../utils/dateNavigationUtils';
+import PaidSubscriptionModal from './common/PaidSubscriptionModal';
 import './LicenseManager.css';
 
 const LicenseManager = ({ onClose, currentUser, licenseData, onUpdateLicense, systemSettings }) => {
   const isMadmin = currentUser?.userId === 'madmin';
   const [activeTab, setActiveTab] = useState('status'); // 'status' | 'features' | 'benefits'
   const [copiedSerial, setCopiedSerial] = useState(false);
+  const [paidModalOpen, setPaidModalOpen] = useState(false);
   
   const [adminDate, setAdminDate] = useState(licenseData?.expiryDate || '');
   const [adminLock, setAdminLock] = useState(licenseData?.isLockedOnExpiry || false);
@@ -119,20 +121,7 @@ const LicenseManager = ({ onClose, currentUser, licenseData, onUpdateLicense, sy
   ];
 
   const handlePurchase = (plan) => {
-    if (window.confirm(`${plan.name} (${plan.price})을 결제하시겠습니까?\n이용 기간이 ${plan.period}일 연장됩니다.`)) {
-      const today = new Date();
-      const currentExpiry = new Date(licenseData?.expiryDate || today);
-      const baseDate = today > currentExpiry ? today : currentExpiry;
-      const newExpiry = new Date(baseDate.getTime() + (plan.period * 24 * 60 * 60 * 1000));
-      
-      onUpdateLicense({
-        ...licenseData,
-        expiryDate: newExpiry.toISOString().split('T')[0],
-        plan: plan.name,
-        lastPaymentDate: new Date().toISOString().split('T')[0]
-      });
-      alert(`🎉 ${plan.name} 결제가 완료되었습니다!\n이용 만료일: ${newExpiry.toISOString().split('T')[0]}까지 연장되었습니다.`);
-    }
+    setPaidModalOpen(true);
   };
 
   const extendLicense = (months) => {
@@ -678,6 +667,15 @@ const LicenseManager = ({ onClose, currentUser, licenseData, onUpdateLicense, sy
         )}
 
       </div>
+
+      <PaidSubscriptionModal
+        isOpen={paidModalOpen}
+        onClose={() => setPaidModalOpen(false)}
+        currentUser={currentUser}
+        currentLicense={licenseData}
+        onUpdateLicense={onUpdateLicense}
+        isMobile={true}
+      />
     </WindowModal>
   );
 };

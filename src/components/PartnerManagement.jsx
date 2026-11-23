@@ -13,6 +13,8 @@ import { matchesInitialSound } from '../utils/koreanUtils';
 import { db } from '../firebase';
 import { doc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { saveBundle, deduplicatePartners } from '../utils/bundleSyncManager';
+import DataRegistrationGuardModal from './common/DataRegistrationGuardModal';
+import { hasCompanyDpaAgreed } from '../utils/complianceUtils';
 import './Partner.css';
 
 const PartnerManagement = ({
@@ -87,6 +89,7 @@ const PartnerManagement = ({
   const [inboundLinks, setInboundLinks] = useState([]);
   const [outboundLinks, setOutboundLinks] = useState([]);
   const [partnerInvitations, setPartnerInvitations] = useState([]);
+  const [dpaGuard, setDpaGuard] = useState({ open: false, actionName: '', onConfirm: null });
 
   const loadPartnerLinksAndInvites = useCallback(() => {
     const cid = currentUser?.companyId;
@@ -199,6 +202,18 @@ const PartnerManagement = ({
   });
 
   const handleOpenRegistration = () => {
+    if (!hasCompanyDpaAgreed(currentUser?.companyId, null, safePartners.length)) {
+      setDpaGuard({
+        open: true,
+        actionName: '신규 거래처 등록',
+        onConfirm: () => {
+          setDpaGuard({ open: false, actionName: '', onConfirm: null });
+          setEditingPartner(null);
+          setIsRegistrationOpen(true);
+        }
+      });
+      return;
+    }
     setEditingPartner(null);
     setIsRegistrationOpen(true);
   };
@@ -1475,6 +1490,15 @@ const PartnerManagement = ({
           </div>
         </div>
       )}
+
+      {/* 실제 데이터 최초 등록 컴플라이언스 가드 */}
+      <DataRegistrationGuardModal
+        isOpen={dpaGuard.open}
+        onClose={() => setDpaGuard({ open: false, actionName: '', onConfirm: null })}
+        onConfirm={dpaGuard.onConfirm}
+        currentUser={currentUser}
+        targetActionName={dpaGuard.actionName}
+      />
     </>
   );
 };

@@ -7,6 +7,8 @@ import { clearLegacyCredentials, withoutSecrets } from './sanitize';
 import './auth.css';
 import MembershipAdmin from './MembershipAdmin';
 import { prepareSessionScope, clearSessionScope } from './sessionScope';
+import LegalDocumentModal from '../components/common/LegalDocumentModal';
+import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION } from '../constants/legalDocuments';
 
 function PartnerOrders({session}) {
   const [tab, setTab] = useState('orders'); // 'orders' | 'new_order' | 'invoices'
@@ -353,6 +355,7 @@ export default function AuthGate({children}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
   const change = e => {
     const { name, value } = e.target;
@@ -1543,6 +1546,43 @@ export default function AuthGate({children}) {
                     </button>
                   </div>
 
+                  {/* 개인정보 처리 안내 및 링크 */}
+                  <div style={{
+                    padding: '10px 12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    marginBottom: '14px',
+                    fontSize: '0.74rem',
+                    color: '#94a3b8',
+                    lineHeight: '1.5'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 700, color: '#e2e8f0' }}>개인정보 수집 및 이용 안내 (필수)</span>
+                      <button
+                        type="button"
+                        onClick={() => setPrivacyModalOpen(true)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#60a5fa',
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          fontSize: '0.74rem',
+                          padding: 0,
+                          fontWeight: 700
+                        }}
+                      >
+                        [보기] 전문
+                      </button>
+                    </div>
+                    <div>
+                      • <strong>처리 목적:</strong> 회원 가입 식별 및 계정 인증, 서비스 제공 (근거: 이용계약 체결 및 이행)<br />
+                      • <strong>수집 항목:</strong> 이메일, 비밀번호 (암호화 저장)<br />
+                      • <strong>보유 기간:</strong> 회원 탈퇴 시까지 (법령상 보존 의무 기간 준수)
+                    </div>
+                  </div>
+
                   <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy}>
                     <span>{busy ? '가입 처리 중...' : '회원가입'}</span>
                     <span className="dark-btn-arrow">→</span>
@@ -1676,9 +1716,40 @@ export default function AuthGate({children}) {
                 />
               </label>
 
-              <div className="auth-notice-text">
-                * 가입 완료 즉시 <strong>첫 30일 무료 체험</strong>이 시작되며 별도의 승인 대기 없이 바로 ERP에 입장합니다.<br />
-                * 기존 동명크릴 같은 특정 회원사로 연결을 원하실 경우 [직원·거래처 소속 신청]을 이용해 주세요.
+              <div style={{
+                padding: '12px 14px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                margin: '12px 0',
+                fontSize: '0.78rem',
+                color: '#475569',
+                lineHeight: '1.55'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontWeight: 700, color: '#1e293b' }}>🏢 회원사 정보 수집 및 이용 안내 (필수)</span>
+                  <button
+                    type="button"
+                    onClick={() => setPrivacyModalOpen(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    [보기] 개인정보 처리방침
+                  </button>
+                </div>
+                <div>
+                  • <strong>수집 목적:</strong> 회원사 식별, 대표자 권한 인증, 30일 무료 체험 및 ERP 작업공간 즉시 개설 (근거: 서비스 계약 체결 및 이행)<br />
+                  • <strong>수집 항목:</strong> 회사명, 사업자등록번호, 대표자 성명, 연락처<br />
+                  • <strong>보유 기간:</strong> 회원사 서비스 이용계약 종료 및 탈퇴 시까지<br />
+                  • <strong>무료 체험:</strong> 가입 즉시 첫 30일 무료 이용이 활성화되며, 별도의 유료 결제는 유료 전환 화면에서 진행됩니다.
+                </div>
               </div>
 
               <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy} style={{ marginTop: '12px' }}>
@@ -2216,6 +2287,14 @@ export default function AuthGate({children}) {
           </div>
         </div>
       )}
+
+      <LegalDocumentModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+        title="개인정보 처리방침 [초안]"
+        documentText={PRIVACY_POLICY_TEXT}
+        version={PRIVACY_POLICY_VERSION}
+      />
     </main>
   );
 }

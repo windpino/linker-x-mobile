@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, Building2, UserCircle, Users, UserPlus, Monitor, ShieldCheck, Bell, Save, X, Globe, Printer, Database, FileText, AlertTriangle, Mail, CheckCircle2 } from 'lucide-react';
+import { Settings, Building2, UserCircle, Users, UserPlus, Monitor, ShieldCheck, Bell, Save, X, Globe, Printer, Database, FileText, AlertTriangle, Mail, CheckCircle2, CreditCard } from 'lucide-react';
 import WindowModal from './WindowModal';
 import { callAuth } from '../auth/client';
+import PaidSubscriptionModal from './common/PaidSubscriptionModal';
 import './SettingsManager.css';
 
 const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettings, onSaveBranding, onSaveCompanyInfo, staffList = [] }) => {
   const [activeCategory, setActiveCategory] = useState('general');
+  const [paidModalOpen, setPaidModalOpen] = useState(false);
   const [localSettings, setLocalSettings] = useState(() => {
     const initial = { ...settings };
     if (!initial.display) initial.display = {};
@@ -192,6 +194,14 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
               <span>{cat.label}</span>
             </div>
           ))}
+          <div
+            className="settings-sidebar-item"
+            onClick={() => setPaidModalOpen(true)}
+            style={{ color: '#d97706', fontWeight: 800, marginTop: '8px', borderTop: '1px dashed #cbd5e1' }}
+          >
+            <CreditCard size={15} />
+            <span>유료 전환 / 계약</span>
+          </div>
         </div>
 
         {/* Content Area */}
@@ -838,6 +848,13 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
           </div>
         </div>
       </div>
+
+      <PaidSubscriptionModal
+        isOpen={paidModalOpen}
+        onClose={() => setPaidModalOpen(false)}
+        currentUser={currentUser}
+        isMobile={true}
+      />
     </WindowModal>
   );
 };

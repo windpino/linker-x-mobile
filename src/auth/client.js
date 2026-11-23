@@ -788,6 +788,63 @@ export async function callAuth(name, data) {
       return { ok: true, status: 'active' };
     }
 
+    // ── 8. 개인정보 처리위탁 합의서 동의 기록 ──
+    if (name === 'recordDpaAgreement') {
+      const cid = data?.companyId;
+      if (!cid) throw new Error('회원사 정보가 올바르지 않습니다.');
+
+      const record = {
+        companyId: cid,
+        agreedByUid: currentUser?.uid || data?.agreedByUid || 'admin',
+        agreedByEmail: currentUser?.email || data?.agreedByEmail || '',
+        dpaVersion: data?.dpaVersion || 'v1.0-draft',
+        agreedAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      localStorage.setItem(`dpaAgreement_${cid}`, JSON.stringify(record));
+      const allCompliance = JSON.parse(localStorage.getItem('dev_compliance_records') || '{}');
+      allCompliance[`dpa_${cid}`] = record;
+      localStorage.setItem('dev_compliance_records', JSON.stringify(allCompliance));
+      return { ok: true, record };
+    }
+
+    // ── 9. 유료 구독 계약 체결 기록 ──
+    if (name === 'recordSubscriptionAgreement') {
+      const cid = data?.companyId;
+      if (!cid) throw new Error('회원사 정보가 올바르지 않습니다.');
+
+      const record = {
+        companyId: cid,
+        companyName: data?.companyName || cid,
+        agreedByUid: currentUser?.uid || data?.agreedByUid || 'admin',
+        agreedByEmail: currentUser?.email || data?.agreedByEmail || '',
+        contractVersion: data?.contractVersion || 'v1.0-draft',
+        planName: data?.planName || '스탠다드 플랜',
+        price: data?.price || '33,000원',
+        billingCycle: data?.billingCycle || '월간',
+        agreedAt: new Date().toISOString(),
+        pricingSnapshot: data?.pricingSnapshot || {},
+        status: 'active'
+      };
+
+      localStorage.setItem(`subscriptionAgreement_${cid}`, JSON.stringify(record));
+      const allCompliance = JSON.parse(localStorage.getItem('dev_compliance_records') || '{}');
+      allCompliance[`sub_${cid}`] = record;
+      localStorage.setItem('dev_compliance_records', JSON.stringify(allCompliance));
+      return { ok: true, record };
+    }
+
+    // ── 10. 컴플라이언스 및 계약 상태 조회 ──
+    if (name === 'getCompanyComplianceStatus') {
+      const cid = data?.companyId;
+      if (!cid) throw new Error('회원사 정보가 필요합니다.');
+
+      const dpa = JSON.parse(localStorage.getItem(`dpaAgreement_${cid}`) || 'null');
+      const sub = JSON.parse(localStorage.getItem(`subscriptionAgreement_${cid}`) || 'null');
+      return { ok: true, dpa, subscription: sub };
+    }
+
     throw new Error(`지원되지 않는 인증 요청입니다: ${name}`);
 }
 
