@@ -492,6 +492,302 @@ export async function callAuth(name, data) {
       return { status: 'pending' };
     }
 
+    // ── 1. 신규 회원사 가입 즉시 개설 (승인 대기 제거 & 첫 관리자 권한 즉시 부여) ──
+    if (name === 'registerNewTenantDirect') {
+      const uid = currentUser.uid;
+      const email = currentUser.email;
+      const cName = String(data?.companyName || '').trim();
+      const uName = String(data?.name || '').trim();
+      if (!cName) throw new Error('회사명을 입력해 주세요.');
+      if (!uName) throw new Error('담당자(대표자) 성명을 입력해 주세요.');
+
+      // 1) 중복 가입 방어: 이미 관리자로 등록된 회사가 있다면 해당 회사 반환 (중복 생성 및 체험일 리셋 방지)
+      const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+      const existingMem = Object.values(storedMemberships).find(m => m.uid === uid && m.role === 'tenant_admin' && m.status === 'active');
+      if (existingMem) {
+        return {
+          status: 'active',
+          companyId: existingMem.companyId,
+          companyName: existingMem.companyName || cName,
+          role: 'admin',
+          authRole: 'tenant_admin',
+          isTenantAdmin: true,
+          alreadyExisted: true
+        };
+      }
+
+      // 2) 내부 회사 ID 자동 발급
+      const cid = `comp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+      const now = new Date();
+      const trialStartDate = now.toISOString();
+      const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const trialEndDate = trialEnd.toISOString().split('T')[0];
+
+      // 3) 회사 등록 (dev_companies)
+      const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+      storedCompanies.push({
+        id: cid,
+        name: cName,
+        businessNo: data?.businessNo || '',
+        ceo: uName,
+        managerContact: data?.phone || '',
+        email,
+        status: 'active',
+        plan: '무료 체험판 (30일)',
+        trialStartDate,
+        trialEndDate,
+        expiryDate: trialEndDate,
+        createdAt: trialStartDate
+      });
+      localStorage.setItem('dev_companies', JSON.stringify(storedCompanies));
+
+      // 4) 0-state 격리 데이터 초기화
+      const emptyCols = [
+        'products', 'partners', 'categories', 'accounts', 'schedules',
+        'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 'salesOrders',
+        'vehicles', 'vehicleLogs', 'expenses', 'inventoryAdjustments',
+        'inventoryTransferHistory', 'specialPrices', 'actionLogs'
+      ];
+      for (const col of emptyCols) {
+        localStorage.setItem(`${col}_${cid}`, JSON.stringify([]));
+      }
+      localStorage.setItem(`inventory_${cid}`, JSON.stringify({}));
+      localStorage.setItem(`physicalInventory_${cid}`, JSON.stringify({}));
+      localStorage.setItem(`warehouses_${cid}`, JSON.stringify([
+        { id: Date.now(), name: '메인창고', isMain: true, companyId: cid, manager: uName }
+      ]));
+
+      // 5) 첫 관리자 권한 부여
+      storedMemberships[`${uid}_${cid}`] = {
+        uid,
+        companyId: cid,
+        companyName: cName,
+        legacyId: uid,
+        role: 'tenant_admin',
+        status: 'active',
+        permissions: { ALL: true, orders: true, loading: true, delivery: true, invoices: true, inventory: true, catalog: true, reports: true },
+        approvedBy: uid,
+        approvedAt: trialStartDate
+      };
+      localStorage.setItem('dev_memberships', JSON.stringify(storedMemberships));
+
+      return {
+        status: 'active',
+        companyId: cid,
+        companyName: cName,
+        role: 'admin',
+        authRole: 'tenant_admin',
+        isTenantAdmin: true,
+        trialStartDate,
+        trialEndDate
+      };
+    }
+
+    // ── 2. 로그인 사용자 워크스페이스(다중 소속) & 대기 초대 조회 ──
+    if (name === 'getMyWorkspaces') {
+      const uid = currentUser.uid;
+      const email = (currentUser.email || '').toLowerCase().trim();
+      const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+      const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+      const userMemberships = Object.values(storedMemberships).filter(m => m.uid === uid && m.status === 'active');
+
+      const workspaces = userMemberships.map(mem => {
+        const comp = storedCompanies.find(c => c.id === mem.companyId);
+        const isPartner = mem.role === 'partner';
+        let partnerName = '';
+        if (isPartner && mem.partnerId) {
+          const partners = JSON.parse(localStorage.getItem(`partners_${mem.companyId}`) || '[]');
+          const p = partners.find(x => x.id === mem.partnerId);
+          partnerName = p?.name || mem.partnerId;
+        }
+        return {
+          companyId: mem.companyId,
+          companyName: comp?.name || mem.companyName || mem.companyId,
+          role: mem.role === 'tenant_admin' ? 'admin' : isPartner ? 'partner' : 'staff',
+          authRole: mem.role,
+          isTenantAdmin: mem.role === 'tenant_admin',
+          type: isPartner ? 'partner_order' : 'company_work',
+          roleLabel: mem.role === 'tenant_admin' ? '회사 관리자 (Admin)' : isPartner ? `거래처 주문 (${partnerName || '고객사'})` : '직원 (Staff)',
+          partnerId: mem.partnerId || null,
+          partnerName: partnerName || null
+        };
+      });
+
+      // 대기 중인 초대
+      const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      const pendingInvitations = storedInvitations.filter(inv => 
+        inv.status === 'pending' && inv.targetEmail === email
+      );
+
+      return { workspaces, pendingInvitations };
+    }
+
+    // ── 3. 직원 초대 생성 ──
+    if (name === 'createStaffInvitation') {
+      const cid = data?.companyId;
+      const targetEmail = String(data?.targetEmail || '').toLowerCase().trim();
+      if (!targetEmail) throw new Error('직원 이메일을 입력해 주세요.');
+
+      const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      const invId = `inv_staff_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const newInv = {
+        id: invId,
+        type: 'staff',
+        companyId: cid,
+        companyName: data?.companyName || cid,
+        targetEmail,
+        staffName: data?.staffName || targetEmail.split('@')[0],
+        staffId: data?.staffId || `staff_${Date.now()}`,
+        phone: data?.phone || '',
+        permissions: data?.permissions || {},
+        role: 'tenant_staff',
+        invitedBy: currentUser.uid,
+        invitedByName: currentUser.displayName || '관리자',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      storedInvitations.push(newInv);
+      localStorage.setItem('dev_invitations', JSON.stringify(storedInvitations));
+      return { ok: true, invitationId: invId, targetEmail };
+    }
+
+    // ── 4. 거래처 주문 초대 생성 ──
+    if (name === 'createPartnerInvitation') {
+      const cid = data?.companyId;
+      const partnerId = data?.partnerId;
+      const targetEmail = String(data?.targetEmail || '').toLowerCase().trim();
+      if (!partnerId) throw new Error('거래처를 지정해 주세요.');
+      if (!targetEmail) throw new Error('거래처 담당자 이메일을 입력해 주세요.');
+
+      const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      const invId = `inv_partner_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const newInv = {
+        id: invId,
+        type: 'partner_order',
+        companyId: cid,
+        companyName: data?.companyName || cid,
+        partnerId,
+        partnerName: data?.partnerName || partnerId,
+        targetEmail,
+        contactName: data?.contactName || '',
+        phone: data?.phone || '',
+        role: 'partner',
+        invitedBy: currentUser.uid,
+        invitedByName: currentUser.displayName || '관리자',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      storedInvitations.push(newInv);
+      localStorage.setItem('dev_invitations', JSON.stringify(storedInvitations));
+      return { ok: true, invitationId: invId, targetEmail, partnerName: newInv.partnerName };
+    }
+
+    // ── 5. 초대 수락 (직원 또는 거래처 주문 초대) ──
+    if (name === 'acceptInvitation') {
+      const invId = data?.invitationId;
+      const storedInvitations = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      const inv = storedInvitations.find(i => i.id === invId);
+      if (!inv || inv.status !== 'pending') throw new Error('유효하지 않거나 이미 처리된 초대입니다.');
+      if (inv.targetEmail !== (currentUser.email || '').toLowerCase().trim()) {
+        throw new Error('초대 대상 이메일 계정으로 로그인해야 수락할 수 있습니다.');
+      }
+
+      const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+      const cid = inv.companyId;
+
+      if (inv.type === 'staff') {
+        storedMemberships[`${currentUser.uid}_${cid}`] = {
+          uid: currentUser.uid,
+          companyId: cid,
+          companyName: inv.companyName,
+          legacyId: inv.staffId,
+          role: 'tenant_staff',
+          status: 'active',
+          permissions: inv.permissions || { orders: true },
+          approvedBy: inv.invitedBy,
+          approvedAt: new Date().toISOString()
+        };
+      } else if (inv.type === 'partner_order') {
+        storedMemberships[`${currentUser.uid}_${cid}`] = {
+          uid: currentUser.uid,
+          companyId: cid,
+          companyName: inv.companyName,
+          legacyId: inv.partnerId,
+          partnerId: inv.partnerId,
+          role: 'partner',
+          status: 'active',
+          permissions: { orders: true },
+          approvedBy: inv.invitedBy,
+          approvedAt: new Date().toISOString()
+        };
+      }
+
+      inv.status = 'accepted';
+      inv.acceptedBy = currentUser.uid;
+      inv.acceptedAt = new Date().toISOString();
+      localStorage.setItem('dev_invitations', JSON.stringify(storedInvitations));
+      localStorage.setItem('dev_memberships', JSON.stringify(storedMemberships));
+      return { ok: true, status: 'accepted', companyId: cid, role: inv.role };
+    }
+
+    // ── 6. 회원사 간 링커 연결 요청 ──
+    if (name === 'requestCompanyLink') {
+      const fromCid = data?.fromCompanyId;
+      const toCid = data?.toCompanyId;
+      const partnerId = data?.partnerId;
+      if (!fromCid || !toCid || fromCid === toCid) throw new Error('연결 대상 회원사를 확인해 주세요.');
+
+      const storedLinks = JSON.parse(localStorage.getItem('dev_company_links') || '[]');
+      const linkId = `link_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      storedLinks.push({
+        id: linkId,
+        fromCompanyId: fromCid,
+        fromCompanyName: data?.fromCompanyName || fromCid,
+        toCompanyId: toCid,
+        toCompanyName: data?.toCompanyName || toCid,
+        partnerId,
+        requestedBy: currentUser.uid,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('dev_company_links', JSON.stringify(storedLinks));
+      return { ok: true, linkId };
+    }
+
+    // ── 7. 회원사 간 링커 연결 수락 ──
+    if (name === 'acceptCompanyLink') {
+      const linkId = data?.linkId;
+      const storedLinks = JSON.parse(localStorage.getItem('dev_company_links') || '[]');
+      const link = storedLinks.find(l => l.id === linkId);
+      if (!link || link.status !== 'pending') throw new Error('유효하지 않거나 이미 처리된 요청입니다.');
+
+      // 양사 거래처 문서에 linkedCompanyId 연결
+      if (link.partnerId) {
+        const fromPartners = JSON.parse(localStorage.getItem(`partners_${link.fromCompanyId}`) || '[]');
+        const p = fromPartners.find(x => x.id === link.partnerId);
+        if (p) {
+          p.linkedCompanyId = link.toCompanyId;
+          p.linkStatus = 'linked';
+          localStorage.setItem(`partners_${link.fromCompanyId}`, JSON.stringify(fromPartners));
+        }
+      }
+      if (data?.matchingPartnerId) {
+        const toPartners = JSON.parse(localStorage.getItem(`partners_${link.toCompanyId}`) || '[]');
+        const toP = toPartners.find(x => x.id === data.matchingPartnerId);
+        if (toP) {
+          toP.linkedCompanyId = link.fromCompanyId;
+          toP.linkStatus = 'linked';
+          localStorage.setItem(`partners_${link.toCompanyId}`, JSON.stringify(toPartners));
+        }
+      }
+
+      link.status = 'active';
+      link.acceptedBy = currentUser.uid;
+      link.acceptedAt = new Date().toISOString();
+      localStorage.setItem('dev_company_links', JSON.stringify(storedLinks));
+      return { ok: true, status: 'active' };
+    }
+
     throw new Error(`지원되지 않는 인증 요청입니다: ${name}`);
 }
 

@@ -6649,6 +6649,7 @@ function App({ authSession }) {
           currentUser={currentUser} 
           settings={systemSettings}
           companySettings={companySettings}
+          staffList={staffList}
           onSaveBranding={(newBranding) => {
             if (currentUser?.companyId) {
               updateDoc(doc(db, 'companies', currentUser.companyId), { theme: newBranding });

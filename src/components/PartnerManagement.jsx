@@ -2,8 +2,10 @@ import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Users, Plus, Edit2, Trash2, FileText, Search, X,
-  Lock, Unlock, KeyRound, GripVertical, Building2
+  Lock, Unlock, KeyRound, GripVertical, Building2,
+  Link2, Mail, Send, CheckCircle2, Clock
 } from 'lucide-react';
+import { callAuth } from '../auth/client';
 import PartnerRegistration from './PartnerRegistration';
 import PartnerSettingsModal from './PartnerSettingsModal';
 import WindowModal from './WindowModal';
@@ -73,6 +75,117 @@ const PartnerManagement = ({
   const [displayLimit, setDisplayLimit] = useState(200);
   const [searchText, setSearchText] = useState('');
   const [selectedPartnerName, setSelectedPartnerName] = useState(null);
+
+  // ── 거래처 주문 초대 및 회원사 연결 상태 ──
+  const [partnerInviteModal, setPartnerInviteModal] = useState({ open: false, partner: null });
+  const [partnerInviteForm, setPartnerInviteForm] = useState({ targetEmail: '', contactName: '', phone: '' });
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const [companyLinkModal, setCompanyLinkModal] = useState({ open: false, tab: 'request' });
+  const [companyLinkForm, setCompanyLinkForm] = useState({ partnerId: '', toCompanyId: '', toCompanyName: '' });
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [inboundLinks, setInboundLinks] = useState([]);
+  const [outboundLinks, setOutboundLinks] = useState([]);
+  const [partnerInvitations, setPartnerInvitations] = useState([]);
+
+  const loadPartnerLinksAndInvites = useCallback(() => {
+    const cid = currentUser?.companyId;
+    if (!cid) return;
+    try {
+      const allInv = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+      setPartnerInvitations(allInv.filter(i => i.companyId === cid && i.type === 'partner_order'));
+
+      const allLinks = JSON.parse(localStorage.getItem('dev_company_links') || '[]');
+      setInboundLinks(allLinks.filter(l => l.toCompanyId === cid));
+      setOutboundLinks(allLinks.filter(l => l.fromCompanyId === cid));
+    } catch (e) {
+      console.warn('Error loading links/invites:', e);
+    }
+  }, [currentUser?.companyId]);
+
+  useEffect(() => {
+    loadPartnerLinksAndInvites();
+  }, [loadPartnerLinksAndInvites]);
+
+  const handleOpenPartnerInvite = (partner) => {
+    setPartnerInviteModal({ open: true, partner });
+    setPartnerInviteForm({
+      targetEmail: partner.email || '',
+      contactName: partner.ceo || '',
+      phone: partner.mobile || partner.phone || ''
+    });
+  };
+
+  const handleSendPartnerInvite = async (e) => {
+    e.preventDefault();
+    if (!partnerInviteForm.targetEmail.trim()) {
+      alert('거래처 담당자 이메일을 입력해 주세요.');
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const res = await callAuth('createPartnerInvitation', {
+        companyId: currentUser?.companyId,
+        companyName: currentUser?.companyName,
+        partnerId: partnerInviteModal.partner.id,
+        partnerName: partnerInviteModal.partner.name,
+        targetEmail: partnerInviteForm.targetEmail.trim(),
+        contactName: partnerInviteForm.contactName.trim(),
+        phone: partnerInviteForm.phone.trim()
+      });
+      alert(`[${res.partnerName}] 담당자(${res.targetEmail})에게 주문 초대가 발송되었습니다.\n담당자가 로그인 후 수락하면 전용 주문 포털이 즉시 연결됩니다.`);
+      setPartnerInviteModal({ open: false, partner: null });
+      loadPartnerLinksAndInvites();
+    } catch (err) {
+      alert('주문 초대 발송 실패: ' + (err.message || '오류가 발생했습니다.'));
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleRequestCompanyLink = async (e) => {
+    e.preventDefault();
+    if (!companyLinkForm.partnerId) {
+      alert('연결할 거래처를 선택해 주세요.');
+      return;
+    }
+    if (!companyLinkForm.toCompanyId.trim()) {
+      alert('상대 회원사 회사 ID를 입력해 주세요.');
+      return;
+    }
+    setLinkLoading(true);
+    try {
+      const selPartner = safePartners.find(p => p.id === companyLinkForm.partnerId);
+      await callAuth('requestCompanyLink', {
+        fromCompanyId: currentUser?.companyId,
+        fromCompanyName: currentUser?.companyName,
+        toCompanyId: companyLinkForm.toCompanyId.trim(),
+        toCompanyName: companyLinkForm.toCompanyName.trim() || selPartner?.name,
+        partnerId: companyLinkForm.partnerId
+      });
+      alert('회원사 연결 요청이 발송되었습니다. 상대 회원사 관리자가 수락하면 B2B 거래관계가 연결됩니다.');
+      setCompanyLinkForm({ partnerId: '', toCompanyId: '', toCompanyName: '' });
+      setCompanyLinkModal(prev => ({ ...prev, tab: 'outbound' }));
+      loadPartnerLinksAndInvites();
+    } catch (err) {
+      alert('연결 요청 실패: ' + (err.message || '오류가 발생했습니다.'));
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleAcceptCompanyLink = async (linkId, matchingPartnerId) => {
+    try {
+      await callAuth('acceptCompanyLink', {
+        linkId,
+        matchingPartnerId
+      });
+      alert('회원사 연결을 수락했습니다! 상호 간 B2B 거래관계가 체결되었습니다.');
+      loadPartnerLinksAndInvites();
+    } catch (err) {
+      alert('연결 수락 실패: ' + (err.message || '오류가 발생했습니다.'));
+    }
+  };
 
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
@@ -650,6 +763,45 @@ const PartnerManagement = ({
                 <span>{isReorderUnlocked ? '순번변경중' : '순번잠금'}</span>
               </button>
 
+              {/* [🔗 회원사 연결] 버튼 */}
+              <button
+                type="button"
+                onClick={() => setCompanyLinkModal({ open: true, tab: 'request' })}
+                style={{
+                  height: '36px',
+                  padding: '0 10px',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  borderRadius: '10px',
+                  background: '#eef2ff',
+                  color: '#4f46e5',
+                  border: '1px solid #a5b4fc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  position: 'relative'
+                }}
+              >
+                <Link2 size={14} /> 회원사 연결
+                {inboundLinks.filter(l => l.status === 'pending').length > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '1px 5px',
+                    fontSize: '0.65rem',
+                    fontWeight: 800
+                  }}>
+                    {inboundLinks.filter(l => l.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+
               {/* [➕ 거래처 등록] 버튼 */}
               <button
                 type="button"
@@ -811,24 +963,53 @@ const PartnerManagement = ({
                         </span>
 
                         {/* 거래처명 */}
-                        <span
-                          style={{
-                            fontSize: '0.92rem',
-                            fontWeight: 800,
-                            color: '#0f172a',
-                            letterSpacing: '-0.3px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            flex: 1
-                          }}
-                        >
-                          {partner.name}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                          <span
+                            style={{
+                              fontSize: '0.90rem',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              letterSpacing: '-0.3px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {partner.name}
+                          </span>
+                          {partner.linkedCompanyId && (
+                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', borderRadius: '4px', backgroundColor: '#e0e7ff', color: '#4338ca', fontWeight: 800, flexShrink: 0 }}>
+                              🔗 연동됨
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* 우측: [수정] 버튼 + [수주등록] 버튼만 깔끔하게 배치 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                      {/* 우측: [초대] + [수정] + [수주등록] 버튼 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPartnerInvite(partner);
+                          }}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: '7px',
+                            border: '1px solid #bfdbfe',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            cursor: 'pointer'
+                          }}
+                          title="거래처 주문 초대"
+                        >
+                          <Mail size={12} /> 초대
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -976,6 +1157,321 @@ const PartnerManagement = ({
                 {confirmModal.confirmText || '확인'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 모바일 거래처 주문 초대 모달 ── */}
+      {partnerInviteModal.open && partnerInviteModal.partner && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99998,
+          backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '420px',
+            maxHeight: '90vh', overflowY: 'auto',
+            padding: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                  <Mail size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>거래처 전용 주문 초대</h3>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>[{partnerInviteModal.partner.name}] 매장 담당자</div>
+                </div>
+              </div>
+              <button onClick={() => setPartnerInviteModal({ open: false, partner: null })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendPartnerInvite}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.75rem', color: '#166534', lineHeight: '1.4' }}>
+                  💡 <strong>자체 ERP 개설 불필요:</strong> 거래처 담당자는 개인 계정으로 초대를 수락하면 이 매장의 주문 포털에 즉시 연결됩니다.<br />
+                  🔒 <strong>보안 격리:</strong> 본인 매장 자료만 조회 가능하며, 공급사 내부 원가/재고/타 거래처 자료는 원천 차단됩니다.
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>거래처 담당자 이메일 *</label>
+                  <input
+                    type="email"
+                    required
+                    value={partnerInviteForm.targetEmail}
+                    onChange={e => setPartnerInviteForm(prev => ({ ...prev, targetEmail: e.target.value }))}
+                    placeholder="partner@example.com"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>담당자 성명/직함</label>
+                  <input
+                    type="text"
+                    value={partnerInviteForm.contactName}
+                    onChange={e => setPartnerInviteForm(prev => ({ ...prev, contactName: e.target.value }))}
+                    placeholder="김대표"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>연락처</label>
+                  <input
+                    type="tel"
+                    value={partnerInviteForm.phone}
+                    onChange={e => setPartnerInviteForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="010-0000-0000"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                {partnerInvitations.filter(i => i.partnerId === partnerInviteModal.partner.id).length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>기존 발송된 초대:</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {partnerInvitations.filter(i => i.partnerId === partnerInviteModal.partner.id).map(inv => (
+                        <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', backgroundColor: '#f8fafc', borderRadius: '6px', fontSize: '0.74rem', border: '1px solid #e2e8f0' }}>
+                          <span>{inv.targetEmail}</span>
+                          <span style={{
+                            padding: '2px 6px', borderRadius: '8px', fontSize: '0.68rem', fontWeight: 700,
+                            backgroundColor: inv.status === 'accepted' ? '#dcfce7' : '#fef3c7',
+                            color: inv.status === 'accepted' ? '#166534' : '#92400e'
+                          }}>
+                            {inv.status === 'accepted' ? '수락됨' : '대기중'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPartnerInviteModal({ open: false, partner: null })}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    닫기
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={inviteLoading}
+                    style={{ flex: 2, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    {inviteLoading ? '발송 중...' : '주문 초대 발송'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── 모바일 회원사 간 링커 연결 (B2B) 모달 ── */}
+      {companyLinkModal.open && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99998,
+          backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '440px',
+            maxHeight: '88vh', overflowY: 'auto',
+            padding: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                  <Link2 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>회원사 간 링커 연결 (B2B)</h3>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>양사 회원사 간 거래관계를 연결합니다.</div>
+                </div>
+              </div>
+              <button onClick={() => setCompanyLinkModal({ open: false, tab: 'request' })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* 탭 네비게이션 */}
+            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', marginBottom: '14px' }}>
+              {[
+                { id: 'request', label: '연결 요청' },
+                { id: 'inbound', label: `수신 (${inboundLinks.filter(l => l.status === 'pending').length})` },
+                { id: 'outbound', label: `발송 (${outboundLinks.length})` }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setCompanyLinkModal(prev => ({ ...prev, tab: t.id }))}
+                  style={{
+                    padding: '8px 10px',
+                    border: 'none',
+                    borderBottom: companyLinkModal.tab === t.id ? '2px solid #4f46e5' : '2px solid transparent',
+                    background: 'none',
+                    color: companyLinkModal.tab === t.id ? '#4f46e5' : '#64748b',
+                    fontWeight: companyLinkModal.tab === t.id ? 800 : 600,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 탭 1: 새 연결 요청 */}
+            {companyLinkModal.tab === 'request' && (
+              <form onSubmit={handleRequestCompanyLink}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ padding: '10px', backgroundColor: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', fontSize: '0.74rem', color: '#5b21b6', lineHeight: '1.4' }}>
+                    🔗 <strong>기존 이력 보존:</strong> 내 거래처에 상대 회원사 ID를 연결하여 전표/미수금 이력을 그대로 유지합니다.
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>연결할 내 거래처 선택 *</label>
+                    <select
+                      required
+                      value={companyLinkForm.partnerId}
+                      onChange={e => {
+                        const pid = e.target.value;
+                        const p = safePartners.find(x => x.id === pid);
+                        setCompanyLinkForm(prev => ({
+                          ...prev,
+                          partnerId: pid,
+                          toCompanyName: p?.name || prev.toCompanyName
+                        }));
+                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    >
+                      <option value="">거래처를 선택하세요</option>
+                      {safePartners.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.linkedCompanyId ? `(연동됨: ${p.linkedCompanyId})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>상대방 링커엑스 회사 ID *</label>
+                    <input
+                      type="text"
+                      required
+                      value={companyLinkForm.toCompanyId}
+                      onChange={e => setCompanyLinkForm(prev => ({ ...prev, toCompanyId: e.target.value }))}
+                      placeholder="예: comp_ocean_corp"
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>상대 회사명</label>
+                    <input
+                      type="text"
+                      value={companyLinkForm.toCompanyName}
+                      onChange={e => setCompanyLinkForm(prev => ({ ...prev, toCompanyName: e.target.value }))}
+                      placeholder="상대 회사명"
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyLinkModal({ open: false, tab: 'request' })}
+                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={linkLoading}
+                      style={{ flex: 2, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#4f46e5', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      {linkLoading ? '요청 중...' : '연결 요청 발송'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* 탭 2: 수신된 연결 요청 */}
+            {companyLinkModal.tab === 'inbound' && (
+              <div>
+                {inboundLinks.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+                    수신된 연결 요청이 없습니다.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {inboundLinks.map(link => (
+                      <div key={link.id} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#ffffff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.88rem' }}>{link.fromCompanyName}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>ID: {link.fromCompanyId}</div>
+                          </div>
+                          {link.status === 'pending' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const matched = safePartners.find(p => p.name.includes(link.fromCompanyName) || link.fromCompanyName.includes(p.name));
+                                handleAcceptCompanyLink(link.id, matched?.id || null);
+                              }}
+                              style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                            >
+                              수락
+                            </button>
+                          ) : (
+                            <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.75rem' }}>✓ 연결됨</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 탭 3: 발송한 연결 요청 / 연동 현황 */}
+            {companyLinkModal.tab === 'outbound' && (
+              <div>
+                {outboundLinks.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+                    발송한 연결 요청이 없습니다.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {outboundLinks.map(link => {
+                      const localPartner = safePartners.find(p => p.id === link.partnerId);
+                      return (
+                        <div key={link.id} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#ffffff' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.88rem' }}>{link.toCompanyName}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>거래처: {localPartner?.name || link.partnerId}</div>
+                            </div>
+                            <span style={{
+                              padding: '2px 8px', borderRadius: '10px', fontSize: '0.72rem', fontWeight: 700,
+                              backgroundColor: link.status === 'accepted' ? '#dcfce7' : '#fef3c7',
+                              color: link.status === 'accepted' ? '#166534' : '#92400e'
+                            }}>
+                              {link.status === 'accepted' ? '연결됨' : '대기중'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

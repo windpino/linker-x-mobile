@@ -9,17 +9,293 @@ import MembershipAdmin from './MembershipAdmin';
 import { prepareSessionScope, clearSessionScope } from './sessionScope';
 
 function PartnerOrders({session}) {
-  const [orders,setOrders] = useState([]), [item,setItem] = useState(''), [error,setError] = useState('');
+  const [tab, setTab] = useState('orders'); // 'orders' | 'new_order' | 'invoices'
+  const [orders, setOrders] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [item, setItem] = useState('');
+  const [qty, setQty] = useState(1);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
+
   const load = useCallback(async () => {
     try {
-      const snapshot = await getDocs(query(collection(db,'companies',session.companyId,'partnerOrders'),where('companyId','==',session.companyId),where('partnerId','==',session.partnerId)));
-      setOrders(snapshot.docs.map(d=>({id:d.id,...d.data()})));
-    } catch { setError('주문 조회 권한 또는 연결을 확인해 주세요.'); }
-  },[session.companyId,session.partnerId]);
-  useEffect(()=>{load();},[load]);
-  return <main className="auth-shell"><section className="auth-card"><h1>거래처 주문</h1><p>{session.companyId} · 본인 거래처 주문만 표시합니다.</p>
-    <form onSubmit={async e=>{e.preventDefault(); try {await addDoc(collection(db,'companies',session.companyId,'partnerOrders'),{companyId:session.companyId,partnerId:session.partnerId,items:[{description:item}],note:'',status:'submitted',createdAt:serverTimestamp()});setItem('');await load();}catch{setError('주문을 저장하지 못했습니다.');}}}><label>주문 요청<input required value={item} onChange={e=>setItem(e.target.value)}/></label><button>주문 요청 보내기</button></form>
-    <p role="alert">{error}</p><ul>{orders.map(o=><li key={o.id}>{o.items?.map(i=>i.description).join(', ')} · {o.status}</li>)}</ul><button onClick={logout}>로그아웃</button></section></main>;
+      const orderSnap = await getDocs(query(
+        collection(db, 'companies', session.companyId, 'partnerOrders'),
+        where('companyId', '==', session.companyId),
+        where('partnerId', '==', session.partnerId)
+      )).catch(() => ({ docs: [] }));
+      
+      const localOrders = JSON.parse(localStorage.getItem(`partnerOrders_${session.companyId}`) || '[]');
+      const filteredLocal = localOrders.filter(o => o.partnerId === session.partnerId);
+      const combined = [...orderSnap.docs.map(d => ({ id: d.id, ...d.data() })), ...filteredLocal];
+      const map = new Map();
+      combined.forEach(o => map.set(o.id || o.orderNo, o));
+      setOrders(Array.from(map.values()));
+
+      // 공유 전표 조회 (자기 partnerId만 격리)
+      const allInvoices = JSON.parse(localStorage.getItem(`salesInvoices_${session.companyId}`) || '[]');
+      const myInvoices = allInvoices.filter(inv => inv.partnerId === session.partnerId || inv.partnerName === session.partnerName);
+      setInvoices(myInvoices);
+    } catch {
+      setError('주문 내역을 조회하지 못했습니다.');
+    }
+  }, [session.companyId, session.partnerId, session.partnerName]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSubmitOrder = async (e) => {
+    e.preventDefault();
+    if (!item.trim()) return;
+    setBusy(true);
+    setError('');
+    setMsg('');
+    try {
+      const newOrder = {
+        id: `PORD-${Date.now()}`,
+        orderNo: `PORD-${Date.now()}`,
+        companyId: session.companyId,
+        partnerId: session.partnerId,
+        partnerName: session.partnerName || session.name || '거래처',
+        items: [{ description: item.trim(), qty: Number(qty) || 1 }],
+        note: note.trim(),
+        status: '접수완료',
+        createdAt: new Date().toISOString()
+      };
+      try {
+        await addDoc(collection(db, 'companies', session.companyId, 'partnerOrders'), {
+          ...newOrder,
+          createdAt: serverTimestamp()
+        });
+      } catch {}
+      const localOrders = JSON.parse(localStorage.getItem(`partnerOrders_${session.companyId}`) || '[]');
+      localOrders.unshift(newOrder);
+      localStorage.setItem(`partnerOrders_${session.companyId}`, JSON.stringify(localOrders));
+
+      // 공급사 수주 관리(salesOrders) 연동
+      const supplierOrders = JSON.parse(localStorage.getItem(`salesOrders_${session.companyId}`) || '[]');
+      supplierOrders.unshift({
+        id: newOrder.id,
+        orderNo: newOrder.orderNo,
+        partnerId: session.partnerId,
+        partnerName: session.partnerName || session.name || '거래처',
+        productName: item.trim(),
+        qty: Number(qty) || 1,
+        price: 0,
+        amount: 0,
+        date: new Date().toISOString().slice(0, 10),
+        status: '주문완료',
+        note: note.trim(),
+        source: '거래처주문포털',
+        companyId: session.companyId
+      });
+      localStorage.setItem(`salesOrders_${session.companyId}`, JSON.stringify(supplierOrders));
+
+      setItem('');
+      setQty(1);
+      setNote('');
+      setMsg('주문이 정상적으로 공급사에 접수되었습니다.');
+      setTab('orders');
+      await load();
+    } catch {
+      setError('주문을 저장하지 못했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main className="auth-shell dark-theme">
+      <div className="dark-auth-header">
+        <img
+          src="/assets/linker-x-horizontal.png"
+          alt="Linker X"
+          className="dark-brand-logo-img"
+        />
+      </div>
+
+      <section className="auth-card dark-glass" style={{ maxWidth: '640px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+          <div>
+            <span style={{ fontSize: '0.78rem', backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+              거래처 전용 주문 포털
+            </span>
+            <h2 style={{ fontSize: '1.25rem', color: '#ffffff', margin: '6px 0 2px 0', fontWeight: 800 }}>
+              {session.companyName || session.companyId} · 주문 포털
+            </h2>
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0 }}>
+              주문 거래처: <strong>{session.partnerName || session.name || session.partnerId}</strong> ({session.email})
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            style={{ padding: '6px 12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '8px', color: '#fca5a5', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+          >
+            로그아웃
+          </button>
+        </div>
+
+        {/* 탭 네비게이션 */}
+        <div className="dark-pill-selector" style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            className={`dark-pill ${tab === 'orders' ? 'active' : ''}`}
+            onClick={() => setTab('orders')}
+          >
+            📦 주문 & 배송 상태 ({orders.length})
+          </button>
+          <button
+            type="button"
+            className={`dark-pill ${tab === 'new_order' ? 'active' : ''}`}
+            onClick={() => setTab('new_order')}
+          >
+            ✏️ 새 주문 작성
+          </button>
+          <button
+            type="button"
+            className={`dark-pill ${tab === 'invoices' ? 'active' : ''}`}
+            onClick={() => setTab('invoices')}
+          >
+            🧾 공유 전표 ({invoices.length})
+          </button>
+        </div>
+
+        {error && <div className="auth-badge-status failure" style={{ marginBottom: '12px' }}>{error}</div>}
+        {msg && <div className="auth-badge-status prod-verify" style={{ marginBottom: '12px' }}>{msg}</div>}
+
+        {/* 탭 1: 새 주문 작성 */}
+        {tab === 'new_order' && (
+          <form onSubmit={handleSubmitOrder} className="dark-auth-form">
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
+                주문 품목 및 규격
+              </label>
+              <div className="dark-input-wrap">
+                <input
+                  required
+                  placeholder="예: 동명 고급 크릴 1kg 또는 각크릴 블록"
+                  value={item}
+                  onChange={e => setItem(e.target.value)}
+                  className="dark-input"
+                  style={{ paddingLeft: '14px' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
+                  수량
+                </label>
+                <div className="dark-input-wrap">
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={qty}
+                    onChange={e => setQty(e.target.value)}
+                    className="dark-input"
+                    style={{ paddingLeft: '14px' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
+                  배송 요청사항 / 메모
+                </label>
+                <div className="dark-input-wrap">
+                  <input
+                    placeholder="예: 내일 오전 8시 전 배송 부탁드립니다"
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    className="dark-input"
+                    style={{ paddingLeft: '14px' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy}>
+              <span>{busy ? '주문 전송 중...' : '공급사에 주문 전송'}</span>
+              <span className="dark-btn-arrow">→</span>
+            </button>
+          </form>
+        )}
+
+        {/* 탭 2: 주문 내역 & 배송 상태 */}
+        {tab === 'orders' && (
+          <div>
+            {orders.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                접수된 주문 내역이 없습니다. [새 주문 작성] 탭에서 주문을 보내보세요.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto' }}>
+                {orders.map(o => (
+                  <div key={o.id || o.orderNo} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.92rem', color: '#f8fafc', fontWeight: 700 }}>
+                        {o.items?.map(i => `${i.description} (${i.qty}개)`).join(', ') || o.productName}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                        주문번호: <code>{o.orderNo || o.id}</code> · {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : (o.date || '')}
+                        {o.note && <span> · 메모: {o.note}</span>}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: o.status === '배송완료' ? 'rgba(16, 185, 129, 0.2)' : o.status === '상차준비' || o.status === '출하준비' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                      color: o.status === '배송완료' ? '#34d399' : o.status === '상차준비' || o.status === '출하준비' ? '#fbbf24' : '#38bdf8'
+                    }}>
+                      {o.status || '접수완료'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 탭 3: 공유 전표 내역 */}
+        {tab === 'invoices' && (
+          <div>
+            {invoices.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                공유된 매출 전표 내역이 없습니다. 공급사가 전표를 발행하면 이곳에 안전하게 표시됩니다.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto' }}>
+                {invoices.map(inv => (
+                  <div key={inv.id || inv.invoiceNo} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.92rem', color: '#f8fafc', fontWeight: 700 }}>
+                        {inv.invoiceNo || '전자매출전표'} · {Number(inv.totalAmount || 0).toLocaleString()}원
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                        일자: {inv.date} · 공급가액: {Number(inv.supplyAmount || 0).toLocaleString()}원 · 세액: {Number(inv.vatAmount || 0).toLocaleString()}원
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '4px 10px', borderRadius: '8px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
+                      발행완료
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', fontSize: '0.76rem', color: '#64748b', textAlign: 'center' }}>
+          * 본 포털은 귀하의 사업장 주문 및 배송 현황만 조회되며, 공급사의 내부 원가·재고 및 타 매장 자료는 엄격히 격리 차단됩니다.
+        </div>
+      </section>
+    </main>
+  );
 }
 
 export default function AuthGate({children}) {
@@ -53,8 +329,12 @@ export default function AuthGate({children}) {
   const [regError, setRegError] = useState(null);
   const [regData, setRegData] = useState(null);
 
+  // Workspaces and pending invitations
+  const [workspaces, setWorkspaces] = useState([]);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
+
   // Authenticated & verified sub-view:
-  // 'company_login' | 'new_tenant_form' | 'existing_tenant_form' | 'awaiting_tenant_approval' | 'awaiting_member_approval' | 'no_application'
+  // 'company_login' | 'workspace_selector' | 'new_tenant_form' | 'existing_tenant_form' | 'awaiting_tenant_approval' | 'awaiting_member_approval' | 'no_application'
   const [verifiedView, setVerifiedView] = useState('company_login');
 
   const [form, setForm] = useState({
@@ -138,7 +418,7 @@ export default function AuthGate({children}) {
       if (activeUser && activeUser.emailVerified) {
         const isPlatform = await resolvePlatformAdmin(activeUser);
         if (!isPlatform) {
-          await checkRegistrationStatus(activeUser);
+          await loadUserWorkspacesAndInvites(activeUser);
         }
       }
     });
@@ -148,7 +428,7 @@ export default function AuthGate({children}) {
   const enter = async (overrideCompanyId) => {
     const targetCid = (overrideCompanyId || form.companyId || '').trim();
     if (!targetCid) {
-      showMsg('입장할 회사 ID를 입력해 주세요.', 'error');
+      showMsg('입장할 회사 ID를 확인해 주세요.', 'error');
       return;
     }
     setSession(null);
@@ -176,6 +456,60 @@ export default function AuthGate({children}) {
       setBusy(false);
     }
   };
+
+  // Load user's accessible workspaces and pending invitations
+  const loadUserWorkspacesAndInvites = useCallback(async (targetUser) => {
+    const u = targetUser || auth.currentUser;
+    if (!u || !u.emailVerified) return;
+
+    setRegLoading(true);
+    setRegError(null);
+    try {
+      const res = await callAuth('getMyWorkspaces');
+      const ws = res.workspaces || [];
+      const invs = res.pendingInvitations || [];
+      setWorkspaces(ws);
+      setPendingInvitations(invs);
+
+      // 1) 단일 소속 & 대기 초대 없음 -> 즉시 해당 워크스페이스로 자동 입장!
+      if (ws.length === 1 && invs.length === 0) {
+        await enter(ws[0].companyId);
+        return;
+      }
+
+      // 2) 다중 소속이거나 대기 초대가 있으면 워크스페이스 선택 화면 노출!
+      if (ws.length > 0 || invs.length > 0) {
+        setVerifiedView('workspace_selector');
+        return;
+      }
+
+      // 3) 소속이 없는 경우: 기존 등록 신청 상태 확인
+      const reg = await callAuth('getMyRegistrationStatus');
+      setRegData(reg);
+      if (reg.status === 'pending') {
+        setVerifiedView('awaiting_tenant_approval');
+        setForm(f => ({
+          ...f,
+          companyId: reg.companyId || f.companyId,
+          companyName: reg.companyName || reg.profile?.companyName || f.companyName
+        }));
+      } else if (reg.status === 'approved' && reg.companyId) {
+        await enter(reg.companyId);
+      } else if (reg.status === 'rejected') {
+        setVerifiedView('registration_rejected');
+        showMsg(reg.reason || '회원사 등록 신청이 반려되었습니다.', 'error');
+      } else {
+        // 완전 신규: 새 회원사 등록 신청 화면으로 자동 안내 (승인 대기 절차 없음)
+        setVerifiedView('new_tenant_form');
+      }
+    } catch (err) {
+      console.error('[loadUserWorkspacesAndInvites error]', err);
+      // fallback
+      await checkRegistrationStatus(u);
+    } finally {
+      setRegLoading(false);
+    }
+  }, []);
 
   // Query registration status by UID from the server
   const checkRegistrationStatus = useCallback(async (targetUser) => {
@@ -476,7 +810,7 @@ export default function AuthGate({children}) {
     }
   };
 
-  // Submit new company registration (Step 3: 슈퍼관리자 검토 요청 - 희망 회사 ID 입력 불필요, 승인 시 서버 자동 발급)
+  // Submit new company registration (즉시 개설 & 첫 관리자 권한 부여 후 즉시 업무 화면 입장)
   const handleNewTenantSubmit = async (e) => {
     e.preventDefault();
     if (busy) return;
@@ -485,48 +819,42 @@ export default function AuthGate({children}) {
     const name = form.name.trim();
     const phone = form.phone.trim();
 
-    if (!cname) {
-      showMsg('회사명을 입력해 주세요.', 'error');
-      return;
-    }
-    if (!bno) {
-      showMsg('사업자등록번호를 입력해 주세요.', 'error');
-      return;
-    }
-    if (!name) {
-      showMsg('담당자(대표자) 성명을 입력해 주세요.', 'error');
-      return;
-    }
-    if (!phone) {
-      showMsg('연락처를 입력해 주세요.', 'error');
-      return;
-    }
+    if (!cname) return showMsg('회사명을 입력해 주세요.', 'error');
+    if (!bno) return showMsg('사업자등록번호를 입력해 주세요.', 'error');
+    if (!name) return showMsg('담당자(대표자) 성명을 입력해 주세요.', 'error');
+    if (!phone) return showMsg('연락처를 입력해 주세요.', 'error');
 
     setBusy(true);
-    showMsg('새 회원사 등록 신청서를 제출하는 중입니다...', 'info');
+    showMsg('새 회원사를 개설하고 첫 관리자 권한을 설정하는 중입니다...', 'info');
     try {
       await refreshIdentity();
-      await callAuth('requestMembership', withoutSecrets({
-        companyId: 'pending',
-        role: 'tenant_admin',
-        legacyId: identity.uid,
+      const res = await callAuth('registerNewTenantDirect', withoutSecrets({
+        companyName: cname,
+        businessNo: bno,
         name,
-        phone,
-        companyName: cname,
-        businessNo: bno
+        phone
       }));
-      setRegData({
-        status: 'pending',
-        companyId: 'pending',
-        companyName: cname,
-        role: 'tenant_admin',
-        profile: { name, phone, companyName: cname, businessNo: bno },
-        createdAt: new Date().toISOString()
-      });
-      setVerifiedView('awaiting_tenant_approval');
-      showMsg('새 회원사 등록 신청이 성공적으로 접수되었습니다. 링커엑스 슈퍼관리자 승인 후 서비스가 활성화됩니다.', 'success');
+      showMsg(`[${res.companyName}] 회원사 개설 및 첫 관리자 권한 등록이 완료되었습니다. 업무를 시작합니다!`, 'success');
+      // 승인 대기 절차 없이 즉시 생성된 회사로 입장!
+      await enter(res.companyId);
     } catch (err) {
-      showMsg('회원사 등록 신청 실패: ' + (err.message || '입력 정보를 다시 확인해 주세요.'), 'error');
+      showMsg('회원사 등록 실패: ' + (err.message || '입력 정보를 다시 확인해 주세요.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Accept staff or partner order invitation
+  const handleAcceptInvitation = async (invitationId) => {
+    if (busy) return;
+    setBusy(true);
+    showMsg('초대를 수락하고 권한을 연결하는 중입니다...', 'info');
+    try {
+      const res = await callAuth('acceptInvitation', { invitationId });
+      showMsg('초대가 성공적으로 수락되었습니다. 워크스페이스로 입장합니다!', 'success');
+      await enter(res.companyId);
+    } catch (err) {
+      showMsg('초대 수락 실패: ' + (err.message || '오류가 발생했습니다.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -1295,14 +1623,14 @@ export default function AuthGate({children}) {
           </>
         ) : verifiedView === 'new_tenant_form' ? (
           /* ─────────────────────────────────────────────────────────────
-              3-A. 새 회원사 등록 흐름: 회사 정보 입력 (Step 2)
+              3-A. 새 회원사 등록 흐름: 회사 정보 입력 즉시 개설 (승인 대기 제거)
           ───────────────────────────────────────────────────────────── */
           <>
-            <div className="auth-badge-status prod-verify">새 회원사 등록</div>
+            <div className="auth-badge-status prod-verify">새 회원사 등록 즉시 이용</div>
             <h2 className="auth-mode-title">회사 정보 입력</h2>
             <p className="auth-desc">
               인증 계정: <strong>{identity.email}</strong> <span className="auth-verified-tag">인증됨</span><br />
-              링커엑스에 새로 등록할 회사 정보를 입력해 주세요. (슈퍼관리자 승인 후 개설됩니다)
+              회사 정보를 입력하시면 고유 식별자가 즉시 발급되고 대표자 권한으로 바로 업무 화면에 입장합니다.
             </p>
 
             <form onSubmit={handleNewTenantSubmit} className="auth-form">
@@ -1349,12 +1677,13 @@ export default function AuthGate({children}) {
               </label>
 
               <div className="auth-notice-text">
-                * 새 회원사 신청은 링커엑스 슈퍼관리자가 검토 및 승인하며, 승인 시 내부 회사 식별 번호가 자동 발급됩니다.<br />
-                * 이메일이 일치하더라도 기존 동명크릴 등 기존 회원사 계정에 자동 연결되지 않습니다.
+                * 가입 완료 즉시 <strong>첫 30일 무료 체험</strong>이 시작되며 별도의 승인 대기 없이 바로 ERP에 입장합니다.<br />
+                * 기존 동명크릴 같은 특정 회원사로 연결을 원하실 경우 [직원·거래처 소속 신청]을 이용해 주세요.
               </div>
 
-              <button type="submit" className="auth-btn-primary" disabled={busy}>
-                {busy ? '신청서 제출 중...' : '새 회원사 등록 신청하기'}
+              <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy} style={{ marginTop: '12px' }}>
+                <span>{busy ? '회원사 개설 및 권한 등록 중...' : '🚀 회원사 개설 및 업무 시작'}</span>
+                <span className="dark-btn-arrow">→</span>
               </button>
             </form>
 
@@ -1363,9 +1692,20 @@ export default function AuthGate({children}) {
                 type="button"
                 className="auth-btn-secondary"
                 disabled={busy}
-                onClick={() => setVerifiedView('company_login')}
+                onClick={() => {
+                  if (workspaces.length > 0) setVerifiedView('workspace_selector');
+                  else setVerifiedView('existing_tenant_form');
+                }}
               >
-                취소하고 소속 확인으로 이동
+                {workspaces.length > 0 ? '소속 워크스페이스 목록으로' : '기존 회원사 소속 신청으로'}
+              </button>
+              <button
+                type="button"
+                className="auth-btn-ghost"
+                disabled={busy}
+                onClick={handleLogout}
+              >
+                로그아웃
               </button>
             </div>
           </>
@@ -1691,37 +2031,116 @@ export default function AuthGate({children}) {
           </>
         ) : (
           /* ─────────────────────────────────────────────────────────────
-              3-E. 일반 로그인 후 소속 확인 및 입장 화면 (회사 ID 입력)
+              3-E. 워크스페이스 선택 및 대기 초대 확인 (회사 ID 직접 입력 절차 제거)
           ───────────────────────────────────────────────────────────── */
           <>
-            <div className="auth-badge-status warning">회사 소속 확인</div>
-            <h2 className="auth-mode-title">회사 소속 확인 및 입장</h2>
-            <div className="auth-user-info-box">
+            <div className="auth-badge-status prod-verify">워크스페이스 선택</div>
+            <h2 className="auth-mode-title">접속할 워크스페이스 선택</h2>
+            <div className="auth-user-info-box" style={{ marginBottom: '16px' }}>
               <p><strong>인증 계정:</strong> {identity.email} <span className="auth-verified-tag">인증됨</span></p>
-              <p><strong>계정 UID:</strong> <code>{identity.uid}</code></p>
               <p className="auth-notice-text">
-                접속할 회사 ID를 입력해 주세요. 회사 ID를 입력하거나 이메일을 인증한 것만으로는 권한이 부여되지 않으며, 서버에서 승인된 소속만 입장할 수 있습니다.
+                접근 가능한 회원사 업무 또는 거래처 주문 포털을 선택해 주세요.
               </p>
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); enter(); }} className="auth-form">
-              <label>
-                회사 ID
-                <input
-                  name="companyId"
-                  pattern="[A-Za-z0-9_-]{1,100}"
-                  required
-                  placeholder="예: dongmyeong 또는 회원사 식별자"
-                  value={form.companyId}
-                  onChange={change}
-                />
-              </label>
-              <button type="submit" className="auth-btn-primary" disabled={busy}>
-                {busy ? '확인 중...' : '소속 확인 후 입장'}
-              </button>
-            </form>
+            {/* 1. 대기 중인 초대장이 있는 경우 */}
+            {pendingInvitations.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#38bdf8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>💌</span>
+                  <span>도착한 초대장 ({pendingInvitations.length}건)</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {pendingInvitations.map(inv => (
+                    <div key={inv.id} style={{ padding: '12px 14px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.92rem', color: '#ffffff', fontWeight: 700 }}>
+                          [{inv.companyName}] {inv.type === 'staff' ? '직원 초대' : `거래처 주문 초대 (${inv.partnerName})`}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                          초대자: {inv.invitedByName || '회사 관리자'} · 유효기간 내 수락 필요
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="auth-btn-primary"
+                        style={{ width: 'auto', padding: '6px 14px', fontSize: '0.82rem', borderRadius: '8px' }}
+                        disabled={busy}
+                        onClick={() => handleAcceptInvitation(inv.id)}
+                      >
+                        수락 후 입장
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="auth-action-divider"><span>소속 신청 및 추가 업무</span></div>
+            {/* 2. 소속 워크스페이스 목록 */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
+                🏢 소속 목록 ({workspaces.length}개)
+              </div>
+              {workspaces.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: '0.88rem' }}>
+                  현재 소속된 회원사 또는 거래처가 없습니다.<br />
+                  아래 [새 회원사 개설]로 즉시 회사를 개설하거나 초대를 확인해 주세요.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {workspaces.map(w => (
+                    <div
+                      key={`${w.companyId}_${w.role}`}
+                      style={{
+                        padding: '14px 16px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1rem', color: '#ffffff', fontWeight: 800 }}>
+                            {w.companyName}
+                          </span>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                            backgroundColor: w.type === 'partner_order' ? 'rgba(16, 185, 129, 0.2)' : w.isTenantAdmin ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                            color: w.type === 'partner_order' ? '#34d399' : w.isTenantAdmin ? '#f87171' : '#38bdf8'
+                          }}>
+                            {w.roleLabel}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '4px' }}>
+                          회사 식별자: <code>{w.companyId}</code>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="auth-btn-primary dark-btn-gradient-login"
+                        style={{ width: 'auto', padding: '8px 16px', fontSize: '0.84rem', height: 'auto' }}
+                        disabled={busy}
+                        onClick={() => enter(w.companyId)}
+                      >
+                        <span>{w.type === 'partner_order' ? '거래처 주문' : '회사 업무'}</span>
+                        <span className="dark-btn-arrow">→</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. 하단 액션 버튼 */}
+            <div className="auth-action-divider"><span>추가 업무</span></div>
 
             <div className="auth-button-group">
               <button
@@ -1730,7 +2149,7 @@ export default function AuthGate({children}) {
                 disabled={busy}
                 onClick={() => { setVerifiedView('new_tenant_form'); setMessage(''); }}
               >
-                🏢 새 회원사 등록 신청
+                🏢 새 회원사 개설 (30일 무료)
               </button>
               <button
                 type="button"
@@ -1738,7 +2157,7 @@ export default function AuthGate({children}) {
                 disabled={busy}
                 onClick={() => { setVerifiedView('existing_tenant_form'); setMessage(''); }}
               >
-                👥 직원·거래처 소속 신청
+                👥 기존 회원사 소속 신청
               </button>
             </div>
 

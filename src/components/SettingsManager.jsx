@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Settings, Building2, UserCircle, Monitor, ShieldCheck, Bell, Save, X, Globe, Printer, Database, FileText, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Settings, Building2, UserCircle, Users, UserPlus, Monitor, ShieldCheck, Bell, Save, X, Globe, Printer, Database, FileText, AlertTriangle, Mail, CheckCircle2 } from 'lucide-react';
 import WindowModal from './WindowModal';
+import { callAuth } from '../auth/client';
 import './SettingsManager.css';
 
-const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettings, onSaveBranding, onSaveCompanyInfo }) => {
+const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettings, onSaveBranding, onSaveCompanyInfo, staffList = [] }) => {
   const [activeCategory, setActiveCategory] = useState('general');
   const [localSettings, setLocalSettings] = useState(() => {
     const initial = { ...settings };
@@ -33,6 +34,79 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
   const [orderThemeColor, setOrderThemeColor] = useState(
     settings?.display?.orderThemeColor || '#3b82f6'
   );
+
+  // 직원 초대 관리 상태
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    selectedStaffId: '',
+    staffName: '',
+    phone: '',
+    targetEmail: '',
+    permissions: {
+      orders: true,
+      loading: true,
+      delivery: true,
+      invoices: false,
+      inventory: true,
+      catalog: false,
+      reports: false
+    }
+  });
+  const [invitations, setInvitations] = useState([]);
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const loadInvitations = useCallback(() => {
+    const cid = currentUser?.companyId;
+    if (!cid) return;
+    const all = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+    setInvitations(all.filter(i => i.companyId === cid && i.type === 'staff'));
+  }, [currentUser?.companyId]);
+
+  useEffect(() => {
+    loadInvitations();
+  }, [loadInvitations]);
+
+  const handleSendInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteForm.targetEmail.trim()) {
+      alert('직원 이메일을 입력해 주세요.');
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const res = await callAuth('createStaffInvitation', {
+        companyId: currentUser?.companyId,
+        companyName: currentUser?.companyName,
+        targetEmail: inviteForm.targetEmail.trim(),
+        staffName: inviteForm.staffName.trim(),
+        phone: inviteForm.phone.trim(),
+        staffId: inviteForm.selectedStaffId || `staff_${Date.now()}`,
+        permissions: inviteForm.permissions
+      });
+      alert(`[${res.targetEmail}] 주소로 직원 초대가 발송되었습니다.\n직원이 자기 이메일 계정으로 로그인 후 초대를 수락하면 연결됩니다.`);
+      setShowInviteModal(false);
+      setInviteForm({
+        selectedStaffId: '',
+        staffName: '',
+        phone: '',
+        targetEmail: '',
+        permissions: { orders: true, loading: true, delivery: true, invoices: false, inventory: true, catalog: false, reports: false }
+      });
+      loadInvitations();
+    } catch (err) {
+      alert('초대 발송 실패: ' + (err.message || '오류가 발생했습니다.'));
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleCancelInvite = (invId) => {
+    if (!window.confirm('해당 직원 초대를 취소하시겠습니까?')) return;
+    const all = JSON.parse(localStorage.getItem('dev_invitations') || '[]');
+    const next = all.filter(i => i.id !== invId);
+    localStorage.setItem('dev_invitations', JSON.stringify(next));
+    loadInvitations();
+  };
 
   const handleSave = () => {
     const updatedSettings = {
@@ -93,6 +167,7 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
 
   const categories = [
     { id: 'general', label: '기본 정보', icon: Building2 },
+    { id: 'members', label: '구성원 관리 (직원 초대)', icon: Users },
     { id: 'user', label: '사용자 설정', icon: UserCircle },
     { id: 'system', label: '시스템/테마', icon: Monitor },
     { id: 'transaction', label: '거래/서식', icon: Printer },
@@ -166,6 +241,292 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                     <input type="email" value={localSettings.company.email} onChange={e => updateCompany('email', e.target.value)} />
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeCategory === 'members' && (
+            <div className="category-view">
+              <div className="settings-title-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>
+                  <h2 className="settings-title">구성원 관리 (직원 초대)</h2>
+                  <p className="settings-subtitle">회사의 직원을 초대하고 담당 업무 권한을 지정합니다.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: '100%',
+                    padding: '10px 16px',
+                    backgroundColor: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(37,99,235,0.2)'
+                  }}
+                >
+                  <UserPlus size={16} /> 새 직원 초대하기
+                </button>
+              </div>
+
+              {/* 모바일 직원 초대 발송 모달 */}
+              {showInviteModal && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '16px'
+                }}>
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '440px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    padding: '20px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                          <UserPlus size={16} />
+                        </div>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>새 직원 초대 발송</h3>
+                      </div>
+                      <button onClick={() => setShowInviteModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSendInvite}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>기존 등록 직원 선택 (선택)</label>
+                          <select
+                            value={inviteForm.selectedStaffId}
+                            onChange={(e) => {
+                              const sId = e.target.value;
+                              const found = staffList.find(s => (s.id || s.staffId) === sId);
+                              if (found) {
+                                setInviteForm(prev => ({
+                                  ...prev,
+                                  selectedStaffId: sId,
+                                  staffName: found.name || found.staffName || '',
+                                  phone: found.phone || '',
+                                  targetEmail: found.email || prev.targetEmail
+                                }));
+                              } else {
+                                setInviteForm(prev => ({
+                                  ...prev,
+                                  selectedStaffId: '',
+                                  staffName: '',
+                                  phone: ''
+                                }));
+                              }
+                            }}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          >
+                            <option value="">직접 입력 (신규 직원)</option>
+                            {staffList.map((s, idx) => (
+                              <option key={s.id || s.staffId || idx} value={s.id || s.staffId}>
+                                {s.name || s.staffName} ({s.position || '직원'})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>직원 성명 *</label>
+                          <input
+                            type="text"
+                            required
+                            value={inviteForm.staffName}
+                            onChange={e => setInviteForm(prev => ({ ...prev, staffName: e.target.value }))}
+                            placeholder="홍길동"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>전화번호</label>
+                          <input
+                            type="tel"
+                            value={inviteForm.phone}
+                            onChange={e => setInviteForm(prev => ({ ...prev, phone: e.target.value }))}
+                            placeholder="010-0000-0000"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>직원 개인 이메일 * (로그인 계정)</label>
+                          <input
+                            type="email"
+                            required
+                            value={inviteForm.targetEmail}
+                            onChange={e => setInviteForm(prev => ({ ...prev, targetEmail: e.target.value }))}
+                            placeholder="staff@example.com"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          />
+                          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                            ※ 공용 계정/비밀번호 발급 없이, 본인 이메일로 로그인 후 수락합니다.
+                          </p>
+                        </div>
+
+                        {/* 업무 권한 지정 */}
+                        <div>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>업무 권한 부여</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            {[
+                              { id: 'orders', label: '주문 관리 (접수/조회)' },
+                              { id: 'loading', label: '상차 검수 (바코드/패킹)' },
+                              { id: 'delivery', label: '배송 현황 관리' },
+                              { id: 'invoices', label: '전표/매출 발행' },
+                              { id: 'inventory', label: '재고/창고 관리' },
+                              { id: 'catalog', label: '품목/카탈로그 관리' },
+                              { id: 'reports', label: '통계/경영 리포트' },
+                            ].map(p => (
+                              <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#334155', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={!!inviteForm.permissions[p.id]}
+                                  onChange={e => setInviteForm(prev => ({
+                                    ...prev,
+                                    permissions: { ...prev.permissions, [p.id]: e.target.checked }
+                                  }))}
+                                  style={{ width: '16px', height: '16px', accentColor: '#2563eb' }}
+                                />
+                                {p.label}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowInviteModal(false)}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={inviteLoading}
+                            style={{ flex: 2, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                          >
+                            {inviteLoading ? '발송 중...' : '초대장 발송'}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* 발송된 초대 목록 */}
+              <div className="settings-section">
+                <h3 className="settings-section-title">
+                  <Mail size={16} style={{ display: 'inline', marginRight: '6px', color: '#2563eb', verticalAlign: 'middle' }} />
+                  초대 진행 상태 ({invitations.length}건)
+                </h3>
+                {invitations.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+                    대기 중인 직원 초대가 없습니다.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {invitations.map(inv => (
+                      <div key={inv.id} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#ffffff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>{inv.targetEmail}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{inv.staffName || '이름 미기재'}</div>
+                          </div>
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            backgroundColor: inv.status === 'accepted' ? '#dcfce7' : '#fef3c7',
+                            color: inv.status === 'accepted' ? '#166534' : '#92400e'
+                          }}>
+                            {inv.status === 'accepted' ? '수락 완료' : '대기중'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          {Object.entries(inv.permissions || {}).filter(([_, v]) => v).map(([k]) => (
+                            <span key={k} style={{ fontSize: '0.68rem', padding: '1px 5px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '4px' }}>
+                              {k === 'orders' ? '주문' : k === 'loading' ? '상차' : k === 'delivery' ? '배송' : k === 'invoices' ? '전표' : k === 'inventory' ? '재고' : k === 'catalog' ? '카탈로그' : k}
+                            </span>
+                          ))}
+                        </div>
+                        {inv.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelInvite(inv.id)}
+                            style={{ width: '100%', padding: '6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                          >
+                            초대 취소
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 기존 직원 목록 */}
+              <div className="settings-section">
+                <h3 className="settings-section-title">
+                  <Users size={16} style={{ display: 'inline', marginRight: '6px', color: '#475569', verticalAlign: 'middle' }} />
+                  기존 직원 목록 ({staffList.length}명)
+                </h3>
+                {staffList.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+                    등록된 직원 데이터가 없습니다.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {staffList.map((s, idx) => {
+                      const linked = invitations.find(i => (i.staffId === (s.id || s.staffId) || i.targetEmail === s.email) && i.status === 'accepted');
+                      return (
+                        <div key={s.id || s.staffId || idx} style={{ padding: '10px 12px', border: '1px solid #f1f5f9', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#1e293b' }}>{s.name || s.staffName} ({s.position || '직원'})</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.phone || '-'}</div>
+                          </div>
+                          <div>
+                            {linked ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#16a34a', fontSize: '0.72rem', fontWeight: 700 }}>
+                                <CheckCircle2 size={12} /> 연동됨
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>미연결</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
