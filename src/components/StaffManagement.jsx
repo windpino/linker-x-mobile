@@ -1,12 +1,14 @@
 import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { UserPlus, Printer, Download, Plus, Edit2, Trash2, Building2, GripVertical, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Printer, Download, Plus, Edit2, Trash2, Building2, GripVertical, ChevronUp, ChevronDown, CheckCircle2, UserCheck, UserX, Mail, AlertCircle, Clock } from 'lucide-react';
 import WindowModal from './WindowModal';
 import StaffRegistration from './StaffRegistration';
 import { exportToExcel, formatDataForExcel } from '../utils/excelUtils';
 import { db } from '../firebase';
 import { doc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { saveBundle } from '../utils/bundleSyncManager';
+import StaffAccountLinkModal from './common/StaffAccountLinkModal';
+import { callAuth } from '../auth/client';
 import './Staff.css';
 
 const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [], currentUser, setCurrentUser, staffZones, setStaffZones, staffJobTitles, setStaffJobTitles, logOperation }) => {
@@ -14,8 +16,89 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [selectedStaffKeys, setSelectedStaffKeys] = useState([]);
+  const [connectionRequests, setConnectionRequests] = useState([]);
+  const [linkModal, setLinkModal] = useState({ open: false, mode: 'invite', targetStaff: null });
+  const [pendingLinkingApplicant, setPendingLinkingApplicant] = useState(null);
 
   const getStaffKey = (s) => s?._docId || (s?.userId ? `uid_${s.userId}` : (s?.id ? `id_${s.id}` : `name_${s?.name}`));
+
+  const fetchConnectionRequests = useCallback(async () => {
+    try {
+      const cid = currentUser?.companyId || 'no1dmkr';
+      const reqs = await callAuth('listStaffConnectionRequests', { companyId: cid });
+      if (Array.isArray(reqs)) {
+        setConnectionRequests(reqs);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch staff connection requests:', err);
+    }
+  }, [currentUser?.companyId]);
+
+  useEffect(() => {
+    fetchConnectionRequests();
+  }, [fetchConnectionRequests]);
+
+  const handleOpenInviteModal = (staff) => {
+    setLinkModal({ open: true, mode: 'invite', targetStaff: staff });
+  };
+
+  const handleOpenRequestsModal = () => {
+    setLinkModal({ open: true, mode: 'requests', targetStaff: null });
+  };
+
+  const handleOpenRegistrationWithApplicant = (applicant) => {
+    setPendingLinkingApplicant(applicant);
+    setEditingStaff({
+      name: applicant.applicantName || '',
+      email: applicant.applicantEmail,
+      jobTitle: '사원',
+      warehouse: warehouses.find(w => w.isMain)?.name || warehouses[0]?.name || '창고'
+    });
+    setLinkModal({ open: false, mode: 'invite', targetStaff: null });
+    setIsRegistrationOpen(true);
+  };
+
+  const handleRevokeStaff = async (staff) => {
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
+      return;
+    }
+    if (!window.confirm(`정말 [${staff.name}] 직원의 계정 연결을 해제하고 퇴사 처리하시겠습니까?\n\n※ 해당 계정의 로그인 접근 권한은 즉시 차단되며, 기존 상차·전표 등 업무 기록은 보존됩니다.`)) {
+      return;
+    }
+
+    try {
+      const cid = currentUser?.companyId || 'no1dmkr';
+      await callAuth('revokeStaffAccess', {
+        companyId: cid,
+        staffId: staff.id,
+        uid: staff.linkedUid
+      });
+
+      const staffKey = getStaffKey(staff);
+      const nextStaffList = (staffList || []).map(s => {
+        if (getStaffKey(s) === staffKey) {
+          return {
+            ...s,
+            accountStatus: 'unlinked',
+            linkedUid: null,
+            linkedEmail: null,
+            resigned: true,
+            resignedAt: new Date().toISOString()
+          };
+        }
+        return s;
+      });
+      if (setStaffList) setStaffList(withoutSecrets(nextStaffList));
+      await saveBundle(cid, 'staffList', nextStaffList);
+      localStorage.setItem(`staffList_${cid}`, JSON.stringify(nextStaffList));
+      localStorage.setItem('staffList', JSON.stringify(nextStaffList));
+
+      alert(`[${staff.name}] 직원의 로그인 계정 연결이 해제(퇴사 처리)되었습니다.`);
+    } catch (err) {
+      alert('계정 연결 해제 실패: ' + (err.message || '오류가 발생했습니다.'));
+    }
+  };
 
   const hasWritePermission = () => {
     if (!currentUser) return true;
@@ -254,7 +337,28 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
         });
       }
 
-      alert(isNewStaff ? '신규 직원이 등록되었습니다.' : '직원 정보가 수정되었습니다.');
+      if (pendingLinkingApplicant) {
+        try {
+          await callAuth('connectStaffAccount', {
+            companyId,
+            staffId: finalData.id || targetDocId,
+            applicantUid: pendingLinkingApplicant.uid,
+            applicantEmail: pendingLinkingApplicant.applicantEmail
+          });
+          finalData.accountStatus = 'linked';
+          finalData.linkedUid = pendingLinkingApplicant.uid;
+          finalData.linkedEmail = pendingLinkingApplicant.applicantEmail;
+          finalData.linkedAt = new Date().toISOString();
+          setPendingLinkingApplicant(null);
+          fetchConnectionRequests();
+          alert(`신규 직원 [${finalData.name}] 카드가 등록되었으며, [${pendingLinkingApplicant.applicantEmail}] 계정과 연결되었습니다.`);
+        } catch (linkErr) {
+          console.warn('Auto connect staff account warning:', linkErr);
+          alert('직원 저장은 완료되었으나 계정 연결 중 오류가 발생했습니다: ' + (linkErr.message || ''));
+        }
+      } else {
+        alert(isNewStaff ? '신규 직원이 등록되었습니다.' : '직원 정보가 수정되었습니다.');
+      }
       setIsRegistrationOpen(false);
     } catch (err) {
       console.error('Staff save error:', err);
@@ -565,6 +669,42 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             </div>
           )}
 
+          {/* 직원 계정 연결 요청 알림 배너 */}
+          {connectionRequests.length > 0 && (
+            <div style={{
+              margin: '0 0 10px 0',
+              padding: '8px 12px',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400e', fontWeight: 700, fontSize: '0.78rem' }}>
+                <AlertCircle size={15} color="#d97706" />
+                <span>직원 계정 연결 요청 ({connectionRequests.length}건)</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenRequestsModal}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: '#d97706',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  cursor: 'pointer'
+                }}
+              >
+                확인 및 연결
+              </button>
+            </div>
+          )}
+
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '8px' }}>
             <input
@@ -722,8 +862,38 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
                       <span style={{ fontSize: '0.7rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
                         {staff.jobTitle || '사원'}
                       </span>
+                      {staff.accountStatus === 'linked' ? (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '3px' }} title={staff.linkedEmail || '연결됨'}>
+                          <UserCheck size={11} /> 연결 완료
+                        </span>
+                      ) : staff.accountStatus === 'invited' ? (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', display: 'inline-flex', alignItems: 'center', gap: '3px' }} title={staff.invitationEmail || '초대중'}>
+                          <Clock size={11} /> 초대 발송
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#94a3b8' }}>
+                          미연결
+                        </span>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      {staff.accountStatus !== 'linked' ? (
+                        <button 
+                          onClick={() => handleOpenInviteModal(staff)} 
+                          style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                          title="로그인 초대"
+                        >
+                          <Mail size={12} /> 초대
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleRevokeStaff(staff)} 
+                          style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
+                          title="퇴사 / 연결 해제"
+                        >
+                          <UserX size={12} /> 퇴사
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleEditStaff(staff)} 
                         style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 700 }}
@@ -783,6 +953,46 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           currentUser={currentUser}
         />
       )}
+
+      {/* 직원 계정 로그인 초대 및 연결 요청 관리 모달 */}
+      <StaffAccountLinkModal
+        isOpen={linkModal.open}
+        onClose={() => setLinkModal({ open: false, mode: 'invite', targetStaff: null })}
+        mode={linkModal.mode}
+        targetStaff={linkModal.targetStaff}
+        requests={connectionRequests}
+        staffList={sortStaffList(staffList)}
+        currentUser={currentUser}
+        onInviteSuccess={(staffId, email) => {
+          const nextStaffList = (staffList || []).map(s => {
+            if (String(s.id) === String(staffId) || String(s.userId) === String(staffId)) {
+              return { ...s, accountStatus: 'invited', invitationEmail: email, invitedAt: new Date().toISOString() };
+            }
+            return s;
+          });
+          if (setStaffList) setStaffList(withoutSecrets(nextStaffList));
+          const cid = currentUser?.companyId || 'no1dmkr';
+          saveBundle(cid, 'staffList', nextStaffList);
+          localStorage.setItem(`staffList_${cid}`, JSON.stringify(nextStaffList));
+        }}
+        onConnectSuccess={(staffId, applicantUid, applicantEmail) => {
+          const nextStaffList = (staffList || []).map(s => {
+            if (String(s.id) === String(staffId) || String(s.userId) === String(staffId)) {
+              return { ...s, accountStatus: 'linked', linkedUid: applicantUid, linkedEmail: applicantEmail, linkedAt: new Date().toISOString() };
+            }
+            return s;
+          });
+          if (setStaffList) setStaffList(withoutSecrets(nextStaffList));
+          const cid = currentUser?.companyId || 'no1dmkr';
+          saveBundle(cid, 'staffList', nextStaffList);
+          localStorage.setItem(`staffList_${cid}`, JSON.stringify(nextStaffList));
+          fetchConnectionRequests();
+          setLinkModal({ open: false, mode: 'requests', targetStaff: null });
+        }}
+        onOpenNewStaffRegistration={(req) => {
+          handleOpenRegistrationWithApplicant(req);
+        }}
+      />
     </>
   );
 };

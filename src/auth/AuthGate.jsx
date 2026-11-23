@@ -349,9 +349,11 @@ export default function AuthGate({children}) {
     businessNo: '',
     companyId: '',
     legacyId: '',
+    representativeEmail: '',
     contactId: 'primary',
     role: 'tenant_staff'
   });
+  const [requestedCompanyInfo, setRequestedCompanyInfo] = useState({ name: '', email: '', companyId: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -484,6 +486,23 @@ export default function AuthGate({children}) {
       if (ws.length > 0 || invs.length > 0) {
         setVerifiedView('workspace_selector');
         return;
+      }
+
+      // 대기 중인 직원 연결 요청 확인
+      try {
+        const storedReqs = JSON.parse(localStorage.getItem('dev_staff_connections') || '[]');
+        const myReq = storedReqs.find(r => r.uid === u.uid && r.status === 'pending');
+        if (myReq) {
+          setRequestedCompanyInfo({
+            name: myReq.companyName || '신청 회사',
+            email: myReq.representativeEmail,
+            companyId: myReq.companyId
+          });
+          setVerifiedView('awaiting_staff_connection');
+          return;
+        }
+      } catch (e) {
+        console.warn('Error reading dev_staff_connections:', e);
       }
 
       // 3) 소속이 없는 경우: 기존 등록 신청 상태 확인
@@ -778,8 +797,32 @@ export default function AuthGate({children}) {
             setVerifiedView('new_tenant_form');
             showMsg('이메일 인증이 완료되었습니다! 새 회원사 정보를 입력해 주세요.', 'success');
           } else if (signupTarget === 'existing_tenant') {
-            setVerifiedView('existing_tenant_form');
-            showMsg('이메일 인증이 완료되었습니다! 소속 신청 정보를 입력해 주세요.', 'success');
+            if (form.representativeEmail && form.representativeEmail.trim()) {
+              try {
+                showMsg('대표 이메일로 회사를 조회하여 직원 연결을 요청하는 중입니다...', 'info');
+                const reqRes = await callAuth('requestStaffConnection', {
+                  representativeEmail: form.representativeEmail.trim()
+                });
+                setRequestedCompanyInfo({
+                  name: reqRes.companyName || '신청 회사',
+                  email: form.representativeEmail.trim(),
+                  companyId: reqRes.companyId
+                });
+                setVerifiedView('awaiting_staff_connection');
+                if (reqRes.alreadyLinked) {
+                  showMsg('이미 해당 회사에 연결되어 있습니다. 워크스페이스로 입장합니다!', 'success');
+                  await enter(reqRes.companyId);
+                } else {
+                  showMsg(`[${reqRes.companyName || '회사'}] 관리자에게 직원 연결 요청이 성공적으로 전달되었습니다. 관리자 승인을 기다려 주세요.`, 'success');
+                }
+              } catch (reqErr) {
+                showMsg('직원 연결 요청 실패: ' + (reqErr.message || '대표 이메일을 확인해 주세요.'), 'error');
+                setVerifiedView('existing_tenant_form');
+              }
+            } else {
+              setVerifiedView('existing_tenant_form');
+              showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
+            }
           } else {
             await checkRegistrationStatus(refreshed);
           }
@@ -863,52 +906,38 @@ export default function AuthGate({children}) {
     }
   };
 
-  // Submit existing tenant member/partner registration (회원사 관리자 검토 요청)
+  // Submit existing company staff connection request by representative email
   const handleExistingTenantSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (busy) return;
-    const cid = form.companyId.trim();
-    const role = form.role;
-    const name = form.name.trim();
-    const phone = form.phone.trim();
-    const legacyId = (form.legacyId || '').trim();
-    const contactId = role === 'partner' ? (form.contactId || 'primary').trim() : 'primary';
+    const repEmail = (form.representativeEmail || '').trim().toLowerCase();
 
-    if (!cid) {
-      showMsg('소속 신청할 회사 ID를 입력해 주세요.', 'error');
-      return;
-    }
-    if (!name) {
-      showMsg('이름을 입력해 주세요.', 'error');
-      return;
-    }
-    if (!phone) {
-      showMsg('연락처를 입력해 주세요.', 'error');
-      return;
-    }
-    if (!legacyId) {
-      showMsg('직원·거래처 문서 ID 또는 희망 식별 ID를 입력해 주세요.', 'error');
+    if (!repEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(repEmail)) {
+      showMsg('연결할 회사의 대표 이메일을 정확히 입력해 주세요.', 'error');
       return;
     }
 
     setBusy(true);
-    showMsg('소속 승인 신청서를 제출하는 중입니다...', 'info');
+    showMsg('대표 이메일로 회사를 조회하여 직원 연결을 요청하는 중입니다...', 'info');
     try {
       await refreshIdentity();
-      await callAuth('requestMembership', withoutSecrets({
-        companyId: cid,
-        role,
-        legacyId,
-        contactId,
-        name,
-        phone,
-        companyName: form.companyName || '',
-        businessNo: form.businessNo || ''
-      }));
-      setVerifiedView('awaiting_member_approval');
-      showMsg(`[${cid}] 소속 승인 신청이 접수되었습니다. 해당 회원사 관리자의 승인 후 입장할 수 있습니다.`, 'success');
+      const res = await callAuth('requestStaffConnection', {
+        representativeEmail: repEmail
+      });
+      setRequestedCompanyInfo({
+        name: res.companyName || '신청 회사',
+        email: repEmail,
+        companyId: res.companyId
+      });
+      setVerifiedView('awaiting_staff_connection');
+      if (res.alreadyLinked) {
+        showMsg('이미 해당 회사에 연결되어 있습니다. 워크스페이스로 입장합니다!', 'success');
+        await enter(res.companyId);
+      } else {
+        showMsg(`[${res.companyName || '회사'}] 관리자에게 직원 연결 요청이 접수되었습니다. 관리자 승인을 기다려 주세요.`, 'success');
+      }
     } catch (err) {
-      showMsg('소속 승인 신청 실패: ' + (err.message || '입력 정보를 확인해 주세요.'), 'error');
+      showMsg('직원 연결 요청 실패: ' + (err.message || '대표 이메일을 확인해 주세요.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -1546,6 +1575,32 @@ export default function AuthGate({children}) {
                     </button>
                   </div>
 
+                  {/* 기존 회사 소속 신청 시 대표 이메일 입력란 */}
+                  {signupTarget === 'existing_tenant' && (
+                    <div style={{ marginBottom: '14px' }}>
+                      <div className="dark-input-wrap">
+                        <div className="dark-input-icon">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                        </div>
+                        <input
+                          type="email"
+                          name="representativeEmail"
+                          required={signupTarget === 'existing_tenant'}
+                          placeholder="연결할 회사의 대표 이메일 입력"
+                          value={form.representativeEmail || ''}
+                          onChange={change}
+                          className="dark-input"
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', paddingLeft: '4px', lineHeight: '1.4' }}>
+                        💡 대표 이메일로 회사를 찾아 해당 회사 관리자에게 직원 연결 요청을 발송합니다.
+                      </div>
+                    </div>
+                  )}
+
                   {/* 개인정보 처리 안내 및 링크 */}
                   <div style={{
                     padding: '10px 12px',
@@ -1968,85 +2023,35 @@ export default function AuthGate({children}) {
           )
         ) : verifiedView === 'existing_tenant_form' ? (
           /* ─────────────────────────────────────────────────────────────
-              3-C. 기존 회원사 가입 흐름: 직원·거래처 소속 신청
+              3-C. 기존 회사 직원 연결 요청 (대표 이메일로 요청)
           ───────────────────────────────────────────────────────────── */
           <>
-            <div className="auth-badge-status prod-verify">기존 회원사 소속 신청</div>
-            <h2 className="auth-mode-title">직원·거래처 소속 신청</h2>
+            <div className="auth-badge-status prod-verify">기존 회사에 연결</div>
+            <h2 className="auth-mode-title">기존 회사 직원 연결 요청</h2>
             <p className="auth-desc">
               인증 계정: <strong>{identity.email}</strong> <span className="auth-verified-tag">인증됨</span><br />
-              기존 회원사에 직원 또는 거래처로 소속을 신청합니다. (해당 회원사 관리자가 검토 및 승인합니다)
+              연결하려는 회사의 대표 이메일을 입력하면 해당 회사 관리자에게 직원 연결 요청이 전달됩니다.
             </p>
 
             <form onSubmit={handleExistingTenantSubmit} className="auth-form">
               <label>
-                소속될 회사 ID
+                연결할 회사의 대표 이메일 <span style={{ color: '#ef4444' }}>*</span>
                 <input
-                  name="companyId"
+                  type="email"
+                  name="representativeEmail"
                   required
-                  pattern="[A-Za-z0-9_-]{1,100}"
-                  placeholder="예: dongmyeong (소속 회사 식별자)"
-                  value={form.companyId}
+                  placeholder="예: ceo@company.com (대표 또는 관리자 이메일)"
+                  value={form.representativeEmail || ''}
                   onChange={change}
                 />
               </label>
-              <label>
-                가입 구분
-                <select name="role" value={form.role} onChange={change}>
-                  <option value="tenant_staff">직원 (Staff)</option>
-                  <option value="partner">거래처 (Partner)</option>
-                </select>
-              </label>
-              <label>
-                이름
-                <input
-                  name="name"
-                  required
-                  placeholder="예: 성명"
-                  value={form.name}
-                  onChange={change}
-                />
-              </label>
-              <label>
-                연락처
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  placeholder="예: 010-0000-0000"
-                  value={form.phone}
-                  onChange={change}
-                />
-              </label>
-              <label>
-                기존 직원·거래처 문서 ID 또는 희망 식별 ID
-                <input
-                  name="legacyId"
-                  required
-                  pattern="[A-Za-z0-9_-]{1,100}"
-                  placeholder="예: 사번, 거래처ID, 또는 신규식별자"
-                  value={form.legacyId}
-                  onChange={change}
-                />
-              </label>
-              {form.role === 'partner' && (
-                <label>
-                  거래처 담당자 구분 ID
-                  <input
-                    name="contactId"
-                    placeholder="기본값: primary"
-                    value={form.contactId}
-                    onChange={change}
-                  />
-                </label>
-              )}
 
               <div className="auth-notice-text">
-                * 직원·거래처 소속 신청은 해당 회원사 관리자가 검토합니다. 회사 ID를 입력하거나 이메일을 인증한 것만으로는 권한이 부여되지 않으며, 이메일 일치로 기존 동명크릴 계정에 자동 연결되지 않습니다.
+                * 대표 이메일은 회사를 찾는 용도로 사용됩니다. 요청을 보낸 후 관리자가 회원님의 계정을 직원 카드로 연결하면 바로 업무가 열립니다. (회사 ID를 직접 입력할 필요가 없습니다)
               </div>
 
               <button type="submit" className="auth-btn-primary" disabled={busy}>
-                {busy ? '신청서 제출 중...' : '소속 승인 신청서 제출'}
+                {busy ? '연결 요청 제출 중...' : '관리자에게 직원 연결 요청'}
               </button>
             </form>
 
@@ -2061,24 +2066,22 @@ export default function AuthGate({children}) {
               </button>
             </div>
           </>
-        ) : verifiedView === 'awaiting_member_approval' ? (
+        ) : (verifiedView === 'awaiting_member_approval' || verifiedView === 'awaiting_staff_connection') ? (
           /* ─────────────────────────────────────────────────────────────
-              3-D. 기존 회원사 소속 신청 완료: 회원사 관리자 승인 대기
+              3-D. 기존 회원사 소속 신청 완료: 관리자 연결 대기
           ───────────────────────────────────────────────────────────── */
           <>
-            <div className="auth-badge-status warning">소속 승인 대기</div>
-            <h2 className="auth-mode-title">회사 소속 승인 대기</h2>
+            <div className="auth-badge-status warning">⏳ 관리자 연결 대기</div>
+            <h2 className="auth-mode-title">관리자 직원 연결 대기</h2>
             <p className="auth-desc">
-              <strong>[{form.companyId}]</strong> 소속 승인 신청이 접수되었습니다.<br />
-              신청 내용은 <strong>해당 회원사 관리자</strong>가 검토 및 승인합니다. 관리자 승인 전에는 업무 데이터에 접근할 수 없습니다.
+              <strong>[{requestedCompanyInfo.name || form.companyId || '신청 회사'}]</strong>의 관리자가 직원 연결을 확인하고 있습니다.<br />
+              관리자가 회원님의 계정을 직원 카드로 연결하면 해당 회사의 업무 작업공간이 열립니다.
             </p>
 
             <div className="auth-user-info-box">
-              <p><strong>신청 회사 ID:</strong> <code>{form.companyId}</code></p>
-              <p><strong>가입 구분:</strong> {form.role === 'partner' ? '거래처' : '직원'}</p>
-              <p><strong>성명 / 식별ID:</strong> {form.name} ({form.legacyId})</p>
               <p><strong>신청 계정:</strong> {identity.email} <span className="auth-verified-tag">인증됨</span></p>
-              <p><strong>승인 상태:</strong> <span className="auth-badge-status warning" style={{ display: 'inline', padding: '2px 8px' }}>회원사 관리자 검토 대기</span></p>
+              <p><strong>연결 대상 회사:</strong> {requestedCompanyInfo.name || form.companyId || '신청 회사'} {requestedCompanyInfo.email ? `(대표: ${requestedCompanyInfo.email})` : ''}</p>
+              <p><strong>연결 상태:</strong> <span className="auth-badge-status warning" style={{ display: 'inline', padding: '2px 8px' }}>관리자 승인 및 직원 카드 연결 대기</span></p>
             </div>
 
             <div className="auth-action-stack">
@@ -2086,9 +2089,17 @@ export default function AuthGate({children}) {
                 type="button"
                 className="auth-btn-primary"
                 disabled={busy}
-                onClick={() => enter(form.companyId)}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const activeUser = await refreshIdentity();
+                    await loadUserWorkspacesAndInvites(activeUser);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
               >
-                {busy ? '소속 승인 확인 중...' : '소속 승인 확인 후 입장'}
+                {busy ? '연결 상태 확인 중...' : '연결 완료 확인 및 입장'}
               </button>
               <button
                 type="button"

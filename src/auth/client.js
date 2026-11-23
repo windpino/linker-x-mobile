@@ -648,7 +648,189 @@ export async function callAuth(name, data) {
       };
       storedInvitations.push(newInv);
       localStorage.setItem('dev_invitations', JSON.stringify(storedInvitations));
+
+      // 로컬 staffList 상태 업데이트
+      try {
+        const staffKey = `staffList_${cid}`;
+        const rawStaff = localStorage.getItem(staffKey) || localStorage.getItem('staffList');
+        if (rawStaff) {
+          const list = JSON.parse(rawStaff);
+          const updated = list.map(s => {
+            if (String(s.id) === String(newInv.staffId) || String(s.userId) === String(newInv.staffId)) {
+              return { ...s, accountStatus: 'invited', invitationEmail: targetEmail, invitedAt: new Date().toISOString() };
+            }
+            return s;
+          });
+          localStorage.setItem(staffKey, JSON.stringify(updated));
+          localStorage.setItem('staffList', JSON.stringify(updated));
+        }
+      } catch (e) {
+        console.warn('Error updating local staffList on invite:', e);
+      }
+
       return { ok: true, invitationId: invId, targetEmail };
+    }
+
+    // ── 3-1. 직원의 직접 연결 요청 (로그인 화면에서 대표 이메일로 요청) ──
+    if (name === 'requestStaffConnection') {
+      const repEmail = String(data?.representativeEmail || '').toLowerCase().trim();
+      if (!repEmail) throw new Error('연결할 회사의 대표 이메일을 입력해 주세요.');
+
+      const storedTenants = JSON.parse(localStorage.getItem('dev_tenants') || '[]');
+      let matchedTenant = storedTenants.find(t => 
+        (t.representativeEmail && t.representativeEmail.toLowerCase().trim() === repEmail) ||
+        (t.ceoEmail && t.ceoEmail.toLowerCase().trim() === repEmail) ||
+        (t.email && t.email.toLowerCase().trim() === repEmail)
+      );
+
+      // 동명크릴 기본 fallback
+      if (!matchedTenant && (repEmail.includes('windpino') || repEmail.includes('dongmyeong') || repEmail.includes('admin') || repEmail === 'ceo@dmkr.com')) {
+        matchedTenant = { id: 'no1dmkr', name: '동명크릴', representativeEmail: repEmail };
+      }
+
+      if (!matchedTenant) {
+        throw new Error(`해당 대표 이메일(${repEmail})로 등록된 회원사를 찾을 수 없습니다. 회사 관리자에게 대표 이메일을 확인해 주세요.`);
+      }
+
+      const cid = matchedTenant.id;
+      const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+      if (storedMemberships[`${currentUser.uid}_${cid}`]?.status === 'active') {
+        return { ok: true, companyId: cid, companyName: matchedTenant.name, status: 'connected', alreadyLinked: true };
+      }
+
+      const storedReqs = JSON.parse(localStorage.getItem('dev_staff_connections') || '[]');
+      const reqId = `req_${currentUser.uid}_${cid}`;
+      const existingReqIdx = storedReqs.findIndex(r => r.id === reqId || (r.uid === currentUser.uid && r.companyId === cid));
+      const reqObj = {
+        id: reqId,
+        uid: currentUser.uid,
+        applicantEmail: (currentUser.email || '').toLowerCase().trim(),
+        applicantName: currentUser.displayName || (currentUser.email || '').split('@')[0],
+        representativeEmail: repEmail,
+        companyId: cid,
+        companyName: matchedTenant.name,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      if (existingReqIdx >= 0) {
+        storedReqs[existingReqIdx] = reqObj;
+      } else {
+        storedReqs.push(reqObj);
+      }
+      localStorage.setItem('dev_staff_connections', JSON.stringify(storedReqs));
+      return { ok: true, companyId: cid, companyName: matchedTenant.name, status: 'pending' };
+    }
+
+    // ── 3-2. 회사 관리자의 직원 연결 요청 목록 조회 ──
+    if (name === 'listStaffConnectionRequests') {
+      const cid = data?.companyId || 'no1dmkr';
+      const storedReqs = JSON.parse(localStorage.getItem('dev_staff_connections') || '[]');
+      const list = storedReqs.filter(r => r.companyId === cid && r.status === 'pending');
+      return list;
+    }
+
+    // ── 3-3. 관리자가 직원 카드를 계정과 연결 승인 ──
+    if (name === 'connectStaffAccount') {
+      const cid = data?.companyId;
+      const staffId = data?.staffId;
+      const applicantUid = data?.applicantUid;
+      const applicantEmail = String(data?.applicantEmail || '').toLowerCase().trim();
+
+      const staffKey = `staffList_${cid}`;
+      const rawStaff = localStorage.getItem(staffKey) || localStorage.getItem('staffList') || '[]';
+      const staffList = JSON.parse(rawStaff);
+      const targetStaff = staffList.find(s => String(s.id) === String(staffId) || String(s.userId) === String(staffId));
+      if (!targetStaff) throw new Error('연결할 직원 카드를 찾을 수 없습니다.');
+
+      if (targetStaff.linkedUid && targetStaff.linkedUid !== applicantUid) {
+        throw new Error(`이미 다른 계정(${targetStaff.linkedEmail || targetStaff.linkedUid})에 연결된 직원 카드입니다. 다른 직원을 선택하거나 새로 등록해 주세요.`);
+      }
+
+      // 1) 직원 카드 업데이트
+      const updatedList = staffList.map(s => {
+        if (String(s.id) === String(staffId) || String(s.userId) === String(staffId)) {
+          return {
+            ...s,
+            accountStatus: 'linked',
+            linkedUid: applicantUid,
+            linkedEmail: applicantEmail,
+            linkedAt: new Date().toISOString()
+          };
+        }
+        return s;
+      });
+      localStorage.setItem(staffKey, JSON.stringify(updatedList));
+      localStorage.setItem('staffList', JSON.stringify(updatedList));
+
+      // 2) 멤버십 부여
+      const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+      storedMemberships[`${applicantUid}_${cid}`] = {
+        uid: applicantUid,
+        email: applicantEmail,
+        companyId: cid,
+        companyName: cid,
+        legacyId: staffId,
+        userId: targetStaff.userId || staffId,
+        role: 'tenant_staff',
+        status: 'active',
+        permissions: targetStaff.permissions || {},
+        approvedBy: currentUser.uid,
+        approvedAt: new Date().toISOString()
+      };
+      localStorage.setItem('dev_memberships', JSON.stringify(storedMemberships));
+
+      // 3) 연결 요청 상태 갱신
+      const storedReqs = JSON.parse(localStorage.getItem('dev_staff_connections') || '[]');
+      const updatedReqs = storedReqs.map(r => {
+        if (r.uid === applicantUid && r.companyId === cid) {
+          return { ...r, status: 'approved', connectedStaffId: staffId, approvedAt: new Date().toISOString() };
+        }
+        return r;
+      });
+      localStorage.setItem('dev_staff_connections', JSON.stringify(updatedReqs));
+
+      return { ok: true, companyId: cid, staffId, applicantEmail };
+    }
+
+    // ── 3-4. 직원 퇴사 처리 (계정 접근 해제 & 기존 업무 기록 보존) ──
+    if (name === 'revokeStaffAccess') {
+      const cid = data?.companyId;
+      const staffId = data?.staffId;
+      const uid = data?.uid;
+
+      const staffKey = `staffList_${cid}`;
+      const rawStaff = localStorage.getItem(staffKey) || localStorage.getItem('staffList') || '[]';
+      const staffList = JSON.parse(rawStaff);
+
+      let targetUid = uid;
+      const updatedList = staffList.map(s => {
+        if (String(s.id) === String(staffId) || String(s.userId) === String(staffId)) {
+          if (!targetUid) targetUid = s.linkedUid;
+          return {
+            ...s,
+            accountStatus: 'unlinked',
+            linkedUid: null,
+            linkedEmail: null,
+            resigned: true,
+            resignedAt: new Date().toISOString()
+          };
+        }
+        return s;
+      });
+      localStorage.setItem(staffKey, JSON.stringify(updatedList));
+      localStorage.setItem('staffList', JSON.stringify(updatedList));
+
+      if (targetUid) {
+        const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
+        if (storedMemberships[`${targetUid}_${cid}`]) {
+          storedMemberships[`${targetUid}_${cid}`].status = 'resigned';
+          storedMemberships[`${targetUid}_${cid}`].resignedAt = new Date().toISOString();
+          localStorage.setItem('dev_memberships', JSON.stringify(storedMemberships));
+        }
+      }
+
+      return { ok: true, companyId: cid, staffId, revokedUid: targetUid };
     }
 
     // ── 4. 거래처 주문 초대 생성 ──
@@ -696,8 +878,35 @@ export async function callAuth(name, data) {
       const cid = inv.companyId;
 
       if (inv.type === 'staff') {
+        // 기존 직원 카드가 다른 계정에 연결되어 있는지 검증
+        const staffKey = `staffList_${cid}`;
+        const rawStaff = localStorage.getItem(staffKey) || localStorage.getItem('staffList') || '[]';
+        const staffList = JSON.parse(rawStaff);
+        const existing = staffList.find(s => String(s.id) === String(inv.staffId) || String(s.userId) === String(inv.staffId));
+        if (existing && existing.linkedUid && existing.linkedUid !== currentUser.uid) {
+          throw new Error(`이미 다른 계정(${existing.linkedEmail || existing.linkedUid})에 연결된 직원 카드입니다.`);
+        }
+
+        // 직원 카드 업데이트
+        const updatedList = staffList.map(s => {
+          if (String(s.id) === String(inv.staffId) || String(s.userId) === String(inv.staffId)) {
+            return {
+              ...s,
+              accountStatus: 'linked',
+              linkedUid: currentUser.uid,
+              linkedEmail: currentUser.email,
+              linkedAt: new Date().toISOString()
+            };
+          }
+          return s;
+        });
+        localStorage.setItem(staffKey, JSON.stringify(updatedList));
+        localStorage.setItem('staffList', JSON.stringify(updatedList));
+
+        // 멤버십 설정
         storedMemberships[`${currentUser.uid}_${cid}`] = {
           uid: currentUser.uid,
+          email: currentUser.email,
           companyId: cid,
           companyName: inv.companyName,
           legacyId: inv.staffId,
@@ -707,6 +916,16 @@ export async function callAuth(name, data) {
           approvedBy: inv.invitedBy,
           approvedAt: new Date().toISOString()
         };
+
+        // 직접 연결 요청이 있었다면 함께 승인 완료 처리
+        const storedReqs = JSON.parse(localStorage.getItem('dev_staff_connections') || '[]');
+        const updatedReqs = storedReqs.map(r => {
+          if (r.uid === currentUser.uid && r.companyId === cid) {
+            return { ...r, status: 'approved', connectedStaffId: inv.staffId, approvedAt: new Date().toISOString() };
+          }
+          return r;
+        });
+        localStorage.setItem('dev_staff_connections', JSON.stringify(updatedReqs));
       } else if (inv.type === 'partner_order') {
         storedMemberships[`${currentUser.uid}_${cid}`] = {
           uid: currentUser.uid,
