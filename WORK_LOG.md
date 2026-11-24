@@ -35,5 +35,17 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
 - 기본 개발 연결은 demo-linker-auth Emulator. 실운영 Rules와 계정 매핑/마이그레이션/배포는 각각 별도 승인 필요.
 
 
-## 2026-11-16 인증 서버 연결 통합
-운영 전체 거부 유지. tenantRead/tenantWrite, 회사별 캐시 경계, 실제 재고 서비스 원본 통합 테스트 추가. 재고/상차/전표 함수 변경 없음. 전환 차단 조건과 후속 테스트는 security/DEPLOYMENT_BLOCKERS.ko.md 참조. 운영 배포·main 병합·계정/결제 변경 미실행.
+## 2026-11-25 — Antigravity — 모바일 대시보드 및 로그인 화면 UI/UX 개선
+- Status: 구현 완료 및 브라우저 검증 통과 (빌드 0 errors)
+- Branch / commit: feature/tenant-invite-and-linker
+- Files changed:
+  - `src/App.jsx`: 공지사항 배너 분리, ⭐ 빠른 업무 4대 메뉴 파스텔 타일 및 3D 그래픽 아이콘 적용, 메인 뷰 화이트 카드 배경
+  - `src/components/Header.jsx`: 딥 로얄 네이비 그라데이션, 하단 20px 라운딩, X 로고, 벨 뱃지, 구분선 적용
+  - `src/components/ScheduleSidebar.jsx`: 화이트 라운드 카드, 캘린더 날짜 내비게이터, 유기적 클라우드 + 3D 캘린더 빈 일정 일러스트레이션 적용
+  - `src/components/MobileBottomNav.jsx`: 화이트 배경 네비게이션, 중앙 플로팅 블루 58px 상차 원형 버튼 적용
+  - `src/auth/AuthGate.jsx` & `src/auth/auth.css`: 로그인 로고 크기 모바일 화면에 맞춰 최적화(~115px), "🛠️ 모든 테스트 데이터 및 가입 계정 완전 초기화" 버튼 UI 제거
+- Checks actually run and results:
+  - `npm run build`: 정상 완료 (0 errors, 2.65s)
+  - 브라우저 서브에이전트 검증: 로그인 화면 로고 및 폼 핏 확인, 초기화 버튼 제거 확인, 모바일 뷰 렌더링 확인
+- Production data touched?: 없음 (로컬 UI/스타일링 작업)
+- Outstanding risks and next action: GitHub remote push 진행.
