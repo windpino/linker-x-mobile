@@ -186,9 +186,7 @@
   border-color: #334155 !important;
 }
 
-/* 6. 인풋, 셀렉트, 텍스트에리어 폼 컨트롤 다크 모드 (단, 검색란은 제외) */
-.window-content-area input:not([type="checkbox"]):not([type="radio"]):not([placeholder*="검색"]):not([type="search"]):not([class*="search"]):not([id*="search"]):not([name*="search"]),
-.window-content-area textarea,
+/* 6. 셀렉트 박스 다크 모드 */
 .window-content-area select {
   background-color: #1e293b !important;
   color: #ffffff !important;
@@ -200,9 +198,23 @@
   color: #ffffff !important;
 }
 
+/* 6-1. 모바일 모든 입력란(인풋, 텍스트에리어, 간편 주문, 비고 등): 배경색 흰색, 글자색 검정 */
+.window-content-area input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+.window-content-area textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+textarea {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
 .window-content-area input::placeholder,
-.window-content-area textarea::placeholder {
+.window-content-area textarea::placeholder,
+input::placeholder,
+textarea::placeholder {
   color: #64748b !important;
+  opacity: 1 !important;
 }
 
 /* 7. 테이블 및 헤더 다크 모드 */

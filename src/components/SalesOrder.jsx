@@ -719,7 +719,7 @@ const SalesOrder = ({
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
           }} ref={searchRef}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Package size={15} color={themeColor} /> 간편 주문 입력창
               </span>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
@@ -772,7 +772,7 @@ const SalesOrder = ({
                   borderRadius: '8px',
                   border: '1.5px solid #cbd5e1',
                   backgroundColor: '#ffffff',
-                  color: '#0f172a',
+                  color: '#000000',
                   fontSize: '0.98rem',
                   lineHeight: '1.5',
                   resize: 'none',
@@ -841,7 +841,7 @@ const SalesOrder = ({
             gap: '6px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
           }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <FileText size={14} color="#64748b" /> 비고 (배송 메모 / 특이사항)
             </span>
             <input
@@ -856,7 +856,7 @@ const SalesOrder = ({
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#ffffff',
-                color: '#0f172a',
+                color: '#000000',
                 fontSize: '0.88rem',
                 outline: 'none',
                 boxSizing: 'border-box'
