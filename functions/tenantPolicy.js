@@ -4,11 +4,17 @@ export const collectionPolicy = {
  vehicles:['catalog','loading','delivery'],vehicleLogs:['catalog','loading','delivery'],
  salesOrders:['orders','loading','delivery'], purchaseOrders:['orders'],quotations:['orders','reports'],
  salesInvoices:['invoices','reports'],purchaseInvoices:['invoices','reports'],accounts:['invoices','reports'],specialPrices:['orders','invoices'],expenses:['invoices','reports'],
- inventoryAdjustments:['inventory'],inventoryTransferHistory:['inventory'],operations:['inventory'],schedules:['orders','loading','delivery'],schedule_types:['orders','loading','delivery'],actionLogs:['reports']
+ inventoryAdjustments:['inventory'],inventoryTransferHistory:['inventory'],operations:['inventory'],schedules:['orders','loading','delivery'],schedule_types:['orders','loading','delivery'],
+ scheduleTypes:['orders','loading','delivery'],staffZones:['catalog','orders'],staffJobTitles:['catalog','orders'],dashboardConfig:['reports'],actionLogs:['reports']
 };
-export function hasCapability(m,keys){return m?.status==='active' && (m.role==='tenant_admin'||(m.role==='tenant_staff'&&keys.some(k=>m.permissions?.[k]===true)));}
-export function canReadCollection(m,col){if(['staffList','partners'].includes(col))return hasCapability(m,['orders','loading','delivery','invoices','catalog']);return !!collectionPolicy[col]&&hasCapability(m,collectionPolicy[col]);}
+export function hasCapability(m,keys){return m?.status==='active' && (m.role==='tenant_admin'||m.role==='admin'||m.authRole==='tenant_admin'||m.isCompanyAdmin===true||m.isMasterAdmin===true||(m.role==='tenant_staff'&&keys.some(k=>m.permissions?.[k]===true)));}
+export function canReadCollection(m,col){
+ if(m?.status==='active' && (m.role==='tenant_admin'||m.role==='admin'||m.authRole==='tenant_admin'||m.isCompanyAdmin===true||m.isMasterAdmin===true)) return true;
+ if(['staffList','partners'].includes(col))return hasCapability(m,['orders','loading','delivery','invoices','catalog']);
+ return !!collectionPolicy[col]&&hasCapability(m,collectionPolicy[col]);
+}
 export function canWriteCollection(m,col){
+ if(m?.status==='active' && (m.role==='tenant_admin'||m.role==='admin'||m.authRole==='tenant_admin'||m.isCompanyAdmin===true||m.isMasterAdmin===true)) return true;
  if(['staffList','partners'].includes(col))return m?.status==='active'&&m.role==='tenant_admin';
  const writeMap={products:['catalog'],categories:['catalog'],warehouses:['catalog'],vehicles:['catalog'],vehicleLogs:['loading','delivery'],salesInvoices:['invoices'],purchaseInvoices:['invoices'],accounts:['invoices'],expenses:['invoices'],specialPrices:['invoices'],actionLogs:['orders','loading','delivery','invoices','inventory']};
  return !!collectionPolicy[col]&&hasCapability(m,writeMap[col]||collectionPolicy[col].filter(k=>k!=='reports'));

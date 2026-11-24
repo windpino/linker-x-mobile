@@ -264,7 +264,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
     setFormData(prev => ({ ...prev, permissions: syncMobileKeysWithDesktop(newPermissions, categoryItems) }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (onSave) {
       const isDeleteActivity = Boolean(
@@ -338,7 +338,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           return;
         }
         const { _docId, ...cleanForm } = formData;
-        onSave(withoutSecrets({
+        await onSave(withoutSecrets({
           ...cleanForm, 
           showPurchasePrice: isShowPurchasePrice,
           deleteRecentActivity: isDeleteActivity,
@@ -348,6 +348,7 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           permissions: enrichedPermissions,
           id: Date.now() 
         }), true);
+        onClose();
       } else {
         const payload = {
           ...formData,
@@ -364,7 +365,8 @@ const StaffRegistration = ({ onClose, initialData, onSave, warehouses = [], next
           password: formData.password || initialData?.password || '',
           permissions: enrichedPermissions
         };
-        onSave(withoutSecrets(payload), false);
+        await onSave(withoutSecrets(payload), false);
+        onClose();
       }
     } else {
       onClose();

@@ -220,9 +220,30 @@ const OrderList = ({
     });
   }, [products]);
 
+  const resolvedPartners = React.useMemo(() => {
+    if (Array.isArray(partners) && partners.length > 0) return partners;
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      const saved = localStorage.getItem(`bundle_partners_${companyId}`) || localStorage.getItem(`partners_${companyId}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  }, [partners, currentUser?.companyId]);
+
   // 거래처 순번(sortOrder / sequence) 기준 정렬 맵 생성
   const partnerSortRankMap = React.useMemo(() => {
-    const sorted = [...(partners || [])].sort((a, b) => {
+    const parseSeq = (s) => {
+      const parts = String(s).split('-');
+      if (parts.length >= 2) {
+        const p0 = parseInt(parts[0], 10);
+        const p1 = parseInt(parts[1], 10);
+        return [isNaN(p0) ? 999999 : p0, isNaN(p1) ? 999999 : p1];
+      }
+      const num = parseInt(s, 10);
+      return [isNaN(num) ? 999999 : num, 0];
+    };
+
+    const sorted = [...(resolvedPartners || [])].sort((a, b) => {
       if (a.hideOrderInfo && !b.hideOrderInfo) return 1;
       if (!a.hideOrderInfo && b.hideOrderInfo) return -1;
 
@@ -234,10 +255,16 @@ const OrderList = ({
 
       const seqA = String(a.sequence || '');
       const seqB = String(b.sequence || '');
-      if (seqA === '-' && seqB !== '-') return 1;
-      if (seqA !== '-' && seqB === '-') return -1;
-      if (!seqA && seqB) return 1;
-      if (seqA && !seqB) return -1;
+      const isBlankA = !seqA || seqA === '-';
+      const isBlankB = !seqB || seqB === '-';
+      if (isBlankA && isBlankB) return 0;
+      if (isBlankA) return 1;
+      if (isBlankB) return -1;
+
+      const [a0, a1] = parseSeq(seqA);
+      const [b0, b1] = parseSeq(seqB);
+      if (a0 !== b0) return a0 - b0;
+      if (a1 !== b1) return a1 - b1;
 
       return seqA.localeCompare(seqB, undefined, { numeric: true, sensitivity: 'base' });
     });
@@ -250,7 +277,7 @@ const OrderList = ({
       if (p.name) byName.set(String(p.name).trim(), rank);
     });
     return { byName, byId };
-  }, [partners]);
+  }, [resolvedPartners]);
 
   const getOrderPartnerRank = React.useCallback((order) => {
     if (!order) return 999999;
@@ -1342,6 +1369,21 @@ const OrderList = ({
                             }}>
                               {oIdx + 1}
                             </span>
+
+                            {partnerObj?.sequence && partnerObj?.sequence !== '-' && (
+                              <span style={{
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '5px',
+                                backgroundColor: '#eff6ff',
+                                color: '#2563eb',
+                                border: '1px solid #bfdbfe',
+                                flexShrink: 0
+                              }}>
+                                {partnerObj.sequence}
+                              </span>
+                            )}
 
                             <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {order.partner}

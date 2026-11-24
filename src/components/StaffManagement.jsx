@@ -178,6 +178,41 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
             localStorage.setItem(`staffList_${companyId}`, JSON.stringify(mergedList));
             localStorage.setItem('staffList', JSON.stringify(mergedList));
           }
+        } else if (snap.empty && isMounted && (!staffList || staffList.length === 0) && companyId && companyId !== 'linker_x_hq') {
+          // 회원사 최초 생성 시 대표 계정 자동 생성
+          const repUserId = (currentUser?.email && currentUser.email.includes('@'))
+            ? currentUser.email.split('@')[0]
+            : (currentUser?.userId || 'admin');
+          const repStaff = {
+            id: currentUser?.authUid || currentUser?.uid || `${companyId}_admin`,
+            userId: repUserId,
+            name: currentUser?.name || '대표자',
+            phone: currentUser?.phone || '',
+            email: currentUser?.email || '',
+            role: 'admin',
+            jobTitle: '대표',
+            department: '경영진',
+            zone: '본사',
+            warehouse: '기본 창고',
+            isCompanyAdmin: true,
+            isMasterAdmin: true,
+            accountStatus: 'linked',
+            linkedUid: currentUser?.authUid || currentUser?.uid || '',
+            linkedEmail: currentUser?.email || '',
+            linkedAt: new Date().toISOString(),
+            sequence: 1,
+            permissions: { ALL: true, orders: true, loading: true, delivery: true, invoices: true, inventory: true, catalog: true, reports: true },
+            companyId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          if (setStaffList) setStaffList([repStaff]);
+          await saveBundle(companyId, 'staffList', [repStaff]);
+          localStorage.setItem(`staffList_${companyId}`, JSON.stringify([repStaff]));
+          localStorage.setItem('staffList', JSON.stringify([repStaff]));
+          try {
+            await setDoc(doc(db, 'companies', companyId, 'staffList', String(repStaff.id)), repStaff, { merge: true });
+          } catch {}
         }
       } catch (err) {
         console.warn('Auto sync staff failed:', err);
@@ -228,7 +263,10 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
       // 1. Direct Firestore subcollection document write (for login lookup)
       try {
         const staffDocRef = doc(db, 'companies', companyId, 'staffList', targetDocId);
-        await setDoc(staffDocRef, withoutSecrets(finalData), { merge: true });
+        await Promise.race([
+          setDoc(staffDocRef, withoutSecrets(finalData), { merge: true }),
+          new Promise(r => setTimeout(r, 1500))
+        ]);
 
         // Clean up old documents if document ID or userId changed
         const docIdsToDelete = new Set();
@@ -243,7 +281,10 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
         }
         for (const oldDocId of docIdsToDelete) {
           try {
-            await deleteDoc(doc(db, 'companies', companyId, 'staffList', oldDocId));
+            await Promise.race([
+              deleteDoc(doc(db, 'companies', companyId, 'staffList', oldDocId)),
+              new Promise(r => setTimeout(r, 1000))
+            ]);
           } catch (e) {
             console.warn('Old staff doc delete warning:', e);
           }
@@ -357,9 +398,10 @@ const StaffManagement = ({ onClose, staffList = [], setStaffList, warehouses = [
           alert('직원 저장은 완료되었으나 계정 연결 중 오류가 발생했습니다: ' + (linkErr.message || ''));
         }
       } else {
-        alert(isNewStaff ? '신규 직원이 등록되었습니다.' : '직원 정보가 수정되었습니다.');
+        alert(isNewStaff ? '신규 직원이 성공적으로 등록되었습니다.' : '직원 정보 수정이 완료되었습니다.');
       }
       setIsRegistrationOpen(false);
+      setEditingStaff(null);
     } catch (err) {
       console.error('Staff save error:', err);
       alert('직원 정보 저장 중 오류가 발생했습니다: ' + (err.message || ''));

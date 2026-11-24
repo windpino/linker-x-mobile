@@ -661,21 +661,6 @@
   margin: 0;
 }
 
-.auth-admin-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 99999;
-  min-height: 44px;
-  padding: 12px 16px;
-  border: 0;
-  border-radius: 12px;
-  background: #123c74;
-  color: #fff;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-}
-
 /* ─────────────────────────────────────────────────────────────
    다크 테마 & 글래스모피즘 (지구 네트워크 우주 배경)
 ───────────────────────────────────────────────────────────── */

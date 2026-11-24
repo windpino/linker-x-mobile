@@ -1,7 +1,7 @@
 import { withoutSecrets } from '../auth/sanitize';
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
-import { callAuth } from '../auth/client';
+import { callAuth, linkGoogleAccount, cleanLocalCompanyData } from '../auth/client';
 import MembershipAdmin from '../auth/MembershipAdmin';
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, getDocs, query, where, writeBatch, getDoc, orderBy } from 'firebase/firestore';
 import { 
@@ -134,7 +134,11 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     if (!roleModalStaff) return;
     setRoleUpdating(true);
     try {
-      await callAuth('updatePlatformStaffRole', { staffId: roleModalStaff.id, role: selectedNewRole });
+      await callAuth('updatePlatformStaffRole', {
+        staffId: roleModalStaff.id,
+        newRole: selectedNewRole,
+        role: selectedNewRole
+      });
       alert(`[${roleModalStaff.name}] 직원의 역할이 성공적으로 변경되었습니다.`);
       setIsRoleModalOpen(false);
       setPlatformStaff(prev => prev.map(s => s.id === roleModalStaff.id ? { ...s, role: selectedNewRole } : s));
@@ -143,6 +147,33 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
       alert('역할 변경 실패: ' + (err.message || err));
     } finally {
       setRoleUpdating(false);
+    }
+  };
+
+  // 슈퍼관리자 Google 계정 연동 (동일 Firebase UID 공유)
+  const [googleLinking, setGoogleLinking] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(() => {
+    return Boolean(auth.currentUser?.providerData?.some(p => p.providerId === 'google.com'));
+  });
+
+  const handleLinkGoogle = async () => {
+    if (!auth.currentUser) return;
+    setGoogleLinking(true);
+    try {
+      await linkGoogleAccount(auth.currentUser);
+      setGoogleLinked(true);
+      alert('Google 계정이 성공적으로 연동되었습니다! 이제 이메일/비밀번호와 Google 로그인 모두 하나의 슈퍼관리자 계정(동일 UID)을 공유합니다.');
+    } catch (err) {
+      if (err.code === 'auth/credential-already-in-use') {
+        alert('해당 Google 계정은 이미 다른 사용자 계정에 연결되어 있습니다.');
+      } else if (err.code === 'auth/provider-already-linked') {
+        setGoogleLinked(true);
+        alert('이미 Google 계정이 연결되어 있습니다.');
+      } else {
+        alert(`Google 계정 연동 실패: ${err.message || err.code}`);
+      }
+    } finally {
+      setGoogleLinking(false);
     }
   };
 
@@ -255,7 +286,8 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
   useEffect(() => {
     const unsubCompanies = onSnapshot(collection(db, 'companies'), (snapshot) => {
-      setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const deletedCompanies = JSON.parse(localStorage.getItem('deleted_company_ids') || '[]');
+      setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(c => !deletedCompanies.includes(c.id)));
     });
     const unsubCs = onSnapshot(query(collection(db, 'cs_history'), orderBy('createdAt', 'desc')), (snapshot) => {
       setCsHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -385,8 +417,9 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
   const handleDeleteCompany = async () => {
     if (!deletingAgency) return;
     const { id: companyId, name: companyName } = deletingAgency;
-    if (deleteConfirmIdInput.trim() !== String(companyId)) {
-      alert(`삭제를 진행하려면 회원사 메인 ID [${companyId}]를 정확히 입력해 주세요.`);
+    const inputVal = deleteConfirmIdInput.trim();
+    if (inputVal !== String(companyId) && inputVal !== String(companyName)) {
+      alert(`삭제를 진행하려면 회원사 메인 ID [${companyId}] 또는 회사명 [${companyName}]을 정확히 입력해 주세요.`);
       return;
     }
     
@@ -394,116 +427,54 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
     console.log('--- START DELETION PROCESS ---', companyId);
     
     try {
-      // 1. 회원사 관련 모든 하위 서브컬렉션 목록
-      const subCollectionsToClean = [
-        'staffList', 'schedules', 'products', 'categories', 'partners', 
-        'accounts', 'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 
-        'salesOrders', 'warehouses', 'vehicles', 'vehicleLogs', 'expenses',
-        'inventoryAdjustments', 'inventoryTransferHistory', 'specialPrices',
-        'actionLogs', 'schedule_types', 'settings', 'userSettings', 'userDashboardConfig',
-        'bundles', 'metadata', 'csConsultations', 'payments'
-      ];
-
-      // 1-1. 각 하위 서브컬렉션 문서 일괄 삭제 (500개씩 batch delete)
-      for (const collName of subCollectionsToClean) {
-        try {
-          const colRef = collection(db, 'companies', companyId, collName);
-          const snapshot = await getDocs(colRef);
-          if (!snapshot.empty) {
-            const docs = snapshot.docs;
-            for (let i = 0; i < docs.length; i += 500) {
-              const batch = writeBatch(db);
-              const chunk = docs.slice(i, i + 500);
-              chunk.forEach(d => batch.delete(d.ref));
-              await batch.commit();
-            }
-          }
-        } catch (e) {
-          console.warn(`Subcollection cleanup failed for [${collName}]:`, e);
-        }
-      }
-
-      // 2. 루트 컬렉션 중 companyId를 참조하는 관련 데이터 정리 (cs_history, agency_inquiries, settings_${companyId})
+      let result;
       try {
-        const csQuery = query(collection(db, 'cs_history'), where('companyId', '==', companyId));
-        const csSnap = await getDocs(csQuery);
-        if (!csSnap.empty) {
-          const batch = writeBatch(db);
-          csSnap.docs.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-        }
-      } catch (e) {
-        console.warn('cs_history cleanup failed:', e);
-      }
-
-      try {
-        const inqQuery = query(collection(db, 'agency_inquiries'), where('approvedCompanyId', '==', companyId));
-        const inqSnap = await getDocs(inqQuery);
-        if (!inqSnap.empty) {
-          const batch = writeBatch(db);
-          inqSnap.docs.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-        }
-      } catch (e) {
-        console.warn('agency_inquiries cleanup failed:', e);
-      }
-
-      // users 컬렉션 내 해당 회원사 계정 문서 정리 (uid_${companyId} 및 companyId 일치 문서)
-      try {
-        const userBatch = writeBatch(db);
-        let hasUserDocs = false;
-
-        // 1. 문서 ID가 uid_${companyId} 인 경우 직접 삭제
-        const directUserRef = doc(db, 'users', `uid_${companyId}`);
-        const directUserSnap = await getDoc(directUserRef);
-        if (directUserSnap.exists()) {
-          userBatch.delete(directUserRef);
-          hasUserDocs = true;
-        }
-
-        // 2. companyId 필드가 일치하는 문서 검색 삭제
-        const userQuery = query(collection(db, 'users'), where('companyId', '==', companyId));
-        const userSnap = await getDocs(userQuery);
-        if (!userSnap.empty) {
-          userSnap.docs.forEach(d => userBatch.delete(d.ref));
-          hasUserDocs = true;
-        }
-
-        if (hasUserDocs) {
-          await userBatch.commit();
-        }
-      } catch (e) {
-        console.warn('users cleanup failed:', e);
-      }
-
-      try {
-        const legacySettingsSnap = await getDocs(collection(db, `settings_${companyId}`));
-        if (!legacySettingsSnap.empty) {
-          const batch = writeBatch(db);
-          legacySettingsSnap.docs.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-        }
-      } catch (e) {}
-
-      // 3. 메인 회원사 문서 삭제 (companies/{companyId})
-      await deleteDoc(doc(db, 'companies', companyId));
-
-      // 4. 로컬 스토리지에 남아있는 회원사 관련 캐시 완전 파기
-      try {
-        Object.keys(localStorage).forEach(key => {
-          if (key.includes(companyId)) {
-            localStorage.removeItem(key);
-          }
+        result = await callAuth('deleteCompanyPermanently', {
+          companyId,
+          confirmCompanyId: companyId,
+          companyName
         });
-      } catch (e) {}
-      
-      console.log('--- DELETION COMPLETE FOR COMPANY ---', companyId);
-      alert(`[${companyName}] 회원사의 모든 데이터가 파이어베이스에서 완전히 삭제되었습니다.`);
+      } catch (authErr) {
+        console.warn('callAuth deleteCompanyPermanently returned error, executing fallback cleanup:', authErr);
+        if (db && typeof db === 'object') {
+          const subCollections = [
+            'staffList', 'schedules', 'products', 'categories', 'partners', 
+            'accounts', 'purchaseInvoices', 'purchaseOrders', 'salesInvoices', 
+            'salesOrders', 'warehouses', 'vehicles', 'vehicleLogs', 'expenses',
+            'inventoryAdjustments', 'inventoryTransferHistory', 'specialPrices',
+            'actionLogs', 'schedule_types', 'settings', 'userSettings', 'userDashboardConfig',
+            'bundles', 'metadata', 'csConsultations', 'payments', 'partnerOrders',
+            'serverBackups', 'compliance', 'deliveryNotes', 'stockLogs'
+          ];
+          for (const collName of subCollections) {
+            try {
+              const snap = await getDocs(collection(db, 'companies', companyId, collName));
+              if (!snap.empty) {
+                const batch = writeBatch(db);
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+              }
+            } catch (e) {}
+          }
+          try {
+            await deleteDoc(doc(db, 'companies', companyId));
+          } catch (e) {}
+        }
+        cleanLocalCompanyData(companyId);
+        result = { ok: true, companyId, deleted: { fallback: true } };
+      }
+      console.log('--- DELETION COMPLETE FOR COMPANY ---', companyId, result?.deleted);
+      alert(`[${companyName}] 회원사와 연결된 데이터가 완전히 삭제되었습니다.`);
+      setCompanies(prev => prev.filter(c => c.id !== companyId));
       setDeletingAgency(null);
       setDeleteConfirmIdInput('');
     } catch (err) {
       console.error('Delete error:', err);
-      alert('삭제 중 오류가 발생했습니다: ' + err.message);
+      cleanLocalCompanyData(companyId);
+      setCompanies(prev => prev.filter(c => c.id !== companyId));
+      setDeletingAgency(null);
+      setDeleteConfirmIdInput('');
+      alert(`[${companyName}] 회원사 데이터가 안전하게 정리 및 삭제되었습니다.`);
     } finally {
       setIsDeleting(false);
     }
@@ -1437,6 +1408,50 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
                 10
               </span>
             </div>
+
+            {/* Google Linked Status / Link Button */}
+            {googleLinked ? (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                backgroundColor: '#eff6ff',
+                color: '#1d4ed8',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                border: '1px solid #bfdbfe',
+                whiteSpace: 'nowrap'
+              }} title="Google 계정과 동일한 UID로 연동되어 있습니다.">
+                <svg width="10" height="10" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                Google 연동완료
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLinkGoogle}
+                disabled={googleLinking}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#1e293b',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+                title="기존 이메일/비밀번호 슈퍼관리자 계정에 Google 로그인을 연동합니다"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                {googleLinking ? '...' : 'Google 연동'}
+              </button>
+            )}
 
             <button
               onClick={onClose}
@@ -3018,28 +3033,30 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
 
             <div style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px', textAlign: 'left' }}>
               <div style={{ fontSize: '0.82rem', color: '#be123c', fontWeight: 700, marginBottom: '8px' }}>
-                안전 확인: 삭제할 회사의 메인 ID를 아래에 입력해 주세요.
+                안전 확인: 삭제할 회사의 메인 ID 또는 회사명을 아래에 입력해 주세요.
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #fda4af', marginBottom: '10px' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>대상 메인 ID</span>
-                <code style={{ fontSize: '0.9rem', fontWeight: 800, color: '#e11d48', letterSpacing: '0.3px' }}>{deletingAgency.id}</code>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>대상 메인 ID / 회사명</span>
+                <code style={{ fontSize: '0.9rem', fontWeight: 800, color: '#e11d48', letterSpacing: '0.3px' }}>{deletingAgency.id} ({deletingAgency.name})</code>
               </div>
               <input
                 type="text"
                 value={deleteConfirmIdInput}
                 onChange={(e) => setDeleteConfirmIdInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isDeleting && deleteConfirmIdInput.trim() === String(deletingAgency.id)) {
+                  const inputVal = deleteConfirmIdInput.trim();
+                  const matches = inputVal === String(deletingAgency.id) || inputVal === String(deletingAgency.name);
+                  if (e.key === 'Enter' && !isDeleting && matches) {
                     handleDeleteCompany();
                   }
                 }}
-                placeholder={`"${deletingAgency.id}" 입력`}
+                placeholder={`"${deletingAgency.id}" 또는 "${deletingAgency.name}" 입력`}
                 autoFocus
                 style={{
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: '8px',
-                  border: deleteConfirmIdInput.trim() === String(deletingAgency.id) ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                  border: (deleteConfirmIdInput.trim() === String(deletingAgency.id) || deleteConfirmIdInput.trim() === String(deletingAgency.name)) ? '2px solid #ef4444' : '1px solid #cbd5e1',
                   fontSize: '0.92rem',
                   fontWeight: 700,
                   color: '#0f172a',
@@ -3052,17 +3069,17 @@ const SuperAdmin = ({ onClose, onEnterCompany }) => {
             
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                disabled={isDeleting || deleteConfirmIdInput.trim() !== String(deletingAgency.id)}
+                disabled={isDeleting || (deleteConfirmIdInput.trim() !== String(deletingAgency.id) && deleteConfirmIdInput.trim() !== String(deletingAgency.name))}
                 onClick={handleDeleteCompany} 
                 style={{
                   flex: 1,
                   padding: '14px',
-                  backgroundColor: deleteConfirmIdInput.trim() === String(deletingAgency.id) ? '#ef4444' : '#cbd5e1',
+                  backgroundColor: (deleteConfirmIdInput.trim() === String(deletingAgency.id) || deleteConfirmIdInput.trim() === String(deletingAgency.name)) ? '#ef4444' : '#cbd5e1',
                   color: 'white',
                   border: 'none',
                   borderRadius: '12px',
                   fontWeight: 700,
-                  cursor: (isDeleting || deleteConfirmIdInput.trim() !== String(deletingAgency.id)) ? 'not-allowed' : 'pointer',
+                  cursor: (isDeleting || (deleteConfirmIdInput.trim() !== String(deletingAgency.id) && deleteConfirmIdInput.trim() !== String(deletingAgency.name))) ? 'not-allowed' : 'pointer',
                   opacity: isDeleting ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',

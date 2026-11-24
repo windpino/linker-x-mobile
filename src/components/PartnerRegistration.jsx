@@ -6,10 +6,60 @@ import {
 } from 'lucide-react';
 import WindowModal from './WindowModal';
 
-const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], warehouses = [], accounts = [] }) => {
+const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], warehouses = [], accounts = [], currentUser, partners = [] }) => {
   const safeStaffList = Array.isArray(staffList) ? staffList : [];
   const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
+
+  const safePartners = React.useMemo(() => {
+    if (Array.isArray(partners) && partners.length > 0) return partners;
+    try {
+      const cid = currentUser?.companyId || 'default';
+      const saved = localStorage.getItem(`bundle_partners_${cid}`) || localStorage.getItem(`partners_${cid}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  }, [partners, currentUser?.companyId]);
+
+  const calculateAutoSequence = (managerName) => {
+    if (!managerName || managerName === '-' || managerName === '선택안함' || managerName === '담당 미지정') {
+      return '';
+    }
+    const staff = safeStaffList.find(s => (s.name || '').trim() === managerName.trim() || s.id === managerName);
+    let staffSeq = 1;
+    if (staff) {
+      if (staff.sequence !== undefined && staff.sequence !== null && String(staff.sequence).trim() !== '') {
+        const parsed = parseInt(staff.sequence, 10);
+        staffSeq = isNaN(parsed) ? 1 : parsed;
+      } else {
+        const idx = safeStaffList.indexOf(staff);
+        staffSeq = idx >= 0 ? idx + 1 : 1;
+      }
+    }
+
+    const managerPartners = safePartners.filter(p => {
+      if (!p) return false;
+      if (p.isDeleted === true || p.status === 'deleted' || p.status === 'inactive') return false;
+      if (p.hideOrderInfo) return false;
+      return (p.manager || '').trim() === managerName.trim();
+    });
+
+    const existingSubNums = [];
+    managerPartners.forEach(p => {
+      if (!p.sequence || p.sequence === '-') return;
+      const parts = String(p.sequence).split('-');
+      if (parts.length >= 2) {
+        const sub = parseInt(parts[1], 10);
+        if (!isNaN(sub)) existingSubNums.push(sub);
+      } else {
+        const num = parseInt(p.sequence, 10);
+        if (!isNaN(num)) existingSubNums.push(num);
+      }
+    });
+
+    const nextSubNum = existingSubNums.length > 0 ? Math.max(...existingSubNums) + 1 : (managerPartners.length + 1);
+    return `${staffSeq}-${nextSubNum}`;
+  };
 
   const isEditing = !!initialData;
   const titleText = isEditing ? "거래처 정보 수정" : "간편 거래처 등록";
@@ -106,10 +156,12 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
       }
     } else {
       if (safeStaffList.length > 0) {
-        setFormData(prev => ({ ...prev, manager: safeStaffList[0].name }));
+        const defaultManager = safeStaffList[0].name;
+        const autoSeq = calculateAutoSequence(defaultManager);
+        setFormData(prev => ({ ...prev, manager: defaultManager, sequence: autoSeq }));
       }
     }
-  }, [initialData, safeStaffList]);
+  }, [initialData, safePartners, safeStaffList]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -117,6 +169,11 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
 
     setFormData(prev => {
       const nextState = { ...prev, [name]: val };
+      if (name === 'manager') {
+        if (!isEditing || val !== initialData?.manager || !prev.sequence) {
+          nextState.sequence = calculateAutoSequence(val);
+        }
+      }
       if (name === 'receivableBase') {
         const newBase = Number(val || 0);
         const oldBase = Number(prev.receivableBase || 0);
@@ -318,7 +375,7 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
               </div>
             </div>
 
-            {/* 담당 직원 & 대표자명 */}
+            {/* 담당 직원 & 순번 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
@@ -339,17 +396,45 @@ const PartnerRegistration = ({ onClose, initialData, onSave, staffList = [], war
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  대표자명
+                  순번 <span style={{ fontSize: '0.70rem', color: '#3b82f6' }}>(자동 채번)</span>
                 </label>
                 <input 
                   type="text" 
-                  name="ceo" 
-                  value={formData.ceo} 
-                  onChange={handleChange} 
-                  placeholder="대표자 이름" 
-                  style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.88rem', boxSizing: 'border-box' }} 
+                  name="sequence" 
+                  value={formData.sequence || ''} 
+                  readOnly 
+                  placeholder="담당 선택시 자동" 
+                  title="순번은 담당 직원 선택 시 자동으로 매겨지며 직접 수정할 수 없습니다."
+                  style={{ 
+                    width: '100%', 
+                    height: '38px', 
+                    borderRadius: '8px', 
+                    border: '1px solid #cbd5e1', 
+                    padding: '0 10px', 
+                    fontSize: '0.88rem', 
+                    fontWeight: 700, 
+                    backgroundColor: '#f1f5f9', 
+                    color: '#334155', 
+                    cursor: 'not-allowed', 
+                    boxSizing: 'border-box' 
+                  }} 
                 />
               </div>
+            </div>
+
+            {/* 대표자명 */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                대표자명
+              </label>
+              <input 
+                type="text" 
+                name="ceo" 
+                value={formData.ceo} 
+                onChange={handleChange} 
+                placeholder="대표자 이름" 
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.88rem', boxSizing: 'border-box' }} 
+              />
             </div>
 
             {/* 비고 (메모) */}

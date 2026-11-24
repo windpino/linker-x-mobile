@@ -1,8 +1,8 @@
-import { canReadBundle, canWriteBundle } from '../auth/sessionScope';
-import { getDoc, setDoc, getDocs, deleteDoc } from '../auth/tenantFirestore';
-import { db } from '../firebase';
+import { canReadBundle, canWriteBundle } from '../auth/sessionScope.js';
+import { getDoc, setDoc, getDocs, deleteDoc } from '../auth/tenantFirestore.js';
+import { db } from '../firebase.js';
 import { doc, collection, writeBatch } from 'firebase/firestore';
-import { getIdbBundle, setIdbBundle, removeIdbBundle, clearAllIdbBundles } from './idbBundleCache';
+import { getIdbBundle, setIdbBundle, removeIdbBundle, clearAllIdbBundles } from './idbBundleCache.js';
 
 // Supported bundle collections
 export const BUNDLE_COLLECTIONS = [
@@ -527,7 +527,18 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       if (!serverColState) {
         if (onlyIfOutdated && localVer > 0) continue;
         const list = await fetchBundle(companyId, colName);
-        if (onBundleChange) onBundleChange(colName, list);
+        if (list && list.length > 0) {
+          if (onBundleChange) onBundleChange(colName, list);
+        } else {
+          const localList = getLocalBundle(companyId, colName);
+          if (localList && localList.length > 0) {
+            console.log(`[BundleSync] 🛡️ Server metadata missing for [${colName}] but local has ${localList.length} items. Healing server bundle...`);
+            saveBundle(companyId, colName, localList).catch(console.warn);
+            if (onBundleChange) onBundleChange(colName, localList);
+          } else if (onBundleChange) {
+            onBundleChange(colName, []);
+          }
+        }
         continue;
       }
 
@@ -557,7 +568,18 @@ export const syncBundlesOnce = async (companyId, onBundleChange, targetCollectio
       if (serverVer > localVer || localVer === 0) {
         console.log(`[BundleSync] 🔄 Syncing outdated bundle [${colName}] (Local v${localVer} -> Server v${serverVer})`);
         const updatedList = await fetchBundle(companyId, colName);
-        if (onBundleChange) onBundleChange(colName, updatedList);
+        if (updatedList && updatedList.length > 0) {
+          if (onBundleChange) onBundleChange(colName, updatedList);
+        } else {
+          const localList = getLocalBundle(companyId, colName);
+          if (localList && localList.length > 0 && serverColState?.isReset !== true) {
+            console.log(`[BundleSync] 🛡️ Server returned empty for [${colName}] but local has ${localList.length} items. Healing server bundle...`);
+            saveBundle(companyId, colName, localList).catch(console.warn);
+            if (onBundleChange) onBundleChange(colName, localList);
+          } else if (onBundleChange) {
+            onBundleChange(colName, []);
+          }
+        }
       } else {
         const localList = getLocalBundle(companyId, colName);
         if (localList !== null && onBundleChange) {

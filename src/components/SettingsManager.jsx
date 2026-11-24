@@ -15,16 +15,73 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
     if (!initial.company) initial.company = {};
     if (!initial.salesInvoice) initial.salesInvoice = { warnNoStock: true, saveMode: 'auto' };
     if (!initial.salesInvoice.saveMode) initial.salesInvoice.saveMode = 'auto';
-    // Sync company info from onboarding (companySettings) with fallback to existing settings
-    initial.company.name = companySettings?.name || initial.company.name || '';
-    initial.company.bizNum = companySettings?.businessNo || initial.company.bizNum || '';
-    initial.company.ceo = companySettings?.ceo || initial.company.ceo || '';
-    initial.company.address = companySettings?.address || initial.company.address || '';
-    initial.company.tel = companySettings?.phone || initial.company.tel || '';
-    initial.company.email = companySettings?.email || initial.company.email || '';
-    initial.company.type = companySettings?.type || initial.company.type || '';
+
+    // 최초 가입 시 입력한 정보(회사명, 사업자등록번호, 대표자명, 연락처, 이메일 등) 자동 매핑
+    const autoName = companySettings?.name || companySettings?.companyName || currentUser?.companyName || currentUser?.company || '';
+    const autoBizNum = companySettings?.businessNo || companySettings?.bizNum || companySettings?.businessNumber || companySettings?.bno || currentUser?.businessNo || currentUser?.bizNum || '';
+    const autoCeo = companySettings?.ceo || companySettings?.representative || companySettings?.manager || currentUser?.name || currentUser?.ceo || '';
+    const autoAddress = companySettings?.address || companySettings?.addr || '';
+    const autoTel = companySettings?.phone || companySettings?.managerContact || companySettings?.tel || companySettings?.contact || currentUser?.phone || currentUser?.tel || '';
+    const autoEmail = companySettings?.email || currentUser?.email || '';
+    const autoType = companySettings?.type || companySettings?.businessType || '';
+
+    initial.company.name = initial.company.name || autoName;
+    initial.company.bizNum = initial.company.bizNum || autoBizNum;
+    initial.company.ceo = initial.company.ceo || autoCeo;
+    initial.company.address = initial.company.address || autoAddress;
+    initial.company.tel = initial.company.tel || autoTel;
+    initial.company.email = initial.company.email || autoEmail;
+    initial.company.type = initial.company.type || autoType;
     return initial;
   });
+
+  const canEditCompany = Boolean(
+    currentUser?.role === '슈퍼관리자' ||
+    currentUser?.role === 'super_admin' ||
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'representative' ||
+    currentUser?.role === 'ceo' ||
+    currentUser?.role === 'owner' ||
+    currentUser?.role === 'company' ||
+    currentUser?.authRole === 'tenant_admin' ||
+    currentUser?.isCompanyAdmin === true ||
+    currentUser?.isMasterAdmin === true ||
+    currentUser?.isTenantAdmin === true ||
+    currentUser?.jobTitle === '대표' ||
+    currentUser?.jobTitle === '대표자' ||
+    currentUser?.jobTitle === '대표이사' ||
+    currentUser?.userId === 'admin' ||
+    currentUser?.userId === 'sadmin' ||
+    currentUser?.userId === 'madmin' ||
+    (currentUser?.companyId && currentUser?.userId && String(currentUser.userId).trim().toLowerCase() === String(currentUser.companyId).trim().toLowerCase())
+  );
+
+  // companySettings 또는 currentUser 비동기 로드 완료 시 빈 필드 자동 보정
+  useEffect(() => {
+    setLocalSettings(prev => {
+      const currentComp = prev.company || {};
+      const autoName = companySettings?.name || companySettings?.companyName || currentUser?.companyName || currentUser?.company || '';
+      const autoBizNum = companySettings?.businessNo || companySettings?.bizNum || companySettings?.businessNumber || companySettings?.bno || currentUser?.businessNo || currentUser?.bizNum || '';
+      const autoCeo = companySettings?.ceo || companySettings?.representative || companySettings?.manager || currentUser?.name || currentUser?.ceo || '';
+      const autoAddress = companySettings?.address || companySettings?.addr || '';
+      const autoTel = companySettings?.phone || companySettings?.managerContact || companySettings?.tel || companySettings?.contact || currentUser?.phone || currentUser?.tel || '';
+      const autoEmail = companySettings?.email || currentUser?.email || '';
+      const autoType = companySettings?.type || companySettings?.businessType || '';
+
+      let changed = false;
+      const nextComp = { ...currentComp };
+
+      if (!nextComp.name && autoName) { nextComp.name = autoName; changed = true; }
+      if (!nextComp.bizNum && autoBizNum) { nextComp.bizNum = autoBizNum; changed = true; }
+      if (!nextComp.ceo && autoCeo) { nextComp.ceo = autoCeo; changed = true; }
+      if (!nextComp.address && autoAddress) { nextComp.address = autoAddress; changed = true; }
+      if (!nextComp.tel && autoTel) { nextComp.tel = autoTel; changed = true; }
+      if (!nextComp.email && autoEmail) { nextComp.email = autoEmail; changed = true; }
+      if (!nextComp.type && autoType) { nextComp.type = autoType; changed = true; }
+
+      return changed ? { ...prev, company: nextComp } : prev;
+    });
+  }, [companySettings, currentUser]);
   const [localBranding, setLocalBranding] = useState(companySettings?.theme || { primaryColor: '#3b82f6', logoUrl: null });
   const themeColors = ['#3b82f6', '#8b5cf6', '#f97316', '#14b8a6', '#22c55e', '#334155', '#ec4899', '#eab308'];
   const [purchaseThemeColor, setPurchaseThemeColor] = useState(
@@ -128,10 +185,14 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
     if (onSaveCompanyInfo) {
       onSaveCompanyInfo({
         name: localSettings.company.name,
+        companyName: localSettings.company.name,
         businessNo: localSettings.company.bizNum,
+        bizNum: localSettings.company.bizNum,
         ceo: localSettings.company.ceo,
         address: localSettings.company.address,
         phone: localSettings.company.tel,
+        tel: localSettings.company.tel,
+        managerContact: localSettings.company.tel,
         email: localSettings.company.email,
         type: localSettings.company.type
       });
@@ -218,19 +279,24 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                 <div className="settings-grid">
                   <div className="settings-field">
                     <label>상호명</label>
-                    <input type="text" value={localSettings.company.name} onChange={e => updateCompany('name', e.target.value)} disabled={currentUser?.role !== '슈퍼관리자'} />
+                    <input 
+                      type="text" 
+                      value={localSettings.company.name} 
+                      onChange={e => updateCompany('name', e.target.value)} 
+                      disabled={!canEditCompany} 
+                    />
                   </div>
                   <div className="settings-field">
                     <label>사업자 등록번호</label>
-                    <input type="text" value={localSettings.company.bizNum} onChange={e => updateCompany('bizNum', e.target.value)} />
+                    <input type="text" value={localSettings.company.bizNum} onChange={e => updateCompany('bizNum', e.target.value)} disabled={!canEditCompany} />
                   </div>
                   <div className="settings-field">
                     <label>대표자명</label>
-                    <input type="text" value={localSettings.company.ceo} onChange={e => updateCompany('ceo', e.target.value)} />
+                    <input type="text" value={localSettings.company.ceo} onChange={e => updateCompany('ceo', e.target.value)} disabled={!canEditCompany} />
                   </div>
                   <div className="settings-field">
                     <label>업태/종목</label>
-                    <input type="text" value={localSettings.company.type} onChange={e => updateCompany('type', e.target.value)} />
+                    <input type="text" value={localSettings.company.type} onChange={e => updateCompany('type', e.target.value)} disabled={!canEditCompany} />
                   </div>
                 </div>
               </div>
@@ -240,15 +306,15 @@ const SettingsManager = ({ onClose, currentUser, settings, onSave, companySettin
                 <div className="settings-grid">
                   <div className="settings-field" style={{ gridColumn: 'span 2' }}>
                     <label>본사 주소</label>
-                    <input type="text" value={localSettings.company.address} onChange={e => updateCompany('address', e.target.value)} />
+                    <input type="text" value={localSettings.company.address} onChange={e => updateCompany('address', e.target.value)} disabled={!canEditCompany} />
                   </div>
                   <div className="settings-field">
                     <label>대표 전화</label>
-                    <input type="text" value={localSettings.company.tel} onChange={e => updateCompany('tel', e.target.value)} />
+                    <input type="text" value={localSettings.company.tel} onChange={e => updateCompany('tel', e.target.value)} disabled={!canEditCompany} />
                   </div>
                   <div className="settings-field">
                     <label>대표 이메일</label>
-                    <input type="email" value={localSettings.company.email} onChange={e => updateCompany('email', e.target.value)} />
+                    <input type="email" value={localSettings.company.email} onChange={e => updateCompany('email', e.target.value)} disabled={!canEditCompany} />
                   </div>
                 </div>
               </div>

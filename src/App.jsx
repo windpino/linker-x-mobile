@@ -1186,6 +1186,28 @@ function App({ authSession }) {
     loadCache('staffZones', setStaffZones, defaultZones);
     loadCache('staffJobTitles', setStaffJobTitles, defaultJobTitles);
 
+    // Hydrate companySettings and systemSettings immediately from localStorage
+    try {
+      let parsedComp = null;
+      const cachedComp = localStorage.getItem(`companySettings_${companyId}`) || localStorage.getItem('companySettings');
+      if (cachedComp && cachedComp !== 'undefined' && cachedComp !== 'null') {
+        parsedComp = JSON.parse(cachedComp);
+      }
+      if (!parsedComp) {
+        const devComps = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+        parsedComp = devComps.find(c => c.id === companyId) || null;
+      }
+      if (parsedComp) setCompanySettings(parsedComp);
+
+      const cachedSys = localStorage.getItem(`systemSettings_${companyId}`) || localStorage.getItem('systemSettings');
+      if (cachedSys && cachedSys !== 'undefined' && cachedSys !== 'null') {
+        const parsedSys = JSON.parse(cachedSys);
+        if (parsedSys) setSystemSettings(parsedSys);
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate companySettings/systemSettings in mobile:', e);
+    }
+
     // Hydrate recentActivity settings immediately from localStorage (prevents flashing of deleted items)
     try {
       const cachedDeleted = localStorage.getItem(`deletedActivityIds_${companyId}`);
@@ -1201,6 +1223,72 @@ function App({ authSession }) {
       console.warn('Failed to hydrate recentActivity settings in mobile:', e);
     }
 
+    // 회원사 최초 생성 시 대표 계정 및 기본 창고 자동 보장
+    if (currentUser && companyId && companyId !== 'linker_x_hq') {
+      try {
+        const cachedWH = localStorage.getItem(`warehouses_${companyId}`);
+        const parsedWH = cachedWH ? JSON.parse(cachedWH) : null;
+        if (!Array.isArray(parsedWH) || parsedWH.length === 0) {
+          const defaultWH = {
+            id: 'wh_default',
+            _docId: `${companyId}_wh_default`,
+            name: '기본 창고',
+            code: 'WH01',
+            isMain: true,
+            companyId,
+            manager: currentUser.name || '대표자',
+            phone: currentUser.phone || '',
+            location: '본사',
+            order: 1,
+            sequence: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setWarehouses([defaultWH]);
+          localStorage.setItem(`warehouses_${companyId}`, JSON.stringify([defaultWH]));
+          localStorage.setItem('warehouses', JSON.stringify([defaultWH]));
+          saveBundle(companyId, 'warehouses', [defaultWH]).catch(() => {});
+        }
+
+        const cachedStaff = localStorage.getItem(`staffList_${companyId}`);
+        const parsedStaff = cachedStaff ? JSON.parse(cachedStaff) : null;
+        if (!Array.isArray(parsedStaff) || parsedStaff.length === 0) {
+          const repUserId = (currentUser.email && currentUser.email.includes('@'))
+            ? currentUser.email.split('@')[0]
+            : (currentUser.userId || 'admin');
+          const repStaff = {
+            id: currentUser.authUid || currentUser.uid || `staff_${Date.now()}`,
+            userId: repUserId,
+            name: currentUser.name || '대표자',
+            phone: currentUser.phone || '',
+            email: currentUser.email || '',
+            role: 'admin',
+            jobTitle: '대표',
+            department: '경영진',
+            zone: '본사',
+            warehouse: '기본 창고',
+            isCompanyAdmin: true,
+            isMasterAdmin: true,
+            accountStatus: 'linked',
+            linkedUid: currentUser.authUid || currentUser.uid || '',
+            linkedEmail: currentUser.email || '',
+            linkedAt: new Date().toISOString(),
+            sequence: 1,
+            permissions: { ALL: true, orders: true, loading: true, delivery: true, invoices: true, inventory: true, catalog: true, reports: true },
+            companyId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setStaffList([repStaff]);
+          localStorage.setItem(`staffList_${companyId}`, JSON.stringify([repStaff]));
+          localStorage.setItem('staffList', JSON.stringify([repStaff]));
+          saveBundle(companyId, 'staffList', [repStaff]).catch(() => {});
+        }
+      } catch (initErr) {
+        console.warn('Auto ensure rep staff & default warehouse error in mobile:', initErr);
+      }
+    }
+
     hydratedCompanyRef.current = companyId;
   }, [currentUser?.companyId, currentView]);
 
@@ -1214,11 +1302,88 @@ function App({ authSession }) {
     lastSyncTimeRef.current = nowTs;
     try {
       if (!onlyIfOutdated) {
-        // 1. Sync Company Settings & Recent Activity Settings in parallel
+        // 1. Sync Company Settings, System Settings & Recent Activity Settings in parallel
         await Promise.all([
-          getDoc(doc(db, 'companies', companyId)).then(companySnap => {
-            if (companySnap.exists()) setCompanySettings(companySnap.data());
-          }).catch(() => {}),
+          (async () => {
+            let compData = null;
+            try {
+              const companySnap = await getDoc(doc(db, 'companies', companyId));
+              if (companySnap.exists()) {
+                compData = companySnap.data();
+              }
+            } catch (err) {
+              console.warn('Firestore company getDoc mobile warning:', err);
+            }
+
+            if (!compData) {
+              const cached = localStorage.getItem(`companySettings_${companyId}`) || localStorage.getItem('companySettings');
+              if (cached) {
+                try { compData = JSON.parse(cached); } catch {}
+              }
+              if (!compData) {
+                const devComps = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+                compData = devComps.find(c => c.id === companyId);
+              }
+            }
+
+            if (compData) {
+              setCompanySettings(compData);
+              try { localStorage.setItem(`companySettings_${companyId}`, JSON.stringify(compData)); } catch {}
+
+              // 최초 가입 시 입력한 정보(회사명, 사업자등록번호, 대표자명, 연락처, 이메일 등)를 systemSettings 기본 정보로 자동 동기화
+              setSystemSettings(prev => {
+                const prevComp = prev?.company || {};
+                const autoName = compData.name || compData.companyName || currentUser?.companyName;
+                const autoBizNum = compData.businessNo || compData.bizNum || compData.businessNumber || currentUser?.businessNo || currentUser?.bizNum;
+                const autoCeo = compData.ceo || compData.representative || currentUser?.name || currentUser?.ceo;
+                const autoTel = compData.phone || compData.managerContact || compData.tel || currentUser?.phone || currentUser?.tel;
+                const autoEmail = compData.email || currentUser?.email;
+                const autoAddress = compData.address;
+                const autoType = compData.type;
+
+                let changed = false;
+                const nextComp = { ...prevComp };
+                if (!nextComp.name && autoName) { nextComp.name = autoName; changed = true; }
+                if (!nextComp.bizNum && autoBizNum) { nextComp.bizNum = autoBizNum; changed = true; }
+                if (!nextComp.ceo && autoCeo) { nextComp.ceo = autoCeo; changed = true; }
+                if (!nextComp.tel && autoTel) { nextComp.tel = autoTel; changed = true; }
+                if (!nextComp.email && autoEmail) { nextComp.email = autoEmail; changed = true; }
+                if (!nextComp.address && autoAddress) { nextComp.address = autoAddress; changed = true; }
+                if (!nextComp.type && autoType) { nextComp.type = autoType; changed = true; }
+
+                if (changed) {
+                  const updated = { ...prev, company: nextComp };
+                  try {
+                    localStorage.setItem(`systemSettings_${companyId}`, JSON.stringify(updated));
+                    localStorage.setItem('systemSettings', JSON.stringify(updated));
+                  } catch {}
+                  return updated;
+                }
+                return prev;
+              });
+            }
+          })(),
+          getDoc(doc(db, 'companies', companyId, 'settings', 'systemSettings')).then(sysSnap => {
+            if (sysSnap.exists()) {
+              const val = sysSnap.data()?.value;
+              if (val) {
+                setSystemSettings(prev => {
+                  const merged = {
+                    ...val,
+                    company: {
+                      ...(val.company || {}),
+                      ...(prev?.company || {})
+                    }
+                  };
+                  try {
+                    localStorage.setItem(`systemSettings_${companyId}`, JSON.stringify(merged));
+                    localStorage.setItem('systemSettings', JSON.stringify(merged));
+                  } catch {}
+                  return merged;
+                });
+              }
+            }
+          }).catch(e => console.warn('Error fetching systemSettings in mobile:', e)),
           getDoc(doc(db, 'companies', companyId, 'settings', 'recentActivity')).then(raSnap => {
             if (raSnap.exists()) {
               const raData = raSnap.data();
@@ -6052,6 +6217,8 @@ function App({ authSession }) {
             if (skipConfirm || window.confirm('모든 현재 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
               try {
                 const companyId = currentUser?.companyId || 'default';
+                const root = (data && typeof data === 'object' && (data.data || data.backupData || data.erpData || data)) || {};
+                const restoreVer = Math.max(Math.floor(Date.now() / 1000), 1000);
                 
                 if (onProgress) {
                   onProgress({
@@ -6074,7 +6241,9 @@ function App({ authSession }) {
                   { name: 'salesInvoices', label: '매출/입금 전표' },
                   { name: 'salesOrders', label: '수주서' },
                   { name: 'quotations', label: '주문서/견적서' },
-                  { name: 'warehouses', label: '창고 정보' },
+                  { name: 'warehouses', label: '창고/차량창고' },
+                  { name: 'vehicles', label: '차량 정보' },
+                  { name: 'vehicleLogs', label: '차량 운행일지' },
                   { name: 'inventoryAdjustments', label: '재고조정 내역' },
                   { name: 'inventoryTransferHistory', label: '재고이동 내역' },
                   { name: 'expenses', label: '경비지출 내역' },
@@ -6086,72 +6255,172 @@ function App({ authSession }) {
 
                 let totalItemCount = 0;
                 collections.forEach(c => {
-                  if (Array.isArray(data[c.name])) totalItemCount += data[c.name].length;
+                  if (Array.isArray(root[c.name])) totalItemCount += root[c.name].length;
                 });
                 if (totalItemCount === 0) totalItemCount = 1;
 
                 let processedItemCount = 0;
-                const BATCH_CHUNK_SIZE = 400;
-                let currentBatch = writeBatch(db);
-                let opCount = 0;
+                const MASTER_DOC_COLLECTIONS = ['staffList', 'warehouses', 'categories', 'accounts'];
 
-                const commitAndResetBatch = async () => {
-                  if (opCount > 0) {
-                    await currentBatch.commit();
-                    currentBatch = writeBatch(db);
-                    opCount = 0;
-                  }
-                };
+                for (let colIdx = 0; colIdx < collections.length; colIdx++) {
+                  const col = collections[colIdx];
+                  const rawItems = root[col.name];
+                  if (!Array.isArray(rawItems) || rawItems.length === 0) continue;
 
-                const addToBatch = async (collectionName, label, items) => {
-                  if (!Array.isArray(items)) return;
-                  for (const item of items) {
-                    let docId = String(item.id || item._docId || Date.now() + Math.random());
-                    if (collectionName === 'staffList' && item.userId) {
-                      docId = `${companyId}_${item.userId}`;
-                    } else if (collectionName === 'partners' && item.loginId) {
-                      docId = `${companyId}_${item.loginId}`;
-                    }
-                    const cleanItem = { ...item };
-                    delete cleanItem._docId;
-                    currentBatch.set(doc(db, 'companies', companyId, collectionName, docId), {
-                      ...cleanItem,
-                      companyId
-                    });
-                    opCount++;
-                    processedItemCount++;
+                  // 1. 현재 회원사 ID로 강제 스탬핑 (이전 백업 파일의 타 회원사 ID 격리 필터에 걸려 사라지는 문제 원천 방지)
+                  let stampedItems = rawItems.map(item => {
+                    if (!item || typeof item !== 'object') return item;
+                    const clean = { ...item };
+                    delete clean._docId;
+                    clean.companyId = companyId;
+                    return clean;
+                  });
 
-                    if (opCount >= BATCH_CHUNK_SIZE) {
-                      await commitAndResetBatch();
-                    }
-
-                    if (onProgress && (processedItemCount % 50 === 0 || processedItemCount === totalItemCount)) {
-                      const pct = 5 + Math.round((processedItemCount / totalItemCount) * 82);
-                      onProgress({
-                        percent: Math.min(88, pct),
-                        currentStep: `[${label}] 데이터 복원 중`,
-                        currentCount: processedItemCount,
-                        totalCount: totalItemCount,
-                        detail: `${label} (${processedItemCount.toLocaleString()} / ${totalItemCount.toLocaleString()}건) 데이터베이스 반영 중...`
+                  // 직원명부 복원 시: 현재 로그인한 관리자 대표 카드를 보존 및 관리자 연결 상태로 병합
+                  if (col.name === 'staffList' && currentUser) {
+                    const hasCurrent = stampedItems.some(s => 
+                      (currentUser.uid && (s.id === currentUser.uid || s.linkedUid === currentUser.uid)) ||
+                      (currentUser.email && (s.email === currentUser.email || s.linkedEmail === currentUser.email)) ||
+                      (currentUser.userId && s.userId === currentUser.userId)
+                    );
+                    if (!hasCurrent) {
+                      const repStaff = {
+                        id: currentUser.authUid || currentUser.uid || `${companyId}_admin`,
+                        userId: currentUser.userId || (currentUser.email ? currentUser.email.split('@')[0] : 'admin'),
+                        name: currentUser.name || '대표자',
+                        phone: currentUser.phone || '',
+                        email: currentUser.email || '',
+                        role: 'admin',
+                        jobTitle: '대표',
+                        department: '경영진',
+                        zone: '본사',
+                        warehouse: '기본 창고',
+                        isCompanyAdmin: true,
+                        isMasterAdmin: true,
+                        accountStatus: 'linked',
+                        linkedUid: currentUser.authUid || currentUser.uid || '',
+                        linkedEmail: currentUser.email || '',
+                        linkedAt: new Date().toISOString(),
+                        sequence: 1,
+                        permissions: { ALL: true, orders: true, loading: true, delivery: true, invoices: true, inventory: true, catalog: true, reports: true },
+                        companyId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                      };
+                      stampedItems = [repStaff, ...stampedItems];
+                    } else {
+                      stampedItems = stampedItems.map(s => {
+                        if ((currentUser.uid && (s.id === currentUser.uid || s.linkedUid === currentUser.uid)) ||
+                            (currentUser.email && (s.email === currentUser.email || s.linkedEmail === currentUser.email)) ||
+                            (currentUser.userId && s.userId === currentUser.userId)) {
+                          return {
+                            ...s,
+                            companyId,
+                            linkedUid: currentUser.authUid || currentUser.uid || s.linkedUid,
+                            linkedEmail: currentUser.email || s.linkedEmail,
+                            accountStatus: 'linked',
+                            isCompanyAdmin: true,
+                            isMasterAdmin: true
+                          };
+                        }
+                        return s;
                       });
                     }
                   }
-                  await commitAndResetBatch();
 
+                  // 2. 로컬 스토리지 및 로컬 번들 캐시에 즉시 동기 반영 (새로고침/재로그인 시 즉시 로드 보장)
                   try {
-                    await saveBundle(companyId, collectionName, items);
+                    const serialized = JSON.stringify(stampedItems);
+                    if (serialized.length < 3000000) {
+                      localStorage.setItem(`${col.name}_${companyId}`, serialized);
+                      localStorage.setItem(`bundle_${col.name}_${companyId}`, serialized);
+                      localStorage.setItem(`${col.name}`, serialized);
+                    }
+                    localStorage.setItem(`bundle_ver_${col.name}_${companyId}`, String(restoreVer));
+                  } catch (lsErr) {
+                    console.warn(`[Restore] localStorage write warning for ${col.name}:`, lsErr);
+                  }
+                  try {
+                    setLocalBundle(companyId, col.name, stampedItems, restoreVer);
+                  } catch (e) {}
+
+                  // 해당 컬렉션의 React 상태 즉시 동기화
+                  const stateSetters = {
+                    staffList: setStaffList,
+                    schedules: setSchedules,
+                    scheduleTypes: setScheduleTypes,
+                    products: setProducts,
+                    categories: setCategories,
+                    partners: setPartners,
+                    accounts: setAccounts,
+                    purchaseInvoices: setPurchaseInvoices,
+                    purchaseOrders: setPurchaseOrders,
+                    salesInvoices: setSalesInvoices,
+                    salesOrders: setSalesOrders,
+                    quotations: setQuotations,
+                    warehouses: setWarehouses,
+                    vehicles: typeof setVehicles !== 'undefined' ? setVehicles : null,
+                    vehicleLogs: typeof setVehicleLogs !== 'undefined' ? setVehicleLogs : null,
+                    expenses: setExpenses,
+                    specialPrices: setSpecialPrices,
+                    staffZones: setStaffZones,
+                    staffJobTitles: setStaffJobTitles,
+                    actionLogs: setActionLogs
+                  };
+                  if (stateSetters[col.name]) {
+                    stateSetters[col.name](stampedItems);
+                  }
+
+                  // 3. 링커엑스 고성능 청크 번들(saveBundle)로 서버에 비동기 저장
+                  try {
+                    await Promise.race([
+                      saveBundle(companyId, col.name, stampedItems),
+                      new Promise(r => setTimeout(r, 4000))
+                    ]);
                   } catch (bundleErr) {
-                    console.warn(`[Restore] saveBundle warning for ${collectionName}:`, bundleErr);
+                    console.warn(`[Restore] saveBundle warning for ${col.name}:`, bundleErr);
                   }
-                };
 
-                for (const col of collections) {
-                  if (data[col.name]) {
-                    await addToBatch(col.name, col.label, data[col.name]);
+                  // 4. 소규모 마스터 참조 컬렉션(직원명부, 창고 등) 개별 문서 동기화 지원
+                  if (MASTER_DOC_COLLECTIONS.includes(col.name) && stampedItems.length <= 100) {
+                    try {
+                      const mBatch = writeBatch(db);
+                      stampedItems.forEach(item => {
+                        let docId = String(item.id || item._docId || Date.now() + Math.random());
+                        if (col.name === 'staffList' && item.userId) {
+                          docId = `${companyId}_${item.userId}`;
+                        }
+                        const cleanItem = { ...item };
+                        delete cleanItem._docId;
+                        mBatch.set(doc(db, 'companies', companyId, col.name, docId), {
+                          ...cleanItem,
+                          companyId
+                        });
+                      });
+                      await Promise.race([
+                        mBatch.commit(),
+                        new Promise(r => setTimeout(r, 4000))
+                      ]).catch(console.warn);
+                    } catch (mErr) {
+                      console.warn(`[Restore] Master doc sync warning for ${col.name}:`, mErr);
+                    }
                   }
+
+                  processedItemCount += stampedItems.length;
+
+                  if (onProgress) {
+                    const pct = 5 + Math.round((processedItemCount / totalItemCount) * 82);
+                    onProgress({
+                      percent: Math.min(88, pct),
+                      currentStep: `[${col.label}] 데이터 복원 완료`,
+                      currentCount: processedItemCount,
+                      totalCount: totalItemCount,
+                      detail: `${col.label} (${stampedItems.length.toLocaleString()}건) 초고속 번들 복원 완료 (${processedItemCount.toLocaleString()} / ${totalItemCount.toLocaleString()}건)...`
+                    });
+                  }
+
+                  await new Promise(r => setTimeout(r, 20));
                 }
-
-                await commitAndResetBatch();
 
                 if (onProgress) {
                   onProgress({
@@ -6163,18 +6432,108 @@ function App({ authSession }) {
                   });
                 }
 
-                if (data.inventory) {
-                  const val = data.inventory.value || data.inventory;
-                  await setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: val, companyId });
-                  await setDoc(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: val, companyId });
+                if (root.inventory) {
+                  const val = root.inventory.value || root.inventory;
+                  setInventory(val);
+                  try {
+                    localStorage.setItem(`inventory_${companyId}`, JSON.stringify(val));
+                    localStorage.setItem(`bundle_inventory_${companyId}`, JSON.stringify(val));
+                    localStorage.setItem('inventory', JSON.stringify(val));
+                  } catch (e) {}
+                  try {
+                    await Promise.race([
+                      Promise.all([
+                        setDoc(doc(db, 'companies', companyId, 'settings', 'inventory'), { value: val, companyId }),
+                        setDoc(doc(db, 'companies', companyId, 'systemSettings', 'inventory'), { value: val, companyId })
+                      ]),
+                      new Promise(r => setTimeout(r, 2000))
+                    ]);
+                  } catch (invErr) {
+                    console.warn('[Restore] inventory cloud save warning:', invErr);
+                  }
                 }
-                if (data.systemSettings) {
-                  const val = data.systemSettings.value || data.systemSettings;
-                  await setDoc(doc(db, 'companies', companyId, 'settings', 'systemSettings'), { value: val, companyId });
+
+                if (root.systemSettings) {
+                  const val = root.systemSettings.value || root.systemSettings;
+                  setSystemSettings(val);
+                  try {
+                    localStorage.setItem(`systemSettings_${companyId}`, JSON.stringify(val));
+                    localStorage.setItem('systemSettings', JSON.stringify(val));
+                  } catch (e) {}
+                  try {
+                    await Promise.race([
+                      setDoc(doc(db, 'companies', companyId, 'settings', 'systemSettings'), { value: val, companyId }),
+                      new Promise(r => setTimeout(r, 1500))
+                    ]);
+                  } catch (sysErr) {
+                    console.warn('[Restore] systemSettings cloud save warning:', sysErr);
+                  }
                 }
-                if (data.favoriteMenus) {
-                  const val = data.favoriteMenus.value || data.favoriteMenus;
-                  await setDoc(doc(db, 'companies', companyId, 'settings', 'favoriteMenus'), { value: val, companyId });
+
+                if (root.companySettings || root.systemSettings?.company) {
+                  const compInfo = root.companySettings || root.systemSettings?.company;
+                  const cleanComp = {
+                    id: companyId,
+                    name: compInfo.name || compInfo.companyName,
+                    companyName: compInfo.name || compInfo.companyName,
+                    businessNo: compInfo.businessNo || compInfo.bizNum || '',
+                    bizNum: compInfo.businessNo || compInfo.bizNum || '',
+                    ceo: compInfo.ceo || compInfo.representative || '',
+                    phone: compInfo.phone || compInfo.tel || compInfo.managerContact || '',
+                    tel: compInfo.phone || compInfo.tel || compInfo.managerContact || '',
+                    email: compInfo.email || currentUser?.email || '',
+                    status: 'active'
+                  };
+                  setCompanySettings(prev => ({ ...(prev || {}), ...cleanComp }));
+                  try {
+                    localStorage.setItem(`companySettings_${companyId}`, JSON.stringify(cleanComp));
+                    localStorage.setItem('companySettings', JSON.stringify(cleanComp));
+                    const devComps = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+                    const idx = devComps.findIndex(c => c.id === companyId);
+                    if (idx >= 0) devComps[idx] = { ...devComps[idx], ...cleanComp };
+                    else devComps.push(cleanComp);
+                    localStorage.setItem('dev_companies', JSON.stringify(devComps));
+                    setDoc(doc(db, 'companies', companyId), cleanComp, { merge: true }).catch(() => {});
+                  } catch (e) {}
+                }
+
+                if (root.favoriteMenus) {
+                  const val = root.favoriteMenus.value || root.favoriteMenus;
+                  try {
+                    localStorage.setItem(`favoriteMenus_${companyId}`, JSON.stringify(val));
+                  } catch (e) {}
+                  try {
+                    await Promise.race([
+                      setDoc(doc(db, 'companies', companyId, 'settings', 'favoriteMenus'), { value: val, companyId }),
+                      new Promise(r => setTimeout(r, 1500))
+                    ]);
+                  } catch (favErr) {
+                    console.warn('[Restore] favoriteMenus cloud save warning:', favErr);
+                  }
+                }
+
+                // syncState에 restoreVer 및 isReset: false 업데이트
+                try {
+                  const nowIso = new Date().toISOString();
+                  const syncStateUpdates = {};
+                  collections.forEach(c => {
+                    if (root[c.name]) {
+                      syncStateUpdates[c.name] = {
+                        version: restoreVer,
+                        isReset: false,
+                        updatedAt: nowIso
+                      };
+                      try {
+                        localStorage.removeItem(`bundle_reconciled_${c.name}_${companyId}`);
+                      } catch (e) {}
+                    }
+                  });
+                  await Promise.race([
+                    setDoc(doc(db, 'companies', companyId, 'metadata', 'syncState'), syncStateUpdates, { merge: true }),
+                    new Promise(r => setTimeout(r, 2000))
+                  ]);
+                } catch (syncErr) {
+                  console.warn('[Restore] syncState update warning:', syncErr);
                 }
 
                 if (onProgress) {
@@ -6188,6 +6547,18 @@ function App({ authSession }) {
                   });
                 }
 
+                // 재로그인 및 새로고침 시 세션과 캐시가 삭제되지 않도록 authCacheOwner와 currentUser 보존
+                if (currentUser) {
+                  try {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('autoLogin', 'true');
+                    const permissions = Object.fromEntries(Object.entries(currentUser.permissions || {}).sort(([a],[b])=>a.localeCompare(b)));
+                    const owner = JSON.stringify([currentUser.authUid || currentUser.uid, currentUser.companyId, currentUser.authRole || currentUser.role, permissions]);
+                    localStorage.setItem('authCacheOwner', owner);
+                  } catch (e) {}
+                }
+
+                alert('데이터가 성공적으로 복원되었습니다. 시스템을 새로고침합니다.');
                 await new Promise(r => setTimeout(r, 800));
                 setIsDataManagerOpen(false);
                 window.location.reload();
@@ -6672,13 +7043,29 @@ function App({ authSession }) {
           }}
           onSaveCompanyInfo={(info) => {
             if (currentUser?.companyId) {
-              updateDoc(doc(db, 'companies', currentUser.companyId), info);
+              setCompanySettings(prev => ({ ...(prev || {}), ...info }));
+              try {
+                const mergedComp = { ...(companySettings || {}), ...info };
+                localStorage.setItem(`companySettings_${currentUser.companyId}`, JSON.stringify(mergedComp));
+                localStorage.setItem('companySettings', JSON.stringify(mergedComp));
+                const devCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
+                const idx = devCompanies.findIndex(c => c.id === currentUser.companyId);
+                if (idx !== -1) {
+                  devCompanies[idx] = { ...devCompanies[idx], ...info };
+                  localStorage.setItem('dev_companies', JSON.stringify(devCompanies));
+                }
+              } catch {}
+              setDoc(doc(db, 'companies', currentUser.companyId), info, { merge: true }).catch(e => console.warn('setDoc company error:', e));
             }
           }}
           onSave={(newSettings) => {
             setSystemSettings(newSettings);
             if (currentUser?.companyId) {
-              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'systemSettings'), { value: newSettings });
+              try {
+                localStorage.setItem(`systemSettings_${currentUser.companyId}`, JSON.stringify(newSettings));
+                localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+              } catch {}
+              setDoc(doc(db, 'companies', currentUser.companyId, 'settings', 'systemSettings'), { value: newSettings, companyId: currentUser.companyId }, { merge: true }).catch(e => console.warn('update systemSettings error:', e));
             }
             setIsSettingsOpen(false);
           }}

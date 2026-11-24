@@ -83,6 +83,30 @@ const WarehouseManagement = ({ onClose, warehouses = [], setWarehouses, currentU
             await saveBundle(companyId, 'warehouses', mergedList);
             localStorage.setItem(`warehouses_${companyId}`, JSON.stringify(mergedList));
           }
+        } else if (snap.empty && isMounted && (!warehouses || warehouses.length === 0) && companyId && companyId !== 'linker_x_hq') {
+          // 회원사 최초 생성 시 기본 창고 자동 생성
+          const defaultWH = {
+            id: 'wh_default',
+            _docId: `${companyId}_wh_default`,
+            name: '기본 창고',
+            code: 'WH01',
+            isMain: true,
+            companyId,
+            manager: currentUser?.name || '대표자',
+            phone: currentUser?.phone || '',
+            location: '본사',
+            order: 1,
+            sequence: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          if (setWarehouses) setWarehouses([defaultWH]);
+          await saveBundle(companyId, 'warehouses', [defaultWH]);
+          localStorage.setItem(`warehouses_${companyId}`, JSON.stringify([defaultWH]));
+          localStorage.setItem('warehouses', JSON.stringify([defaultWH]));
+          try {
+            await setDoc(doc(db, 'companies', companyId, 'warehouses', 'wh_default'), defaultWH, { merge: true });
+          } catch {}
         }
       } catch (err) {
         console.warn('Auto sync warehouses failed:', err);

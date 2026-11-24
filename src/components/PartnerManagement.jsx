@@ -254,8 +254,12 @@ const PartnerManagement = ({
   // 순번(sequence 및 sortOrder) 자동 부여 함수
   const autoAssignSequences = useCallback((currentPartners, explicitSaveId = null, explicitSequence = null) => {
     const managerToSeq = {};
-    safeStaffList.forEach(s => {
-      if (s.sequence) managerToSeq[s.name] = s.sequence;
+    safeStaffList.forEach((s, idx) => {
+      if (s.sequence !== undefined && s.sequence !== null && String(s.sequence).trim() !== '') {
+        managerToSeq[s.name] = s.sequence;
+      } else {
+        managerToSeq[s.name] = idx + 1;
+      }
     });
 
     const updated = currentPartners.map(p => ({ ...p }));
@@ -286,34 +290,56 @@ const PartnerManagement = ({
       }
 
       const managerName = p.manager || '-';
-      const mSeq = managerToSeq[managerName];
+      const mSeq = managerToSeq[managerName] || (managerName !== '-' ? '1' : '0');
 
-      if (mSeq) {
-        if (!managerCounts[managerName]) managerCounts[managerName] = 0;
-        let count = managerCounts[managerName] + 1;
-        let guard1 = 0;
-        while (manualSequences.has(`${mSeq}-${count}`) && guard1 < 10000) {
-          count++;
-          guard1++;
-        }
-        managerCounts[managerName] = count;
-        p.sequence = `${mSeq}-${count}`;
-      } else {
-        if (!managerCounts[managerName]) managerCounts[managerName] = 0;
-        let count = managerCounts[managerName] + 1;
-        const prefix = managerName !== '-' ? managerName.charAt(0) : '0';
-        let guard2 = 0;
-        while (manualSequences.has(`${prefix}-${count}`) && guard2 < 10000) {
-          count++;
-          guard2++;
-        }
-        managerCounts[managerName] = count;
-        p.sequence = `${prefix}-${count}`;
+      if (!managerCounts[managerName]) managerCounts[managerName] = 0;
+      let count = managerCounts[managerName] + 1;
+      let guard1 = 0;
+      while (manualSequences.has(`${mSeq}-${count}`) && guard1 < 10000) {
+        count++;
+        guard1++;
       }
+      managerCounts[managerName] = count;
+      p.sequence = `${mSeq}-${count}`;
     });
 
     return updated;
   }, [safeStaffList]);
+
+  const handleMovePartner = async (idx, direction) => {
+    if (!hasWritePermission()) {
+      alert('마스터 데이터의 수정/삭제 권한이 없습니다.');
+      return;
+    }
+    if (!isReorderUnlocked) {
+      alert('순서를 변경하려면 상단의 순번잠금 해제 버튼(🔑)을 눌러주세요.');
+      return;
+    }
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= displayedPartners.length) return;
+
+    const sourceItem = displayedPartners[idx];
+    const targetItem = displayedPartners[targetIdx];
+    if (!sourceItem || !targetItem) return;
+
+    const sortedMainPartners = getSortedPartners();
+    const actualSourceIdx = sortedMainPartners.findIndex(p => p.id === sourceItem.id);
+    const actualTargetIdx = sortedMainPartners.findIndex(p => p.id === targetItem.id);
+    if (actualSourceIdx === -1 || actualTargetIdx === -1) return;
+
+    const newPartners = [...sortedMainPartners];
+    const [movedItem] = newPartners.splice(actualSourceIdx, 1);
+    newPartners.splice(actualTargetIdx, 0, movedItem);
+
+    const withNewSequences = autoAssignSequences(newPartners);
+    setPartners(withoutSecrets(withNewSequences));
+    try {
+      const companyId = currentUser?.companyId || 'default';
+      localStorage.setItem(`partners_${companyId}`, JSON.stringify(withNewSequences));
+      localStorage.setItem(`bundle_partners_${companyId}`, JSON.stringify(withNewSequences));
+    } catch (e) {}
+    await savePartnerSequences(withNewSequences);
+  };
 
   const savePartnerSequences = async (updatedPartners, explicitSaveId = null) => {
     try {
@@ -955,27 +981,35 @@ const PartnerManagement = ({
                           <GripVertical size={16} color="#d97706" style={{ flexShrink: 0 }} />
                         )}
 
-                        {/* 맨 앞 순번 배지 */}
-                        <span
-                          style={{
-                            minWidth: '26px',
-                            height: '24px',
-                            padding: '0 6px',
-                            borderRadius: '6px',
-                            backgroundColor: isReorderUnlocked ? '#fef3c7' : '#eff6ff',
-                            border: isReorderUnlocked ? '1px solid #fcd34d' : '1px solid #bfdbfe',
-                            color: isReorderUnlocked ? '#b45309' : '#1d4ed8',
-                            fontSize: '0.76rem',
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}
-                          title={partner.sequence ? `고유순번: ${partner.sequence}` : `순번: ${idx + 1}`}
-                        >
-                          {idx + 1}
-                        </span>
+                        {/* 맨 앞 순번 배지 & 순서 이동 버튼 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                          {isReorderUnlocked && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }} onClick={e => e.stopPropagation()}>
+                              <button type="button" disabled={idx === 0} onClick={() => handleMovePartner(idx, -1)} style={{ border: 'none', background: '#3b82f6', color: '#fff', borderRadius: '3px', padding: '1px 5px', fontSize: '9px', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.4 : 1 }}>▲</button>
+                              <button type="button" disabled={idx === displayedPartners.length - 1} onClick={() => handleMovePartner(idx, 1)} style={{ border: 'none', background: '#3b82f6', color: '#fff', borderRadius: '3px', padding: '1px 5px', fontSize: '9px', cursor: idx === displayedPartners.length - 1 ? 'default' : 'pointer', opacity: idx === displayedPartners.length - 1 ? 0.4 : 1 }}>▼</button>
+                            </div>
+                          )}
+                          <span
+                            style={{
+                              minWidth: '26px',
+                              height: '24px',
+                              padding: '0 6px',
+                              borderRadius: '6px',
+                              backgroundColor: isReorderUnlocked ? '#fef3c7' : '#eff6ff',
+                              border: isReorderUnlocked ? '1px solid #fcd34d' : '1px solid #bfdbfe',
+                              color: isReorderUnlocked ? '#b45309' : '#1d4ed8',
+                              fontSize: '0.76rem',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                            title={partner.sequence ? `고유순번: ${partner.sequence}` : `순번: ${idx + 1}`}
+                          >
+                            {partner.sequence && partner.sequence !== '-' ? partner.sequence : (idx + 1)}
+                          </span>
+                        </div>
 
                         {/* 거래처명 */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -1115,6 +1149,8 @@ const PartnerManagement = ({
           staffList={safeStaffList}
           warehouses={warehouses}
           accounts={accounts}
+          currentUser={currentUser}
+          partners={partners}
         />
       )}
 
