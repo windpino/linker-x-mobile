@@ -1775,27 +1775,6 @@ export default function AuthGate({children}) {
                     로그인
                   </button>
                 </div>
-
-                <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', textAlign: 'center' }}>
-                  <button
-                    type="button"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#64748b',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'color 0.15s ease'
-                    }}
-                    onMouseEnter={e => e.target.style.color = '#ef4444'}
-                    onMouseLeave={e => e.target.style.color = '#64748b'}
-                    disabled={busy}
-                    onClick={handleResetAllDataAndAccount}
-                  >
-                    🛠️ 모든 테스트 데이터 및 가입 계정 완전 초기화
-                  </button>
-                </div>
               </>
             )}
           </>
