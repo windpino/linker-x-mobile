@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code, Bell } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
 import { hasMenuPermission, hasMobileMenuPermission } from '../utils/menuPermissions';
 
@@ -569,65 +569,107 @@ const Header = ({
   }, []);
 
   return (
-    <header className="header" ref={dropdownRef}>
-      {/* 맨 왼쪽: 햄버거 버튼 + 회사명 */}
-      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          title="전체 메뉴"
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
-            width: '36px', height: '36px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0
-          }}
-        >
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+    <header className="header" ref={dropdownRef} style={{
+      background: 'linear-gradient(180deg, #021a47 0%, #06286b 100%)',
+      borderBottomLeftRadius: '20px',
+      borderBottomRightRadius: '20px',
+      padding: '12px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 6px 20px rgba(2, 26, 71, 0.35)',
+      position: 'relative',
+      zIndex: 1000,
+      userSelect: 'none'
+    }}>
+      {/* 맨 왼쪽: [ 3D X 아이콘 | Linker X & ERP SYSTEM ] */}
+      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Cyan/Blue 3D Gradient X Icon */}
+          <div style={{
+            width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 20L80 80M80 20L20 80" stroke="url(#linkerx_grad)" strokeWidth="18" strokeLinecap="round"/>
+              <defs>
+                <linearGradient id="linkerx_grad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#00E5FF"/>
+                  <stop offset="0.5" stopColor="#00A2FF"/>
+                  <stop offset="1" stopColor="#3B82F6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
 
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {companyLogo ? (
-            <>
-              <img src={companyLogo} alt="Company Logo" style={{ height: '26px', objectFit: 'contain' }} />
-              <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.5px', color: 'white', whiteSpace: 'nowrap' }}>
-                {companyName}
-              </span>
-            </>
-          ) : (
-            <img 
-              src="/assets/linker-x-horizontal.png" 
-              alt="Linker X - Link Beyond, Automate Everything." 
-              style={{ height: '24px', maxWidth: '120px', objectFit: 'contain' }} 
-            />
-          )}
+          <div style={{ width: '1px', height: '22px', backgroundColor: 'rgba(255, 255, 255, 0.25)' }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#ffffff', letterSpacing: '-0.3px', lineHeight: 1.1 }}>
+              Linker <span style={{ color: '#38bdf8' }}>X</span>
+            </span>
+            <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#93c5fd', letterSpacing: '1.2px', lineHeight: 1.1, marginTop: '2px' }}>
+              ERP SYSTEM
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 맨 오른쪽 정렬: [ 개발자모드 버튼 (활성화 시) | 위젯창 아이콘 | 달력 아이콘 ] */}
-      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        
-
-        <button 
-          onClick={() => { playMenuClickSound(); onOpenWidgetModal(); }}
-          title="위젯창 열기 (6개 위젯)"
+      {/* 맨 오른쪽: [ 알림 벨 (빨간 뱃지) | 세로선 | 햄버거 메뉴 ] */}
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* 알림 벨 아이콘 (빨간 알림 뱃지) */}
+        <button
+          onClick={() => {
+            playMenuClickSound();
+            if (onOpenRecentActivityReport) onOpenRecentActivityReport();
+          }}
+          title="알림 및 최근 내역"
           style={{
-            background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '8px',
-            width: '34px', height: '34px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', color: '#60a5fa', flexShrink: 0
+            background: 'transparent',
+            border: 'none',
+            padding: '4px',
+            cursor: 'pointer',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative'
           }}
         >
-          <LayoutDashboard size={18} />
+          <Bell size={21} color="#ffffff" strokeWidth={2.2} />
+          <span style={{
+            position: 'absolute',
+            top: '3px',
+            right: '3px',
+            width: '7px',
+            height: '7px',
+            borderRadius: '50%',
+            backgroundColor: '#ef4444',
+            border: '1.5px solid #06286b'
+          }} />
         </button>
- 
-        <button 
-          onClick={() => { playMenuClickSound(); onOpenCalendarModal(); }}
-          title="달력 열기"
+
+        {/* 세로 구분선 */}
+        <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255, 255, 255, 0.25)' }} />
+
+        {/* 햄버거 메뉴 버튼 */}
+        <button
+          onClick={() => {
+            playMenuClickSound();
+            setIsMobileMenuOpen(!isMobileMenuOpen);
+          }}
+          title="전체 메뉴"
           style={{
-            background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px',
-            width: '34px', height: '34px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', color: '#fbbf24', flexShrink: 0
+            background: 'transparent',
+            border: 'none',
+            padding: '4px',
+            cursor: 'pointer',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          <CalendarIcon size={18} />
+          {isMobileMenuOpen ? <X size={24} color="#ffffff" /> : <Menu size={24} color="#ffffff" strokeWidth={2.5} />}
         </button>
       </div>
 

@@ -14,17 +14,16 @@ const MobileBottomNav = ({
       bottom: 0,
       left: 0,
       right: 0,
-      height: '60px',
-      backgroundColor: '#0f172a',
-      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-      boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.5)',
+      height: '62px',
+      backgroundColor: '#ffffff',
+      borderTop: '1px solid #f1f5f9',
+      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.05)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-around',
       zIndex: 9990,
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       userSelect: 'none',
-      backdropFilter: 'blur(12px)',
       boxSizing: 'content-box'
     }}>
       <style>{`
@@ -53,22 +52,22 @@ const MobileBottomNav = ({
           transform: scale(0.92);
         }
         .mob-nav-label {
-          font-size: 0.76rem;
+          font-size: 0.78rem;
           font-weight: 800;
           letter-spacing: -0.3px;
           line-height: 1;
         }
         .mob-nav-center-fab {
-          width: 54px;
-          height: 54px;
+          width: 58px;
+          height: 58px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          background: #007aff;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.65), 0 0 0 4px #0f172a;
+          box-shadow: 0 6px 18px rgba(0, 122, 255, 0.35);
           margin-top: -24px;
-          border: 2px solid #7dd3fc;
+          border: 4px solid #ffffff;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .mob-nav-item:active .mob-nav-center-fab {
@@ -86,13 +85,13 @@ const MobileBottomNav = ({
         title="수주 등록"
       >
         <ShoppingCart 
-          size={22} 
-          color={activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'sales_order' ? 2.5 : 2} 
+          size={24} 
+          color={activeTab === 'sales_order' ? '#007aff' : '#0f172a'} 
+          strokeWidth={2.4} 
         />
         <span 
           className="mob-nav-label" 
-          style={{ color: activeTab === 'sales_order' ? '#38bdf8' : '#94a3b8' }}
+          style={{ color: activeTab === 'sales_order' ? '#007aff' : '#0f172a' }}
         >
           수주
         </span>
@@ -112,7 +111,7 @@ const MobileBottomNav = ({
         </div>
         <span 
           className="mob-nav-label" 
-          style={{ color: activeTab === 'loading_check' || activeTab === 'order_list' ? '#38bdf8' : '#ffffff', marginTop: '2px', fontWeight: 900 }}
+          style={{ color: '#007aff', marginTop: '2px', fontWeight: 900 }}
         >
           상차
         </span>
@@ -128,13 +127,13 @@ const MobileBottomNav = ({
         title="재고이동"
       >
         <ArrowLeftRight 
-          size={22} 
-          color={activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8'} 
-          strokeWidth={activeTab === 'inventory_transfer' ? 2.5 : 2} 
+          size={24} 
+          color={activeTab === 'inventory_transfer' ? '#007aff' : '#0f172a'} 
+          strokeWidth={2.4} 
         />
         <span 
           className="mob-nav-label" 
-          style={{ color: activeTab === 'inventory_transfer' ? '#38bdf8' : '#94a3b8' }}
+          style={{ color: activeTab === 'inventory_transfer' ? '#007aff' : '#0f172a' }}
         >
           재고이동
         </span>

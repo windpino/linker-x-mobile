@@ -5100,7 +5100,7 @@ function App({ authSession }) {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ background: 'linear-gradient(180deg, #f0f6ff 0%, #f8fafc 100%)' }}>
         <Header 
           currentUser={currentUser} 
           companyLogo={companySettings?.theme?.logoUrl}
@@ -5162,7 +5162,7 @@ function App({ authSession }) {
           onOpenMobileSettings={() => setIsMobileSettingsOpen(true)}
         />
 
-      <div className="main-content" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 56px)', overflow: 'hidden', gap: '8px', boxSizing: 'border-box' }}>
+      <div className="main-content" style={{ padding: '10px 12px 74px 12px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 56px)', overflowY: 'auto', gap: '10px', boxSizing: 'border-box' }}>
         {/* 모바일 메인 뷰: [ 상단 자주 찾는 메뉴 ] + [ 하단 일정 목록 ] */}
         {/* 자주 찾는 메뉴 (퀵메뉴) */}
         <FavoriteMenuBar
@@ -5234,11 +5234,11 @@ function App({ authSession }) {
           }}
         />
 
-        {/* 일정 목록만 노출되는 메인 영역 (남은 화면 100% 핏 & 내부 스크롤 격리 - 어두운 배경에 맞춘 다크 글래스 카드) */}
+        {/* 일정 목록만 노출되는 메인 영역 (깨끗한 화이트 카드) */}
         <div style={{
           flex: 1, minHeight: 0,
-          backgroundColor: '#111827', borderRadius: '16px', padding: '10px 12px',
-          border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          backgroundColor: '#ffffff', borderRadius: '20px', padding: '14px',
+          border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}>
           <ScheduleSidebar 
@@ -7476,130 +7476,229 @@ function FavoriteMenuBar({
       {
         id: 'sales_ledger',
         name: '매출원장',
-        emoji: '📊',
-        bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-        border: '#60a5fa',
-        textColor: '#ffffff',
-        shadow: '0 4px 14px rgba(37, 99, 235, 0.4)'
+        bg: '#eef4ff',
+        renderIcon: () => (
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '10px',
+            background: '#ffffff',
+            boxShadow: '0 3px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: '6px 5px',
+            gap: '4px',
+            boxSizing: 'border-box'
+          }}>
+            <span style={{ width: '6px', height: '14px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
+            <span style={{ width: '6px', height: '22px', borderRadius: '3px', background: 'linear-gradient(180deg, #f87171 0%, #ef4444 100%)' }} />
+            <span style={{ width: '6px', height: '18px', borderRadius: '3px', background: 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)' }} />
+          </div>
+        )
       },
       {
         id: 'inventory_report_2',
         name: '최종재고',
-        emoji: '📦',
-        bg: 'linear-gradient(135deg, #065f46 0%, #059669 100%)',
-        border: '#34d399',
-        textColor: '#ffffff',
-        shadow: '0 4px 14px rgba(5, 150, 105, 0.4)'
+        bg: '#eefcf6',
+        renderIcon: () => (
+          <div style={{
+            width: '38px',
+            height: '38px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+              <path d="M20 4L35 12V28L20 36L5 28V12L20 4Z" fill="#f59e0b" />
+              <path d="M20 4L35 12L20 20L5 12L20 4Z" fill="#fbbf24" />
+              <path d="M20 20L35 12V28L20 36V20Z" fill="#d97706" />
+              <path d="M5 12L20 20V36L5 28V12Z" fill="#b45309" />
+              <path d="M16 10L24 14L20 16L12 12L16 10Z" fill="#fef3c7" opacity="0.6" />
+            </svg>
+          </div>
+        )
       },
       {
         id: 'inventory_report_1',
         name: '일자별재고',
-        emoji: '📅',
-        bg: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)',
-        border: '#38bdf8',
-        textColor: '#ffffff',
-        shadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+        bg: '#f0f9ff',
+        renderIcon: () => (
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            background: '#ffffff',
+            boxShadow: '0 3px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              height: '11px',
+              background: 'linear-gradient(180deg, #f87171 0%, #ef4444 100%)',
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              padding: '0 6px'
+            }}>
+              <span style={{ width: '3px', height: '4px', borderRadius: '1px', background: '#ffffff' }} />
+              <span style={{ width: '3px', height: '4px', borderRadius: '1px', background: '#ffffff' }} />
+            </div>
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.85rem',
+              fontWeight: 900,
+              color: '#1e293b',
+              lineHeight: 1
+            }}>
+              17
+            </div>
+          </div>
+        )
       },
       {
         id: 'physical_inventory',
         name: '재고실사',
-        emoji: '📋',
-        bg: 'linear-gradient(135deg, #854d0e 0%, #d97706 100%)',
-        border: '#fbbf24',
-        textColor: '#ffffff',
-        shadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
+        bg: '#fff7ed',
+        renderIcon: () => (
+          <div style={{
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width="32" height="34" viewBox="0 0 32 36" fill="none">
+              <rect x="3" y="4" width="26" height="30" rx="4" fill="#d97706" />
+              <rect x="6" y="8" width="20" height="23" rx="2" fill="#ffffff" />
+              <rect x="11" y="2" width="10" height="5" rx="2" fill="#94a3b8" />
+              <circle cx="16" cy="4" r="1.5" fill="#475569" />
+              <line x1="9" y1="13" x2="23" y2="13" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+              <line x1="9" y1="18" x2="23" y2="18" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+              <line x1="9" y1="23" x2="19" y2="23" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+              <line x1="9" y1="27" x2="16" y2="27" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+        )
       }
     ];
   }, []);
 
   return (
-    <div className="calendar-favorites-section" style={{
-      backgroundColor: '#0f172a',
-      borderRadius: '16px',
-      padding: '8px 8px',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      position: 'relative',
-      flexShrink: 0
-    }}>
-      {/* 롤오버 공지사항 NOTICE */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
+      {/* 1. 상단 단독 공지사항 배너 (화이트 필 카드) */}
       <div
-        onClick={() => setSelectedSystemNotice(SYSTEM_NOTICES[currentNoticeIdx])}
+        onClick={() => setSelectedSystemNotice && setSelectedSystemNotice(SYSTEM_NOTICES?.[currentNoticeIdx])}
         style={{
           display: 'flex',
           alignItems: 'center',
-          backgroundColor: 'rgba(30, 41, 59, 0.85)',
-          border: '1px solid rgba(248, 113, 113, 0.35)',
-          borderRadius: '8px',
-          padding: '4px 8px',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          padding: '8px 14px',
           cursor: 'pointer',
-          marginBottom: '7px',
-          transition: 'all 0.2s',
-          opacity: noticeFade ? 1 : 0,
-          transform: noticeFade ? 'none' : 'translateY(-2px)'
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+          gap: '10px',
+          transition: 'all 0.2s ease'
         }}
       >
-        <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#fca5a5', marginRight: '6px', whiteSpace: 'nowrap', backgroundColor: 'rgba(239, 68, 68, 0.25)', padding: '1px 5px', borderRadius: '4px', letterSpacing: '0.5px' }}>NOTICE</span>
-        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {SYSTEM_NOTICES[currentNoticeIdx]?.title}
+        <span style={{
+          fontSize: '0.68rem',
+          fontWeight: 900,
+          color: '#ffffff',
+          backgroundColor: '#007aff',
+          padding: '3px 10px',
+          borderRadius: '20px',
+          letterSpacing: '0.5px',
+          whiteSpace: 'nowrap'
+        }}>
+          NOTICE
         </span>
+        <span style={{
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          color: '#1e293b',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
+          opacity: noticeFade ? 1 : 0,
+          transition: 'opacity 0.2s ease'
+        }}>
+          {SYSTEM_NOTICES?.[currentNoticeIdx]?.title || '[알림] 정기 데이터 백업 안내'}
+        </span>
+        <ChevronRight size={16} color="#94a3b8" />
       </div>
 
-      {/* 4칸 퀵 메뉴 그리드 (설명글 제거, 이름만 굵고 또렷하게 표시, 배경과 확실히 구분되는 다채로운 버튼 컬러) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-        {fourMenus.map((menu) => (
-          <button
-            key={menu.id}
-            onClick={() => {
-              playMenuClickSound();
-              onMenuAction(menu.id);
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-              padding: '9px 2px',
-              background: menu.bg,
-              border: `1.5px solid ${menu.border}`,
-              borderRadius: '12px',
-              cursor: 'pointer',
-              boxShadow: menu.shadow,
-              transition: 'all 0.15s ease',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-            }}
-          >
-            {/* 이모지 아이콘 */}
-            <span style={{
-              fontSize: '1.35rem',
-              lineHeight: 1,
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-            }}>
-              {menu.emoji}
-            </span>
+      {/* 2. ⭐ 빠른 업무 카드 (화이트 라운드 카드) */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '20px',
+        padding: '14px 12px 14px 12px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        {/* 헤더: ⭐ 빠른 업무 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>⭐</span>
+          <span style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+            빠른 업무
+          </span>
+        </div>
 
-            {/* 메뉴명 (설명글 없이 이름만 뚜렷하게 표시) */}
-            <span style={{
-              fontSize: '0.78rem',
-              fontWeight: 900,
-              color: menu.textColor,
-              letterSpacing: '-0.4px',
-              lineHeight: 1.15,
-              whiteSpace: 'nowrap',
-              textShadow: '0 1px 3px rgba(0, 0, 0, 0.7)'
-            }}>
-              {menu.name}
-            </span>
-          </button>
-        ))}
+        {/* 4칸 퀵 메뉴 버튼 그리드 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+          {fourMenus.map((menu) => (
+            <button
+              key={menu.id}
+              onClick={() => {
+                playMenuClickSound();
+                onMenuAction(menu.id);
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '10px 2px',
+                backgroundColor: menu.bg,
+                border: 'none',
+                borderRadius: '16px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              }}
+            >
+              {menu.renderIcon()}
+
+              <span style={{
+                fontSize: '0.80rem',
+                fontWeight: 800,
+                color: '#1e293b',
+                letterSpacing: '-0.4px',
+                lineHeight: 1.15,
+                whiteSpace: 'nowrap'
+              }}>
+                {menu.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
