@@ -708,6 +708,67 @@
   100% { transform: scale(1.02); filter: drop-shadow(0 0 28px rgba(56, 189, 248, 0.7)); }
 }
 
+/* Mobile Auth Layout & Brand Logo (모바일 최적화) */
+.desktop-auth-layout {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+}
+
+.desktop-auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 12px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.desktop-brand-logo-img {
+  width: min(120px, 35vw);
+  max-width: 125px;
+  height: auto;
+  display: block;
+  margin: 0 auto 10px auto;
+  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.45));
+}
+
+.desktop-brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.desktop-brand-copy h1 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+  letter-spacing: -0.3px;
+}
+
+.desktop-brand-kicker,
+.desktop-brand-copy p,
+.desktop-brand-points {
+  display: none;
+}
+
+.desktop-auth-entry {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
 .auth-card.dark-glass {
   width: 100%;
   max-width: 440px;
@@ -1093,21 +1154,33 @@
     border-radius: 16px;
   }
   .auth-shell.dark-theme {
-    padding: 24px 14px;
+    padding: 16px 10px;
     justify-content: flex-start;
   }
+  .desktop-auth-brand {
+    padding: 6px 8px 8px;
+  }
+  .desktop-brand-logo-img {
+    width: 105px;
+    max-width: 32vw;
+    margin-bottom: 6px;
+  }
+  .desktop-brand-copy h1 {
+    font-size: 0.96rem;
+    margin-bottom: 6px;
+  }
   .dark-auth-header {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
   .dark-brand-logo-img {
-    width: 140px;
+    width: 120px;
   }
   .auth-card.dark-glass {
-    padding: 24px 18px;
-    border-radius: 20px;
+    padding: 20px 16px;
+    border-radius: 18px;
   }
   .dark-features-bar {
-    margin-top: 24px;
+    margin-top: 16px;
     padding: 0 4px;
   }
   .dark-feature-text {

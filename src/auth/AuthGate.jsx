@@ -1198,6 +1198,7 @@ export default function AuthGate({children}) {
             src="/assets/linker-x-brand.png"
             alt="Linker X - Link Beyond, Automate Everything."
             className="desktop-brand-logo-img"
+            style={{ width: 'min(115px, 32vw)', maxWidth: '125px', height: 'auto', display: 'block', margin: '0 auto 8px auto' }}
           />
           <div className="desktop-brand-copy">
             <span className="desktop-brand-kicker">UNIFIED OPERATIONS</span>
