@@ -2073,25 +2073,6 @@ export default function AuthGate({children}) {
               >
                 다른 계정으로 로그인 (로그아웃)
               </button>
-
-              <div style={{ marginTop: '14px', borderTop: '1px dashed rgba(239, 68, 68, 0.3)', paddingTop: '12px', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#ef4444',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                  disabled={busy}
-                  onClick={handleResetAllDataAndAccount}
-                >
-                  가입 계정 및 데이터 완전 초기화
-                </button>
-              </div>
             </div>
           </>
         ) : verifiedView === 'new_tenant_form' ? (
