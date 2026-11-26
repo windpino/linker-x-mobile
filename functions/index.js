@@ -58,32 +58,13 @@ export const authSession = onCall(opts, async req => {
     };
   }
   const [m,c] = await Promise.all([membershipRef(account.uid,cid).get(),db.doc(`companies/${cid}`).get()]);
-  let membership = m.data();
-  const isWindpinoNo1 = cid === 'no1dmkr' && (account.email || '').toLowerCase() === 'windpino@naver.com';
-  if (isWindpinoNo1 && (!active(membership) || membership.companyId !== cid)) {
-    membership = {
-      uid: account.uid,
-      companyId: 'no1dmkr',
-      role: 'tenant_admin',
-      legacyId: 'windpino',
-      status: 'active'
-    };
-  } else if (!active(membership) || !active(c.data()) || membership.companyId !== cid) {
+  const membership = m.data();
+  if (!active(membership) || !active(c.data()) || membership.companyId !== cid) {
     throw new HttpsError('permission-denied','회사 소속 승인 또는 사용 상태를 확인해 주세요.');
   }
   const kind = membership.role === 'partner' ? 'partners' : 'staffList';
-  let profile = (await db.doc(`companies/${cid}/${kind}/${id(membership.legacyId)}`).get()).data();
-  if (!profile && isWindpinoNo1) {
-    profile = {
-      id: account.uid,
-      userId: 'windpino',
-      name: '김동영',
-      role: 'admin',
-      jobTitle: '대표',
-      email: 'windpino@naver.com',
-      companyId: 'no1dmkr'
-    };
-  } else if (!profile) {
+  const profile = (await db.doc(`companies/${cid}/${kind}/${id(membership.legacyId)}`).get()).data();
+  if (!profile) {
     throw new HttpsError('failed-precondition','연결된 업무 계정이 없습니다.');
   }
   return sessionUser(account.uid,cid,membership,profile);
@@ -117,7 +98,7 @@ export const approveMembership = onCall(opts, async req => {
     const companyRef = db.doc(`companies/${cid}`), company = await tx.get(companyRef);
     const rref = requestRef(targetUid,cid), r = await tx.get(rref), data = r.data();
     if (!data || data.status !== 'pending' || data.uid !== targetUid || data.companyId !== cid) throw new HttpsError('failed-precondition','대기 신청이 없습니다.');
-    const platform = active(p.data()) || hasPlatformAdminClaim(req);
+    const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
     if (!platform && !(active(admin.data()) && admin.data().companyId === cid && admin.data().role === 'tenant_admin' && active(company.data()))) throw new HttpsError('permission-denied','관리자 승인이 필요합니다.');
     if (data.role === 'tenant_admin' && !platform) throw new HttpsError('permission-denied','대표 권한은 플랫폼 관리자만 승인합니다.');
     const legacyId = id(data.legacyId), kind = data.role === 'partner' ? 'partners' : 'staffList';
@@ -258,7 +239,7 @@ export const deleteCompanyPermanently = onCall(opts, async req => {
   }
 
   const platform = await platformRef(actor.uid).get();
-  if (!active(platform.data()) && !hasPlatformAdminClaim(req)) {
+  if (!(active(platform.data()) && platform.data().role === 'super_admin') && !hasPlatformAdminClaim(req)) {
     throw new HttpsError('permission-denied', '슈퍼관리자만 회원사를 영구 삭제할 수 있습니다.');
   }
 
@@ -289,56 +270,33 @@ export const deleteCompanyPermanently = onCall(opts, async req => {
     ['authAudit', 'companyId']
   ];
   for (const [collectionName, field] of rootReferences) {
-    try {
       await deleteQueryInBatches(
         () => db.collection(collectionName).where(field, '==', cid),
         'rootReferences'
       );
-    } catch (e) {
-      console.warn(`[deleteCompanyPermanently] query ${collectionName} warning:`, e?.message);
-    }
   }
 
   // 과거 클라이언트가 만들던 단일 사용자 문서와 회사별 설정 컬렉션도 정리한다.
-  try {
     const legacyUserRef = db.doc(`users/uid_${cid}`);
     if ((await legacyUserRef.get()).exists) {
       await legacyUserRef.delete();
       deleted.rootReferences += 1;
     }
-  } catch (e) {}
-
-  try {
     await deleteQueryInBatches(
       () => db.collection(`settings_${cid}`),
       'rootReferences'
     );
-  } catch (e) {}
 
   // 현재 보안 구조의 권한 문서는 authz/{uid}/companies/{cid}에 있다.
   // collectionGroup 조회로 모든 UID의 소속 권한을 함께 정리한다.
-  try {
     await deleteQueryInBatches(
       () => db.collectionGroup('companies').where('companyId', '==', cid),
       'memberships'
     );
-  } catch (cgErr) {
-    console.warn('[deleteCompanyPermanently] collectionGroup warning:', cgErr?.message);
-  }
 
   // 회사 문서 아래의 모든 하위 컬렉션과 중첩 컬렉션(백업 청크 포함)을 삭제한다.
-  try {
-    if (compDoc.exists) {
-      await db.recursiveDelete(companyRef);
-    }
-  } catch (recErr) {
-    console.warn('[deleteCompanyPermanently] recursiveDelete warning:', recErr?.message);
-    try {
-      await companyRef.delete();
-    } catch (dErr) {}
-  }
+  await db.recursiveDelete(companyRef);
 
-  try {
     await db.collection('deletionAudit').add({
       actor: actor.uid,
       companyId: cid,
@@ -346,16 +304,13 @@ export const deleteCompanyPermanently = onCall(opts, async req => {
       deleted,
       at: FieldValue.serverTimestamp()
     });
-  } catch (audErr) {
-    console.warn('[deleteCompanyPermanently] deletionAudit warning:', audErr?.message);
-  }
 
   return { ok: true, companyId: cid, deleted };
 });
 export const listMembershipRequests = onCall(opts,async req=>{
   const actor=await identity(req);
   const p = await platformRef(actor.uid).get();
-  const platform = active(p.data()) || hasPlatformAdminClaim(req);
+  const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
   const rawCid = req.data?.companyId;
 
   if (platform && (!rawCid || rawCid === 'linker_x_hq' || rawCid === 'all')) {
@@ -465,7 +420,7 @@ export const updateMembership = onCall(opts,async req=>{
  await db.runTransaction(async tx=>{
   const [p,m,c,t]=await Promise.all([tx.get(platformRef(actor.uid)),tx.get(membershipRef(actor.uid,cid)),tx.get(db.doc(`companies/${cid}`)),tx.get(membershipRef(uid,cid))]);
   const target=t.data();
-  const platform = active(p.data()) || hasPlatformAdminClaim(req);
+  const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
   if(!platform&&!(active(m.data())&&m.data().companyId===cid&&m.data().role==='tenant_admin'&&active(c.data())&&['tenant_staff','partner'].includes(target?.role)))throw new HttpsError('permission-denied','대상 권한을 수정할 수 없습니다.');
   if(!target||target.companyId!==cid||!['active','revoked'].includes(req.data?.status))throw new HttpsError('invalid-argument','대상 소속 또는 상태를 확인하세요.');
   const permissions={};if(target.role==='tenant_staff')for(const key of ['orders','loading','delivery','invoices','inventory','catalog','reports'])if(req.data?.permissions?.[key]===true)permissions[key]=true;
@@ -799,20 +754,6 @@ export const getMyWorkspaces = onCall(opts, async req => {
     }
   }
 
-  if (email === 'windpino@naver.com' && !workspaces.some(w => w.companyId === 'no1dmkr')) {
-    workspaces.unshift({
-      companyId: 'no1dmkr',
-      companyName: '동명크릴',
-      role: 'admin',
-      authRole: 'tenant_admin',
-      isTenantAdmin: true,
-      type: 'company_work',
-      roleLabel: '대표 (회사 관리자)',
-      partnerId: null,
-      partnerName: null
-    });
-  }
-
   // 2. 대기 중인 초대 목록 조회 (이메일 기준)
   let pendingInvitations = [];
   if (email) {
@@ -919,10 +860,6 @@ export const requestStaffConnection = onCall(opts, async req => {
   if (!targetCompany) {
     const directComp = await db.collection('companies').where('email', '==', repEmail).limit(1).get();
     if (!directComp.empty) targetCompany = { id: directComp.docs[0].id, ...directComp.docs[0].data() };
-  }
-
-  if (!targetCompany && repEmail === 'windpino@naver.com') {
-    targetCompany = { id: 'no1dmkr', name: '동명크릴', representativeEmail: 'windpino@naver.com' };
   }
 
   if (!targetCompany) {

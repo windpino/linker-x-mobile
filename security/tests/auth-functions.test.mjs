@@ -59,7 +59,7 @@ test('tenant admin cannot approve representative and duplicate legacy binding de
  assert.equal((await call('requestMembership',{companyId:'C',legacyId:'C_owner',role:'tenant_admin',name:'Candidate'},candidateToken)).status,200);
  await signInWithEmailAndPassword(auth,'admin-fixture@example.test',pass);const tenantToken=await auth.currentUser.getIdToken(true);
  assert.equal((await call('approveMembership',{companyId:'C',uid:candidate.uid,confirmLegacyLink:true},tenantToken)).status,403);
- const platform=await adminAuth(admin).createUser({email:'platform-fixture@example.test',password:pass,emailVerified:true});await adb.doc(`platformAccess/${platform.uid}`).set({status:'active'});
+ const platform=await adminAuth(admin).createUser({email:'platform-fixture@example.test',password:pass,emailVerified:true});await adb.doc(`platformAccess/${platform.uid}`).set({status:'active',role:'super_admin'});
  await signInWithEmailAndPassword(auth,platform.email,pass);const platformToken=await auth.currentUser.getIdToken(true);
  assert.equal((await call('approveMembership',{companyId:'C',uid:candidate.uid,confirmLegacyLink:true},platformToken)).status,200);
  await signInWithEmailAndPassword(auth,candidate.email,pass);const representative=await call('authSession',{companyId:'C'},await auth.currentUser.getIdToken(true));assert.equal(representative.body.result.authRole,'tenant_admin');assert.equal(representative.body.result.isPlatformAdmin,false);

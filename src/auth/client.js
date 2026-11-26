@@ -79,18 +79,7 @@ export async function register(email, password) {
 export async function login(email, password) { 
   await ready(); 
   const cleanEmail = (email || '').trim();
-  try {
-    return await signInWithEmailAndPassword(auth, cleanEmail, password); 
-  } catch (err) {
-    if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') && cleanEmail.toLowerCase() === 'windpino@naver.com') {
-      try {
-        return await createUserWithEmailAndPassword(auth, cleanEmail, password);
-      } catch (createErr) {
-        throw err;
-      }
-    }
-    throw err;
-  }
+  return signInWithEmailAndPassword(auth, cleanEmail, password);
 }
 
 export async function googleLogin() { 
@@ -511,15 +500,7 @@ export function cleanLocalCompanyData(cid) {
 
 export async function callAuth(name, data) { 
   if (authTargetMode === 'production') {
-    try {
-      return (await httpsCallable(functions, name)(data)).data;
-    } catch (prodErr) {
-      if (name === 'deleteCompanyPermanently') {
-        console.warn('[callAuth:deleteCompanyPermanently] Production Functions error, performing client-side cleanup fallback:', prodErr?.message);
-      } else {
-        throw prodErr;
-      }
-    }
+    return (await httpsCallable(functions, name)(data)).data;
   }
 
   const currentUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || auth.currentUser;
@@ -530,9 +511,9 @@ export async function callAuth(name, data) {
     const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);
     const storedPlatformAccess = JSON.parse(localStorage.getItem('dev_platform_access') || '{}');
     const pAccess = storedPlatformAccess[currentUser.uid];
-    const isOps = pAccess && (pAccess.role === 'super_admin' || pAccess.status === 'active');
+    const isOps = pAccess && pAccess.role === 'super_admin' && pAccess.status === 'active';
 
-    if (!isSuper && !isOps && currentUser.email !== 'superadmin@linker-x.com') {
+    if (!isSuper && !isOps) {
       const pErr = new Error('슈퍼관리자만 회원사를 영구 삭제할 수 있습니다.');
       pErr.code = 'permission-denied';
       throw pErr;
@@ -706,39 +687,16 @@ export async function callAuth(name, data) {
 
       // Normal company check
       const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
-      let mem = storedMemberships[`${currentUser.uid}_${cid}`];
-      if (!mem && currentUser.email) {
-        mem = Object.values(storedMemberships).find(m => 
-          m.companyId === cid && m.email && m.email.toLowerCase() === currentUser.email.toLowerCase() && m.status === 'active'
-        );
-      }
-      if (cid === 'no1dmkr' && currentUser.email && currentUser.email.toLowerCase() === 'windpino@naver.com') {
-        initDongmyeongSampleData(currentUser.uid, currentUser.email);
-        mem = JSON.parse(localStorage.getItem('dev_memberships') || '{}')[`${currentUser.uid}_${cid}`] || {
-          uid: currentUser.uid,
-          email: currentUser.email,
-          companyId: 'no1dmkr',
-          companyName: '동명크릴',
-          legacyId: 'windpino',
-          userId: 'windpino',
-          role: 'tenant_admin',
-          status: 'active',
-          permissions: { ALL: true }
-        };
-      }
+      const mem = storedMemberships[`${currentUser.uid}_${cid}`];
       if (mem && mem.status === 'active') {
-        if (cid === 'no1dmkr') {
-          initDongmyeongSampleData(currentUser.uid, currentUser.email);
-        }
-        const isWindpinoNo1 = cid === 'no1dmkr' && currentUser.email?.toLowerCase() === 'windpino@naver.com';
-        const isTenantAdmin = mem.role === 'tenant_admin' || isWindpinoNo1;
+        const isTenantAdmin = mem.role === 'tenant_admin';
         const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
         const comp = storedCompanies.find(c => c.id === cid);
         const repName = comp?.ceo || comp?.representative || comp?.name || (cid === 'no1dmkr' ? '김동영' : '대표자');
         return {
           authUid: currentUser.uid,
           id: currentUser.uid,
-          userId: isWindpinoNo1 ? 'windpino' : (mem.userId || mem.legacyId || currentUser.uid),
+          userId: mem.userId || mem.legacyId || currentUser.uid,
           companyId: cid,
           companyName: comp?.name || mem.companyName || (cid === 'no1dmkr' ? '동명크릴' : cid),
           businessNo: comp?.businessNo || comp?.bizNum || '',
@@ -749,7 +707,7 @@ export async function callAuth(name, data) {
           jobTitle: isTenantAdmin ? '대표' : (mem.jobTitle || '직원'),
           isCompanyAdmin: isTenantAdmin,
           isMasterAdmin: isTenantAdmin,
-          legacyId: isWindpinoNo1 ? 'windpino' : (mem.legacyId || mem.userId),
+          legacyId: mem.legacyId || mem.userId,
           role: isTenantAdmin ? 'admin' : mem.role === 'partner' ? 'partner' : 'staff',
           authRole: isTenantAdmin ? 'tenant_admin' : mem.role,
           isTenantAdmin: isTenantAdmin,
@@ -1016,24 +974,6 @@ export async function callAuth(name, data) {
       const uid = currentUser.uid;
       const email = (currentUser.email || '').toLowerCase().trim();
       const deletedIds = JSON.parse(localStorage.getItem('deleted_company_ids') || '[]');
-
-      if (email === 'windpino@naver.com' && !deletedIds.includes('no1dmkr')) {
-        const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
-        if (storedCompanies.some(c => c.id === 'no1dmkr')) {
-          initDongmyeongSampleData(uid, email);
-          return {
-            status: 'approved',
-            companyId: 'no1dmkr',
-            companyName: '동명크릴',
-            role: 'admin',
-            authRole: 'tenant_admin',
-            isTenantAdmin: true,
-            trialStartDate: '2026-01-01T00:00:00.000Z',
-            trialEndDate: '2026-12-31T23:59:59.000Z',
-            trialDaysRemaining: 365
-          };
-        }
-      }
 
       // 1. Check local memberships
       const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
@@ -1335,18 +1275,11 @@ export async function callAuth(name, data) {
       const email = (currentUser.email || '').toLowerCase().trim();
       const deletedIds = JSON.parse(localStorage.getItem('deleted_company_ids') || '[]');
 
-      if (email === 'windpino@naver.com' && !deletedIds.includes('no1dmkr')) {
-        const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
-        if (storedCompanies.some(c => c.id === 'no1dmkr')) {
-          initDongmyeongSampleData(uid, email);
-        }
-      }
-
       const storedMemberships = JSON.parse(localStorage.getItem('dev_memberships') || '{}');
       const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
 
       const userMemberships = Object.values(storedMemberships).filter(m => 
-        (m.uid === uid || (email && m.email && m.email.toLowerCase() === email)) && 
+        m.uid === uid &&
         m.status === 'active' &&
         !deletedIds.includes(m.companyId)
       );
@@ -1360,7 +1293,7 @@ export async function callAuth(name, data) {
           const p = partners.find(x => x.id === mem.partnerId);
           partnerName = p?.name || mem.partnerId;
         }
-        const isTenantAdmin = mem.role === 'tenant_admin' || (mem.companyId === 'no1dmkr' && email === 'windpino@naver.com');
+        const isTenantAdmin = mem.role === 'tenant_admin';
         return {
           companyId: mem.companyId,
           companyName: comp?.name || mem.companyName || (mem.companyId === 'no1dmkr' ? '동명크릴' : mem.companyId),
@@ -1373,23 +1306,6 @@ export async function callAuth(name, data) {
           partnerName: partnerName || null
         };
       });
-
-      if (email === 'windpino@naver.com' && !deletedIds.includes('no1dmkr')) {
-        const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
-        if (storedCompanies.some(c => c.id === 'no1dmkr') && !workspaces.some(w => w.companyId === 'no1dmkr')) {
-          workspaces.unshift({
-            companyId: 'no1dmkr',
-            companyName: '동명크릴',
-            role: 'admin',
-            authRole: 'tenant_admin',
-            isTenantAdmin: true,
-            type: 'company_work',
-            roleLabel: '대표 (회사 관리자)',
-            partnerId: null,
-            partnerName: null
-          });
-        }
-      }
 
       // 0. 링커엑스 본사 운영팀 소속 확인 (슈퍼관리자 또는 플랫폼 운영팀)
       const isSuper = await hasPlatformSuperAdminPrivilege(currentUser);

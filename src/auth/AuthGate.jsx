@@ -423,7 +423,7 @@ export default function AuthGate({children}) {
         return;
       }
 
-      const isEmailVerified = activeUser.emailVerified || (activeUser.email && activeUser.email.toLowerCase() === 'windpino@naver.com');
+      const isEmailVerified = activeUser.emailVerified === true;
       const nextIdentity = {
         uid: activeUser.uid,
         email: activeUser.email,
@@ -454,22 +454,8 @@ export default function AuthGate({children}) {
         }
       })();
 
-      // windpino@naver.com 대표 계정 연동 (동명크릴이 삭제되지 않고 존재하는 경우에만)
-      if (activeUser.email && activeUser.email.toLowerCase() === 'windpino@naver.com') {
-        if (!deletedIds.includes('no1dmkr')) {
-          const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
-          if (storedCompanies.some(c => c.id === 'no1dmkr')) {
-            if (!currentStored || currentStored.companyId !== 'no1dmkr' || currentStored.authUid !== activeUser.uid) {
-              localStorage.removeItem('currentUser');
-              await enter('no1dmkr');
-              return;
-            }
-          }
-        }
-      }
-
       if (currentStored && currentStored.authUid === activeUser.uid && (currentStored.companyId || currentStored.role) && !deletedIds.includes(currentStored.companyId)) {
-        setSession(currentStored);
+        await enter(currentStored.companyId);
         return;
       }
 
@@ -501,7 +487,7 @@ export default function AuthGate({children}) {
     showMsg('');
     try {
       const verifiedUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || auth.currentUser;
-      const isVerified = verifiedUser?.emailVerified || (verifiedUser?.email && verifiedUser.email.toLowerCase() === 'windpino@naver.com');
+      const isVerified = verifiedUser?.emailVerified === true;
       if (!isVerified) {
         showMsg('회사 입장 전 이메일 인증이 필요합니다.', 'error');
         setIdentity(prev => prev ? ({ ...prev, emailVerified: false }) : null);
@@ -509,9 +495,6 @@ export default function AuthGate({children}) {
       }
       const approved = withoutSecrets(await callAuth('authSession', { companyId: targetCid }));
       await prepareSessionScope(approved);
-      if (approved.companyId === 'no1dmkr') {
-        initDongmyeongSampleData(approved.authUid, approved.email);
-      }
       localStorage.setItem('currentUser', JSON.stringify(approved));
       setSession(approved);
     } catch {
@@ -525,19 +508,8 @@ export default function AuthGate({children}) {
   // Load user's accessible workspaces and pending invitations
   const loadUserWorkspacesAndInvites = useCallback(async (targetUser) => {
     const u = targetUser || auth.currentUser;
-    const isVerified = u?.emailVerified || (u?.email && u.email.toLowerCase() === 'windpino@naver.com');
+    const isVerified = u?.emailVerified === true;
     if (!u || !isVerified) return;
-
-    if (u?.email && u.email.toLowerCase() === 'windpino@naver.com') {
-      const deletedIds = JSON.parse(localStorage.getItem('deleted_company_ids') || '[]');
-      if (!deletedIds.includes('no1dmkr')) {
-        const storedCompanies = JSON.parse(localStorage.getItem('dev_companies') || '[]');
-        if (storedCompanies.some(c => c.id === 'no1dmkr')) {
-          await enter('no1dmkr');
-          return;
-        }
-      }
-    }
 
     setRegLoading(true);
     setRegError(null);
