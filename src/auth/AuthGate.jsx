@@ -652,7 +652,7 @@ export default function AuthGate({children}) {
         } else {
           // 완전 신규 또는 회원사 추가 정보 미입력: 회원사 추가 정보 입력 화면으로 자동 안내
           setVerifiedView('new_tenant_form');
-          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'success');
+          showMsg(options.successMessage || '인증 완료! 회원사 정보를 입력해 주세요.', 'success');
         }
       }
     } catch (err) {
@@ -692,7 +692,7 @@ export default function AuthGate({children}) {
           showMsg(options.successMessage || '이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
         } else {
           setVerifiedView('new_tenant_form');
-          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'success');
+          showMsg(options.successMessage || '인증 완료! 회원사 정보를 입력해 주세요.', 'success');
         }
       }
     } catch {
@@ -705,7 +705,7 @@ export default function AuthGate({children}) {
           showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'info');
         } else {
           setVerifiedView('new_tenant_form');
-          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'info');
+          showMsg(options.successMessage || '인증 완료! 회원사 정보를 입력해 주세요.', 'info');
         }
       } else {
         // 조회 실패는 "신청 상태를 불러오지 못했습니다"와 [다시 시도]로 안내
@@ -779,7 +779,7 @@ export default function AuthGate({children}) {
 
     await loadUserWorkspacesAndInvites(u, {
       preferNewTenant: true,
-      successMessage: '이메일 인증이 완료되었습니다! 회원사 추가 정보를 입력해 주세요.'
+      successMessage: '인증 완료! 회원사 정보를 입력해 주세요.'
     });
     return true;
   };
@@ -1451,12 +1451,13 @@ export default function AuthGate({children}) {
   // Check emulator safety violation
   const isEmulatorAttached = Boolean(auth?.emulatorConfig);
   const isProdVerifyMode = authTargetMode === 'production-auth-only';
+  const isCompactTenantForm = Boolean(identity?.emailVerified && verifiedView === 'new_tenant_form' && viewMode !== 'verify_email_result');
 
   if (session?.role === 'partner') return <PartnerOrders session={session} />;
   if (session) return children(session);
 
   return (
-    <main className={`auth-shell dark-theme${!identity && viewMode === 'login' ? ' mobile-login-compact' : ''}`}>
+    <main className={`auth-shell dark-theme${!identity && viewMode === 'login' ? ' mobile-login-compact' : ''}${isCompactTenantForm ? ' mobile-tenant-compact' : ''}`}>
       <div className="desktop-auth-layout">
         <aside className="desktop-auth-brand" aria-label="Linker X 소개">
           <img
@@ -2099,31 +2100,33 @@ export default function AuthGate({children}) {
           ───────────────────────────────────────────────────────────── */
           <>
             <div className="auth-new-tenant">
-              <div className="auth-badge-status prod-verify">새 회원사 · 즉시 이용</div>
-              <h2 className="auth-mode-title auth-new-tenant-title">회원사 추가 정보 입력</h2>
+              <div className="auth-new-tenant-head">
+                <h2 className="auth-mode-title auth-new-tenant-title">회원사 추가 정보</h2>
+                <span className="auth-new-tenant-badge">30일 무료 · 즉시개설</span>
+              </div>
               <div className="auth-new-tenant-account">
-                <span>인증 계정</span>
+                <span>인증계정</span>
                 <strong>{identity.email}</strong>
                 <em>인증됨</em>
               </div>
               <p className="auth-desc auth-new-tenant-desc">
-                정보를 등록하면 고유 회사 ID와 대표자 권한이 즉시 발급됩니다.
+                입력 완료 시 회사 ID·관리자 권한 즉시 발급
               </p>
 
               <form onSubmit={handleNewTenantSubmit} className="auth-form auth-new-tenant-form">
                 <div className="auth-new-tenant-fields">
-                  <label>
-                    회사명
+                  <label className="auth-new-tenant-row">
+                    <span className="auth-new-tenant-label">회사명</span>
                     <input
                       name="companyName"
                       required
-                      placeholder="예: 주식회사 링커엑스"
+                      placeholder="예: (주)링커엑스"
                       value={form.companyName}
                       onChange={change}
                     />
                   </label>
-                  <label>
-                    사업자등록번호
+                  <label className="auth-new-tenant-row">
+                    <span className="auth-new-tenant-label">사업자번호</span>
                     <input
                       name="businessNo"
                       required
@@ -2132,8 +2135,8 @@ export default function AuthGate({children}) {
                       onChange={change}
                     />
                   </label>
-                  <label>
-                    담당자 (대표자 성명)
+                  <label className="auth-new-tenant-row">
+                    <span className="auth-new-tenant-label">대표자명</span>
                     <input
                       name="name"
                       required
@@ -2142,8 +2145,8 @@ export default function AuthGate({children}) {
                       onChange={change}
                     />
                   </label>
-                  <label>
-                    연락처
+                  <label className="auth-new-tenant-row">
+                    <span className="auth-new-tenant-label">연락처</span>
                     <input
                       type="tel"
                       name="phone"
@@ -2163,13 +2166,13 @@ export default function AuthGate({children}) {
                     checked={tenantPrivacyAgreed}
                     onChange={(e) => setTenantPrivacyAgreed(e.target.checked)}
                   />
-                  <span>회원사 정보 수집 및 이용에 동의합니다 <em>(필수)</em></span>
+                  <span>회원사 정보 수집·이용 동의 <em>(필수)</em></span>
                 </label>
                 <button type="button" onClick={() => setPrivacyModalOpen(true)}>보기</button>
               </div>
 
                 <button type="submit" className="auth-btn-primary dark-btn-gradient-login" disabled={busy}>
-                  <span>{busy ? '회원사 개설 및 권한 등록 중...' : '회원사 개설 및 업무 시작'}</span>
+                  <span>{busy ? '회원사 개설 및 로그인 중...' : '회원사 개설 및 업무 시작'}</span>
                   <span className="dark-btn-arrow">→</span>
                 </button>
               </form>
@@ -2184,7 +2187,7 @@ export default function AuthGate({children}) {
                     else setVerifiedView('existing_tenant_form');
                   }}
                 >
-                  {workspaces.length > 0 ? '소속 워크스페이스 목록' : '기존 회원사 소속 신청'}
+                  {workspaces.length > 0 ? '워크스페이스 목록' : '기존 회원사 소속'}
                 </button>
                 <button
                   type="button"

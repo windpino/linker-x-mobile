@@ -1198,3 +1198,253 @@
     height: 30px;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   모바일 회원사 추가 정보 입력 (한 화면 맞춤 + 인라인 제목 + 고대비 텍스트)
+───────────────────────────────────────────────────────────── */
+.auth-shell.dark-theme.mobile-tenant-compact {
+  padding: 6px 10px;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.mobile-tenant-compact .desktop-auth-brand {
+  padding: 0 0 4px;
+}
+
+.mobile-tenant-compact .desktop-brand-logo-img {
+  width: 64px !important;
+  max-width: 64px !important;
+}
+
+.mobile-tenant-compact .auth-card.dark-glass {
+  padding: 10px 12px 11px;
+  border-radius: 16px;
+}
+
+.mobile-tenant-compact .auth-msg {
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-new-tenant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.auth-card.dark-glass .auth-new-tenant-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.auth-new-tenant-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.auth-new-tenant-account {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-size: 0.78rem;
+}
+
+.auth-new-tenant-account span {
+  color: #cbd5e1;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.auth-new-tenant-account strong {
+  color: #f8fafc;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-new-tenant-account em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.auth-card.dark-glass .auth-new-tenant-desc {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-new-tenant-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-card.dark-glass .auth-new-tenant-form label.auth-new-tenant-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-card.dark-glass .auth-new-tenant-form label.auth-new-tenant-row:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.22);
+}
+
+.auth-new-tenant-label {
+  width: 68px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+
+.auth-card.dark-glass .auth-new-tenant-form .auth-new-tenant-row input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.86rem;
+  box-shadow: none;
+}
+
+.auth-card.dark-glass .auth-new-tenant-form .auth-new-tenant-row input::placeholder {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.auth-card.dark-glass .signup-privacy-consent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 7px 0 8px;
+}
+
+.auth-card.dark-glass .signup-privacy-consent label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.auth-card.dark-glass .signup-privacy-consent label em {
+  font-style: normal;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.auth-card.dark-glass .signup-privacy-consent input[type="checkbox"] {
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
+  min-height: 15px;
+  margin: 0;
+  padding: 0;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.auth-card.dark-glass .signup-privacy-consent button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #7dd3fc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.auth-new-tenant-form .dark-btn-gradient-login {
+  height: 40px;
+  min-height: 40px;
+  margin-top: 0;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
+.auth-new-tenant-actions {
+  margin-top: 7px;
+  gap: 8px;
+}
+
+.auth-new-tenant-actions .auth-btn-secondary {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.auth-new-tenant-actions .auth-btn-ghost {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
