@@ -665,6 +665,7 @@
    다크 테마 & 글래스모피즘 (지구 네트워크 우주 배경)
 ───────────────────────────────────────────────────────────── */
 .auth-shell.dark-theme {
+  height: 100dvh;
   min-height: 100dvh;
   background-color: #030712;
   background-image: 
@@ -677,11 +678,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 12px 14px;
   box-sizing: border-box;
   color: #f8fafc;
   position: relative;
+  overflow-y: auto;
   overflow-x: hidden;
+}
+
+.auth-shell.dark-theme.mobile-login-compact {
+  padding: 10px 14px;
+  justify-content: center;
 }
 
 .dark-auth-header {
@@ -725,17 +732,17 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 8px 12px 12px;
+  padding: 0 0 10px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .desktop-brand-logo-img {
-  width: min(120px, 35vw);
-  max-width: 125px;
+  width: min(96px, 28vw);
+  max-width: 104px;
   height: auto;
   display: block;
-  margin: 0 auto 10px auto;
+  margin: 0 auto;
   filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.45));
 }
 
@@ -772,13 +779,13 @@
 .auth-card.dark-glass {
   width: 100%;
   max-width: 440px;
-  border-radius: 24px;
+  border-radius: 20px;
   background: rgba(13, 20, 38, 0.75) !important;
   backdrop-filter: blur(28px) !important;
   -webkit-backdrop-filter: blur(28px) !important;
   border: 1px solid rgba(56, 189, 248, 0.22) !important;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 35px rgba(14, 165, 233, 0.12) !important;
-  padding: 32px 28px;
+  padding: 16px 16px 18px;
   box-sizing: border-box;
   color: #f8fafc !important;
   z-index: 2;
@@ -788,7 +795,7 @@
   display: flex !important;
   justify-content: space-around !important;
   position: relative !important;
-  margin-bottom: 26px !important;
+  margin-bottom: 14px !important;
   background: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   padding: 0 !important;
@@ -798,10 +805,10 @@
 .dark-auth-tab {
   background: transparent !important;
   border: none !important;
-  font-size: 1.05rem !important;
+  font-size: 0.98rem !important;
   font-weight: 700 !important;
   color: #64748b !important;
-  padding: 10px 20px 14px !important;
+  padding: 6px 16px 10px !important;
   cursor: pointer !important;
   position: relative !important;
   transition: color 0.2s ease !important;
@@ -902,7 +909,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   background: rgba(15, 23, 42, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 12px;
@@ -926,13 +933,13 @@
 
 .auth-card.dark-glass input.dark-input {
   width: 100% !important;
-  height: 48px !important;
+  height: 42px !important;
   background: transparent !important;
   border: none !important;
   outline: none !important;
-  padding: 0 44px !important;
+  padding: 0 40px !important;
   color: #ffffff !important;
-  font-size: 0.95rem !important;
+  font-size: 0.92rem !important;
   font-family: inherit !important;
   box-sizing: border-box !important;
   box-shadow: none !important;
@@ -964,7 +971,7 @@
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  margin: 10px 0 22px !important;
+  margin: 4px 0 12px !important;
   font-size: 0.85rem !important;
 }
 
@@ -1016,12 +1023,12 @@
 
 .dark-btn-gradient-login {
   width: 100%;
-  height: 48px;
+  height: 44px;
   border: none;
   border-radius: 12px;
   background: linear-gradient(90deg, #00b4d8 0%, #0077b6 60%, #023e8a 100%) !important;
   color: #ffffff !important;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1057,7 +1064,7 @@
 .dark-divider {
   display: flex;
   align-items: center;
-  margin: 22px 0 16px;
+  margin: 12px 0 10px;
   color: #64748b;
   font-size: 0.78rem;
 }
@@ -1077,12 +1084,12 @@
 
 .dark-btn-google {
   width: 100%;
-  height: 46px;
+  height: 42px;
   border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04) !important;
   color: #f1f5f9 !important;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -1154,16 +1161,16 @@
     border-radius: 16px;
   }
   .auth-shell.dark-theme {
-    padding: 16px 10px;
-    justify-content: flex-start;
+    padding: 10px 12px;
+    justify-content: center;
   }
   .desktop-auth-brand {
-    padding: 6px 8px 8px;
+    padding: 0 0 8px;
   }
   .desktop-brand-logo-img {
-    width: 105px;
-    max-width: 32vw;
-    margin-bottom: 6px;
+    width: 90px;
+    max-width: 26vw;
+    margin-bottom: 0;
   }
   .desktop-brand-copy h1 {
     font-size: 0.96rem;
@@ -1176,7 +1183,7 @@
     width: 120px;
   }
   .auth-card.dark-glass {
-    padding: 20px 16px;
+    padding: 14px 14px 16px;
     border-radius: 18px;
   }
   .dark-features-bar {

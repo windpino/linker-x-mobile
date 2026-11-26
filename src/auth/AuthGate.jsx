@@ -1163,25 +1163,15 @@ export default function AuthGate({children}) {
   if (session) return children(session);
 
   return (
-    <main className="auth-shell dark-theme">
+    <main className={`auth-shell dark-theme${!identity && viewMode === 'login' ? ' mobile-login-compact' : ''}`}>
       <div className="desktop-auth-layout">
         <aside className="desktop-auth-brand" aria-label="Linker X 소개">
           <img
             src="/assets/linker-x-brand.png"
             alt="Linker X - Link Beyond, Automate Everything."
             className="desktop-brand-logo-img"
-            style={{ width: 'min(115px, 32vw)', maxWidth: '125px', height: 'auto', display: 'block', margin: '0 auto 8px auto' }}
+            style={{ width: 'min(96px, 28vw)', maxWidth: '104px', height: 'auto', display: 'block', margin: '0 auto' }}
           />
-          <div className="desktop-brand-copy">
-            <span className="desktop-brand-kicker">UNIFIED OPERATIONS</span>
-            <h1>매일의 물류 업무를<br />더 명확하게 연결합니다.</h1>
-            <p>주문부터 배송, 재고와 정산까지.<br />Linker X에서 하나의 흐름으로 관리하세요.</p>
-          </div>
-          <div className="desktop-brand-points" aria-label="주요 기능">
-            <span>주문 · 배송 통합</span>
-            <span>실시간 재고 현황</span>
-            <span>안전한 권한 관리</span>
-          </div>
         </aside>
 
         <div className="desktop-auth-entry">
@@ -2249,55 +2239,6 @@ export default function AuthGate({children}) {
           </>
         )}
           </section>
-
-          {/* 3. 하단 3대 핵심 특징 섹션 (우주-지구 네트워크 배경 위 3단 바) */}
-          {!identity && (viewMode === 'login' || viewMode === 'signup') && (
-            <div className="dark-features-bar">
-          <div className="dark-feature-item">
-            <div className="dark-feature-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 12 12 17 22 12" />
-                <polyline points="2 17 12 22 22 17" />
-              </svg>
-            </div>
-            <div className="dark-feature-text">
-              <span>주문부터 배송까지</span>
-              <strong>한 번에</strong>
-            </div>
-          </div>
-
-          <div className="dark-feature-divider" />
-
-          <div className="dark-feature-item">
-            <div className="dark-feature-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </div>
-            <div className="dark-feature-text">
-              <span>상차·재고를</span>
-              <strong>실시간으로</strong>
-            </div>
-          </div>
-
-          <div className="dark-feature-divider" />
-
-          <div className="dark-feature-item">
-            <div className="dark-feature-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="18" y="10" width="4" height="11" rx="1" />
-                <rect x="11" y="4" width="4" height="17" rx="1" />
-                <rect x="4" y="14" width="4" height="7" rx="1" />
-              </svg>
-            </div>
-            <div className="dark-feature-text">
-              <span>누락·오배송을</span>
-              <strong>최소화</strong>
-            </div>
-          </div>
-            </div>
-          )}
         </div>
       </div>
 
