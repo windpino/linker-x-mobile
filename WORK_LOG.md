@@ -49,3 +49,16 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
   - 브라우저 서브에이전트 검증: 로그인 화면 로고 및 폼 핏 확인, 초기화 버튼 제거 확인, 모바일 뷰 렌더링 확인
 - Production data touched?: 없음 (로컬 UI/스타일링 작업)
 - Outstanding risks and next action: GitHub remote push 진행.
+
+
+## 2026-11-26 — Antigravity — 실제 Firebase(Auth/Firestore/Functions) 운영 연결 전환
+- Status: 구현 및 빌드/테스트 검증 완료
+- Branch / commit: `main`
+- Files changed:
+  - `.env`: `VITE_AUTH_PRODUCTION_APPROVED=true` 추가 (로컬 에뮬레이터 `127.0.0.1:9099`/`8080`/`5001` 대신 실제 Firebase 프로젝트 `link-x-6606e`의 Auth, Firestore, Cloud Functions에 연결하도록 사용자 승인 하에 전환)
+- Checks actually run and results:
+  - `npm run build`: 정상 완료 (`vite v8.3.8`, 0 errors, 1.93s)
+  - 빌드 번들(`dist/assets/index-D1BpXDf6.js`) 검증: `isProdApproved = true`, `useAuthEmulator = false`, `useFirestoreEmulator = false`, `authTargetMode = 'production'` 컴파일 확인
+  - `node --test security/tests/email-signup-verification.test.mjs`: 4/4 통과 (0 fail)
+- Production data touched?: 없음 (환경 설정 변경 및 배포용 커밋만 수행)
+- Outstanding risks and next action: `link-x-6606e` 프로젝트에 Cloud Functions 및 보안 규칙이 최신 상태로 배포되어 있어야 하며, Vercel 환경 변수에 `VITE_AUTH_PRODUCTION_APPROVED=false`가 별도 설정되어 있다면 제거 또는 `true`로 일치시켜야 함.
