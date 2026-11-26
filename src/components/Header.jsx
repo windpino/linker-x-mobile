@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code, Bell } from 'lucide-react';
+import { Package, Search, LogOut, ChevronDown, Calendar as CalendarIcon, MessageSquare, Menu, X, LayoutDashboard, Code, Bell, ChevronRight } from 'lucide-react';
 import { playMenuClickSound } from '../utils/audio';
-import { hasMenuPermission, hasMobileMenuPermission } from '../utils/menuPermissions';
+import { hasMenuPermission, hasMobileMenuPermission, MOBILE_CORE_MENUS } from '../utils/menuPermissions';
 
 const Header = ({ 
   currentUser, companyLogo, onLogout, onOpenWarehouseManager, onOpenStaffManager, 
@@ -403,6 +403,7 @@ const Header = ({
       if (selectedItem && selectedItem.action) {
         playMenuClickSound();
         selectedItem.action();
+        setIsMobileMenuOpen(false);
         setSearchQuery('');
         setIsSearchFocused(false);
       }
@@ -568,395 +569,163 @@ const Header = ({
     };
   }, []);
 
+  const menuGroups = new Map();
+  if (isMobileMenuOpen) {
+    for (const item of getMenuItems()) {
+      if (!item.perm || typeof item.action !== 'function') continue;
+      if (!menuGroups.has(item.category)) menuGroups.set(item.category, []);
+      menuGroups.get(item.category).push(item);
+    }
+  }
+
+  const coreActions = {
+    sales_order: onOpenSalesOrder,
+    loading_check: onOpenLoadingCheck || onOpenOrderList,
+    inventory_transfer: onOpenInventoryTransfer,
+    sales_invoice: onOpenSalesInvoice,
+    product: onOpenProductManager,
+    partner: onOpenPartnerManager,
+  };
+
+  const openDrawerItem = item => {
+    setIsMobileMenuOpen(false);
+    handleSearchResultClick(item);
+  };
+
   return (
-    <header className="header" ref={dropdownRef} style={{
-      background: 'linear-gradient(180deg, #021a47 0%, #06286b 100%)',
-      borderBottomLeftRadius: '20px',
-      borderBottomRightRadius: '20px',
-      padding: '12px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      boxShadow: '0 6px 20px rgba(2, 26, 71, 0.35)',
-      position: 'relative',
-      zIndex: 1000,
-      userSelect: 'none'
-    }}>
-      {/* 맨 왼쪽: [ 3D X 아이콘 | Linker X & ERP SYSTEM ] */}
-      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Cyan/Blue 3D Gradient X Icon */}
-          <div style={{
-            width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 20L80 80M80 20L20 80" stroke="url(#linkerx_grad)" strokeWidth="18" strokeLinecap="round"/>
-              <defs>
-                <linearGradient id="linkerx_grad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#00E5FF"/>
-                  <stop offset="0.5" stopColor="#00A2FF"/>
-                  <stop offset="1" stopColor="#3B82F6"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          <div style={{ width: '1px', height: '22px', backgroundColor: 'rgba(255, 255, 255, 0.25)' }} />
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#ffffff', letterSpacing: '-0.3px', lineHeight: 1.1 }}>
-              Linker <span style={{ color: '#38bdf8' }}>X</span>
-            </span>
-            <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#93c5fd', letterSpacing: '1.2px', lineHeight: 1.1, marginTop: '2px' }}>
-              ERP SYSTEM
-            </span>
-          </div>
+    <header className="header mobile-topbar" ref={dropdownRef}>
+      <div className="mobile-brand">
+        <img className="mobile-brand-mark" src="/logo_icon.png" alt="" />
+        <div className="mobile-brand-wordmark">
+          <strong>Linker <b>X</b></strong>
+          <span>ERP SYSTEM</span>
         </div>
+        {companyName && companyName !== 'Link X' && (
+          <span className="mobile-brand-company" title={companyName}>{companyName}</span>
+        )}
       </div>
-
-      {/* 맨 오른쪽: [ 알림 벨 (빨간 뱃지) | 세로선 | 햄버거 메뉴 ] */}
-      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* 알림 벨 아이콘 (빨간 알림 뱃지) */}
+      <div className="mobile-topbar-actions">
         <button
+          type="button"
+          aria-label="알림 및 최근 내역"
           onClick={() => {
             playMenuClickSound();
-            if (onOpenRecentActivityReport) onOpenRecentActivityReport();
-          }}
-          title="알림 및 최근 내역"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            padding: '4px',
-            cursor: 'pointer',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative'
+            onOpenRecentActivityReport?.();
           }}
         >
-          <Bell size={21} color="#ffffff" strokeWidth={2.2} />
-          <span style={{
-            position: 'absolute',
-            top: '3px',
-            right: '3px',
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            backgroundColor: '#ef4444',
-            border: '1.5px solid #06286b'
-          }} />
+          <Bell size={22} aria-hidden="true" />
         </button>
-
-        {/* 세로 구분선 */}
-        <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255, 255, 255, 0.25)' }} />
-
-        {/* 햄버거 메뉴 버튼 */}
         <button
+          type="button"
+          aria-label={isMobileMenuOpen ? '전체 메뉴 닫기' : '전체 메뉴 열기'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-menu-drawer"
           onClick={() => {
             playMenuClickSound();
-            setIsMobileMenuOpen(!isMobileMenuOpen);
-          }}
-          title="전체 메뉴"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            padding: '4px',
-            cursor: 'pointer',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            setIsMobileMenuOpen(open => !open);
           }}
         >
-          {isMobileMenuOpen ? <X size={24} color="#ffffff" /> : <Menu size={24} color="#ffffff" strokeWidth={2.5} />}
+          {isMobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
         </button>
       </div>
 
-      {/* 햄버거 클릭 시 슬라이드 수직 메뉴 드로어 */}
       {isMobileMenuOpen && (
-        <div className="mobile-menu-drawer" style={{
-          position: 'absolute',
-          top: '52px',
-          left: 0,
-          right: 0,
-          backgroundColor: '#0f172a',
-          borderBottom: '1px solid #1e293b',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-          padding: '16px',
-          zIndex: 99999,
-          maxHeight: '80vh',
-          overflowY: 'auto'
-        }}>
-          
-
-          {/* 검색 바 */}
-          <div className="search-bar" ref={searchContainerRef} style={{ width: '100%', maxWidth: 'none', marginBottom: '12px', position: 'relative' }}>
-            <Search size={16} className="search-icon" style={{ color: '#64748b', left: '10px' }} />
-            <input 
-              type="text" 
-              placeholder="메뉴 검색" 
+        <nav className="mobile-menu-drawer mobile-menu-panel" id="mobile-menu-drawer" aria-label="전체 메뉴">
+          <div className="mobile-menu-search" ref={searchContainerRef}>
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="메뉴 검색"
+              placeholder="메뉴 검색"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onKeyDown={handleSearchKeyDown}
-              style={{
-                width: '100%',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                padding: '8px 12px 8px 34px',
-                fontSize: '0.85rem',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
             />
-            {isSearchFocused && searchQuery.trim() !== '' && (
-              <div className="search-results-dropdown" style={{ left: 0, right: 0, width: 'auto' }}>
-                {searchResults.map((item, index) => (
-                  <div 
-                    key={index}
-                    className={`search-result-item ${index === selectedIndex ? 'active' : ''}`}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    onClick={() => { setIsMobileMenuOpen(false); handleSearchResultClick(item); }}
-                  >
-                    <div className="search-result-category">{item.category}</div>
-                    <div className="search-result-title">{item.title}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* 📱 모바일 6대 핵심 메뉴 (직원별 모바일 메뉴 제어와 100% 연동) */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{
-              fontSize: '0.76rem',
-              fontWeight: 800,
-              color: '#93c5fd',
-              marginBottom: '8px',
-              paddingLeft: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <span>📱 모바일 핵심 업무 메뉴</span>
-              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>터치하여 즉시 실행</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-              {[
-                {
-                  id: 'sales_order',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_수주'),
-                  label: '수주',
-                  sub: '수주 등록 · 목록',
-                  emoji: '🛒',
-                  color: '#3b82f6',
-                  action: onOpenSalesOrder
-                },
-                {
-                  id: 'loading_check',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_상차'),
-                  label: '상차',
-                  sub: '품목·거래처 상차체크',
-                  emoji: '🚛',
-                  color: '#10b981',
-                  action: onOpenLoadingCheck || onOpenOrderList
-                },
-                {
-                  id: 'inventory_transfer',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_재고이동'),
-                  label: '재고이동',
-                  sub: '창고 · 차량 이동',
-                  emoji: '🔄',
-                  color: '#8b5cf6',
-                  action: onOpenInventoryTransfer
-                },
-                {
-                  id: 'sales_invoice',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_매출전표발행'),
-                  label: '매출전표발행',
-                  sub: '현장 전표 즉시 발행',
-                  emoji: '🧾',
-                  color: '#f97316',
-                  action: onOpenSalesInvoice
-                },
-                {
-                  id: 'product',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_상품등록'),
-                  label: '상품등록',
-                  sub: '품목 등록 · 관리',
-                  emoji: '📦',
-                  color: '#0ea5e9',
-                  action: onOpenProductManager
-                },
-                {
-                  id: 'partner',
-                  perm: hasMobileMenuPermission(currentUser, '모바일_거래처등록'),
-                  label: '거래처등록',
-                  sub: '거래처 등록 · 관리',
-                  emoji: '🤝',
-                  color: '#ec4899',
-                  action: onOpenPartnerManager
-                }
-              ].filter(item => item.perm).map(item => (
+          {isSearchFocused && searchQuery.trim() ? (
+            <div className="mobile-menu-results">
+              {searchResults.length === 0 && <p>검색 결과가 없습니다.</p>}
+              {searchResults.map((item, index) => (
                 <button
-                  key={item.id}
-                  data-menu-item={item.label}
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    playMenuClickSound();
-                    if (typeof item.action === 'function') item.action();
-                  }}
-                  style={{
-                    padding: '12px 12px',
-                    borderRadius: '10px',
-                    background: 'rgba(30, 41, 59, 0.9)',
-                    border: '1px solid rgba(148, 163, 184, 0.22)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    color: '#ffffff'
-                  }}
+                  key={item.category + item.title}
+                  type="button"
+                  className="mobile-menu-row"
+                  data-highlighted={index === selectedIndex}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  onClick={() => openDrawerItem(item)}
                 >
-                  <span style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '9px',
-                    background: `${item.color}22`,
-                    border: `1px solid ${item.color}55`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.15rem',
-                    flexShrink: 0
-                  }}>
-                    {item.emoji}
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2 }}>
-                      {item.label}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.sub}
-                    </span>
-                  </div>
+                  <span>{item.title}</span>
+                  <small>{item.category}</small>
                 </button>
               ))}
             </div>
-          </div>
+          ) : (
+            <>
+              <section className="mobile-core-menu">
+                <h2>핵심 업무</h2>
+                <div className="mobile-core-menu-grid">
+                  {MOBILE_CORE_MENUS.filter(item => hasMobileMenuPermission(currentUser, item.permKey)).map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-menu-item={item.label}
+                      className="mobile-core-menu-item"
+                      style={{ '--tile-color': item.color, '--tile-bg': item.bgColor }}
+                      onClick={() => openDrawerItem({ action: coreActions[item.id] })}
+                    >
+                      <span className="mobile-core-menu-icon" aria-hidden="true">{item.emoji}</span>
+                      <span><strong>{item.label}</strong><small>{item.subLabel}</small></span>
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-          {/* ⚙️ 관리자 및 환경설정 메뉴 (접기/펼치기 가능) */}
-          {[
-            { id: 'settings_license', label: '⚙️ 환경설정 및 관리자 도구', items: [
-              { perm: true, label: '📱 모바일 전용 환경설정', action: onOpenMobileSettings || onOpenSettings },
-              { perm: hasPerm('직원관리'), label: '👤 직원관리 (모바일 메뉴 제어)', action: onOpenStaffManager },
-              { perm: hasPerm('창고관리'), label: '🏠 창고관리', action: onOpenWarehouseManager },
-              { perm: hasPerm('데이터 전체 저장/불러오기/삭제'), label: '🗄️ 데이터 전체 저장/불러오기/삭제', action: onOpenDataManager },
-              { perm: hasPerm('회사/시스템 환경설정'), label: '🏢 회사/시스템 환경설정', action: onOpenSettings }
-            ]}
-          ].map(group => {
-            const visibleItems = group.items.filter(item => item.perm);
-            if (visibleItems.length === 0) return null;
-            const isOpen = Boolean(openDrawerSections[group.id]);
-            return (
-              <div key={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => toggleDrawerSection(group.id)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    background: 'rgba(51, 65, 85, 0.45)',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
-                    color: '#cbd5e1',
-                    fontWeight: 700,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                    textAlign: 'left'
-                  }}
-                >
-                  <span>{group.label}</span>
-                  <ChevronDown
-                    size={16}
-                    style={{
-                      color: '#94a3b8',
-                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.22s ease'
-                    }}
-                  />
+              {[...menuGroups].map(([category, items]) => (
+                <section className="mobile-menu-group" key={category}>
+                  <button
+                    type="button"
+                    className="mobile-menu-group-toggle"
+                    aria-expanded={Boolean(openDrawerSections[category])}
+                    onClick={() => toggleDrawerSection(category)}
+                  >
+                    <span>{category}</span><ChevronDown size={17} aria-hidden="true" />
+                  </button>
+                  {openDrawerSections[category] && items.map(item => (
+                    <button
+                      type="button"
+                      className="mobile-menu-row"
+                      key={item.title}
+                      data-menu-item={item.title}
+                      onClick={() => openDrawerItem(item)}
+                    >
+                      <span>{item.title}</span><ChevronRight size={15} aria-hidden="true" />
+                    </button>
+                  ))}
+                </section>
+              ))}
+
+              <button
+                type="button"
+                className="mobile-menu-row mobile-menu-settings"
+                data-menu-item="모바일 전용 환경설정"
+                onClick={() => openDrawerItem({ action: onOpenMobileSettings || onOpenSettings })}
+              >
+                <span>모바일 전용 환경설정</span><ChevronRight size={15} aria-hidden="true" />
+              </button>
+              <div className="mobile-menu-profile">
+                <span>{currentUser?.name} <small>{currentUser?.jobTitle}</small></span>
+                <button type="button" onClick={() => { setIsMobileMenuOpen(false); onLogout(); }}>
+                  <LogOut size={16} aria-hidden="true" /> 로그아웃
                 </button>
-                {isOpen && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '4px 0 4px 8px',
-                    gap: '4px'
-                  }}>
-                    {visibleItems.map((item, idx) => (
-                      <button 
-                        key={idx} 
-                        data-menu-item={item.label}
-                        onClick={() => { 
-                          setIsMobileMenuOpen(false); 
-                          playMenuClickSound(); 
-                          if (typeof item.action === 'function') {
-                            item.action();
-                          }
-                        }}
-                        style={{
-                          padding: '8px 10px',
-                          fontSize: '0.86rem',
-                          color: '#cbd5e1',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          textAlign: 'left',
-                          width: '100%',
-                          fontWeight: 600,
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-            );
-          })}
-
-          {/* 프로필 & 로그아웃 */}
-          <div style={{ 
-            marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #1e293b',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-          }}>
-            <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
-              {currentUser?.name} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{currentUser?.jobTitle}</span>
-            </span>
-            <button 
-              onClick={() => { setIsMobileMenuOpen(false); onLogout(); }}
-              style={{ background: 'transparent', border: 'none', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-            >
-              <LogOut size={16} /> 로그아웃
-            </button>
-          </div>
-        </div>
+            </>
+          )}
+        </nav>
       )}
     </header>
   );
 };
 
 export default Header;
-

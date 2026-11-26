@@ -384,10 +384,10 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
       noScroll
       headerExtra={InvoiceDateHeader}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}>
+      <div className="mobile-work-page" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', gap: '12px', boxSizing: 'border-box' }}>
         
         {/* Header & Quick Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="mobile-work-card mobile-work-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <FileText size={18} color="#db2777" strokeWidth={2.5} />
@@ -402,7 +402,7 @@ const PurchaseInvoice = ({ onClose, products, partners, staffList, onSave, purch
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="mobile-work-actions">
             <button 
               onClick={() => setInvoiceData({ ...invoiceData, items: [], paidAmount: 0 })}
               style={{ padding: '5px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontWeight: 700 }}

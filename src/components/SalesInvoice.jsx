@@ -1259,7 +1259,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
         contentPadding="0"
         noScroll={true}
       >
-        <div style={{
+        <div className="mobile-work-page" style={{
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -1268,11 +1268,11 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
           backgroundColor: '#ffffff',
           position: 'relative'
         }}>
-          <div style={{
+          <div className="mobile-work-toolbar" style={{
             flexShrink: 0,
             padding: '8px 10px',
-            backgroundColor: '#1e293b',
-            borderBottom: '1px solid #0f172a',
+            backgroundColor: 'var(--lx-m-panel)',
+            borderBottom: '1px solid var(--lx-m-line)',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
@@ -2012,6 +2012,7 @@ const SalesInvoice = ({ onClose, products, partners, staffList, onSave, salesInv
             <button
               type="button"
               disabled={isSaving}
+              className="mobile-primary-action"
               onClick={handleManualSave}
               style={{
                 height: '42px',

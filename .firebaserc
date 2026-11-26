@@ -1,1 +1,6 @@
-{"projects":{"default":"demo-linker-auth"}}
+{
+  "projects": {
+    "default": "demo-linker-auth",
+    "production": "link-x-6606e"
+  }
+}

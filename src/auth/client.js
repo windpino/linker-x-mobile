@@ -32,7 +32,7 @@ import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/
 import app, { auth, db, authTargetMode } from '../firebase.js';
 
 const functions = getFunctions(app, 'asia-northeast3');
-if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AUTH_PRODUCTION_APPROVED !== 'true') {
+if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_EMULATOR === 'true') {
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 }
 auth.languageCode = 'ko';
@@ -274,6 +274,10 @@ export function initDongmyeongSampleData(uid, email, force = false) {
     const deletedCompanies = JSON.parse(localStorage.getItem('deleted_company_ids') || '[]');
     if (!force && (deletedCompanies.includes(cid) || localStorage.getItem('system_clean_initialized') === 'true')) {
       return; // 슈퍼관리자 등에 의해 영구 삭제된 경우 자동 복원 방지
+    }
+    if (force && deletedCompanies.includes(cid)) {
+      const filtered = deletedCompanies.filter(id => id !== cid);
+      localStorage.setItem('deleted_company_ids', JSON.stringify(filtered));
     }
 
     const seedCollection = (key, data) => {

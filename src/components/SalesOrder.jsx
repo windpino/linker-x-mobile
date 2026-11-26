@@ -474,8 +474,9 @@ const SalesOrder = ({
       onClose={onClose} 
       width="100%" 
       contentPadding="0"
+      noScroll
     >
-      <div style={{
+      <div className="mobile-work-page" style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -486,7 +487,7 @@ const SalesOrder = ({
         position: 'relative'
       }}>
         {/* 상단 거래처 검색 & 가리기/펼치기 & 보조 도구 바 (매출전표창과 일원화된 컴팩트 디자인) */}
-        <div style={{
+        <div className="mobile-work-toolbar" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -930,6 +931,7 @@ const SalesOrder = ({
 
             <button 
               type="button"
+              className="mobile-primary-action"
               onClick={handleSave}
               style={{
                 flex: 1.2,

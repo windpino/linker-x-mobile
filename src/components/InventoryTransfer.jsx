@@ -277,7 +277,7 @@ const InventoryTransfer = ({
 
   return (
     <WindowModal title="재고이동" onClose={onClose} width="100%">
-      <div className="inv-transfer-mobile-container" style={{
+      <div className="inv-transfer-mobile-container mobile-work-page" style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -286,10 +286,10 @@ const InventoryTransfer = ({
         overflow: 'hidden'
       }}>
         {/* 상단 탭 전환 바 ([이동등록] / [이력조회]) */}
-        <div style={{
+        <div className="mobile-work-tabs" style={{
           display: 'flex',
           borderBottom: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc',
+          backgroundColor: 'var(--lx-m-blue-soft)',
           flexShrink: 0
         }}>
           <button
@@ -344,7 +344,7 @@ const InventoryTransfer = ({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#10b981', minWidth: 0, overflow: 'hidden' }}>
                   <span>📅</span>
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span className="mobile-work-long-label">
                     {transferDate.slice(5)} · {fromWarehouse} ➔ {toWarehouse}
                   </span>
                 </div>
@@ -739,6 +739,7 @@ const InventoryTransfer = ({
               <button
                 type="button"
                 disabled={isSubmitting || transferItems.length === 0}
+                className="mobile-primary-action"
                 onClick={handleSaveTransfer}
                 style={{
                   width: '100%',

@@ -21,7 +21,7 @@
   width: 100%;
   max-width: 100%;
   max-height: 100%;
-  background-color: #0f172a; color: #f8fafc;
+  background-color: var(--lx-m-canvas, #f2f7fd); color: var(--lx-m-ink, #10254a);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -44,7 +44,7 @@
 .window-container.lg { width: 900px; }
 
 .window-titlebar {
-  background: linear-gradient(to bottom, #1e293b, #0f172a);
+  background: var(--lx-m-navy-gradient, #091f49);
   color: #f8fafc;
   height: 40px;
   display: flex;
@@ -52,29 +52,48 @@
   justify-content: space-between;
   padding: 0 16px;
   user-select: none;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #244679;
+  flex: 0 0 40px;
+  gap: 7px;
+}
+
+.window-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .window-title {
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 750;
+  color: #fff;
+  line-height: 1.2;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.window-header-extra {
+  min-width: 0;
 }
 
 .window-controls {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  flex: none;
 }
 
 .window-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #e2edff;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
   transition: all 0.2s;
 }
 
@@ -97,225 +116,57 @@
   overflow-x: auto;
   padding: 12px;
   position: relative;
-  background-color: #0f172a !important;
-  color: #ffffff !important;
+
 }
 
-/* ========================================================
-   모바일 모든 메뉴 창 전역 다크 테마 (어두운 배경 + 흰색 글자)
-   ======================================================== */
-
-/* 1. 컨테이너, 모달 바디, 카드 박스 어두운 배경 전환 */
-.window-content-area,
-.window-content-area .purchase-modal-body,
-.window-content-area .modal-body,
-.window-content-area .sales-ledger-container,
-.window-content-area .sales-ledger-controls,
-.window-content-area .sales-ledger-filter,
-.window-content-area .mobile-phys-inv-container,
-.window-content-area .mobile-phys-inv-controls,
-.window-content-area .mobile-phys-inv-list,
-.window-content-area .mobile-card,
-.window-content-area .account-header,
-.window-content-area [class*="container"]:not(.window-container),
-.window-content-area [class*="card"],
-.window-content-area [class*="table-wrap"],
-.window-content-area [class*="box"] {
-  background-color: #0f172a !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
+/* Shared application surfaces for mobile menu windows. */
+.window-content-area {
+  background-color: var(--lx-m-canvas, #f2f7fd) !important;
+  color: var(--lx-m-ink, #10254a) !important;
 }
 
-/* 2. 흰색 및 연회색 인라인 배경을 다크 모드 카드 색상(#1e293b)으로 일괄 변환 */
-.window-content-area [style*="background-color: #fff"],
-.window-content-area [style*="background-color: #ffffff"],
-.window-content-area [style*="background-color: rgb(255, 255, 255)"],
-.window-content-area [style*="background-color: rgb(248, 250, 252)"],
-.window-content-area [style*="background-color: #f8fafc"],
-.window-content-area [style*="background-color: rgb(241, 245, 249)"],
-.window-content-area [style*="background-color: #f1f5f9"],
-.window-content-area [style*="background-color: rgb(243, 244, 246)"],
-.window-content-area [style*="background-color: #f3f4f6"],
-.window-content-area [style*="background: #fff"],
-.window-content-area [style*="background: #ffffff"],
-.window-content-area [style*="background: rgb(255, 255, 255)"],
-.window-content-area [style*="background: rgb(248, 250, 252)"],
-.window-content-area [style*="background: #f8fafc"],
-.window-content-area [style*="background: rgb(241, 245, 249)"],
-.window-content-area [style*="background: #f1f5f9"],
-.window-content-area [style*="background: rgb(243, 244, 246)"],
-.window-content-area [style*="background: #f3f4f6"] {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #ffffff !important;
+.window-content-area :is(.account-header, .sales-ledger-controls, .mobile-phys-inv-controls, .mobile-card) {
+  background-color: var(--lx-m-panel, #fff);
+  border-color: var(--lx-m-line, #dae7f7);
 }
 
-/* 3. 어두운 텍스트를 흰색(#ffffff)으로 일괄 변환 */
-.window-content-area [style*="color: #0f172a"],
-.window-content-area [style*="color: rgb(15, 23, 42)"],
-.window-content-area [style*="color: #1e293b"],
-.window-content-area [style*="color: rgb(30, 41, 59)"],
-.window-content-area [style*="color: #334155"],
-.window-content-area [style*="color: rgb(51, 65, 85)"],
-.window-content-area [style*="color: #475569"],
-.window-content-area [style*="color: rgb(71, 85, 105)"],
-.window-content-area [style*="color: #000"],
-.window-content-area [style*="color: black"],
-.window-content-area [style*="color: rgb(0, 0, 0)"] {
-  color: #ffffff !important;
+.window-content-area :is(input:not([type]), input[type="text"], input[type="search"], input[type="date"], input[type="number"], input[type="email"], input[type="password"], input[type="tel"], textarea, select) {
+  max-width: 100%;
+  color: var(--lx-m-ink, #10254a);
+  background-color: var(--lx-m-panel, #fff);
+  border-color: #c4d6ed;
 }
 
-/* 4. 중간 톤의 회색 텍스트는 가독성 좋은 밝은 슬레이트(#cbd5e1)로 변환 */
-.window-content-area [style*="color: #64748b"],
-.window-content-area [style*="color: rgb(100, 116, 139)"],
-.window-content-area [style*="color: #94a3b8"],
-.window-content-area [style*="color: rgb(148, 163, 184)"] {
-  color: #cbd5e1 !important;
+.window-content-area :is(input, select, textarea, button):focus-visible {
+  outline: 2px solid #3689fa;
+  outline-offset: 1px;
 }
 
-/* 5. 밝은 회색 보더를 다크 모드 보더(#334155)로 변환 */
-.window-content-area [style*="border: 1px solid #e2e8f0"],
-.window-content-area [style*="border: 1px solid #cbd5e1"],
-.window-content-area [style*="border: 1px dashed #cbd5e1"],
-.window-content-area [style*="border-bottom: 1px solid #e2e8f0"],
-.window-content-area [style*="border-bottom: 1px solid #cbd5e1"],
-.window-content-area [style*="border-top: 1px solid #e2e8f0"],
-.window-content-area [style*="border-top: 1px solid #cbd5e1"],
-.window-content-area [style*="border-left: 1px solid #e2e8f0"],
-.window-content-area [style*="border-right: 1px solid #e2e8f0"] {
-  border-color: #334155 !important;
-}
-
-/* 6. 셀렉트 박스 다크 모드 */
-.window-content-area select {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
+.window-content-area :is(input, textarea)::placeholder {
+  color: var(--lx-m-muted, #526a90);
 }
 
 .window-content-area select option {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
+  color: var(--lx-m-ink, #10254a);
+  background: var(--lx-m-panel, #fff);
 }
 
-/* 6-1. 모바일 모든 입력란(인풋, 텍스트에리어, 간편 주문, 비고 등): 배경색 흰색, 글자색 검정 */
-.window-content-area input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
-.window-content-area textarea,
-input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
-textarea {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-.window-content-area input::placeholder,
-.window-content-area textarea::placeholder,
-input::placeholder,
-textarea::placeholder {
-  color: #64748b !important;
-  opacity: 1 !important;
-}
-
-/* 7. 테이블 및 헤더 다크 모드 */
 .window-content-area table {
-  color: #ffffff !important;
+  max-width: 100%;
+  color: inherit;
 }
 
 .window-content-area th {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
+  background-color: var(--lx-m-blue-soft, #eaf3ff);
+  color: var(--lx-m-ink, #10254a);
+  border-color: var(--lx-m-line, #dae7f7);
 }
 
 .window-content-area td {
-  background-color: #0f172a !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
+  border-color: var(--lx-m-line, #dae7f7);
 }
 
-/* 8. 흰색/연회색 기본 버튼 다크 모드 */
-.window-content-area button[style*="background-color: #fff"],
-.window-content-area button[style*="background-color: #ffffff"],
-.window-content-area button[style*="background: #fff"],
-.window-content-area button[style*="background: #ffffff"],
-.window-content-area button[style*="background-color: #f8fafc"],
-.window-content-area button[style*="background: #f8fafc"],
-.window-content-area button[style*="background-color: #f1f5f9"],
-.window-content-area button[style*="background: #f1f5f9"] {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
-}
 
-/* ========================================================
-   모바일 모든 메뉴 검색란: 배경색 흰색, 글자색 검정
-   ======================================================== */
-.window-content-area input:not([type="checkbox"]):not([type="radio"])[placeholder*="검색"],
-.window-content-area input:not([type="checkbox"]):not([type="radio"])[type="search"],
-.window-content-area input:not([type="checkbox"]):not([type="radio"])[class*="search"],
-.window-content-area input:not([type="checkbox"]):not([type="radio"])[id*="search"],
-.window-content-area input:not([type="checkbox"]):not([type="radio"])[name*="search"],
-.window-content-area input[placeholder*="검색"],
-.window-content-area input[type="search"],
-.window-content-area input[class*="search"],
-.window-content-area input[id*="search"],
-.window-content-area input[name*="search"],
-.window-content-area .search-input input,
-.window-content-area .search-input-v3 input,
-.window-content-area .search-box input,
-.window-content-area .filter-search-row input,
-input[placeholder*="검색"],
-input[type="search"],
-input[class*="search"],
-input[id*="search"],
-input[name*="search"],
-.search-input input,
-.search-input-v3 input,
-.search-box input,
-.filter-search-row input,
-.window-content-area input.sales-ledger-search-input,
-input.sales-ledger-search-input {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-.window-content-area input[placeholder*="검색"]::placeholder,
-.window-content-area input[type="search"]::placeholder,
-.window-content-area input[class*="search"]::placeholder,
-.window-content-area input[id*="search"]::placeholder,
-.window-content-area input[name*="search"]::placeholder,
-.window-content-area .search-input input::placeholder,
-.window-content-area .search-input-v3 input::placeholder,
-.window-content-area .search-box input::placeholder,
-.window-content-area .filter-search-row input::placeholder,
-input[placeholder*="검색"]::placeholder,
-input[type="search"]::placeholder,
-input[class*="search"]::placeholder,
-input[id*="search"]::placeholder,
-input[name*="search"]::placeholder,
-.search-input input::placeholder,
-.search-input-v3 input::placeholder,
-.search-box input::placeholder,
-.filter-search-row input::placeholder,
-.window-content-area input.sales-ledger-search-input::placeholder,
-input.sales-ledger-search-input::placeholder {
-  color: #64748b !important;
-  opacity: 1 !important;
-}
-
-.window-content-area .sales-ledger-suggestions,
-.sales-ledger-suggestions {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-}
-.window-content-area .sales-ledger-suggestions div,
-.sales-ledger-suggestions div {
-  color: #000000 !important;
-}
 
 /* 모바일 전체 엑셀 다운로드 버튼 숨김 */
 .window-content-area button[title*="엑셀"],
@@ -417,6 +268,7 @@ input.sales-ledger-search-input::placeholder {
     overflow: hidden !important;
   }
 
+  .window-content-area[data-scroll="auto"],
   .window-content-area:has(.warehouse-card-list) {
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;

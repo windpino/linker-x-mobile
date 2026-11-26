@@ -593,9 +593,23 @@ export default function AuthGate({children}) {
     setRegLoading(true);
     setRegError(null);
     try {
-      const res = await callAuth('getMyWorkspaces');
-      const ws = res.workspaces || [];
+      let res = await callAuth('getMyWorkspaces');
+      let ws = res.workspaces || [];
       const invs = res.pendingInvitations || [];
+
+      // windpino@naver.com 마스터 계정이 기기 이동(데스크탑/모바일) 등으로 로컬 소속이 비어있는 경우, 동명크릴 자동 복구 및 입장 보장
+      if (ws.length === 0 && (u.email || '').toLowerCase().trim() === 'windpino@naver.com') {
+        try {
+          initDongmyeongSampleData(u.uid, u.email, true);
+          const retryRes = await callAuth('getMyWorkspaces');
+          if (retryRes.workspaces?.length > 0) {
+            ws = retryRes.workspaces;
+          }
+        } catch (seedErr) {
+          console.warn('windpino@naver.com auto-seed fallback:', seedErr);
+        }
+      }
+
       setWorkspaces(ws);
       setPendingInvitations(invs);
 

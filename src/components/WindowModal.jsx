@@ -362,7 +362,7 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
           onDoubleClick={toggleMaximize}
           style={{ cursor: (isDragging ? 'grabbing' : (isMaximized ? 'default' : 'grab')) }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <div className="window-title-group">
             <div className="window-title">{title}</div>
             {headerExtra && (
               <div 
@@ -394,14 +394,15 @@ const WindowModal = ({ title, onClose, children, width, height, zIndex, contentP
                 {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
               </button>
             )}
-            <button className="window-btn close-btn" onClick={onClose}><X size={16} /></button>
+            <button type="button" className="window-btn close-btn" onClick={onClose} aria-label="닫기"><X size={18} /></button>
           </div>
         </div>
         
         {/* Window Content */}
         {!isMinimized && (
           <div 
-            className="window-content-area" 
+            className="window-content-area"
+            data-scroll={noScroll ? 'managed' : 'auto'}
             style={{ 
               height: isMaximized ? (viewportHeight && isMobileSize ? `${viewportHeight - 40}px` : 'calc(100% - 40px)') : undefined,
               maxHeight: (viewportHeight && isMobileSize) ? `${viewportHeight - 40}px` : undefined,

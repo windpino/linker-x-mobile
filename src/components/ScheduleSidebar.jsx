@@ -70,7 +70,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
       {/* 캘린더 상단 헤더: 시계 아이콘 + 날짜 내비게이션 + '+ 수주' & '+ 일정' 버튼 */}
       <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', marginBottom: '12px', cursor: isDashboardLocked ? 'default' : 'grab', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap', minWidth: 0 }}>
-          <Clock size={22} color="#007aff" strokeWidth={2.4} style={{ flexShrink: 0 }} />
+          <Clock className="mobile-schedule-clock" size={22} strokeWidth={2.4} aria-hidden="true" />
           
           <div style={{
             display: 'inline-flex',
@@ -108,9 +108,10 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
                 <ChevronLeft size={16} strokeWidth={2.4} />
               </button>
             )}
-            <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', letterSpacing: '-0.3px', padding: '0 2px' }}>
-              {formattedDate} 일정
-            </span>
+            <div className="mobile-schedule-date" style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+              <span>{formattedDate} 일정</span>
+              <small>{format(selectedDate, 'yyyy년 EEEE', { locale: ko })}</small>
+            </div>
             {onDateSelect && (
               <button
                 type="button"
@@ -147,9 +148,9 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div className="mobile-schedule-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {onAddOrder && (
-            <button 
+            <button className="mobile-schedule-order"
               type="button"
               onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAddOrder(); }} 
               style={{ 
@@ -162,7 +163,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
               <Plus size={13} strokeWidth={2.5} /> 수주
             </button>
           )}
-          <button 
+          <button className="mobile-schedule-add"
             type="button"
             onClick={(e) => { e.stopPropagation(); playMenuClickSound(); onAdd(); }} 
             style={{ 
@@ -172,7 +173,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
               boxShadow: '0 3px 8px rgba(14, 165, 233, 0.3)'
             }}
           >
-            <Plus size={13} strokeWidth={2.5} /> 일정
+            <Plus size={13} strokeWidth={2.5} /> 일정 추가
           </button>
         </div>
       </div>
@@ -325,7 +326,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
             })}
           </div>
         ) : (
-          <div style={{ 
+          <div className="mobile-schedule-empty" style={{
             height: '100%', minHeight: '180px', display: 'flex', flexDirection: 'column', 
             alignItems: 'center', justifyContent: 'center', padding: '20px 16px', textAlign: 'center'
           }}>
@@ -383,7 +384,7 @@ const ScheduleSidebar = ({ selectedDate, onDateSelect, schedules = [], setSchedu
             </div>
 
             <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
-              오늘 등록된 일정이 없습니다.
+              {isSameDay(selectedDate, new Date()) ? '오늘 등록된 일정이 없습니다.' : '등록된 일정이 없습니다.'}
             </div>
             <div style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '6px', fontWeight: 500 }}>
               필요한 업무를 바로 추가해 보세요.
