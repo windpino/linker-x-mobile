@@ -705,7 +705,7 @@ export default function AuthGate({children}) {
           showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'info');
         } else {
           setVerifiedView('new_tenant_form');
-          showMsg(options.successMessage || '인증 완료! 회원사 정보를 입력해 주세요.', 'info');
+          showMsg(options.successMessage || '인증 완료! 회원사 정보를 입력해 주세요.', 'success');
         }
       } else {
         // 조회 실패는 "신청 상태를 불러오지 못했습니다"와 [다시 시도]로 안내
