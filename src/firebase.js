@@ -23,8 +23,15 @@ const firebaseConfig = {
   measurementId: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID)) || "G-G8626RZH6X"
 };
 
-const isProdApproved = typeof import.meta !== 'undefined' && import.meta.env?.VITE_AUTH_PRODUCTION_APPROVED === 'true';
+const isExplicitProd = typeof import.meta !== 'undefined' && import.meta.env?.VITE_AUTH_PRODUCTION_APPROVED === 'true';
 const isProdAuthVerification = typeof import.meta !== 'undefined' && import.meta.env?.VITE_PROD_AUTH_VERIFICATION === 'true';
+const isVercelOrRemote = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1';
+const isViteProdBuild = typeof import.meta !== 'undefined' && import.meta.env?.PROD === true;
+
+// Remote / Vercel 배포 환경 또는 VITE_AUTH_PRODUCTION_APPROVED=true 이거나 프로덕션 빌드일 때는 무조건 파이어베이스 운영 메인(link-x-6606e)에 직접 연결
+const isProdApproved = isExplicitProd || isVercelOrRemote || (isViteProdBuild && !isProdAuthVerification);
 
 const useAuthEmulator = !isProdApproved && !isProdAuthVerification;
 const useFirestoreEmulator = !isProdApproved;
