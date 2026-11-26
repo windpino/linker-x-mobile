@@ -3202,6 +3202,23 @@ function App({ authSession }) {
         localStorage.removeItem('savedLoginId');
         localStorage.removeItem('savedLoginPw');
       }
+      const dummyMarkers = ['남해낚시마트', '여수레저마켓', 'ORD-2026-001', 'INV-2026-001', '동명 고급 크릴 1kg'];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.includes('salesOrders') || key.includes('salesInvoices') ||
+          key.includes('actionLogs') || key.includes('inventory')
+        )) {
+          const val = localStorage.getItem(key);
+          if (val && dummyMarkers.some(m => val.includes(m))) {
+            if (key.includes('inventory')) {
+              localStorage.setItem(key, '{}');
+            } else {
+              localStorage.setItem(key, '[]');
+            }
+          }
+        }
+      }
     } catch (e) {}
   }, []);
 

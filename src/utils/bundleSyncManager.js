@@ -146,6 +146,13 @@ export const filterBundleListForCompany = (companyId, colName, rawList) => {
 
   const filtered = rawList.filter(item => {
     if (!item || typeof item !== 'object') return false;
+
+    // Discard any residual prototype dummy mock data (e.g., 남해낚시마트, ORD-2026-001, INV-2026-001)
+    const mockIds = ['ORD-2026-001', 'ORD-2026-002', 'INV-2026-001', 'PROD-001', 'PROD-002', 'PROD-003', 'PART-001', 'PART-002'];
+    if (mockIds.includes(String(item.id)) || mockIds.includes(String(item.orderNo)) || mockIds.includes(String(item.invoiceNo))) return false;
+    if (item.partnerName === '남해낚시마트' || item.partnerName === '여수레저마켓' || item.name === '남해낚시마트' || item.name === '여수레저마켓') return false;
+    if (item.productName === '동명 고급 크릴 1kg' || item.productName === '제주 각크릴 블록' || item.name === '동명 고급 크릴 1kg' || item.name === '제주 각크릴 블록') return false;
+
     if (requiresName && (!item.name || !String(item.name).trim())) return false;
     
     // Strict isolation: An item without companyId is legacy and ONLY belongs to 'no1dmkr'

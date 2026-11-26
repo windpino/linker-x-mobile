@@ -350,7 +350,7 @@ export function initDongmyeongSampleData(uid, email, force = false) {
         jobTitle: '대표',
         department: '경영진',
         zone: '본사',
-        warehouse: '메인냉동창고',
+        warehouse: '기본 창고',
         isCompanyAdmin: true,
         isMasterAdmin: true,
         accountStatus: 'linked',
@@ -405,50 +405,44 @@ export function initDongmyeongSampleData(uid, email, force = false) {
       } catch {}
     }
 
-    if (!localStorage.getItem(`salesOrders_${cid}`) || localStorage.getItem(`salesOrders_${cid}`) === '[]') {
-      const sampleOrders = [
-        { id: 'ORD-2026-001', orderNo: 'ORD-2026-001', partnerName: '남해낚시마트', productName: '동명 고급 크릴 1kg', qty: 50, price: 5500, amount: 275000, totalAmount: 275000, date: new Date().toISOString().slice(0, 10), status: '주문완료', companyId: cid },
-        { id: 'ORD-2026-002', orderNo: 'ORD-2026-002', partnerName: '여수레저마켓', productName: '제주 각크릴 블록', qty: 30, price: 6000, amount: 180000, totalAmount: 180000, date: new Date().toISOString().slice(0, 10), status: '출하준비', companyId: cid }
-      ];
-      seedCollection('salesOrders', sampleOrders);
+    // 신규 회원사 가입 및 초기화 시: 기본 창고와 가입한 대표자 외에는 모든 데이터가 0-state(완전 공백)여야 함
+    const emptyCols = [
+      'salesOrders', 'salesInvoices', 'purchaseOrders', 'purchaseInvoices',
+      'products', 'partners', 'categories', 'accounts', 'schedules',
+      'actionLogs', 'inventoryAdjustments', 'inventoryTransferHistory',
+      'specialPrices', 'vehicles', 'vehicleLogs', 'expenses', 'quotations', 'partnerOrders'
+    ];
+    for (const col of emptyCols) {
+      seedCollection(col, []);
+      localStorage.setItem(`${col}_${cid}`, JSON.stringify([]));
+      localStorage.setItem(`bundle_${col}_${cid}`, JSON.stringify([]));
+      localStorage.setItem(`bundle_ver_${col}_${cid}`, '1');
     }
-    if (!localStorage.getItem(`inventory_${cid}`) || localStorage.getItem(`inventory_${cid}`) === '{}') {
-      const sampleInventory = {
-        '메인냉동창고': {
-          '동명 고급 크릴 1kg': 1500,
-          '제주 각크릴 블록': 1200,
-          '남해 생새우 500g': 800
-        }
-      };
-      localStorage.setItem(`inventory_${cid}`, JSON.stringify(sampleInventory));
-    }
-    if (!localStorage.getItem(`salesInvoices_${cid}`) || localStorage.getItem(`salesInvoices_${cid}`) === '[]') {
-      const sampleInvoices = [
-        { id: 'INV-2026-001', invoiceNo: 'INV-2026-001', partnerName: '남해낚시마트', date: new Date().toISOString().slice(0, 10), totalAmount: 275000, supplyAmount: 250000, vatAmount: 25000, items: [{ name: '동명 고급 크릴 1kg', qty: 50, price: 5000, supplyAmount: 250000, vat: 25000 }], companyId: cid }
-      ];
-      seedCollection('salesInvoices', sampleInvoices);
-    }
-    if (!localStorage.getItem(`products_${cid}`) || localStorage.getItem(`products_${cid}`) === '[]') {
-      const sampleProducts = [
-        { id: 'PROD-001', name: '동명 고급 크릴 1kg', category: '미끼류', spec: '1kg/팩', price: 5500, cost: 3500, companyId: cid },
-        { id: 'PROD-002', name: '제주 각크릴 블록', category: '미끼류', spec: '3kg/블록', price: 6000, cost: 4000, companyId: cid },
-        { id: 'PROD-003', name: '남해 생새우 500g', category: '생물', spec: '500g/팩', price: 8000, cost: 5500, companyId: cid }
-      ];
-      seedCollection('products', sampleProducts);
-    }
-    if (!localStorage.getItem(`partners_${cid}`) || localStorage.getItem(`partners_${cid}`) === '[]') {
-      const samplePartners = [
-        { id: 'PART-001', name: '남해낚시마트', ceo: '박남해', phone: '010-8888-1234', businessNo: '612-81-12345', companyId: cid },
-        { id: 'PART-002', name: '여수레저마켓', ceo: '이여수', phone: '010-7777-5678', businessNo: '613-81-67890', companyId: cid }
-      ];
-      seedCollection('partners', samplePartners);
-    }
-    if (!localStorage.getItem(`warehouses_${cid}`) || localStorage.getItem(`warehouses_${cid}`) === '[]') {
-      const sampleWarehouses = [
-        { id: 1, name: '메인냉동창고', isMain: true, location: '부산 사하구 감천항', manager: '김동영', companyId: cid }
-      ];
-      seedCollection('warehouses', sampleWarehouses);
-    }
+    localStorage.setItem(`inventory_${cid}`, JSON.stringify({}));
+    localStorage.setItem(`physicalInventory_${cid}`, JSON.stringify({}));
+    localStorage.setItem(`bundle_inventory_${cid}`, JSON.stringify({}));
+    localStorage.setItem(`bundle_physicalInventory_${cid}`, JSON.stringify({}));
+
+    // 기본 창고 1개만 생성 ("기본 창고")
+    const defaultWarehouse = {
+      id: 'wh_default',
+      _docId: `${cid}_wh_default`,
+      name: '기본 창고',
+      code: 'WH01',
+      isMain: true,
+      companyId: cid,
+      manager: repStaff.name || '김동영',
+      phone: repStaff.phone || '',
+      location: '본사',
+      order: 1,
+      sequence: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    seedCollection('warehouses', [defaultWarehouse]);
+    localStorage.setItem(`warehouses_${cid}`, JSON.stringify([defaultWarehouse]));
+    localStorage.setItem('warehouses', JSON.stringify([defaultWarehouse]));
+    localStorage.setItem(`bundle_warehouses_${cid}`, JSON.stringify([defaultWarehouse]));
   } catch {}
 }
 

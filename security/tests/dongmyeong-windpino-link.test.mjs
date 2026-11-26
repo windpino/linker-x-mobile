@@ -119,11 +119,14 @@ test('stale company session in localStorage for windpino@naver.com is automatica
   assert.equal(session.userId, 'windpino');
   assert.equal(session.isTenantAdmin, true);
 
-  // And sample products/orders for no1dmkr must be populated
+  // New company registration/init must start with clean 0-state (no dummy orders/products)
   const orders = JSON.parse(localStorage.getItem('salesOrders_no1dmkr') || '[]');
-  assert.ok(orders.length > 0, '동명크릴 샘플 주문이 생성되어 있어야 합니다.');
+  assert.equal(orders.length, 0, '동명크릴 초기 상태는 샘플 주문 없이 0건이어야 합니다.');
   const products = JSON.parse(localStorage.getItem('products_no1dmkr') || '[]');
-  assert.ok(products.length > 0, '동명크릴 샘플 품목이 생성되어 있어야 합니다.');
+  assert.equal(products.length, 0, '동명크릴 초기 상태는 샘플 품목 없이 0개여야 합니다.');
+  const warehouses = JSON.parse(localStorage.getItem('warehouses_no1dmkr') || '[]');
+  assert.equal(warehouses.length, 1, '기본 창고 1개만 생성되어 있어야 합니다.');
+  assert.equal(warehouses[0].name, '기본 창고');
 });
 
 test('when no1dmkr is deleted, windpino@naver.com sees clean state and can register a fresh company', async () => {
