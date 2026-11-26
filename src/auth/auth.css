@@ -1503,3 +1503,205 @@
   color: #cbd5e1;
   white-space: nowrap;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   다크 테마 인증 카드 공통 고대비 스타일링 (소속 선택, 기존 회사 연결 등)
+───────────────────────────────────────────────────────────── */
+.auth-card.dark-glass .auth-mode-title {
+  color: #f8fafc !important;
+  font-weight: 800 !important;
+  font-size: 1.25rem !important;
+  letter-spacing: -0.025em;
+  margin: 14px 0 8px !important;
+}
+
+.auth-card.dark-glass .auth-desc {
+  color: #cbd5e1 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.6 !important;
+  margin-bottom: 16px !important;
+}
+
+.auth-card.dark-glass .auth-desc strong {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+}
+
+.auth-card.dark-glass .auth-user-info-box {
+  background: rgba(15, 23, 42, 0.72) !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  color: #e2e8f0 !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.auth-card.dark-glass .auth-user-info-box p {
+  margin: 4px 0 !important;
+  color: #cbd5e1 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.55 !important;
+}
+
+.auth-card.dark-glass .auth-user-info-box strong {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+.auth-card.dark-glass .auth-user-info-box code {
+  color: #7dd3fc !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 0.85em !important;
+}
+
+.auth-card.dark-glass .auth-verified-tag {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  margin-left: 6px !important;
+}
+
+.auth-card.dark-glass .auth-badge-status.prod-verify {
+  display: inline-block !important;
+  background: rgba(56, 189, 248, 0.16) !important;
+  color: #7dd3fc !important;
+  border: 1px solid rgba(56, 189, 248, 0.38) !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+}
+
+.auth-card.dark-glass .auth-badge-status.warning {
+  display: inline-block !important;
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.38) !important;
+  border-radius: 8px !important;
+}
+
+.auth-card.dark-glass .auth-badge-status.success {
+  display: inline-block !important;
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.38) !important;
+  border-radius: 8px !important;
+}
+
+.auth-card.dark-glass .auth-badge-status.failure {
+  display: inline-block !important;
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
+  border-radius: 8px !important;
+}
+
+.auth-card.dark-glass .auth-notice-text {
+  color: #94a3b8 !important;
+  font-size: 0.82rem !important;
+  line-height: 1.55 !important;
+  margin-top: 8px !important;
+}
+
+.auth-card.dark-glass .auth-form label {
+  color: #e2e8f0 !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  margin: 12px 0 6px !important;
+}
+
+.auth-card.dark-glass .auth-form input:not(.dark-input),
+.auth-card.dark-glass .auth-form select {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  font-size: 0.94rem !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+}
+
+.auth-card.dark-glass .auth-form input:not(.dark-input):focus,
+.auth-card.dark-glass .auth-form select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+  outline: none !important;
+}
+
+.auth-card.dark-glass .auth-form input:not(.dark-input)::placeholder {
+  color: #64748b !important;
+}
+
+.auth-card.dark-glass .auth-btn-primary:not(.dark-btn-gradient-login) {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.auth-card.dark-glass .auth-btn-primary:not(.dark-btn-gradient-login):hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45) !important;
+}
+
+.auth-card.dark-glass .auth-btn-secondary {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.auth-card.dark-glass .auth-btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+}
+
+.auth-card.dark-glass .auth-button-group {
+  display: flex !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin-top: 14px !important;
+}
+
+.auth-card.dark-glass .auth-button-group .auth-btn-secondary {
+  flex: 1 !important;
+  padding: 10px 8px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  justify-content: center !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+}
+
+.auth-card.dark-glass .auth-action-divider {
+  color: #94a3b8 !important;
+  margin: 18px 0 14px !important;
+  font-size: 0.8rem !important;
+}
+
+.auth-card.dark-glass .auth-action-divider::before,
+.auth-card.dark-glass .auth-action-divider::after {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.auth-card.dark-glass .auth-btn-ghost {
+  color: #94a3b8 !important;
+  transition: color 0.2s ease !important;
+}
+
+.auth-card.dark-glass .auth-btn-ghost:hover:not(:disabled) {
+  color: #f8fafc !important;
+  text-decoration: underline !important;
+}
