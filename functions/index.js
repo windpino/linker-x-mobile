@@ -443,7 +443,7 @@ function legacyPath(req){
  return parts;
 }
 function bundleBase(name){return name.replace(/_chunk_\d+$/,'');}
-const readableSettings=['systemSettings','staffZones','staffJobTitles','recentActivity','favoriteMenus','dashboardConfig'];
+const readableSettings=['systemSettings','staffZones','staffJobTitles','recentActivity','favoriteMenus','dashboardConfig','licenseData'];
 function checkAccess(ctx,parts,write=false){
  const col=parts[2],key=parts[3];
  if(parts.length===2){if(write&&ctx.m.role!=='tenant_admin')throw new HttpsError('permission-denied','회사 관리자 권한이 필요합니다.');return;}

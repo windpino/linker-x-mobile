@@ -1,7 +1,7 @@
 // A narrow compatibility boundary. Business stock/invoice algorithms remain untouched.
 import * as raw from 'firebase/firestore';
 import { callAuth } from './client';
-const safeSettings=new Set(['systemSettings','staffZones','staffJobTitles','recentActivity','favoriteMenus','dashboardConfig']);
+const safeSettings=new Set(['systemSettings','staffZones','staffJobTitles','recentActivity','favoriteMenus','dashboardConfig','licenseData']);
 function bridged(ref){
  const p=ref?.path?.split('/');
  if(!p||p[0]!=='companies')return null;
