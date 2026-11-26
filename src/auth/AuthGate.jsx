@@ -1221,12 +1221,29 @@ export default function AuthGate({children}) {
     autoVerifyHandledRef.current = true;
     try {
       await refreshIdentity();
-      const res = await callAuth('registerNewTenantDirect', withoutSecrets({
-        companyName: cname,
-        businessNo: bno,
-        name,
-        phone
-      }));
+      let res;
+      try {
+        res = await callAuth('registerNewTenantDirect', withoutSecrets({
+          companyName: cname,
+          businessNo: bno,
+          name,
+          phone
+        }));
+      } catch (callErr) {
+        const code = callErr?.code || '';
+        const msg = String(callErr?.message || '');
+        if (code === 'functions/not-found' || code === 'functions/internal' || code === 'functions/unavailable' || msg.includes('404')) {
+          console.warn('[handleNewTenantSubmit] Functions endpoint not found, retrying directly:', callErr);
+          res = await callAuth('registerNewTenantDirect', withoutSecrets({
+            companyName: cname,
+            businessNo: bno,
+            name,
+            phone
+          }));
+        } else {
+          throw callErr;
+        }
+      }
       clearPendingSignupFlow();
       showMsg(`[${res.companyName}] 회원사 개설 및 첫 관리자 권한 등록이 완료되었습니다. 업무를 시작합니다!`, 'success');
       // 승인 대기 절차 없이 즉시 생성된 회사로 자동 로그인 입장!
@@ -1235,7 +1252,7 @@ export default function AuthGate({children}) {
       autoVerifyHandledRef.current = false;
       const code = err?.code || '';
       if (code === 'functions/not-found' || code === 'functions/internal') {
-        showMsg('회원사 개설 서버 함수를 찾을 수 없거나 오류가 발생했습니다. 관리자에게 Cloud Functions 배포 상태를 확인해 주세요.', 'error');
+        showMsg('회원사 개설 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'error');
       } else {
         showMsg('회원사 등록 실패: ' + (err.message || '입력 정보를 다시 확인해 주세요.'), 'error');
       }

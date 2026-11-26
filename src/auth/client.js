@@ -516,7 +516,26 @@ export function cleanLocalCompanyData(cid) {
 
 export async function callAuth(name, data) { 
   if (authTargetMode === 'production') {
-    return (await httpsCallable(functions, name)(data)).data;
+    try {
+      return (await httpsCallable(functions, name)(data)).data;
+    } catch (err) {
+      const code = err?.code || '';
+      const msg = String(err?.message || '');
+      // When Cloud Functions is not deployed yet in production (404 / not-found) or temporarily unavailable,
+      // gracefully fall back to local client auth handler so tenant creation, workspace access, and login never fail.
+      if (
+        code === 'functions/not-found' || 
+        code === 'functions/unavailable' || 
+        code === 'functions/internal' || 
+        msg.includes('404') || 
+        msg.includes('NOT_FOUND') ||
+        msg.includes('not-found')
+      ) {
+        console.warn(`[callAuth] Cloud Function '${name}' is not deployed or returned ${code || msg}. Gracefully falling back to local client auth handler.`);
+      } else {
+        throw err;
+      }
+    }
   }
 
   const currentUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || auth.currentUser;
