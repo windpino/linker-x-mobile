@@ -1479,7 +1479,14 @@ export default function AuthGate({children}) {
 
         {message && (
           <div className={`auth-msg ${messageType}`} role={messageType === 'error' ? 'alert' : 'status'}>
-            {message}
+            {messageType === 'success' && (
+              <span className="auth-msg-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+            )}
+            <span className="auth-msg-text">{message}</span>
           </div>
         )}
 
@@ -2086,9 +2093,17 @@ export default function AuthGate({children}) {
                 <span className="auth-new-tenant-badge">30일 무료 · 즉시개설</span>
               </div>
               <div className="auth-new-tenant-account">
-                <span>인증계정</span>
-                <strong>{identity.email}</strong>
-                <em>인증됨</em>
+                <div className="auth-account-avatar" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div className="auth-account-meta">
+                  <span className="auth-account-caption">인증 완료 계정</span>
+                  <strong className="auth-account-email">{identity.email}</strong>
+                </div>
+                <em className="auth-account-verified-pill">✓ 인증됨</em>
               </div>
               <p className="auth-desc auth-new-tenant-desc">
                 입력 완료 시 회사 ID·관리자 권한 즉시 발급
