@@ -10,6 +10,48 @@ import { prepareSessionScope, clearSessionScope } from './sessionScope';
 import LegalDocumentModal from '../components/common/LegalDocumentModal';
 import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION } from '../constants/legalDocuments';
 
+const PENDING_SIGNUP_FLOW_KEY = 'lx_pending_signup_flow';
+const PENDING_SIGNUP_TTL_MS = 24 * 60 * 60 * 1000;
+
+function savePendingSignupFlow(email, target = 'new_tenant', verified = false) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail) return;
+    const safeTarget = target === 'existing_tenant' ? 'existing_tenant' : 'new_tenant';
+    window.localStorage.setItem(
+      PENDING_SIGNUP_FLOW_KEY,
+      JSON.stringify({ email: cleanEmail, target: safeTarget, verified: Boolean(verified), at: Date.now() })
+    );
+  } catch {}
+}
+
+function readPendingSignupFlow(matchEmail) {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_SIGNUP_FLOW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.email || (Date.now() - Number(parsed.at || 0)) > PENDING_SIGNUP_TTL_MS) {
+      window.localStorage.removeItem(PENDING_SIGNUP_FLOW_KEY);
+      return null;
+    }
+    if (matchEmail && parsed.email !== String(matchEmail).trim().toLowerCase()) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingSignupFlow() {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.removeItem(PENDING_SIGNUP_FLOW_KEY);
+  } catch {}
+}
+
 function PartnerOrders({session}) {
   const [tab, setTab] = useState('orders'); // 'orders' | 'new_order' | 'invoices'
   const [orders, setOrders] = useState([]);
@@ -309,10 +351,16 @@ export default function AuthGate({children}) {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info'); // 'info' | 'error' | 'success' | 'warning'
 
-  // Unauthenticated view mode: 'login' | 'signup' | 'reset_password' | 'confirm_reset'
+  // Unauthenticated view mode: 'login' | 'signup' | 'reset_password' | 'confirm_reset' | 'verify_email_result'
   const [viewMode, setViewMode] = useState('login');
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
   // Signup target type: 'new_tenant' (새 회원사 등록) | 'existing_tenant' (기존 회원사 소속 신청)
   const [signupTarget, setSignupTarget] = useState('new_tenant');
+  const signupTargetRef = useRef(signupTarget);
+  signupTargetRef.current = signupTarget;
+  const autoVerifyHandledRef = useRef(false);
+  const verifyRedirectTimerRef = useRef(null);
 
   // Password reset states
   const [resetEmail, setResetEmail] = useState('');
@@ -369,6 +417,9 @@ export default function AuthGate({children}) {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [tenantPrivacyAgreed, setTenantPrivacyAgreed] = useState(false);
+  const formRef = useRef(form);
+  formRef.current = form;
 
   const change = e => {
     const { name, value } = e.target;
@@ -412,9 +463,11 @@ export default function AuthGate({children}) {
     clearLegacyCredentials(localStorage);
     clearLegacyCredentials(sessionStorage);
     return onIdTokenChanged(auth, async u => {
-      const activeUser = (typeof window !== 'undefined' && window.__mockFirebaseUser) || u;
+      const mockUser = typeof window !== 'undefined' ? window.__mockFirebaseUser : null;
+      const activeUser = mockUser || u;
       
       if (!activeUser) {
+        autoVerifyHandledRef.current = false;
         clearSessionScope();
         localStorage.removeItem('currentUser');
         setIdentity(null);
@@ -423,7 +476,16 @@ export default function AuthGate({children}) {
         return;
       }
 
+      if (!mockUser && !activeUser.emailVerified && typeof activeUser.reload === 'function') {
+        try {
+          await activeUser.reload();
+        } catch {}
+      }
+
       const isEmailVerified = activeUser.emailVerified === true;
+      if (!isEmailVerified) {
+        autoVerifyHandledRef.current = false;
+      }
       const nextIdentity = {
         uid: activeUser.uid,
         email: activeUser.email,
@@ -468,20 +530,25 @@ export default function AuthGate({children}) {
       }));
 
       if (isEmailVerified) {
+        if (viewModeRef.current === 'verify_email_result' || autoVerifyHandledRef.current) {
+          return;
+        }
         const isPlatform = await resolvePlatformAdmin(activeUser);
         if (!isPlatform) {
           await loadUserWorkspacesAndInvites(activeUser);
+        } else {
+          clearPendingSignupFlow();
         }
       }
     });
   }, []);
 
   // Enter company workspace after verifying approved server session
-  const enter = async (overrideCompanyId) => {
+  const enter = async (overrideCompanyId, options = {}) => {
     const targetCid = (overrideCompanyId || form.companyId || '').trim();
     if (!targetCid) {
       showMsg('입장할 회사 ID를 확인해 주세요.', 'error');
-      return;
+      return false;
     }
     setBusy(true);
     showMsg('');
@@ -491,22 +558,34 @@ export default function AuthGate({children}) {
       if (!isVerified) {
         showMsg('회사 입장 전 이메일 인증이 필요합니다.', 'error');
         setIdentity(prev => prev ? ({ ...prev, emailVerified: false }) : null);
-        return;
+        return false;
       }
-      const approved = withoutSecrets(await callAuth('authSession', { companyId: targetCid }));
+      let approved;
+      try {
+        approved = withoutSecrets(await callAuth('authSession', { companyId: targetCid }));
+      } catch (firstErr) {
+        if (options.retryOnce) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          approved = withoutSecrets(await callAuth('authSession', { companyId: targetCid }));
+        } else {
+          throw firstErr;
+        }
+      }
       await prepareSessionScope(approved);
       localStorage.setItem('currentUser', JSON.stringify(approved));
       setSession(approved);
+      return true;
     } catch {
       localStorage.removeItem('currentUser');
       showMsg('회사 소속 승인이 완료되지 않았거나 등록된 소속이 없습니다. 관리자 승인을 확인해 주세요. (미승인 계정은 업무 데이터에 접근할 수 없습니다)', 'error');
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
   // Load user's accessible workspaces and pending invitations
-  const loadUserWorkspacesAndInvites = useCallback(async (targetUser) => {
+  const loadUserWorkspacesAndInvites = useCallback(async (targetUser, options = {}) => {
     const u = targetUser || auth.currentUser;
     const isVerified = u?.emailVerified === true;
     if (!u || !isVerified) return;
@@ -522,12 +601,14 @@ export default function AuthGate({children}) {
 
       // 1) 단일 소속 & 대기 초대 없음 -> 즉시 해당 워크스페이스로 자동 입장!
       if (ws.length === 1 && invs.length === 0) {
+        clearPendingSignupFlow();
         await enter(ws[0].companyId);
         return;
       }
 
       // 2) 다중 소속이거나 대기 초대가 있으면 워크스페이스 선택 화면 노출!
       if (ws.length > 0 || invs.length > 0) {
+        clearPendingSignupFlow();
         setVerifiedView('workspace_selector');
         return;
       }
@@ -553,6 +634,7 @@ export default function AuthGate({children}) {
       const reg = await callAuth('getMyRegistrationStatus');
       setRegData(reg);
       if (reg.companyId || reg.status === 'approved') {
+        clearPendingSignupFlow();
         // 즉시 해당 회사 작업공간으로 자동 입장 (승인 대기 화면 제거)
         await enter(reg.companyId);
         return;
@@ -560,20 +642,30 @@ export default function AuthGate({children}) {
         setVerifiedView('registration_rejected');
         showMsg(reg.reason || '회원사 등록 신청이 반려되었습니다.', 'error');
       } else {
-        // 완전 신규: 새 회원사 등록 신청 화면으로 자동 안내 (승인 대기 절차 없음)
-        setVerifiedView('new_tenant_form');
+        const pendingFlow = readPendingSignupFlow(u.email);
+        const resolvedTarget = options.preferNewTenant
+          ? 'new_tenant'
+          : (pendingFlow?.target || signupTargetRef.current || 'new_tenant');
+        if (resolvedTarget === 'existing_tenant' && !options.preferNewTenant) {
+          setVerifiedView('existing_tenant_form');
+          showMsg(options.successMessage || '이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
+        } else {
+          // 완전 신규 또는 회원사 추가 정보 미입력: 회원사 추가 정보 입력 화면으로 자동 안내
+          setVerifiedView('new_tenant_form');
+          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'success');
+        }
       }
     } catch (err) {
       console.error('[loadUserWorkspacesAndInvites error]', err);
       // fallback
-      await checkRegistrationStatus(u);
+      await checkRegistrationStatus(u, options);
     } finally {
       setRegLoading(false);
     }
   }, []);
 
   // Query registration status by UID from the server
-  const checkRegistrationStatus = useCallback(async (targetUser) => {
+  const checkRegistrationStatus = useCallback(async (targetUser, options = {}) => {
     const u = targetUser || auth.currentUser;
     if (!u || !u.emailVerified) return;
 
@@ -583,6 +675,7 @@ export default function AuthGate({children}) {
       const res = await callAuth('getMyRegistrationStatus');
       setRegData(res);
       if ((res.status === 'approved' || res.status === 'pending') && res.companyId) {
+        clearPendingSignupFlow();
         // 승인 대기 화면 없이 즉시 회사 작업공간 입장
         await enter(res.companyId);
         return;
@@ -590,22 +683,169 @@ export default function AuthGate({children}) {
         setVerifiedView('registration_rejected');
         showMsg(res.reason || '회원사 등록 신청이 반려되었습니다. 관리자에게 문의해 주세요.', 'error');
       } else {
-        setVerifiedView('new_tenant_form');
+        const pendingFlow = readPendingSignupFlow(u.email);
+        const resolvedTarget = options.preferNewTenant
+          ? 'new_tenant'
+          : (pendingFlow?.target || signupTargetRef.current || 'new_tenant');
+        if (resolvedTarget === 'existing_tenant' && !options.preferNewTenant) {
+          setVerifiedView('existing_tenant_form');
+          showMsg(options.successMessage || '이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
+        } else {
+          setVerifiedView('new_tenant_form');
+          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'success');
+        }
       }
     } catch {
-      // 조회 실패는 "신청 상태를 불러오지 못했습니다"와 [다시 시도]로 안내
-      setRegError('신청 상태를 불러오지 못했습니다');
+      const pendingFlow = readPendingSignupFlow(u.email);
+      const hasStoredSession = Boolean(localStorage.getItem('currentUser'));
+      if (options.preferNewTenant || pendingFlow || !hasStoredSession) {
+        setRegError(null);
+        if (pendingFlow?.target === 'existing_tenant' && !options.preferNewTenant) {
+          setVerifiedView('existing_tenant_form');
+          showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'info');
+        } else {
+          setVerifiedView('new_tenant_form');
+          showMsg(options.successMessage || '이메일 인증이 완료되었습니다. 회원사 추가 정보를 입력해 주세요.', 'info');
+        }
+      } else {
+        // 조회 실패는 "신청 상태를 불러오지 못했습니다"와 [다시 시도]로 안내
+        setRegError('신청 상태를 불러오지 못했습니다');
+      }
     } finally {
       setRegLoading(false);
     }
   }, []);
 
-  // Check URL parameters for Firebase action codes (e.g. password reset)
+  const proceedAfterEmailVerified = async (targetUser, preferredTarget) => {
+    const u = targetUser || auth.currentUser;
+    if (!u || !u.emailVerified) return false;
+
+    setRegError(null);
+    setIdentity({
+      uid: u.uid,
+      email: u.email,
+      emailVerified: true,
+      displayName: u.displayName
+    });
+    setForm(f => ({
+      ...f,
+      password: '',
+      passwordConfirm: '',
+      email: u.email || f.email,
+      name: u.displayName || f.name
+    }));
+
+    const pendingFlow = readPendingSignupFlow(u.email);
+    const target = preferredTarget || pendingFlow?.target || signupTargetRef.current || 'new_tenant';
+
+    const isPlatform = await resolvePlatformAdmin(u);
+    if (isPlatform) {
+      clearPendingSignupFlow();
+      return true;
+    }
+
+    if (target === 'existing_tenant') {
+      const repEmail = (formRef.current.representativeEmail || '').trim();
+      if (repEmail) {
+        try {
+          showMsg('대표 이메일로 회사를 조회하여 직원 연결을 요청하는 중입니다...', 'info');
+          const reqRes = await callAuth('requestStaffConnection', {
+            representativeEmail: repEmail
+          });
+          setRequestedCompanyInfo({
+            name: reqRes.companyName || '신청 회사',
+            email: repEmail,
+            companyId: reqRes.companyId
+          });
+          clearPendingSignupFlow();
+          setVerifiedView('awaiting_staff_connection');
+          if (reqRes.alreadyLinked) {
+            showMsg('이미 해당 회사에 연결되어 있습니다. 워크스페이스로 입장합니다!', 'success');
+            await enter(reqRes.companyId);
+          } else {
+            showMsg(`[${reqRes.companyName || '회사'}] 관리자에게 직원 연결 요청이 성공적으로 전달되었습니다. 관리자 승인을 기다려 주세요.`, 'success');
+          }
+          return true;
+        } catch (reqErr) {
+          showMsg('직원 연결 요청 실패: ' + (reqErr.message || '대표 이메일을 확인해 주세요.'), 'error');
+          setVerifiedView('existing_tenant_form');
+          return true;
+        }
+      }
+      setVerifiedView('existing_tenant_form');
+      showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
+      return true;
+    }
+
+    await loadUserWorkspacesAndInvites(u, {
+      preferNewTenant: true,
+      successMessage: '이메일 인증이 완료되었습니다! 회원사 추가 정보를 입력해 주세요.'
+    });
+    return true;
+  };
+
+  // Auto-detect email verification completion while waiting on the verification screen
+  useEffect(() => {
+    if (!identity || identity.emailVerified || viewMode === 'verify_email_result') return;
+    if (typeof window !== 'undefined' && window.__mockFirebaseUser) return;
+
+    let active = true;
+    let checking = false;
+
+    const checkNow = async () => {
+      if (!active || checking || autoVerifyHandledRef.current || !auth.currentUser) return;
+      checking = true;
+      try {
+        await auth.currentUser.reload();
+        if (!active || !auth.currentUser?.emailVerified) return;
+        autoVerifyHandledRef.current = true;
+        const refreshed = await refreshIdentity();
+        if (!active) return;
+        const activeUser = refreshed || auth.currentUser;
+        if (activeUser?.emailVerified) {
+          savePendingSignupFlow(activeUser.email, signupTargetRef.current, true);
+          await proceedAfterEmailVerified(activeUser, signupTargetRef.current);
+        } else {
+          autoVerifyHandledRef.current = false;
+        }
+      } catch {
+        autoVerifyHandledRef.current = false;
+      } finally {
+        checking = false;
+      }
+    };
+
+    const timer = setInterval(checkNow, 3000);
+    const onFocus = () => { checkNow(); };
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        checkNow();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+    };
+  }, [identity?.uid, identity?.emailVerified, viewMode]);
+
+  // Check URL parameters for Firebase action codes (e.g. password reset, email verification)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const oobCode = urlParams.get('oobCode');
+    const emailVerifiedFlag = urlParams.get('emailVerified');
+    const urlSignupTarget = urlParams.get('signupTarget') === 'existing_tenant' ? 'existing_tenant' : 'new_tenant';
+
     if (mode === 'resetPassword' && oobCode) {
       setViewMode('confirm_reset');
       setResetCode(oobCode);
@@ -623,20 +863,56 @@ export default function AuthGate({children}) {
           }
         });
     } else if (mode === 'verifyEmail' && oobCode) {
+      let mounted = true;
       setViewMode('verify_email_result');
       setVerifyEmailStatus('checking');
-      verifyActionCode(oobCode)
-        .then(info => {
-          if (info?.data?.email) setVerifiedTargetEmail(info.data.email);
-        })
-        .catch(() => {});
 
-      applyEmailVerification(oobCode)
-        .then(async () => {
+      (async () => {
+        let checkedEmail = '';
+        try {
+          const info = await verifyActionCode(oobCode);
+          checkedEmail = info?.data?.email || '';
+          if (mounted && checkedEmail) setVerifiedTargetEmail(checkedEmail);
+        } catch {}
+
+        try {
+          await applyEmailVerification(oobCode);
+          if (!mounted) return;
+          if (window.location.search) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
           setVerifyEmailStatus('success');
-          await refreshIdentity();
-        })
-        .catch(err => {
+
+          autoVerifyHandledRef.current = true;
+          const refreshed = await refreshIdentity();
+          if (!mounted) return;
+
+          const activeUser = refreshed || auth.currentUser;
+          const emailForFlow = checkedEmail || activeUser?.email || readPendingSignupFlow()?.email || '';
+          const flowTarget = urlParams.get('signupTarget') === 'existing_tenant'
+            ? 'existing_tenant'
+            : (readPendingSignupFlow(emailForFlow)?.target || signupTargetRef.current || 'new_tenant');
+
+          if (emailForFlow) {
+            savePendingSignupFlow(emailForFlow, flowTarget, true);
+          }
+
+          verifyRedirectTimerRef.current = setTimeout(async () => {
+            verifyRedirectTimerRef.current = null;
+            if (!mounted) return;
+            setViewMode('login');
+            if (activeUser?.emailVerified) {
+              await proceedAfterEmailVerified(activeUser, flowTarget);
+            } else {
+              autoVerifyHandledRef.current = false;
+              if (emailForFlow) {
+                setForm(f => ({ ...f, email: emailForFlow, password: '', passwordConfirm: '' }));
+              }
+              showMsg('이메일 인증이 완료되었습니다! 로그인하시면 회원사 추가 정보 입력 화면으로 자동 이동합니다.', 'success');
+            }
+          }, 800);
+        } catch (err) {
+          if (!mounted) return;
           if (err.code === 'auth/expired-action-code') {
             setVerifyEmailStatus('expired');
           } else if (err.code === 'auth/invalid-action-code') {
@@ -644,7 +920,40 @@ export default function AuthGate({children}) {
           } else {
             setVerifyEmailStatus('failed');
           }
-        });
+        }
+      })();
+
+      return () => {
+        mounted = false;
+        if (verifyRedirectTimerRef.current) {
+          clearTimeout(verifyRedirectTimerRef.current);
+          verifyRedirectTimerRef.current = null;
+        }
+      };
+    } else if (emailVerifiedFlag === '1') {
+      if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      setSignupTarget(urlSignupTarget);
+      (async () => {
+        autoVerifyHandledRef.current = true;
+        const refreshed = await refreshIdentity();
+        const activeUser = refreshed || auth.currentUser;
+        if (activeUser?.emailVerified) {
+          savePendingSignupFlow(activeUser.email, urlSignupTarget, true);
+          setViewMode('login');
+          await proceedAfterEmailVerified(activeUser, urlSignupTarget);
+        } else {
+          autoVerifyHandledRef.current = false;
+          const pending = readPendingSignupFlow();
+          if (pending?.email) {
+            savePendingSignupFlow(pending.email, urlSignupTarget, true);
+            setForm(f => ({ ...f, email: f.email || pending.email }));
+          }
+          setViewMode('login');
+          showMsg('이메일 인증이 완료되었습니다! 로그인하시면 회원사 추가 정보 입력 화면으로 자동 이동합니다.', 'success');
+        }
+      })();
     }
   }, []);
 
@@ -705,7 +1014,7 @@ export default function AuthGate({children}) {
     setBusy(true);
     showMsg('');
     try {
-      await login(email, pw);
+      await login(email, pw, rememberMe);
       setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
       // onIdTokenChanged가 플랫폼 관리자 판별 및 워크스페이스 로딩을 안전하게 처리합니다.
     } catch (err) {
@@ -734,7 +1043,7 @@ export default function AuthGate({children}) {
     setBusy(true);
     showMsg('');
     try {
-      const result = await googleLogin();
+      const result = await googleLogin(rememberMe);
       // Google accounts have emailVerified === true
       if (isSignupFlow) {
         if (signupTarget === 'new_tenant') {
@@ -821,10 +1130,11 @@ export default function AuthGate({children}) {
     setBusy(true);
     showMsg('계정을 생성하고 인증 메일을 전송하는 중입니다...', 'info');
     try {
-      const { user, verificationSent, verificationError } = await register(email, pw);
+      savePendingSignupFlow(email, signupTarget, false);
+      const { user, verificationSent, verificationError } = await register(email, pw, signupTarget);
       setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
       if (verificationSent) {
-        showMsg(`인증 메일이 ${user.email} 주소로 발송되었습니다. 메일함의 링크를 클릭한 후 아래 [인증 완료 확인]을 눌러주세요.`, 'success');
+        showMsg(`인증 메일이 ${user.email} 주소로 발송되었습니다. 메일함의 링크를 클릭하면 자동으로 회원사 추가 정보 입력 화면으로 이동합니다.`, 'success');
       } else {
         showMsg(`계정은 생성되었으나 메일 발송에 실패했습니다(${verificationError?.code || '오류'}). 아래 [인증 메일 다시 보내기]를 눌러주세요.`, 'warning');
       }
@@ -854,55 +1164,18 @@ export default function AuthGate({children}) {
     if (busy) return;
     setBusy(true);
     showMsg('이메일 인증 상태를 확인 중입니다...', 'info');
+    autoVerifyHandledRef.current = true;
     try {
       const refreshed = await refreshIdentity();
       if (refreshed?.emailVerified) {
-        setIdentity({
-          uid: refreshed.uid,
-          email: refreshed.email,
-          emailVerified: true,
-          displayName: refreshed.displayName
-        });
-        const isPlatform = await resolvePlatformAdmin(refreshed);
-        if (!isPlatform) {
-          if (signupTarget === 'new_tenant') {
-            setVerifiedView('new_tenant_form');
-            showMsg('이메일 인증이 완료되었습니다! 새 회원사 정보를 입력해 주세요.', 'success');
-          } else if (signupTarget === 'existing_tenant') {
-            if (form.representativeEmail && form.representativeEmail.trim()) {
-              try {
-                showMsg('대표 이메일로 회사를 조회하여 직원 연결을 요청하는 중입니다...', 'info');
-                const reqRes = await callAuth('requestStaffConnection', {
-                  representativeEmail: form.representativeEmail.trim()
-                });
-                setRequestedCompanyInfo({
-                  name: reqRes.companyName || '신청 회사',
-                  email: form.representativeEmail.trim(),
-                  companyId: reqRes.companyId
-                });
-                setVerifiedView('awaiting_staff_connection');
-                if (reqRes.alreadyLinked) {
-                  showMsg('이미 해당 회사에 연결되어 있습니다. 워크스페이스로 입장합니다!', 'success');
-                  await enter(reqRes.companyId);
-                } else {
-                  showMsg(`[${reqRes.companyName || '회사'}] 관리자에게 직원 연결 요청이 성공적으로 전달되었습니다. 관리자 승인을 기다려 주세요.`, 'success');
-                }
-              } catch (reqErr) {
-                showMsg('직원 연결 요청 실패: ' + (reqErr.message || '대표 이메일을 확인해 주세요.'), 'error');
-                setVerifiedView('existing_tenant_form');
-              }
-            } else {
-              setVerifiedView('existing_tenant_form');
-              showMsg('이메일 인증이 완료되었습니다! 연결할 회사의 대표 이메일을 입력해 주세요.', 'success');
-            }
-          } else {
-            await checkRegistrationStatus(refreshed);
-          }
-        }
+        savePendingSignupFlow(refreshed.email, signupTargetRef.current, true);
+        await proceedAfterEmailVerified(refreshed, signupTargetRef.current);
       } else {
+        autoVerifyHandledRef.current = false;
         showMsg('아직 이메일 인증이 완료되지 않았습니다. 메일함(스팸함 포함)의 링크를 클릭한 후 다시 확인을 눌러주세요.', 'error');
       }
     } catch (err) {
+      autoVerifyHandledRef.current = false;
       showMsg('인증 상태 확인 중 오류가 발생했습니다: ' + (err.message || '다시 시도해 주세요.'), 'error');
     } finally {
       setBusy(false);
@@ -915,7 +1188,7 @@ export default function AuthGate({children}) {
     setBusy(true);
     showMsg('인증 메일을 발송 중입니다...', 'info');
     try {
-      await verifyEmail();
+      await verifyEmail(signupTargetRef.current);
       showMsg('인증 메일을 다시 발송했습니다. 메일함을 확인해 주세요.', 'success');
     } catch (err) {
       if (err.code === 'auth/too-many-requests') {
@@ -941,9 +1214,11 @@ export default function AuthGate({children}) {
     if (!bno) return showMsg('사업자등록번호를 입력해 주세요.', 'error');
     if (!name) return showMsg('담당자(대표자) 성명을 입력해 주세요.', 'error');
     if (!phone) return showMsg('연락처를 입력해 주세요.', 'error');
+    if (!tenantPrivacyAgreed) return showMsg('회원사 정보 수집 및 이용에 동의해 주세요.', 'error');
 
     setBusy(true);
-    showMsg('새 회원사를 개설하고 첫 관리자 권한을 설정하는 중입니다...', 'info');
+    showMsg('새 회원사를 개설하고 자동 로그인하는 중입니다...', 'info');
+    autoVerifyHandledRef.current = true;
     try {
       await refreshIdentity();
       const res = await callAuth('registerNewTenantDirect', withoutSecrets({
@@ -952,11 +1227,18 @@ export default function AuthGate({children}) {
         name,
         phone
       }));
+      clearPendingSignupFlow();
       showMsg(`[${res.companyName}] 회원사 개설 및 첫 관리자 권한 등록이 완료되었습니다. 업무를 시작합니다!`, 'success');
-      // 승인 대기 절차 없이 즉시 생성된 회사로 입장!
-      await enter(res.companyId);
+      // 승인 대기 절차 없이 즉시 생성된 회사로 자동 로그인 입장!
+      await enter(res.companyId, { retryOnce: true });
     } catch (err) {
-      showMsg('회원사 등록 실패: ' + (err.message || '입력 정보를 다시 확인해 주세요.'), 'error');
+      autoVerifyHandledRef.current = false;
+      const code = err?.code || '';
+      if (code === 'functions/not-found' || code === 'functions/internal') {
+        showMsg('회원사 개설 서버 함수를 찾을 수 없거나 오류가 발생했습니다. 관리자에게 Cloud Functions 배포 상태를 확인해 주세요.', 'error');
+      } else {
+        showMsg('회원사 등록 실패: ' + (err.message || '입력 정보를 다시 확인해 주세요.'), 'error');
+      }
     } finally {
       setBusy(false);
     }
@@ -1085,25 +1367,35 @@ export default function AuthGate({children}) {
   };
 
   const handleReturnToLinkerX = async () => {
+    if (verifyRedirectTimerRef.current) {
+      clearTimeout(verifyRedirectTimerRef.current);
+      verifyRedirectTimerRef.current = null;
+    }
     if (typeof window !== 'undefined' && window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     setViewMode('login');
-    const u = auth.currentUser;
-    if (u) {
-      await refreshIdentity();
-      if (u.emailVerified) {
-        const isPlatform = await resolvePlatformAdmin(u);
-        if (!isPlatform) {
-          await checkRegistrationStatus(u);
-        }
-        return;
-      }
+    autoVerifyHandledRef.current = true;
+    const u = await refreshIdentity();
+    if (u?.emailVerified) {
+      await proceedAfterEmailVerified(u);
+      return;
     }
-    showMsg('이메일 인증이 완료되었습니다! 로그인하시면 회원사 등록 절차로 이어집니다.', 'success');
+    autoVerifyHandledRef.current = false;
+    const fallbackEmail = verifiedTargetEmail || readPendingSignupFlow()?.email || '';
+    if (fallbackEmail) {
+      setForm(f => ({ ...f, email: f.email || fallbackEmail }));
+    }
+    showMsg('이메일 인증이 완료되었습니다! 로그인하시면 회원사 추가 정보 입력 화면으로 자동 이동합니다.', 'success');
   };
 
   const handleLogout = async () => {
+    if (verifyRedirectTimerRef.current) {
+      clearTimeout(verifyRedirectTimerRef.current);
+      verifyRedirectTimerRef.current = null;
+    }
+    autoVerifyHandledRef.current = false;
+    clearPendingSignupFlow();
     setBusy(true);
     try {
       await logout();
@@ -1113,6 +1405,7 @@ export default function AuthGate({children}) {
       setRegData(null);
       setRegError(null);
       setRegLoading(false);
+      setTenantPrivacyAgreed(false);
     } finally {
       setBusy(false);
       setForm(f => ({ ...f, password: '', passwordConfirm: '' }));
@@ -1208,7 +1501,7 @@ export default function AuthGate({children}) {
                 </h2>
                 <p className="auth-desc" style={{ fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
                   링커엑스 회원가입을 위한 이메일 인증이 성공적으로 완료되었습니다.<br />
-                  아래 <strong>[링커엑스로 돌아가기]</strong>를 눌러 회원사 등록 및 다음 절차를 진행해 주세요.
+                  잠시 후 <strong>회원사 추가 정보 입력 화면</strong>으로 자동 이동합니다. 이동하지 않으면 아래 버튼을 눌러주세요.
                 </p>
 
                 {verifiedTargetEmail && (
@@ -1224,7 +1517,7 @@ export default function AuthGate({children}) {
                     style={{ minHeight: '48px', fontSize: '1rem', fontWeight: 700 }}
                     onClick={handleReturnToLinkerX}
                   >
-                    링커엑스로 돌아가기
+                    회원사 추가 정보 입력으로 바로 이동
                   </button>
                 </div>
 
@@ -1749,7 +2042,7 @@ export default function AuthGate({children}) {
             <h2 className="auth-mode-title">이메일 인증 대기</h2>
             <p className="auth-desc">
               <strong>{identity.email}</strong> 주소로 한국어 인증 메일이 발송되었습니다.<br />
-              메일함(스팸함 포함)의 링크를 클릭하여 인증을 마친 후, 아래 <strong>[인증 완료 확인]</strong> 버튼을 눌러주세요.
+              메일함(스팸함 포함)의 링크를 클릭하시면 <strong>회원사 추가 정보 입력 화면으로 자동 이동</strong>합니다. 자동 이동하지 않을 경우 아래 <strong>[인증 완료 확인]</strong> 버튼을 눌러주세요.
             </p>
 
             <div className="auth-action-stack">
@@ -1807,7 +2100,7 @@ export default function AuthGate({children}) {
           <>
             <div className="auth-new-tenant">
               <div className="auth-badge-status prod-verify">새 회원사 · 즉시 이용</div>
-              <h2 className="auth-mode-title auth-new-tenant-title">회사 정보 입력</h2>
+              <h2 className="auth-mode-title auth-new-tenant-title">회원사 추가 정보 입력</h2>
               <div className="auth-new-tenant-account">
                 <span>인증 계정</span>
                 <strong>{identity.email}</strong>
@@ -1864,7 +2157,12 @@ export default function AuthGate({children}) {
 
               <div className="signup-privacy-consent">
                 <label>
-                  <input type="checkbox" required />
+                  <input
+                    type="checkbox"
+                    required
+                    checked={tenantPrivacyAgreed}
+                    onChange={(e) => setTenantPrivacyAgreed(e.target.checked)}
+                  />
                   <span>회원사 정보 수집 및 이용에 동의합니다 <em>(필수)</em></span>
                 </label>
                 <button type="button" onClick={() => setPrivacyModalOpen(true)}>보기</button>
@@ -1897,30 +2195,6 @@ export default function AuthGate({children}) {
                   로그아웃
                 </button>
               </div>
-
-              <div style={{ marginTop: '20px', borderTop: '1px dashed rgba(239, 68, 68, 0.35)', paddingTop: '16px', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid #ef4444',
-                    color: '#f87171',
-                    borderRadius: '8px',
-                    padding: '9px 16px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  disabled={busy}
-                  onClick={handleResetAllDataAndAccount}
-                >
-                  🗑️ 가입 계정 및 모든 데이터 완전 초기화 (처음부터 다시 시작)
-                </button>
-              </div>
             </div>
           </>
         ) : regLoading ? (
@@ -1947,6 +2221,18 @@ export default function AuthGate({children}) {
                 onClick={() => checkRegistrationStatus()}
               >
                 다시 시도
+              </button>
+              <button
+                type="button"
+                className="auth-btn-secondary"
+                disabled={busy}
+                onClick={() => {
+                  setRegError(null);
+                  setVerifiedView('new_tenant_form');
+                  setMessage('');
+                }}
+              >
+                🏢 새 회원사 추가 정보 입력
               </button>
               <button
                 type="button"

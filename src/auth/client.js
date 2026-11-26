@@ -14,6 +14,7 @@ import {
   signOut, 
   deleteUser,
   setPersistence, 
+  browserLocalPersistence,
   browserSessionPersistence 
 } from 'firebase/auth';
 import { 
@@ -53,16 +54,17 @@ export async function hasPlatformSuperAdminPrivilege(user = auth.currentUser) {
   }
 }
 
-const ready = () => setPersistence(auth, browserSessionPersistence);
+const ready = (persistLocal = true) =>
+  setPersistence(auth, persistLocal ? browserLocalPersistence : browserSessionPersistence);
 
-export async function register(email, password) {
-  await ready();
+export async function register(email, password, signupTarget = 'new_tenant') {
+  await ready(true);
   auth.languageCode = 'ko';
   const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
   let verificationSent = false;
   let verificationError = null;
   try {
-    const continueUrl = getContinueUrl();
+    const continueUrl = buildVerifyContinueUrl(signupTarget);
     const actionCodeSettings = {
       url: continueUrl,
       handleCodeInApp: true
@@ -76,14 +78,14 @@ export async function register(email, password) {
   return { user: result.user, verificationSent, verificationError };
 }
 
-export async function login(email, password) { 
-  await ready(); 
+export async function login(email, password, remember = true) { 
+  await ready(remember); 
   const cleanEmail = (email || '').trim();
   return signInWithEmailAndPassword(auth, cleanEmail, password);
 }
 
-export async function googleLogin() { 
-  await ready(); 
+export async function googleLogin(remember = true) { 
+  await ready(remember); 
   const provider = new GoogleAuthProvider();
   try {
     return await signInWithPopup(auth, provider);
@@ -188,10 +190,10 @@ export async function deleteCurrentAccountAndAllData() {
   return { ok: true, authDeleted, authError };
 }
 
-export async function verifyEmail() {
+export async function verifyEmail(signupTarget = 'new_tenant') {
   if (!auth.currentUser) throw new Error('로그인된 계정이 없습니다.');
   auth.languageCode = 'ko';
-  const continueUrl = getContinueUrl();
+  const continueUrl = buildVerifyContinueUrl(signupTarget);
   const actionCodeSettings = {
     url: continueUrl,
     handleCodeInApp: true
@@ -207,6 +209,20 @@ export const getContinueUrl = () => {
     return window.location.origin;
   }
   return 'https://link-x-6606e.firebaseapp.com';
+};
+
+export const buildVerifyContinueUrl = (signupTarget = 'new_tenant') => {
+  const base = getContinueUrl();
+  const safeTarget = signupTarget === 'existing_tenant' ? 'existing_tenant' : 'new_tenant';
+  try {
+    const u = new URL(base);
+    u.searchParams.set('emailVerified', '1');
+    u.searchParams.set('signupTarget', safeTarget);
+    return u.toString();
+  } catch {
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}emailVerified=1&signupTarget=${safeTarget}`;
+  }
 };
 
 export const resetPassword = (email) => {

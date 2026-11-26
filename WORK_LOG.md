@@ -62,3 +62,21 @@ Next handoff: Antigravity should read AGENTS.md + NEXT_TASKS.md and verify these
   - `node --test security/tests/email-signup-verification.test.mjs`: 4/4 통과 (0 fail)
 - Production data touched?: 없음 (환경 설정 변경 및 배포용 커밋만 수행)
 - Outstanding risks and next action: `link-x-6606e` 프로젝트에 Cloud Functions 및 보안 규칙이 최신 상태로 배포되어 있어야 하며, Vercel 환경 변수에 `VITE_AUTH_PRODUCTION_APPROVED=false`가 별도 설정되어 있다면 제거 또는 `true`로 일치시켜야 함.
+
+
+## 2026-11-26 — Antigravity — 이메일 인증 후 회원사 추가 정보 입력 화면 자동 이동 및 로그인 후 연동
+- Status: 구현 및 빌드/테스트/린트 검증 완료 (커밋 및 `origin/main` push 반영)
+- Branch / commit: `main` (`5efd5d0` 이후 커밋)
+- Files changed:
+  - `src/auth/client.js`: `browserLocalPersistence` 지원(`register`, `login`, `googleLogin`의 `rememberMe` 반영)으로 이메일 인증 링크 새 탭 복귀 시에도 로그인 상태 유지, `buildVerifyContinueUrl` 추가로 인증 링크 복귀 URL에 `emailVerified=1&signupTarget=...` 전달 (`getContinueUrl()` 반환값은 기존과 동일하게 유지)
+  - `src/auth/AuthGate.jsx`:
+    - 이메일 인증 대기 화면(`!identity.emailVerified`)에서 3초 주기 폴링 및 창 포커스/`visibilitychange` 감지 시 자동으로 `회원사 추가 정보 입력`(`new_tenant_form`) 화면으로 이동 (`proceedAfterEmailVerified`)
+    - `?mode=verifyEmail&oobCode=...` 및 `?emailVerified=1` 복귀 시 800ms 후 자동으로 `회원사 추가 정보 입력` 화면(또는 세션이 없는 별도 브라우저인 경우 이메일이 채워진 로그인 화면)으로 이동
+    - 이메일 인증 후 로그인 시 `onIdTokenChanged`에서 `reload()`로 최신 `emailVerified`를 재확인하고, 미등록 신규 사용자는 조회 오류 상황에서도 죽은 화면에 막히지 않고 `회원사 추가 정보 입력`(`new_tenant_form`) 화면으로 안전하게 라우팅
+    - `회원사 추가 정보 입력`(`new_tenant_form`) 하단의 `가입 계정 및 모든 데이터 완전 초기화` 버튼 UI 제거, 필수 동의(`tenantPrivacyAgreed`) 검증 추가, 및 `회원사 개설 및 업무 시작` 제출 시 `autoVerifyHandledRef` 가드와 `enter(..., { retryOnce: true })`로 즉시 자동 로그인 입장하도록 보강
+- Checks actually run and results:
+  - `npm run build`: 정상 완료 (`vite v8.3.8`, 0 errors, 2.38s)
+  - `node --test security/tests/email-signup-verification.test.mjs security/tests/email-brand-and-verification.test.mjs`: 9/9 통과 (0 fail)
+  - `npx oxlint src/auth/AuthGate.jsx src/auth/client.js`: 0 errors (19 warnings)
+- Production data touched?: 없음 (클라이언트 인증 흐름만 수정)
+- Outstanding risks and next action: `origin/main` push 완료에 따른 Vercel 자동 배포 및 실환경 이메일 인증·회원사 개설 후 자동 로그인 흐름 확인.
