@@ -13,9 +13,22 @@ const getCleanEnv = (val) => {
   return val.replace(/['"\s\r\n]/g, '').trim();
 };
 
+const rawEnvApiKey = typeof import.meta !== 'undefined' ? getCleanEnv(import.meta.env?.VITE_FIREBASE_API_KEY) : undefined;
+const rawEnvAuthDomain = typeof import.meta !== 'undefined' ? getCleanEnv(import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN) : undefined;
+
+// Stale / invalid keys from old obsolete projects (e.g. aurora-ea981) or placeholders must never override verified credentials
+const isInvalidOrStaleKey = !rawEnvApiKey || 
+  rawEnvApiKey.includes('AIzaSyB6xMCJqJPW') || 
+  rawEnvApiKey === 'demo-key' || 
+  rawEnvApiKey.includes('your_firebase_api_key');
+
+const isInvalidOrStaleDomain = !rawEnvAuthDomain || 
+  rawEnvAuthDomain.includes('aurora-ea981') || 
+  rawEnvAuthDomain.includes('your_firebase_auth_domain');
+
 const firebaseConfig = {
-  apiKey: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_API_KEY)) || "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
-  authDomain: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN)) || "link-x-6606e.firebaseapp.com",
+  apiKey: (!isInvalidOrStaleKey && rawEnvApiKey) ? rawEnvApiKey : "AIzaSyAqx7nPiQ0mJGqnAGv28dO07C3-GQuqkpk",
+  authDomain: (!isInvalidOrStaleDomain && rawEnvAuthDomain) ? rawEnvAuthDomain : "link-x-6606e.firebaseapp.com",
   projectId: "link-x-6606e",
   storageBucket: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET)) || "link-x-6606e.firebasestorage.app",
   messagingSenderId: (typeof import.meta !== 'undefined' && getCleanEnv(import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID)) || "236294239528",

@@ -1084,6 +1084,14 @@ export default function AuthGate({children}) {
         showMsg('기존 이메일/비밀번호 계정이 확인되었습니다. 비밀번호를 입력하여 Google 로그인을 동일한 계정(동일 UID)으로 연결해 주세요.', 'info');
         return;
       }
+      if (err.code === 'auth/popup-blocked') {
+        showMsg('브라우저의 팝업 차단이 활성화되어 있어 Google 인증 창이 열리지 않았습니다. 브라우저 주소창 우측에서 팝업을 허용해 주세요.', 'error');
+        return;
+      }
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        showMsg('Google 인증 창이 닫혔습니다.', 'info');
+        return;
+      }
       showMsg('Google 인증 실패: ' + (err.message || '인증에 실패했습니다.'), 'error');
     } finally {
       setBusy(false);
