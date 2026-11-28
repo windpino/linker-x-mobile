@@ -24,6 +24,13 @@ function hasPlatformAdminClaim(req) {
   const token = req.auth?.token || {};
   return token.superAdmin === true || token.platform_admin === true || token.role === 'super_admin';
 }
+// Confirmed Linker X Platform SuperAdmin UIDs (windpino@gmail.com, strictly UID-bound after identity() verification)
+const PLATFORM_ADMIN_UIDS = new Set(['BL1Rp07y5CXPIVJhhiiajfgljN63']);
+function isPlatformSuperAdmin(uid, platformData, req) {
+  return PLATFORM_ADMIN_UIDS.has(uid)
+    || hasPlatformAdminClaim(req)
+    || (active(platformData) && ['super_admin', 'platform_admin'].includes(platformData.role));
+}
 function sessionUser(uid, cid, membership, profile) {
   // Explicit allowlist: never return legacy password, role, permissions or flags.
   const safe = {};
@@ -39,8 +46,8 @@ export const authSession = onCall(opts, async req => {
   const cid = id(req.data?.companyId);
   if (cid === 'linker_x_hq') {
     const p = (await platformRef(account.uid).get()).data();
-    const isSuper = (active(p) && p.role === 'super_admin') || hasPlatformAdminClaim(req);
-    const isOps = active(p) && ['support', 'subscription', 'developer', 'super_admin'].includes(p.role);
+    const isSuper = isPlatformSuperAdmin(account.uid, p, req);
+    const isOps = active(p) && ['support', 'subscription', 'developer', 'super_admin', 'platform_admin'].includes(p.role);
     if (!isSuper && !isOps) throw new HttpsError('permission-denied','플랫폼 운영팀 권한이 필요합니다.');
 
     return {
@@ -98,7 +105,7 @@ export const approveMembership = onCall(opts, async req => {
     const companyRef = db.doc(`companies/${cid}`), company = await tx.get(companyRef);
     const rref = requestRef(targetUid,cid), r = await tx.get(rref), data = r.data();
     if (!data || data.status !== 'pending' || data.uid !== targetUid || data.companyId !== cid) throw new HttpsError('failed-precondition','대기 신청이 없습니다.');
-    const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
+    const platform = isPlatformSuperAdmin(actor.uid, p.data(), req);
     if (!platform && !(active(admin.data()) && admin.data().companyId === cid && admin.data().role === 'tenant_admin' && active(company.data()))) throw new HttpsError('permission-denied','관리자 승인이 필요합니다.');
     if (data.role === 'tenant_admin' && !platform) throw new HttpsError('permission-denied','대표 권한은 플랫폼 관리자만 승인합니다.');
     const legacyId = id(data.legacyId), kind = data.role === 'partner' ? 'partners' : 'staffList';
@@ -239,7 +246,7 @@ export const deleteCompanyPermanently = onCall(opts, async req => {
   }
 
   const platform = await platformRef(actor.uid).get();
-  if (!(active(platform.data()) && platform.data().role === 'super_admin') && !hasPlatformAdminClaim(req)) {
+  if (!isPlatformSuperAdmin(actor.uid, platform.data(), req)) {
     throw new HttpsError('permission-denied', '슈퍼관리자만 회원사를 영구 삭제할 수 있습니다.');
   }
 
@@ -310,7 +317,7 @@ export const deleteCompanyPermanently = onCall(opts, async req => {
 export const listMembershipRequests = onCall(opts,async req=>{
   const actor=await identity(req);
   const p = await platformRef(actor.uid).get();
-  const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
+  const platform = isPlatformSuperAdmin(actor.uid, p.data(), req);
   const rawCid = req.data?.companyId;
 
   if (platform && (!rawCid || rawCid === 'linker_x_hq' || rawCid === 'all')) {
@@ -420,7 +427,7 @@ export const updateMembership = onCall(opts,async req=>{
  await db.runTransaction(async tx=>{
   const [p,m,c,t]=await Promise.all([tx.get(platformRef(actor.uid)),tx.get(membershipRef(actor.uid,cid)),tx.get(db.doc(`companies/${cid}`)),tx.get(membershipRef(uid,cid))]);
   const target=t.data();
-  const platform = (active(p.data()) && p.data().role === 'super_admin') || hasPlatformAdminClaim(req);
+  const platform = isPlatformSuperAdmin(actor.uid, p.data(), req);
   if(!platform&&!(active(m.data())&&m.data().companyId===cid&&m.data().role==='tenant_admin'&&active(c.data())&&['tenant_staff','partner'].includes(target?.role)))throw new HttpsError('permission-denied','대상 권한을 수정할 수 없습니다.');
   if(!target||target.companyId!==cid||!['active','revoked'].includes(req.data?.status))throw new HttpsError('invalid-argument','대상 소속 또는 상태를 확인하세요.');
   const permissions={};if(target.role==='tenant_staff')for(const key of ['orders','loading','delivery','invoices','inventory','catalog','reports'])if(req.data?.permissions?.[key]===true)permissions[key]=true;
@@ -709,19 +716,22 @@ export const getMyWorkspaces = onCall(opts, async req => {
 
   // 0. 링커엑스(Linker X) 본사 운영팀 소속 확인
   const pDoc = await platformRef(uid).get();
-  if (pDoc.exists && pDoc.data().status === 'active') {
-    const pData = pDoc.data();
-    const roleLabel = pData.role === 'super_admin' ? '최고 운영 관리자 (슈퍼관리자)'
-      : pData.role === 'support' ? '운영팀 고객지원 담당자'
-      : pData.role === 'subscription' ? '운영팀 구독관리 담당자'
+  const pData = pDoc.exists ? pDoc.data() : null;
+  const isSuper = isPlatformSuperAdmin(uid, pData, req);
+  const isOps = active(pData) && ['support', 'subscription', 'developer', 'super_admin', 'platform_admin'].includes(pData.role);
+  if (isSuper || isOps) {
+    const role = isSuper ? 'super_admin' : pData.role;
+    const roleLabel = role === 'super_admin' ? '최고 운영 관리자 (슈퍼관리자)'
+      : role === 'support' ? '운영팀 고객지원 담당자'
+      : role === 'subscription' ? '운영팀 구독관리 담당자'
       : '운영팀 플랫폼 개발자';
     workspaces.push({
       companyId: 'linker_x_hq',
       companyName: '링커엑스(Linker X) 본사 운영팀',
-      role: pData.role,
-      authRole: 'platform_ops',
+      role,
+      authRole: isSuper ? 'platform_admin' : 'platform_ops',
       isPlatformStaff: true,
-      isSuperAdmin: pData.role === 'super_admin',
+      isSuperAdmin: isSuper,
       type: 'platform_ops',
       roleLabel
     });
@@ -1031,7 +1041,7 @@ export const revokeStaffAccess = onCall(opts, async req => {
 export const createPlatformStaffInvitation = onCall(opts, async req => {
   const account = await identity(req);
   const pDoc = await platformRef(account.uid).get();
-  const isSuper = (pDoc.exists && pDoc.data().role === 'super_admin' && pDoc.data().status === 'active') || hasPlatformAdminClaim(req);
+  const isSuper = isPlatformSuperAdmin(account.uid, pDoc.exists ? pDoc.data() : null, req);
   if (!isSuper) throw new HttpsError('permission-denied', '슈퍼관리자만 운영팀 직원을 초대할 수 있습니다.');
 
   const targetEmail = String(req.data?.targetEmail || '').toLowerCase().trim();
@@ -1114,7 +1124,7 @@ export const createPlatformStaffInvitation = onCall(opts, async req => {
 export const updatePlatformStaffRole = onCall(opts, async req => {
   const account = await identity(req);
   const pDoc = await platformRef(account.uid).get();
-  const isSuper = (pDoc.exists && pDoc.data().role === 'super_admin' && pDoc.data().status === 'active') || hasPlatformAdminClaim(req);
+  const isSuper = isPlatformSuperAdmin(account.uid, pDoc.exists ? pDoc.data() : null, req);
   if (!isSuper) throw new HttpsError('permission-denied', '슈퍼관리자만 운영 역할을 변경할 수 있습니다.');
 
   const staffId = id(req.data?.staffId);
@@ -1170,7 +1180,7 @@ export const updatePlatformStaffRole = onCall(opts, async req => {
 export const revokePlatformStaffAccess = onCall(opts, async req => {
   const account = await identity(req);
   const pDoc = await platformRef(account.uid).get();
-  const isSuper = (pDoc.exists && pDoc.data().role === 'super_admin' && pDoc.data().status === 'active') || hasPlatformAdminClaim(req);
+  const isSuper = isPlatformSuperAdmin(account.uid, pDoc.exists ? pDoc.data() : null, req);
   if (!isSuper) throw new HttpsError('permission-denied', '슈퍼관리자만 운영팀 접근 권한을 해제할 수 있습니다.');
 
   const staffId = id(req.data?.staffId);
