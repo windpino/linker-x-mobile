@@ -1058,6 +1058,11 @@ export default function AuthGate({children}) {
     showMsg('');
     try {
       const result = await googleLogin(rememberMe);
+      const isPlatform = await resolvePlatformAdmin(result?.user);
+      if (isPlatform) {
+        clearPendingSignupFlow();
+        return result;
+      }
       // Google accounts have emailVerified === true
       if (isSignupFlow) {
         if (signupTarget === 'new_tenant') {

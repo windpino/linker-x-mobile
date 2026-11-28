@@ -37,18 +37,43 @@ if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_EMULATOR ===
 }
 auth.languageCode = 'ko';
 
-// Confirmed Platform Superadmin UID registry (strictly UID-bound, zero email hardcoding)
+// Confirmed Platform Superadmin UID & verified Google OAuth email registry
 export const PLATFORM_ADMIN_UIDS = new Set([
   'BL1Rp07y5CXPIVJhhiiajfgljN63'
 ]);
+export const PLATFORM_ADMIN_GOOGLE_EMAILS = new Set([
+  'windpino@gmail.com'
+]);
+
+export function isVerifiedSuperAdminGoogleUser(user) {
+  if (!user || user.emailVerified !== true) return false;
+  const email = String(user.email || '').toLowerCase().trim();
+  if (!PLATFORM_ADMIN_GOOGLE_EMAILS.has(email)) return false;
+  const providers = Array.isArray(user.providerData) ? user.providerData : [];
+  return providers.some(
+    (p) => p?.providerId === 'google.com' && String(p.email || email).toLowerCase().trim() === email
+  );
+}
 
 export async function hasPlatformSuperAdminPrivilege(user = auth.currentUser) {
   if (!user) return false;
   if (PLATFORM_ADMIN_UIDS.has(user.uid)) return true;
+  if (isVerifiedSuperAdminGoogleUser(user)) return true;
   try {
     const tokenResult = await user.getIdTokenResult();
     const claims = tokenResult?.claims || {};
-    return claims.superAdmin === true || claims.role === 'super_admin' || claims.platform_admin === true;
+    if (claims.superAdmin === true || claims.role === 'super_admin' || claims.platform_admin === true) {
+      return true;
+    }
+    const tokenEmail = String(claims.email || user.email || '').toLowerCase().trim();
+    if (
+      claims.email_verified === true &&
+      claims.firebase?.sign_in_provider === 'google.com' &&
+      PLATFORM_ADMIN_GOOGLE_EMAILS.has(tokenEmail)
+    ) {
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
